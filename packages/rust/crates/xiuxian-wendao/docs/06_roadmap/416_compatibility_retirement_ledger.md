@@ -34,9 +34,9 @@ A compatibility surface may be retired only when:
 
 ## Retirement Ledger
 
-| Compatibility surface                       | Current location                                                          | Retirement unlock                                       | Target retirement state                                                                                             |
-| :------------------------------------------ | :------------------------------------------------------------------------ | :------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------ |
-| Package-owned Julia compatibility namespace | `packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/` | post-`M5` downstream import cleanup in plugin consumers | Retire package-owned legacy Julia DTO imports once downstream users no longer need the compatibility naming surface |
+| Compatibility surface                       | Current location                                                        | Retirement unlock                                       | Target retirement state                                                                                             |
+| :------------------------------------------ | :---------------------------------------------------------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------ |
+| Package-owned Julia compatibility namespace | `packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/` | post-`M5` downstream import cleanup in plugin consumers | Retire package-owned legacy Julia DTO imports once downstream users no longer need the compatibility naming surface |
 
 ## Retirement Order
 
@@ -55,7 +55,7 @@ regression seams shrinking last.
 The following compatibility seams should remain protected until their unlock
 phase is complete:
 
-1. `packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/`
+1. `packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/`
 
 No new host-owned primary implementation logic may be reintroduced behind a
 crate-root compatibility namespace in `xiuxian-wendao`.
@@ -93,7 +93,7 @@ The compatibility retirement program is complete when:
 
 1. Julia-named host surfaces are compatibility-only or removed
 2. generic plugin-artifact and plugin-capability surfaces are canonical
-3. `xiuxian-wendao-julia` owns Julia-specific meaning physically
+3. `xiuxian-julia-core` owns Julia-specific meaning physically
 4. no migration blocker still depends on the monolithic crate boundary
 
 :RELATIONS:

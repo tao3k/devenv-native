@@ -1,9 +1,9 @@
-//! Julia runtime facts consumed by the polyglot control plane.
+//! Julia facts exposed by the polyglot control plane.
 //!
-//! This module is intentionally projection-only. The runtime crate owns Julia
-//! profile identities; the orchestrator consumes those facts when coordinating
-//! cross-language work.
+//! This module is intentionally projection-only. Julia core/runtime crates
+//! consume these inert facts when coordinating cross-language work.
 
+pub mod facts;
 mod model;
 
 pub use model::{

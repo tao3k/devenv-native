@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use serde_json::json;
 
 use super::model::{
-    FlowhubCheckStatus, FlowhubCliOutput, FlowhubGeneratedFile, FlowhubSourcePairSummary,
+    FlowhubCliOutput, FlowhubGeneratedFile, FlowhubLintStatus, FlowhubSourcePairSummary,
     FlowhubValidation,
 };
 use super::parse::{FlowhubAction, FlowhubOutputFormat};
@@ -47,7 +47,7 @@ fn render_markdown(input: &RenderInput, passed: bool) -> String {
     let mut rendered = String::new();
     rendered.push_str(match input.action {
         FlowhubAction::Init => "# Qianji Client Flowhub Init\n\n",
-        FlowhubAction::Check => "# Qianji Client Flowhub Check\n\n",
+        FlowhubAction::Lint => "# Qianji Client Flowhub Lint\n\n",
         FlowhubAction::Scenarios => "# Qianji Client Flowhub Scenarios\n\n",
     });
     let _ = writeln!(rendered, "- Project root: {}", input.project_root.display());
@@ -171,7 +171,7 @@ fn render_json(input: &RenderInput, passed: bool) -> String {
     }
 }
 
-fn validation_label(status: FlowhubCheckStatus) -> &'static str {
+fn validation_label(status: FlowhubLintStatus) -> &'static str {
     if status.is_passed() {
         "passed"
     } else {
@@ -182,7 +182,7 @@ fn validation_label(status: FlowhubCheckStatus) -> &'static str {
 fn action_label(action: FlowhubAction) -> &'static str {
     match action {
         FlowhubAction::Init => "init",
-        FlowhubAction::Check => "check",
+        FlowhubAction::Lint => "lint",
         FlowhubAction::Scenarios => "scenarios",
     }
 }

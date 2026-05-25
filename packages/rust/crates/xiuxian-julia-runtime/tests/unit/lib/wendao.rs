@@ -1,3 +1,9 @@
+use crate::wendao::link_graph::{
+    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
+    JULIA_RERANK_CAPABILITY_ID, LinkGraphJuliaRerankRuntimeConfig, build_rerank_provider_binding,
+    julia_rerank_provider_selector,
+};
+use crate::wendao::{JuliaContractMode, JuliaContractPath, JuliaContractRoute, JuliaContractUrl};
 use crate::wendao::{
     MEMORY_JULIA_COMPUTE_CALIBRATION_PROFILE_ID, MEMORY_JULIA_COMPUTE_EPISODIC_RECALL_PROFILE_ID,
     MEMORY_JULIA_COMPUTE_FAMILY_ID, MEMORY_JULIA_COMPUTE_GATE_SCORE_PROFILE_ID,
@@ -152,6 +158,37 @@ fn memory_julia_compute_binding_rejects_invalid_runtime_values() {
 }
 
 #[test]
+fn link_graph_rerank_provider_binding_uses_runtime_route_and_launch_config() {
+    let runtime = LinkGraphJuliaRerankRuntimeConfig {
+        base_url: Some(JuliaContractUrl::from("http://127.0.0.1:18080")),
+        route: Some(JuliaContractRoute::from("/custom-rerank")),
+        service_mode: Some(JuliaContractMode::from("stream")),
+        search_config_path: Some(JuliaContractPath::from("config/live/solver_demo.toml")),
+        ..LinkGraphJuliaRerankRuntimeConfig::default()
+    };
+
+    let binding = build_rerank_provider_binding(&runtime);
+
+    assert_eq!(binding.selector, julia_rerank_provider_selector());
+    assert_eq!(binding.selector.capability_id.0, JULIA_RERANK_CAPABILITY_ID);
+    assert_eq!(binding.endpoint.route.as_deref(), Some("/custom-rerank"));
+    assert_eq!(
+        binding.launch.expect("launch").launcher_path,
+        DEFAULT_JULIA_SEARCH_LAUNCHER_PATH
+    );
+}
+
+#[test]
+fn link_graph_rerank_provider_binding_defaults_route_when_not_configured() {
+    let binding = build_rerank_provider_binding(&LinkGraphJuliaRerankRuntimeConfig::default());
+
+    assert_eq!(
+        binding.endpoint.route.as_deref(),
+        Some(DEFAULT_JULIA_RERANK_FLIGHT_ROUTE)
+    );
+}
+
+#[test]
 fn wendaograph_identity_newtypes_are_transparent() {
     assert_eq!(
         WendaoGraphAlgorithmId("link_graph.components").0,
@@ -179,7 +216,7 @@ fn wendaograph_workload_builder_preserves_owner_facts() {
 }
 
 #[test]
-fn wendaograph_catalog_covers_runtime_owned_algorithm_families() {
+fn wendaograph_catalog_covers_polyglot_owned_algorithm_families() {
     let references = wendaograph_algorithm_refs();
 
     assert_eq!(wendaograph_link_graph_algorithm_refs().len(), 17);

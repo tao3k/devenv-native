@@ -1,0 +1,31 @@
+---
+source: packages/rust/crates/xiuxian-julia-core/src/modelica_plugin/discovery/../../../tests/unit/plugin/discovery/repository_surfaces.rs
+assertion_line: 141
+expression: payload
+---
+[
+  {
+    "path": "Controllers/Examples/Step.mo",
+    "surface": "example"
+  },
+  {
+    "path": "Controllers/Examples/ExampleUtilities/Helper.mo",
+    "surface": "support"
+  },
+  {
+    "path": "Controllers/Examples/Utilities/Helper.mo",
+    "surface": "support"
+  },
+  {
+    "path": "Controllers/Internal/Helper.mo",
+    "surface": "support"
+  },
+  {
+    "path": "Controllers/PI.mo",
+    "surface": "api"
+  },
+  {
+    "path": "UsersGuide/Overview.mo",
+    "surface": "documentation"
+  }
+]

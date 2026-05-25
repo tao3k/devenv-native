@@ -70,7 +70,7 @@ fn standalone_orgize_task_probe_reranks_candidates_with_evidence_window_features
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id qwen3-reference-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id qwen3-reference-task"),
         "stdout: {}",
         output.stdout
     );
@@ -119,7 +119,7 @@ fn standalone_orgize_task_probe_splits_agent_camel_case_tokens() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id openrouter-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id openrouter-task"),
         "stdout: {}",
         output.stdout
     );
@@ -167,7 +167,7 @@ fn standalone_orgize_task_probe_prefers_coherent_next_action_over_distributed_to
     );
     assert!(
         output.stdout.contains(
-            "show: wendao-client orgize ogrid-show --cached --id coherent-next-action-task"
+            "show: wendao-client orgize orgid-show --cached --id coherent-next-action-task"
         ),
         "stdout: {}",
         output.stdout
@@ -382,7 +382,7 @@ fn standalone_orgize_task_probe_keeps_exact_completed_orgid_when_included() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id completed-memory-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id completed-memory-task"),
         "stdout: {}",
         output.stdout
     );
@@ -429,7 +429,7 @@ fn standalone_orgize_task_probe_recalls_from_org_planning_timestamp() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id temporal-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id temporal-task"),
         "stdout: {}",
         output.stdout
     );
@@ -487,7 +487,7 @@ fn standalone_orgize_task_probe_matches_cjk_agent_text_without_embedding_backend
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id cjk-memory-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id cjk-memory-task"),
         "stdout: {}",
         output.stdout
     );
@@ -572,7 +572,7 @@ fn assert_audio_openrouter_probe_output(stdout: &str) {
     assert!(!stdout.contains("status: active"), "stdout: {stdout}");
     assert_probe_metadata(stdout);
     assert!(
-        stdout.contains("show: wendao-client orgize ogrid-show --cached --id audio-gate"),
+        stdout.contains("show: wendao-client orgize orgid-show --cached --id audio-gate"),
         "stdout: {stdout}"
     );
     assert!(
@@ -663,7 +663,7 @@ fn standalone_orgize_task_probe_recalls_from_direct_checklist_text() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id reference-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id reference-task"),
         "stdout: {}",
         output.stdout
     );
@@ -797,7 +797,7 @@ fn standalone_orgize_task_probe_recalls_from_linked_sdd_architecture_text() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id sdd-linked-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id sdd-linked-task"),
         "stdout: {}",
         output.stdout
     );
@@ -859,7 +859,64 @@ fn standalone_orgize_task_probe_prefers_multi_facet_memory_over_title_phrase_dec
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id multi-facet-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id multi-facet-task"),
+        "stdout: {}",
+        output.stdout
+    );
+}
+
+#[test]
+fn standalone_orgize_task_probe_recalls_reflection_question_memory_objects() {
+    let temp = tempdir_or_panic();
+    let agenda = temp.path().join("reflection_memory_lane.org");
+    std::fs::write(
+        &agenda,
+        concat!(
+            "* TODO Generic command cleanup :agent:org:memory:\n",
+            ":PROPERTIES:\n",
+            ":ID: generic-command-cleanup\n",
+            ":NEXT_ACTION: Review command docs.\n",
+            ":END:\n",
+            "* DONE Runtime rename receipt [1/1] [100%] :agent:org:memory:ARCHIVE:\n",
+            "CLOSED: [2026-05-24 Sun]\n",
+            ":PROPERTIES:\n",
+            ":ID: runtime-rename-receipt\n",
+            ":END:\n",
+            "- [X] Rename the runtime command.\n",
+            "** Reflection Questions\n",
+            "| Question | Value |\n",
+            "|---+---|\n",
+            "| Which preference or naming correction should future generated plans preserve? | Use orgid-show and do not keep the legacy alias. |\n",
+            "| Which failure mode should future agents avoid? | Do not reintroduce the old misspelled command name. |\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write agenda: {error}"));
+
+    let output = run_orgize(
+        temp.path(),
+        &[
+            "task-probe",
+            "--text",
+            "legacy alias",
+            "--include-done",
+            "--include-archived",
+            "--limit",
+            "2",
+            "reflection_memory_lane.org",
+        ],
+        "task-probe reflection memory objects",
+    );
+
+    assert_cli_success(&output);
+    assert!(
+        output.stdout.starts_with("title: Runtime rename receipt"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        output
+            .stdout
+            .contains("show: wendao-client orgize orgid-show --cached --id runtime-rename-receipt"),
         "stdout: {}",
         output.stdout
     );
@@ -914,7 +971,7 @@ fn standalone_orgize_task_probe_prefers_specific_memory_tokens_over_weak_org_tok
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id memory-recall-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id memory-recall-task"),
         "stdout: {}",
         output.stdout
     );
@@ -974,7 +1031,7 @@ fn standalone_orgize_task_probe_recalls_from_file_key_tokens() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id file-key-task"),
+            .contains("show: wendao-client orgize orgid-show --cached --id file-key-task"),
         "stdout: {}",
         output.stdout
     );

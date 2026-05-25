@@ -1,4 +1,4 @@
-use xiuxian_wendao_julia::compatibility::link_graph::{
+use xiuxian_julia_runtime::wendao::link_graph::{
     DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
     build_rerank_provider_binding, julia_deployment_artifact_selector,
     julia_rerank_provider_selector,
@@ -40,7 +40,7 @@ fn linked_builtin_host_test_helpers_match_julia_compatibility_helpers() {
             },
         ),
         build_rerank_provider_binding(
-            &xiuxian_wendao_julia::compatibility::link_graph::LinkGraphJuliaRerankRuntimeConfig {
+            &xiuxian_julia_runtime::wendao::link_graph::LinkGraphJuliaRerankRuntimeConfig {
                 base_url: Some("http://127.0.0.1:8090".to_string().into()),
                 route: Some("/custom-rerank".to_string().into()),
                 health_route: Some("/healthz".to_string().into()),

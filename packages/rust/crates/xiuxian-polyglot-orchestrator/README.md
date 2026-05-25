@@ -45,8 +45,8 @@ and its
 9. pure audio shard scheduling plans derived from owner-supplied pressure
    evidence and caller-local worker or shard bounds
 10. pure Julia profile scheduling plans derived from owner-supplied readiness,
-   runtime statistics, task shape evidence, fallback availability, and latency
-   constraints
+    runtime statistics, task shape evidence, fallback availability, and latency
+    constraints
 11. Julia thread topology and thread-pinning diagnostics as evidence-only
     readiness facts supplied by Julia owner packages
 12. Julia accelerator/backend diagnostics as evidence-only readiness facts
@@ -54,9 +54,10 @@ and its
 13. optional Wendao contract projections that read `xiuxian-wendao-runtime`
     route/config facts and emit this crate's neutral route, admission,
     evidence, profile-ref, and schedule contracts
-14. optional Julia runtime projections that consume `xiuxian-julia-runtime`
-    Wendao feature facts and expose them as cross-language bridge inputs,
-    including scheduler-facing catalog refs and profile scheduling evidence
+14. optional Julia fact catalogs and projections consumed by
+    `xiuxian-julia-core` and `xiuxian-julia-runtime` as cross-language bridge
+    inputs, including scheduler-facing catalog refs and profile scheduling
+    evidence
 
 It does not own Python Docling execution, OCR shard ordering, document cache
 policy, Julia runtime execution, Julia profile schemas, Julia JIT warmup
@@ -105,12 +106,11 @@ values remain diagnostic overrides, not production defaults.
 2. `xiuxian-wendao-attachments` owns OCR shard scheduling evidence, cache
    reuse, ordering validation, Docling fallback policy, and translation of OCR
    shard plans into attachment-local batches.
-3. `xiuxian-julia-runtime` owns Julia runtime identity, Wendao-facing profile
-   facts, schema ids, host entrypoints, and workload descriptors behind its
-   `wendao` feature. `xiuxian-polyglot-orchestrator` consumes those facts and
-   owns the cross-language scheduling projections and profile scheduling
-   evidence. `xiuxian-wendao-julia` is a removal-track migration object for
-   existing Wendao bridge clients and tests.
+3. `xiuxian-polyglot-orchestrator` owns inert Julia profile/catalog facts,
+   cross-language scheduling projections, and profile scheduling evidence.
+   `xiuxian-julia-runtime` consumes those facts behind its `wendao` feature for
+   runtime-facing adapters. `xiuxian-julia-core` consumes both runtime and
+   polyglot contracts for existing Wendao and Modelica bridge clients.
 4. `xiuxian-wendao-analyzer` owns Python document conversion and OCR execution
    behind the existing analyzer Flight service.
 
@@ -126,13 +126,13 @@ values remain diagnostic overrides, not production defaults.
    from supplied pressure facts.
 7. `julia_schedule`: inert Julia dispatch, queue, fallback, and reject plans
    derived from supplied profile evidence and task shape facts.
-8. `julia_runtime`: optional projection of feature-scoped Julia runtime facts
-   and runtime-owned memory profile facts plus `WendaoGraph.jl` catalog
-   entries into the polyglot bridge boundary.
+8. `julia_runtime`: optional Julia fact catalog and scheduler projection for
+   memory profile facts plus `WendaoGraph.jl` catalog entries consumed by Julia
+   core/runtime bridge crates.
 9. `readiness`: Julia profile, route, schema, manifest, warmup, benchmark,
    thread-diagnostic, and accelerator-diagnostic readiness evidence.
 10. `schema_benchmark`: advisory schema-strategy benchmark evidence and report
-   contracts.
+    contracts.
 11. `refs`: typed references to external owner contracts.
 12. `snapshot`: inert read-only aggregation of refs, admission budgets, and
     evidence.
@@ -154,7 +154,7 @@ The backend profile evidence chain for this lane is intentionally focused:
 `cargo test -p xiuxian-wendao-attachments --features pdf-source-range --lib polyglot`,
 `cargo test -p xiuxian-julia-runtime --features wendao --lib`,
 `cargo test -p xiuxian-polyglot-orchestrator --features julia-runtime,wendao-contracts --lib`,
-`cargo test -p xiuxian-wendao-julia --lib polyglot`, the Studio
+`cargo test -p xiuxian-julia-core --lib polyglot`, the Studio
 `document_extract` lib tests with document-extract source-range features, and
 the analyzer document-service pytest suite. These tests verify profile and
 owner-boundary behavior; they do not authorize new routes, schemas, worker

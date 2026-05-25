@@ -65,7 +65,7 @@ fn print_surface_usage() {
     eprintln!("             qianji [-v|--log-verbose] show --graph <path>");
     eprintln!("             qianji [-v|--log-verbose] show --contract <id>");
     eprintln!(
-        "  Flowhub:   use qianji-client flowhub --mode plan --scenario agent-coding init|check"
+        "  Flowhub:   use qianji-client flowhub --mode plan --scenario agent-coding init|lint"
     );
     eprintln!("  Advance:   qianji [-v|--log-verbose] advance --dir <path> --to <node>");
     eprintln!("  Check:     qianji [-v|--log-verbose] check --dir <path>");

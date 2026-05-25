@@ -1,10 +1,12 @@
 use super::{
-    ARTIFACT_CACHE_BACKEND_ENV, ARTIFACT_CACHE_MEMORY_BYTES_ENV, ARTIFACT_CACHE_ROOT_ENV,
-    ARTIFACT_CACHE_STORAGE_BYTES_ENV, AgentArtifactKeyParts, ArtifactBlobCache,
-    ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobWrite, ArtifactCacheBackendKind,
-    ArtifactKey, ArtifactKeyComponent, ArtifactKeyParts, ArtifactKind, AttachmentArtifactKeyParts,
-    ContentAddressedFilesystemBlobCache, OntologyArtifactKeyParts, agent_artifact_key,
-    attachment_artifact_key, ontology_artifact_key, pack_artifact_directory,
+    ARTIFACT_CACHE_BACKEND_ENV, ARTIFACT_CACHE_BLOCK_SIZE_BYTES_ENV, ARTIFACT_CACHE_FLUSHERS_ENV,
+    ARTIFACT_CACHE_MEMORY_BYTES_ENV, ARTIFACT_CACHE_MEMORY_SHARDS_ENV,
+    ARTIFACT_CACHE_RECLAIMERS_ENV, ARTIFACT_CACHE_RECOVER_CONCURRENCY_ENV, ARTIFACT_CACHE_ROOT_ENV,
+    ARTIFACT_CACHE_RUNTIME_WORKERS_ENV, ARTIFACT_CACHE_STORAGE_BYTES_ENV, AgentArtifactKeyParts,
+    ArtifactBlobCache, ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobWrite,
+    ArtifactCacheBackendKind, ArtifactKey, ArtifactKeyComponent, ArtifactKeyParts, ArtifactKind,
+    AttachmentArtifactKeyParts, ContentAddressedFilesystemBlobCache, OntologyArtifactKeyParts,
+    agent_artifact_key, attachment_artifact_key, ontology_artifact_key, pack_artifact_directory,
     read_through_artifact_bytes, unpack_artifact_directory,
 };
 

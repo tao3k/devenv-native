@@ -3,6 +3,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use orgize::{Org, ast::OrgElementSelector};
+use serde::Deserialize;
 use xiuxian_qianji_bpmn_engine::{BpmnSourceFile, lint_bpmn_source};
 use xiuxian_wendao_parsers::{OrgizeLintOutputFormat, OrgizeLintRequest, lint_org_files};
 
@@ -15,6 +17,23 @@ pub(crate) struct FlowhubSourcePair {
     pub(crate) bpmn_source: PathBuf,
     pub(crate) bpmn_source_name: String,
     pub(crate) bpmn_process_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct FlowhubManifest {
+    module: Option<FlowhubManifestModule>,
+    contract: Option<FlowhubManifestContract>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FlowhubManifestModule {
+    name: String,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct FlowhubManifestContract {
+    #[serde(default)]
+    required: Vec<String>,
 }
 
 pub(crate) fn validate_flowhub_source_pair_contract(
@@ -30,6 +49,38 @@ pub(crate) fn validate_flowhub_source_pair_contract(
     let mut passed = true;
     passed &= validate_org_source(&source_pair, diagnostics)?;
     passed &= validate_bpmn_source(&source_pair, diagnostics)?;
+    Ok(passed)
+}
+
+pub(crate) fn validate_flowhub_module_policy_entries(
+    flowhub_root: &Path,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    let mut manifest_paths = Vec::new();
+    collect_manifest_paths(flowhub_root, 0, &mut manifest_paths)?;
+    let mut passed = true;
+    for manifest_path in manifest_paths {
+        let source = read_to_string(&manifest_path, "Flowhub module manifest")?;
+        let manifest = toml::from_str::<FlowhubManifest>(&source).map_err(|error| {
+            QianjiClientError::message(format!(
+                "Failed to parse Flowhub module manifest `{}`: {error}",
+                manifest_path.display()
+            ))
+        })?;
+        let Some(module) = manifest.module else {
+            continue;
+        };
+        let module_dir = manifest_path.parent().unwrap_or(flowhub_root);
+        let contract = manifest.contract.unwrap_or_default();
+        passed &= validate_module_policy_entry(
+            flowhub_root,
+            module_dir,
+            &manifest_path,
+            &module.name,
+            &contract,
+            diagnostics,
+        )?;
+    }
     Ok(passed)
 }
 
@@ -68,6 +119,353 @@ pub(crate) fn resolve_flowhub_source_pair(
     Ok(None)
 }
 
+fn validate_module_policy_entry(
+    flowhub_root: &Path,
+    module_dir: &Path,
+    manifest_path: &Path,
+    module_name: &str,
+    contract: &FlowhubManifestContract,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    let policy_name = policy_filename_for_module_name(module_name);
+    let policy_path = module_dir.join(&policy_name);
+    let mut passed = true;
+    passed &= validate_module_required_surfaces(
+        flowhub_root,
+        module_dir,
+        manifest_path,
+        &contract.required,
+        diagnostics,
+    )?;
+    if !contract
+        .required
+        .iter()
+        .any(|required| required == &policy_name)
+    {
+        diagnostics.push(format!(
+            "Flowhub module manifest `{}` must list required policy entry `{policy_name}`",
+            manifest_path.display()
+        ));
+        passed = false;
+    }
+    if !has_exact_relative_file(module_dir, Path::new(&policy_name))? {
+        diagnostics.push(format!(
+            "Flowhub module `{}` is missing required policy entry `{}`",
+            module_path_label(flowhub_root, module_dir),
+            policy_path.display()
+        ));
+        return Ok(false);
+    }
+
+    passed &= validate_policy_org_source(&policy_path, module_name, diagnostics)?;
+    Ok(passed)
+}
+
+fn validate_module_required_surfaces(
+    flowhub_root: &Path,
+    module_dir: &Path,
+    manifest_path: &Path,
+    required_surfaces: &[String],
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    let mut passed = true;
+    for required_surface in required_surfaces {
+        let Some(relative_path) =
+            parse_required_surface_path(manifest_path, required_surface, diagnostics)
+        else {
+            passed = false;
+            continue;
+        };
+        let surface_path = module_dir.join(relative_path);
+        if !has_exact_relative_file(module_dir, relative_path)? {
+            diagnostics.push(format!(
+                "Flowhub module manifest `{}` lists missing required surface `{}` under module `{}`",
+                manifest_path.display(),
+                required_surface,
+                module_path_label(flowhub_root, module_dir)
+            ));
+            passed = false;
+            continue;
+        }
+        passed &= validate_required_surface_content(
+            manifest_path,
+            required_surface,
+            &surface_path,
+            diagnostics,
+        )?;
+    }
+    Ok(passed)
+}
+
+fn parse_required_surface_path<'a>(
+    manifest_path: &Path,
+    required_surface: &'a str,
+    diagnostics: &mut Vec<String>,
+) -> Option<&'a Path> {
+    let relative_path = Path::new(required_surface);
+    let has_parent_component = relative_path
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir));
+    if required_surface.trim().is_empty() || relative_path.is_absolute() || has_parent_component {
+        diagnostics.push(format!(
+            "Flowhub module manifest `{}` has invalid required surface `{required_surface}`; surfaces must be non-empty relative paths inside the module",
+            manifest_path.display()
+        ));
+        return None;
+    }
+    Some(relative_path)
+}
+
+fn validate_required_surface_content(
+    manifest_path: &Path,
+    required_surface: &str,
+    surface_path: &Path,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    match surface_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+    {
+        Some("org") => validate_required_org_surface(
+            manifest_path,
+            required_surface,
+            surface_path,
+            diagnostics,
+        ),
+        Some("bpmn") => validate_required_bpmn_surface(
+            manifest_path,
+            required_surface,
+            surface_path,
+            diagnostics,
+        ),
+        _ => Ok(true),
+    }
+}
+
+fn validate_required_org_surface(
+    manifest_path: &Path,
+    required_surface: &str,
+    surface_path: &Path,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    let request = OrgizeLintRequest {
+        paths: vec![surface_path.to_path_buf()],
+        output_format: OrgizeLintOutputFormat::Compact,
+        priority_highest: None,
+        priority_lowest: None,
+        priority_default: None,
+        fix: false,
+    };
+    let report = lint_org_files(&request).map_err(|error| {
+        QianjiClientError::message(format!(
+            "Failed to lint required Flowhub Org surface `{}` from manifest `{}`: {error}",
+            required_surface,
+            manifest_path.display()
+        ))
+    })?;
+    if report.is_clean() {
+        return Ok(true);
+    }
+    diagnostics.push(report.render(OrgizeLintOutputFormat::Compact));
+    Ok(false)
+}
+
+fn validate_required_bpmn_surface(
+    manifest_path: &Path,
+    required_surface: &str,
+    surface_path: &Path,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    let source = read_to_string(surface_path, "required Flowhub BPMN surface")?;
+    let report = lint_bpmn_source(&BpmnSourceFile::new(
+        format!(
+            "{} required surface `{required_surface}`",
+            manifest_path.display()
+        ),
+        source,
+    ));
+    if report.ok {
+        return Ok(true);
+    }
+    for issue in report.issues {
+        diagnostics.push(format!(
+            "Flowhub module manifest `{}` required surface `{}` failed {}: {}",
+            manifest_path.display(),
+            required_surface,
+            issue.code,
+            issue.summary
+        ));
+    }
+    Ok(false)
+}
+
+fn validate_policy_org_source(
+    policy_path: &Path,
+    module_name: &str,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    let source = read_to_string(policy_path, "Flowhub policy Org source")?;
+    let properties = parse_org_properties(&source);
+    let mut passed = true;
+    if property_value(&properties, "FLOWHUB_POLICY_ENTRY").is_none() {
+        diagnostics.push(format!(
+            "Flowhub policy entry `{}` is missing FLOWHUB_POLICY_ENTRY",
+            policy_path.display()
+        ));
+        passed = false;
+    }
+    let expected_mode = policy_mode_for_module_name(module_name);
+    if property_value(&properties, "FLOWHUB_POLICY_MODE") != Some(expected_mode.as_str()) {
+        diagnostics.push(format!(
+            "Flowhub policy entry `{}` must declare FLOWHUB_POLICY_MODE `{expected_mode}`",
+            policy_path.display()
+        ));
+        passed = false;
+    }
+    passed &=
+        validate_policy_contract_graph_selector(policy_path, &source, &properties, diagnostics);
+
+    let request = OrgizeLintRequest {
+        paths: vec![policy_path.to_path_buf()],
+        output_format: OrgizeLintOutputFormat::Compact,
+        priority_highest: None,
+        priority_lowest: None,
+        priority_default: None,
+        fix: false,
+    };
+    let report = lint_org_files(&request).map_err(|error| {
+        QianjiClientError::message(format!(
+            "Failed to lint Flowhub policy entry `{}`: {error}",
+            policy_path.display()
+        ))
+    })?;
+    if !report.is_clean() {
+        diagnostics.push(report.render(OrgizeLintOutputFormat::Compact));
+        passed = false;
+    }
+    Ok(passed)
+}
+
+fn validate_policy_contract_graph_selector(
+    policy_path: &Path,
+    source: &str,
+    properties: &[(String, String)],
+    diagnostics: &mut Vec<String>,
+) -> bool {
+    let Some(selector_source) = property_value(properties, "FLOWHUB_CONTRACT_GRAPH") else {
+        return true;
+    };
+    let selector = match OrgElementSelector::parse_plist(selector_source) {
+        Ok(selector) => selector,
+        Err(error) => {
+            diagnostics.push(format!(
+                "Flowhub policy entry `{}` has invalid FLOWHUB_CONTRACT_GRAPH selector: {error}",
+                policy_path.display()
+            ));
+            return false;
+        }
+    };
+    let document = Org::parse(source).document();
+    let matches = document.select_org_elements(&selector);
+    match matches.len() {
+        1 => true,
+        0 => {
+            diagnostics.push(format!(
+                "Flowhub policy entry `{}` FLOWHUB_CONTRACT_GRAPH selector matched no Org element",
+                policy_path.display()
+            ));
+            false
+        }
+        count => {
+            diagnostics.push(format!(
+                "Flowhub policy entry `{}` FLOWHUB_CONTRACT_GRAPH selector matched {count} Org elements; expected exactly 1",
+                policy_path.display()
+            ));
+            false
+        }
+    }
+}
+
+fn policy_filename_for_module_name(module_name: &str) -> String {
+    format!("{}_POLICY.org", policy_mode_for_module_name(module_name))
+}
+
+fn policy_mode_for_module_name(module_name: &str) -> String {
+    let mut mode = String::new();
+    let mut previous_was_separator = false;
+    for character in module_name.chars() {
+        if character.is_ascii_alphanumeric() {
+            mode.push(character.to_ascii_uppercase());
+            previous_was_separator = false;
+        } else if !previous_was_separator && !mode.is_empty() {
+            mode.push('_');
+            previous_was_separator = true;
+        }
+    }
+    while mode.ends_with('_') {
+        mode.pop();
+    }
+    if mode.is_empty() {
+        "MODULE".to_string()
+    } else {
+        mode
+    }
+}
+
+fn module_path_label(flowhub_root: &Path, module_dir: &Path) -> String {
+    module_dir
+        .strip_prefix(flowhub_root)
+        .unwrap_or(module_dir)
+        .display()
+        .to_string()
+}
+
+fn has_exact_relative_file(dir: &Path, relative_path: &Path) -> Result<bool, QianjiClientError> {
+    let mut current_dir = dir.to_path_buf();
+    let mut components = relative_path.components().peekable();
+    while let Some(component) = components.next() {
+        let std::path::Component::Normal(component_name) = component else {
+            return Ok(false);
+        };
+        let is_last = components.peek().is_none();
+        let Some(next_path) = exact_child_path(&current_dir, component_name)? else {
+            return Ok(false);
+        };
+        if is_last {
+            return Ok(next_path.is_file());
+        }
+        if !next_path.is_dir() {
+            return Ok(false);
+        }
+        current_dir = next_path;
+    }
+    Ok(false)
+}
+
+fn exact_child_path(
+    dir: &Path,
+    file_name: &std::ffi::OsStr,
+) -> Result<Option<PathBuf>, QianjiClientError> {
+    let entries = fs::read_dir(dir).map_err(|error| {
+        QianjiClientError::message(format!(
+            "Failed to read Flowhub module directory `{}`: {error}",
+            dir.display()
+        ))
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            QianjiClientError::message(format!(
+                "Failed to read Flowhub module directory entry under `{}`: {error}",
+                dir.display()
+            ))
+        })?;
+        if entry.file_name() == file_name {
+            return Ok(Some(entry.path()));
+        }
+    }
+    Ok(None)
+}
+
 fn collect_flowhub_source_pairs(
     flowhub_root: &Path,
     diagnostics: &mut Vec<String>,
@@ -79,6 +477,47 @@ fn collect_flowhub_source_pairs(
         .map(|org_source| parse_source_pair_from_org_path(flowhub_root, &org_source, diagnostics))
         .collect::<Result<Vec<_>, _>>()
         .map(|source_pairs| source_pairs.into_iter().flatten().collect())
+}
+
+fn collect_manifest_paths(
+    dir: &Path,
+    depth: usize,
+    manifest_paths: &mut Vec<PathBuf>,
+) -> Result<(), QianjiClientError> {
+    if depth > 6 || !dir.is_dir() {
+        return Ok(());
+    }
+    let entries = fs::read_dir(dir).map_err(|error| {
+        QianjiClientError::message(format!(
+            "Failed to read Flowhub directory `{}`: {error}",
+            dir.display()
+        ))
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            QianjiClientError::message(format!(
+                "Failed to read Flowhub directory entry under `{}`: {error}",
+                dir.display()
+            ))
+        })?;
+        let path = entry.path();
+        if path.is_dir() {
+            if path
+                .file_name()
+                .is_some_and(|file_name| file_name == ".git")
+            {
+                continue;
+            }
+            collect_manifest_paths(&path, depth + 1, manifest_paths)?;
+        } else if path
+            .file_name()
+            .is_some_and(|file_name| file_name == "qianji.toml")
+        {
+            manifest_paths.push(path);
+        }
+    }
+    manifest_paths.sort();
+    Ok(())
 }
 
 fn validate_unique_scenario_ids(

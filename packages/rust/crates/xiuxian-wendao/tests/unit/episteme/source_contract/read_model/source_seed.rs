@@ -6,15 +6,15 @@ use crate::episteme::source_contract::support::{
     EpistemeFixture, i64_column, string_column, table,
 };
 #[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::{
+    build_wendaograph_ontology_read_model_quality_arrow_request,
+    build_wendaograph_ontology_read_model_quality_flight_request_batch,
+};
+#[cfg(feature = "julia")]
 use xiuxian_wendao::episteme::build_episteme_wendaograph_quality_request_batches;
 use xiuxian_wendao::episteme::{
     EpistemeReadModelRequest, materialize_episteme_read_model_seed,
     validate_episteme_read_model_relation_endpoints,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
-    build_wendaograph_ontology_read_model_quality_arrow_request,
-    build_wendaograph_ontology_read_model_quality_flight_request_batch,
 };
 
 #[test]

@@ -93,7 +93,7 @@ or archive encoding slice; it must not bypass resource-order or precision gates.
 ## SearchStrategyFlow Flight Materialization
 
 Studio owns the native Arrow Flight materialization layer for
-SearchStrategyFlow retrieval routes. `xiuxian-wendao-julia` may emit the
+SearchStrategyFlow retrieval routes. `xiuxian-julia-core` may emit the
 graph-owned strategy trace and Rust bridge route receipts, but decoded payload
 proof remains here because Studio owns the service-backed `/search/repos/main`,
 `/analysis/repo-projected-page-index-tree`,
@@ -789,16 +789,17 @@ downstream Org tooling can export Markdown or HTML without changing the audio
 Arrow shard schemas. The mode is model-neutral: backend identity comes from
 configuration, while concrete local or hosted model invocation remains inside
 the analyzer worker registry.
-Audio shard materialization also enables the db-store `ArtifactBlobCache`
-interface in the `document-extract-audio-shards` feature. Studio passes the
-resolved artifact root into attachments, and attachments builds the configured
-db-store backend. `WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR` remains a
-route-specific override; otherwise Studio uses `WENDAO_ARTIFACT_CACHE_ROOT`,
-then `$PRJ_CACHE_HOME/wendao/artifacts` when the project cache root is
-available. `WENDAO_ARTIFACT_CACHE_BACKEND=filesystem|foyer` selects the
-backend, and the Foyer capacity variables are forwarded through the shared
-db-store config. The cache is byte reuse only and does not affect analyzer
-request schemas, worker selection, transcript merge rules, or precision gates.
+Audio shard materialization enables the db-store Foyer-backed
+`ArtifactBlobCache` substrate in the `document-extract-audio-shards` feature.
+Studio passes the resolved artifact root into attachments, and attachments
+builds the configured db-store backend. `WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR`
+remains a route-specific override; otherwise Studio uses
+`WENDAO_ARTIFACT_CACHE_ROOT`, then `$PRJ_CACHE_HOME/wendao/artifacts` when the
+project cache root is available. Explicit `WENDAO_ARTIFACT_CACHE_BACKEND` values
+can still select `filesystem` or `foyer`, but the Foyer feature path defaults
+to Foyer through the shared db-store config. The cache is byte reuse only and
+does not affect analyzer request schemas, worker selection, transcript merge
+rules, or precision gates.
 Attachments also owns accepted transcript admission and a planned admission
 index for accepted rows. Studio supplies route/runtime identity and calls that
 API before materialization. The planned admission index can satisfy warm rows

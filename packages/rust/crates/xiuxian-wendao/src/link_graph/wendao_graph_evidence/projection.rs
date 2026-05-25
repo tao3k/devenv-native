@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray};
 use arrow::record_batch::RecordBatch;
-use xiuxian_wendao_julia::{
+use xiuxian_julia_core::{
     WendaoGraphEvidenceTableKind, validate_wendao_graph_evidence_request_schema,
     wendao_graph_evidence_table_schema,
 };

@@ -78,7 +78,7 @@ async fn build_plugin_arrow_request_batch_from_vector_store_with_metadata_sets_t
             table_name: "anchors",
             rows: [("doc-1#alpha".to_string(), 0.25)],
             query_vector: &[9.0, 8.0, 7.0],
-            provider_id: "xiuxian-wendao-julia",
+            provider_id: "xiuxian-julia-core",
             query_text: "alpha signal",
             schema_version: "v1",
         },
@@ -88,7 +88,7 @@ async fn build_plugin_arrow_request_batch_from_vector_store_with_metadata_sets_t
 
     assert_eq!(
         batch.schema().metadata().get("trace_id"),
-        Some(&"plugin-rerank:xiuxian-wendao-julia:alpha_signal".to_string())
+        Some(&"plugin-rerank:xiuxian-julia-core:alpha_signal".to_string())
     );
     assert_eq!(
         batch.schema().metadata().get("wendao.schema_version"),

@@ -8,19 +8,19 @@ use std::sync::Arc;
 use arrow::array::Array;
 use axum::{Json, extract::State};
 #[cfg(feature = "julia")]
-use xiuxian_wendao::episteme::build_episteme_wendaograph_quality_request_batches;
-use xiuxian_wendao::episteme::{
-    EpistemeReadModelMaterialization,
-    admit_and_materialize_episteme_ontology_registry_snapshot_read_model_seed,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     WendaoGraphOntologyReadModelQualityFlightBindingOptions,
     WendaoGraphOntologyReadModelQualityRequestBatches,
     WendaoGraphOntologyReadModelQualityRoundtrip,
     build_wendaograph_ontology_read_model_quality_arrow_request,
     build_wendaograph_ontology_read_model_quality_flight_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
+};
+#[cfg(feature = "julia")]
+use xiuxian_wendao::episteme::build_episteme_wendaograph_quality_request_batches;
+use xiuxian_wendao::episteme::{
+    EpistemeReadModelMaterialization,
+    admit_and_materialize_episteme_ontology_registry_snapshot_read_model_seed,
 };
 
 use crate::studio::router::handlers::episteme::source_contract_support::{

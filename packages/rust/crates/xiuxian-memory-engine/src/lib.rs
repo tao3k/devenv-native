@@ -68,6 +68,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 mod encoder;
 mod episode;
 mod gate;
+mod inference;
 mod persistence;
 mod projection;
 mod q_table;
@@ -87,6 +88,10 @@ pub use gate::{
     MemoryGateDecision, MemoryGateEvent, MemoryGateEventInput, MemoryGateMemoryId,
     MemoryGatePolicy, MemoryGateSessionId, MemoryGateTurnId, MemoryGateVerdict,
     MemoryLifecycleState, MemoryPromotionTarget, MemoryUtilityLedger,
+};
+pub use inference::{
+    InferredMemoryObject, InferredMemoryObjectKind, infer_memory_object_from_reflection,
+    infer_memory_object_kind_from_question,
 };
 pub use projection::{MemoryProjectionFilter, MemoryProjectionRow, MemoryProjectionTimestampMs};
 pub use q_table::{QTable, QTablePersistenceError};

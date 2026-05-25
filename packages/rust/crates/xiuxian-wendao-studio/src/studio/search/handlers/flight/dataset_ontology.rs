@@ -13,6 +13,12 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
+#[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::{
+    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
+    build_wendaograph_ontology_read_model_quality_flight_binding,
+    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
+};
 use xiuxian_wendao::duckdb::{
     DatasetOntologyArrowIpcSourceTableSpec, DatasetOntologyDuckDbMaterializer,
     DatasetOntologyRuntimeMaterialization, DatasetOntologyRuntimeMaterializationReport,
@@ -24,12 +30,6 @@ use xiuxian_wendao::duckdb::{
 use xiuxian_wendao::duckdb::{
     build_dataset_ontology_wendaograph_quality_request_batches,
     summarize_dataset_ontology_wendaograph_quality_response,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
-    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
-    build_wendaograph_ontology_read_model_quality_flight_binding,
-    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
 };
 use xiuxian_wendao_runtime::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,

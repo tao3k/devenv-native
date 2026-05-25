@@ -30,9 +30,9 @@ zhenfa-router = [
   "search-runtime",
 ]
 julia = [
+  "dep:xiuxian-julia-core",
   "dep:xiuxian-julia-runtime",
   "dep:xiuxian-polyglot-orchestrator",
-  "dep:xiuxian-wendao-julia",
 ]
 builtin-plugins = ["dep:xiuxian-wendao-builtin"]
 runtime-transport = [
@@ -140,7 +140,7 @@ xiuxian-wendao-client = { path = "../xiuxian-wendao-client" }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
-xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
+xiuxian-julia-core = { path = "../xiuxian-julia-core", optional = true }
 xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"], optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"], optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }

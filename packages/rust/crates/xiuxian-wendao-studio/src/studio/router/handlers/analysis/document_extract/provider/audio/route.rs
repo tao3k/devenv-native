@@ -6,10 +6,12 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
+use xiuxian_qianji::WorkflowTrace;
 use xiuxian_wendao_attachments::audio::{
-    AudioRecoveryPatchGateOptions, AudioRiskParentSelectionOptions,
-    AudioShardMaterializationSource, AudioShardMaterializedItem, AudioShardWorkerProfile,
-    AudioTranscriptAdmissionStats, apply_audio_recovery_patch_decisions,
+    AudioRecoveryPatchGateOptions, AudioRiskParentSelectionOptions, AudioShardMaterializationInput,
+    AudioShardMaterializationSource, AudioShardMaterializedItem, AudioShardPlan,
+    AudioShardWorkerProfile, AudioSpeechWindowPlannerInput, AudioTranscriptAdmissionStats,
+    apply_audio_recovery_patch_decisions,
 };
 use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
@@ -23,7 +25,8 @@ use super::plan::{
 use super::response::build_audio_transcript_with_org_batch;
 use super::speech::recovery_speech_window_input_from_config;
 use crate::studio::document_extract_audio_client::{
-    AudioShardFlightClient, AudioShardFlightRequestOptions, AudioShardRecoveryWorkflowRequest,
+    AudioShardFlightClient, AudioShardFlightRequestOptions, AudioShardRecoveryWorkflowExecution,
+    AudioShardRecoveryWorkflowRequest,
 };
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, mark_document_extract_cache_complete, read_arrow_file,
@@ -43,6 +46,16 @@ const AUDIO_MATERIALIZATION_REPORT_SCHEMA: &str = "xiuxian_wendao.audio_material
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_NAME: &str = "_audio_transcript_admission.json";
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_SCHEMA: &str =
     "xiuxian_wendao.audio_transcript_admission_report.v1";
+
+struct AudioRecoveryWorkflowDispatch<'a> {
+    request: &'a DocumentExtractFlightRequest,
+    config: &'a AudioDocumentExtractConfig,
+    plan: &'a AudioShardPlan,
+    materialization: &'a AudioShardMaterializationInput,
+    recovery_speech_window_input: Option<&'a AudioSpeechWindowPlannerInput>,
+    base_worker_budget: Option<usize>,
+    recovery_worker_budget: Option<usize>,
+}
 
 impl StudioDocumentExtractFlightRouteProvider {
     pub(crate) async fn audio_shards_document_extract_batch(
@@ -95,30 +108,21 @@ impl StudioDocumentExtractFlightRouteProvider {
         let client = self.connect_audio_shard_client().await?;
         let _permit = self.acquire_document_extract_dispatch_permit().await?;
         let workflow_started = Instant::now();
-        let execution = match client
-            .execute_recovery_split_with_options(
-                AudioShardRecoveryWorkflowRequest {
-                    parent_plan: &plan,
+        let execution = self
+            .execute_audio_recovery_workflow(
+                &client,
+                &profile,
+                AudioRecoveryWorkflowDispatch {
+                    request,
+                    config: &config,
+                    plan: &plan,
                     materialization: &materialization,
-                    profile: &profile,
-                    request_metrics: &[],
-                    selection_options: AudioRiskParentSelectionOptions::default(),
-                    patch_options: AudioRecoveryPatchGateOptions::default(),
-                    recovery_split_duration_ms: config.recovery_split_duration_ms,
                     recovery_speech_window_input: recovery_speech_window_input.as_ref(),
                     base_worker_budget: scheduled_base_worker_budget,
                     recovery_worker_budget: scheduled_recovery_worker_budget,
                 },
-                audio_shard_request_options_for_document_extract(request, &config),
             )
-            .await
-        {
-            Ok(execution) => execution,
-            Err(error) => {
-                self.runtime.audio_capacity.record_failure();
-                return Err(error);
-            }
-        };
+            .await?;
         let output_string = output.to_string_lossy().to_string();
         let final_base_results = apply_audio_recovery_patch_decisions(
             execution.base_response.results.as_slice(),
@@ -158,6 +162,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             &config,
             &execution.base_materialized_shards,
             &execution.recovery_materialized_shards,
+            &execution.trace,
         )?;
         write_audio_transcript_admission_report(
             output.as_path(),
@@ -166,6 +171,38 @@ impl StudioDocumentExtractFlightRouteProvider {
         write_audio_cache_manifest(output.as_path(), &cache_manifest)?;
         mark_document_extract_cache_complete(output.as_path())?;
         Ok(DocumentExtractFlightRouteResponse::new(batch))
+    }
+
+    async fn execute_audio_recovery_workflow(
+        &self,
+        client: &AudioShardFlightClient,
+        profile: &AudioShardWorkerProfile,
+        dispatch: AudioRecoveryWorkflowDispatch<'_>,
+    ) -> Result<AudioShardRecoveryWorkflowExecution, String> {
+        match client
+            .execute_recovery_split_with_options(
+                AudioShardRecoveryWorkflowRequest {
+                    parent_plan: dispatch.plan,
+                    materialization: dispatch.materialization,
+                    profile,
+                    request_metrics: &[],
+                    selection_options: AudioRiskParentSelectionOptions::default(),
+                    patch_options: AudioRecoveryPatchGateOptions::default(),
+                    recovery_split_duration_ms: dispatch.config.recovery_split_duration_ms,
+                    recovery_speech_window_input: dispatch.recovery_speech_window_input,
+                    base_worker_budget: dispatch.base_worker_budget,
+                    recovery_worker_budget: dispatch.recovery_worker_budget,
+                },
+                audio_shard_request_options_for_document_extract(dispatch.request, dispatch.config),
+            )
+            .await
+        {
+            Ok(execution) => Ok(execution),
+            Err(error) => {
+                self.runtime.audio_capacity.record_failure();
+                Err(error)
+            }
+        }
     }
 
     async fn connect_audio_shard_client(&self) -> Result<AudioShardFlightClient, String> {
@@ -291,6 +328,7 @@ fn write_audio_materialization_report(
     config: &AudioDocumentExtractConfig,
     base_shards: &[AudioShardMaterializedItem],
     recovery_shards: &[AudioShardMaterializedItem],
+    workflow_trace: &WorkflowTrace,
 ) -> Result<(), String> {
     let report_path = output_dir.join(AUDIO_MATERIALIZATION_REPORT_NAME);
     let shards = base_shards
@@ -298,7 +336,7 @@ fn write_audio_materialization_report(
         .chain(recovery_shards.iter())
         .collect::<Vec<_>>();
     let source_counts = audio_materialization_source_counts(shards.iter().copied());
-    let source_bytes = audio_materialization_source_bytes(shards.iter().copied())?;
+    let source_bytes = audio_materialization_source_bytes(shards.iter().copied());
     let artifact_cache_hit_count = source_counts
         .get("artifact-cache")
         .copied()
@@ -340,6 +378,7 @@ fn write_audio_materialization_report(
         "existingOutputBytes": existing_output_bytes,
         "mediaSplitterCount": media_splitter_count,
         "mediaSplitterBytes": media_splitter_bytes,
+        "workflow": audio_materialization_workflow_report(workflow_trace),
     });
     let bytes = serde_json::to_vec_pretty(&payload)
         .map_err(|error| format!("serialize audio materialization report: {error}"))?;
@@ -349,6 +388,34 @@ fn write_audio_materialization_report(
             report_path.display()
         )
     })
+}
+
+fn audio_materialization_workflow_report(workflow_trace: &WorkflowTrace) -> serde_json::Value {
+    let stage_elapsed_ms = workflow_trace
+        .stages
+        .iter()
+        .map(|stage| {
+            (
+                stage.stage_id.as_str(),
+                nanos_to_millis(stage.duration_nanos),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let total_elapsed_ms = workflow_trace
+        .stages
+        .iter()
+        .map(|stage| stage.duration_nanos)
+        .fold(0_u64, u64::saturating_add);
+    serde_json::json!({
+        "workflowId": workflow_trace.workflow_id.as_str(),
+        "stageCount": workflow_trace.stages.len(),
+        "stageElapsedMs": stage_elapsed_ms,
+        "totalElapsedMs": nanos_to_millis(total_elapsed_ms),
+    })
+}
+
+fn nanos_to_millis(nanos: u64) -> f64 {
+    nanos as f64 / 1_000_000.0
 }
 
 fn audio_artifact_cache_report(config: &AudioDocumentExtractConfig) -> serde_json::Value {
@@ -364,6 +431,14 @@ fn audio_artifact_cache_report(config: &AudioDocumentExtractConfig) -> serde_jso
             "root": cache_config.root().to_string_lossy(),
             "memoryBytes": cache_config.memory_capacity_bytes(),
             "storageBytes": cache_config.storage_capacity_bytes(),
+            "runtimeWorkers": cache_config.runtime_worker_threads(),
+            "memoryShards": cache_config.memory_shards(),
+            "recoverConcurrency": cache_config.recover_concurrency(),
+            "flushers": cache_config.flushers(),
+            "reclaimers": cache_config.reclaimers(),
+            "memoryWeighter": cache_config.foyer_memory_weighter_name(),
+            "policy": cache_config.foyer_cache_policy_name(),
+            "blockSizeBytes": cache_config.foyer_block_size_bytes(),
         }),
         Err(error) => serde_json::json!({
             "configured": true,
@@ -416,24 +491,16 @@ fn audio_materialization_source_counts<'a>(
 
 fn audio_materialization_source_bytes<'a>(
     shards: impl Iterator<Item = &'a AudioShardMaterializedItem>,
-) -> Result<BTreeMap<&'static str, u64>, String> {
+) -> BTreeMap<&'static str, u64> {
     let mut bytes = BTreeMap::new();
     for shard in shards {
-        let len = std::fs::metadata(shard.output_path.as_path())
-            .map_err(|error| {
-                format!(
-                    "stat audio materialized shard `{}`: {error}",
-                    shard.output_path.display()
-                )
-            })?
-            .len();
         *bytes
             .entry(audio_materialization_source_key(
                 shard.materialization_source,
             ))
-            .or_insert(0) += len;
+            .or_insert(0) += shard.shard_byte_len;
     }
-    Ok(bytes)
+    bytes
 }
 
 fn audio_materialization_source_key(source: AudioShardMaterializationSource) -> &'static str {

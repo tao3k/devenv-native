@@ -45,7 +45,7 @@ SCHEDULED: <YYYY-MM-DD Day>
 - Python checks: =direnv exec . rtk --ultra-compact pytest -q= and =direnv exec . rtk --ultra-compact ruff check <path>= when the wrapper applies.
 - Git and small inspections outside the project environment: =rtk git status --short=, =rtk git diff -- <paths>=, =rtk read <path>=, and =rtk ls <path>=.
 - Search policy: prefer raw =rg= for fast repository search; use RTK wrappers only when they provide useful filtering for the command being run.
-- Org recovery and lint: use the installed =wendao-client= directly. Prefer =wendao-client orgize task-probe --cached --text '<remembered text>' <path>= when the agent has memory, =wendao-client orgize ogrid-show --cached --id <org-section-id> <path>= when it knows the section ID, and =wendao-client orgize task-recover --cached <path>= only when it has no useful memory.
+- Org recovery and lint: use the installed =wendao-client= directly. Prefer =wendao-client orgize task-probe --cached --text '<remembered text>' <path>= when the agent has memory, =wendao-client orgize orgid-show --cached --id <org-section-id> <path>= when it knows the section ID, and =wendao-client orgize task-recover --cached <path>= only when it has no useful memory.
 - Julia, artifact-producing, parser-output, or exact-transcript commands: use raw =direnv exec .= unless =rtk rewrite <command>= shows a real filtered wrapper.
 
 *** Expected Outputs
@@ -141,6 +141,6 @@ remain queryable after archival.
 
 #+begin_src text
 wendao-client orgize task-probe --cached --text '<remembered text>' $PRJ_CACHE_HOME/agent/org
-wendao-client orgize ogrid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
+wendao-client orgize orgid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
 wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
 #+end_src

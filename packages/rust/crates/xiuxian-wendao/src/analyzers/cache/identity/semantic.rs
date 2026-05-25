@@ -6,7 +6,7 @@ use xiuxian_code_intelligence::{
     code_semantic_fingerprint_language_id_from_path,
 };
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::modelica_parser_summary_file_semantic_fingerprint_for_repository;
+use xiuxian_julia_core::modelica_parser_summary_file_semantic_fingerprint_for_repository;
 
 use crate::analyzers::RegisteredRepository;
 

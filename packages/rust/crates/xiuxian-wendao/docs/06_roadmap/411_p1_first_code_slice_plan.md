@@ -372,7 +372,7 @@ legacy Julia API surface
 Concrete rules:
 
 1. `resolve_link_graph_julia_deployment_artifact()` becomes a thin wrapper over
-   `resolve_plugin_artifact("xiuxian-wendao-julia", "deployment")`
+   `resolve_plugin_artifact("xiuxian-julia-core", "deployment")`
 2. `export_link_graph_julia_deployment_artifact_toml()` becomes a thin wrapper
    over generic artifact rendering
 3. `UiJuliaDeploymentArtifact` becomes a compatibility DTO converted from a

@@ -54,7 +54,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                 )
                 .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
                 .with_rationale(
-                    "Wendao contract projections depend on runtime-owned facts without making runtime depend on polyglot",
+                    "Wendao contract projections read runtime config facts while Julia core/runtime consume polyglot Julia facts",
                 ),
             )
     }
@@ -73,7 +73,7 @@ pub mod docling_schedule;
 /// Health, readiness, pressure, and fallback evidence contracts.
 pub mod evidence;
 #[cfg(feature = "julia-runtime")]
-/// Julia runtime facts consumed by the polyglot control plane.
+/// Julia facts consumed by Julia core/runtime through the polyglot control plane.
 pub mod julia_runtime;
 /// Pure scheduling contracts for Julia compute profiles.
 pub mod julia_schedule;

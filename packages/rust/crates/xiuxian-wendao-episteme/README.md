@@ -73,8 +73,8 @@ Large generated ontology payloads should use the shared db-store artifact
 substrate when they need restart-reusable byte storage. Registry snapshots,
 candidate review packets, candidate read models, RDF drafts, promotion review
 packets, structural reasoning projections, and schedule-plan payloads can use
-the optional `artifact-cache` feature, which exposes Episteme-owned bundle
-helpers over the db-store `ontology_artifact_key` namespace and
+the optional `foyer-artifact-cache` feature, which exposes Episteme-owned
+bundle helpers over the db-store `ontology_artifact_key` namespace and
 `ArtifactBlobCache`. The artifact cache stores derived bytes only; ontology
 truth, promotion status, manifest admission, and read-model validation remain
 owned by Episteme and its DuckDB/Arrow consumers.
@@ -175,8 +175,8 @@ the reasoning fill plan without reading private source text, calling an LLM,
 executing Qianji, mutating RDF, or declaring ontology truth. Studio, Gateway,
 and later Flight surfaces should call this Episteme API instead of rebuilding
 the sequence in their own command handlers.
-When the optional `artifact-cache` feature is enabled, callers can run the
-bootstrap pipeline through
+When the optional `foyer-artifact-cache` feature is enabled, callers can run
+the bootstrap pipeline through
 `run_episteme_ontology_bootstrap_pipeline_with_artifact_cache` to write the
 four generated stage run directories into a runtime-supplied
 `ArtifactBlobCache`. The wrapper does not construct a cache backend and does
@@ -197,10 +197,10 @@ and run id, resolves runtime defaults from `episteme.toml`, and prints the
 existing bootstrap report as JSON. This keeps local/private Episteme operation
 inside the Episteme package while still allowing Studio or Gateway to call the
 same Rust API when they orchestrate a larger workflow.
-With the `artifact-cache` feature enabled, the same command accepts explicit
+With the `foyer-artifact-cache` feature enabled, the same command accepts explicit
 artifact-cache modes: `write-through`, `read-through`, and `restore-only`.
 These modes require caller-provided source/profile digest components and use
-the shared db-store artifact-cache backend resolver. The operator does not
+the shared db-store Foyer artifact backend resolver. The operator does not
 derive cache identity from paths, validates digest components before resolving
 the backend, and does not construct a route-local backend.
 

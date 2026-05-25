@@ -1,17 +1,17 @@
 //! Gateway artifact fixtures for linked builtin Julia services.
 
 use serde_json::Value;
-use xiuxian_wendao_core::artifacts::PluginArtifactPayload;
-use xiuxian_wendao_julia::compatibility::link_graph::{
-    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
-};
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     julia_gateway_artifact_base_url, julia_gateway_artifact_expected_json_fragments,
     julia_gateway_artifact_expected_toml_fragments, julia_gateway_artifact_path,
     julia_gateway_artifact_rpc_params_fixture, julia_gateway_artifact_runtime_config_toml,
     julia_gateway_artifact_schema_version, julia_gateway_artifact_selected_transport,
     julia_ui_artifact_payload_fixture,
 };
+use xiuxian_julia_runtime::wendao::link_graph::{
+    DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
+};
+use xiuxian_wendao_core::artifacts::PluginArtifactPayload;
 
 /// Return the linked builtin Julia gateway artifact base URL fixture.
 #[must_use]

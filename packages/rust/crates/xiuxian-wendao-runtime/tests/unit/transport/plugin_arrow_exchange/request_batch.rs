@@ -165,7 +165,7 @@ fn build_plugin_arrow_request_batch_from_embeddings_with_metadata_sets_trace_id(
             )]),
             query_vector: &[9.0, 8.0, 7.0],
             metadata: PluginArrowRequestMetadataInput {
-                provider_id: "xiuxian-wendao-julia",
+                provider_id: "xiuxian-julia-core",
                 query_text: "alpha signal",
                 schema_version: "v1",
             },
@@ -175,7 +175,7 @@ fn build_plugin_arrow_request_batch_from_embeddings_with_metadata_sets_trace_id(
 
     assert_eq!(
         batch.schema().metadata().get("trace_id"),
-        Some(&"plugin-rerank:xiuxian-wendao-julia:alpha_signal".to_string())
+        Some(&"plugin-rerank:xiuxian-julia-core:alpha_signal".to_string())
     );
     assert_eq!(
         batch.schema().metadata().get("wendao.schema_version"),

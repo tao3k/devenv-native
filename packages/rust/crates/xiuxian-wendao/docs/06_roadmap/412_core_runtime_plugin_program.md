@@ -39,7 +39,7 @@ Completed baseline:
 3. host crate-root compatibility export maps have now been retired after
    serving the migration cutover
 4. the remaining Julia-specific compatibility ownership is package-owned in
-   `xiuxian-wendao-julia`
+   `xiuxian-julia-core`
 5. the first physical `xiuxian-wendao-core` crate cut now exists in the
    workspace
 6. the first `M6` additive plugin proof now exists too: Modelica uses normal
@@ -384,14 +384,14 @@ Stage-B policy summary:
    rollout
 4. `cargo-semver-checks` is now the blocking contract-governance lane for
    `xiuxian-wendao-core` only
-5. `xiuxian-wendao`, `xiuxian-wendao-runtime`, `xiuxian-wendao-julia`, and
+5. `xiuxian-wendao`, `xiuxian-wendao-runtime`, `xiuxian-julia-core`, and
    `xiuxian-wendao-modelica` stay out of the initial semver gate because
    those public surfaces are still migration-owned rather than frozen
    contract packages
 6. `cargo-machete` is the initial advisory dependency-hygiene lane for the
    Wendao migration cluster:
    `xiuxian-wendao-core`, `xiuxian-wendao-runtime`, `xiuxian-wendao`,
-   `xiuxian-wendao-julia`, and `xiuxian-wendao-modelica`
+   `xiuxian-julia-core`, and `xiuxian-wendao-modelica`
 7. `cargo-udeps` is the initial advisory unused-dependency lane, with the
    first bounded scope starting at `xiuxian-wendao-core` and
    `xiuxian-wendao-runtime`
@@ -636,10 +636,10 @@ Current status:
     analyzer transport column/schema contracts
 21. that analyzer slice is now wired into both the monolithic host and the
     Julia package: the main-crate analyzer contract modules now re-export from
-    `xiuxian-wendao-core`, and `xiuxian-wendao-julia` now imports those
+    `xiuxian-wendao-core`, and `xiuxian-julia-core` now imports those
     contracts from `core`
 22. `M4` now owns the Julia link-graph launch/artifact compatibility slice:
-    `xiuxian-wendao-julia/src/compatibility/link_graph/` now holds the Julia
+    `xiuxian-julia-core/src/compatibility/link_graph/` now holds the Julia
     selector ids/helpers, `LinkGraphJuliaAnalyzerServiceDescriptor`,
     `LinkGraphJuliaAnalyzerLaunchManifest`,
     `LinkGraphJuliaDeploymentArtifact`, the Julia launch-option arg mapping,
@@ -655,12 +655,12 @@ Current status:
     especially `LinkGraphJuliaRerankRuntimeConfig` and package-path/default
     ownership
 25. `M4` now owns the Julia package-path/default slice too:
-    `xiuxian-wendao-julia/src/compatibility/link_graph/paths.rs` is now the
+    `xiuxian-julia-core/src/compatibility/link_graph/paths.rs` is now the
     physical owner of the default analyzer package dir, launcher path, and
     example-config path, while the host runtime/tests and integration fixtures
     consume those Julia-owned constants
 26. `M4` now also owns the Julia rerank runtime record itself:
-    `xiuxian-wendao-julia/src/compatibility/link_graph/runtime.rs` is now the
+    `xiuxian-julia-core/src/compatibility/link_graph/runtime.rs` is now the
     physical owner of `LinkGraphJuliaRerankRuntimeConfig` and its
     provider-binding / launch / artifact normalization methods, while the host
     `runtime.rs` and `conversions.rs` files now behave as compatibility seams
@@ -668,11 +668,11 @@ Current status:
     next overall program move should be `M5` generic artifact cutover plus
     compatibility retirement sequencing
 28. `M4` has now crossed the first dependency-rewrite milestone too:
-    `xiuxian-wendao-julia` no longer depends on `xiuxian-wendao` directly and
+    `xiuxian-julia-core` no longer depends on `xiuxian-wendao` directly and
     now builds against `xiuxian-wendao-core` plus `xiuxian-vector`
 29. `M4` has now crossed the first host-integration milestone too:
     `src/analyzers/languages/mod.rs` no longer uses sibling-source inclusion
-    for Julia and now loads `xiuxian-wendao-julia` through a normal crate
+    for Julia and now loads `xiuxian-julia-core` through a normal crate
     dependency
 30. `M6` has now landed its first additive plugin proof too:
     `xiuxian-wendao-modelica` now depends on
@@ -811,7 +811,7 @@ Current status:
     `src/compatibility/link_graph.rs`, `src/compatibility/mod.rs`, and the
     `pub mod compatibility;` mount in `src/lib.rs` are all gone, and the
     touched internal consumers now import Julia compatibility records from
-    `xiuxian-wendao-julia::compatibility::link_graph::*`
+    `xiuxian-julia-core::compatibility::link_graph::*`
 62. the next phase transition has therefore already happened:
     `M6` additive plugin proof is now live in the Modelica path, not pending
     behind another host compatibility cycle
@@ -1653,7 +1653,7 @@ The landed changes are:
    the bounded `src/analyzers/languages/`, `src/analyzers/service/`, and
    `src/analyzers/mod.rs` host seams
 2. switch the remaining in-repo Julia graph-structural proof and the bounded
-   host link-graph transport call sites to direct `xiuxian-wendao-julia`
+   host link-graph transport call sites to direct `xiuxian-julia-core`
    imports instead of routing through `xiuxian-wendao`
 3. add a host-private builtin-plugin link anchor so Julia and Modelica
    inventory-submitted registrars still link into the host without reopening
@@ -1731,7 +1731,7 @@ Gate:
 Ownership seam:
 
 1. the generic `WendaoArrow` request or response batch helpers used by host
-   rerank execution should not remain owned by `xiuxian-wendao-julia`; runtime
+   rerank execution should not remain owned by `xiuxian-julia-core`; runtime
    should own those transport-contract helpers while the Julia plugin keeps
    repository config parsing and remote transport bootstrap
 
@@ -1743,8 +1743,8 @@ The landed changes are:
    transport-contract tests
 2. rewire `xiuxian-wendao` production consumers in quantum-fusion and rerank
    execution to consume those runtime-owned helpers instead of importing the
-   generic `WendaoArrow` helper set from `xiuxian-wendao-julia`
-3. rewire `xiuxian-wendao-julia` to keep only Julia-specific repository
+   generic `WendaoArrow` helper set from `xiuxian-julia-core`
+3. rewire `xiuxian-julia-core` to keep only Julia-specific repository
    config parsing, remote Flight bootstrap, and repository fetch ownership,
    while deleting the old crate-root and module-local `JuliaArrow*`,
    `build_julia_arrow_request_batch(...)`,
@@ -1794,7 +1794,7 @@ The landed changes are:
    host runtime-config surface while that surface delegates builtin-plugin
    artifact dispatch to `xiuxian-wendao-builtin`
 4. keep Julia-specific deployment-artifact payload shaping inside
-   `xiuxian-wendao-julia`, and confirm the non-Julia host compile probe still
+   `xiuxian-julia-core`, and confirm the non-Julia host compile probe still
    passes after the new builtin artifact surface is feature-gated to Julia
 
 :RELATIONS:
@@ -1825,7 +1825,7 @@ The landed changes are:
 
 1. add one builtin-owned feature-forwarding bridge for the remaining
    Modelica `tree-sitter` seam
-2. remove the host manifest's direct `dep:xiuxian-wendao-julia` and
+2. remove the host manifest's direct `dep:xiuxian-julia-core` and
    `dep:xiuxian-wendao-modelica` wiring while keeping the host-facing
    `julia`, `modelica`, and `tree-sitter` feature names stable
 3. re-validate plugin-enabled and non-default host compile probes and confirm
@@ -2192,7 +2192,7 @@ The landed changes are:
 3. rewire host runtime-config and artifact-dispatch helpers to consume that
    builtin-owned projection surface while keeping non-Julia host probes green
 4. keep Julia-specific runtime parsing and deployment-artifact payload shaping
-   inside `xiuxian-wendao-julia`, and rerun builtin, host runtime-config,
+   inside `xiuxian-julia-core`, and rerun builtin, host runtime-config,
    host quantum, and non-Julia compile probes to confirm the owner cut lands
    without a touched-scope regression
 
@@ -2225,8 +2225,8 @@ The landed changes are:
    Julia-backed bundled `OpenAPI` examples used by the host assertion layer
 2. rewire `xiuxian-wendao/src/gateway/openapi/document.rs` tests to consume
    those builtin-owned helpers instead of importing Julia example helpers
-   directly from `xiuxian-wendao-julia`
-3. keep the actual example source of truth inside `xiuxian-wendao-julia`
+   directly from `xiuxian-julia-core`
+3. keep the actual example source of truth inside `xiuxian-julia-core`
    while confirming the host bundled `OpenAPI` assertion seam no longer
    imports the plugin crate directly and the non-Julia host compile probe
    stays green
@@ -2264,7 +2264,7 @@ The landed changes were:
    `gateway/studio/types/config.rs`, and
    `gateway/studio/router/tests/config.rs` to consume builtin-owned fixture
    helpers instead of importing Julia helpers directly
-3. kept the concrete fixture source of truth inside `xiuxian-wendao-julia`
+3. kept the concrete fixture source of truth inside `xiuxian-julia-core`
    while confirming the touched host `gateway/studio` assertion seam no longer
    imports the plugin crate directly
 4. added builtin regression coverage for the linked gateway helper surface and
@@ -2304,7 +2304,7 @@ The landed changes were:
    to consume builtin-owned linked helpers instead of importing Julia helpers
    directly
 3. keep the concrete Julia compatibility source of truth inside
-   `xiuxian-wendao-julia` while confirming the touched host internal test seam
+   `xiuxian-julia-core` while confirming the touched host internal test seam
    no longer imports the plugin crate directly
 4. added builtin regression coverage for the new linked host-test helper seam
    and kept the non-Julia host compile probe green
@@ -2342,7 +2342,7 @@ The landed changes were:
    to consume builtin-owned fixture helpers instead of importing Julia helpers
    directly
 3. kept the concrete gateway fixture source of truth inside
-   `xiuxian-wendao-julia` while confirming the touched host `zhenfa_router`
+   `xiuxian-julia-core` while confirming the touched host `zhenfa_router`
    unit-test seam no longer imports the plugin crate directly
 4. added builtin regression coverage for the extended linked gateway fixture
    seam and kept the non-Julia host compile probe green
@@ -2385,7 +2385,7 @@ The landed changes are:
    to consume builtin-owned helpers instead of importing plugin helpers
    directly
 3. keep the concrete planned-search fixture source of truth inside
-   `xiuxian-wendao-julia` while confirming the touched host integration seam
+   `xiuxian-julia-core` while confirming the touched host integration seam
    no longer imports the plugin crate directly and the non-Julia host compile
    probe remains green
 
@@ -2417,13 +2417,13 @@ The landed changes are:
 1. add one builtin-owned linked helper surface for the similarity-only
    planned-search analyzer-artifact path, covering runtime-config rendering
    and artifact-backed analyzer service spawn while keeping the thick
-   implementation in `xiuxian-wendao-julia::integration_support::planned_search`
+   implementation in `xiuxian-julia-core::integration_support::planned_search`
 2. rewire
    `planned_search_wendaoanalyzer_similarity_only.rs`
    to consume builtin-owned helpers instead of importing plugin compatibility
    or integration-support helpers directly
 3. keep the concrete analyzer runtime and deployment artifact source of truth
-   inside `xiuxian-wendao-julia` while confirming the touched host integration
+   inside `xiuxian-julia-core` while confirming the touched host integration
    seam no longer imports the plugin crate directly and the non-Julia host
    compile probe remains green
 
@@ -2454,13 +2454,13 @@ The landed changes are:
 1. add one builtin-owned linked graph-structural test-support helper surface
    for the bounded constants and helper functions used by
    `tests/unit/link_graph_agentic/expansion.rs` without moving concrete
-   graph-structural implementation out of `xiuxian-wendao-julia`
+   graph-structural implementation out of `xiuxian-julia-core`
 2. rewire
    `tests/unit/link_graph_agentic/expansion.rs`
    to consume builtin-owned helpers instead of importing those graph-structural
-   helpers directly from `xiuxian-wendao-julia`
+   helpers directly from `xiuxian-julia-core`
 3. keep the concrete graph-structural implementation source of truth inside
-   `xiuxian-wendao-julia` while confirming the touched host test seam no
+   `xiuxian-julia-core` while confirming the touched host test seam no
    longer imports the plugin crate directly and the non-Julia host test-compile
    probe still completes
 

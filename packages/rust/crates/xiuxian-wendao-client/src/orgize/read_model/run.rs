@@ -8,7 +8,7 @@ use xiuxian_wendao_parsers::{
 };
 
 use crate::orgize::{
-    OrgizeOgridShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
+    OrgizeOrgidShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
     OrgizeTaskProbeArgs, OrgizeTaskRecoverArgs, OrgizeTaskReportArgs, OrgizeTaskSddArgs,
 };
 use crate::{ClientContext, CommandOutcome, OutputFormat};
@@ -20,7 +20,7 @@ use super::filter::{
     task_row_is_repeating,
 };
 use super::json::{
-    ArchiveApplyJsonContext, TaskListJsonContext, TaskReportCounts, emit_ogrid_show_json,
+    ArchiveApplyJsonContext, TaskListJsonContext, TaskReportCounts, emit_orgid_show_json,
     emit_task_archive_apply_json, emit_task_archive_plan_json, emit_task_list_json,
     emit_task_report_json,
 };
@@ -30,7 +30,7 @@ use super::model::{
     TaskQuerySnapshot,
 };
 use super::render::{
-    render_archive_plan_row, render_archive_target_summary, render_ogrid_show_row,
+    render_archive_plan_row, render_archive_target_summary, render_orgid_show_row,
     render_probe_candidate_row, render_recovery_candidate_row, render_report_section,
     render_tag_counts, render_task_list_row, render_task_sdd_graph,
 };
@@ -112,12 +112,12 @@ pub(crate) fn run_task_list(
     Ok(CommandOutcome::success())
 }
 
-pub(crate) fn run_ogrid_show(
-    args: &OrgizeOgridShowArgs,
+pub(crate) fn run_orgid_show(
+    args: &OrgizeOrgidShowArgs,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
-    let snapshot = open_ogrid_show_snapshot(&args.paths, context, args.cached, &args.id)?;
-    ensure_unique_ogrid_show_row(&snapshot.rows, &args.id)?;
+    let snapshot = open_orgid_show_snapshot(&args.paths, context, args.cached, &args.id)?;
+    ensure_unique_orgid_show_row(&snapshot.rows, &args.id)?;
     let row = snapshot
         .rows
         .first()
@@ -127,8 +127,8 @@ pub(crate) fn run_ogrid_show(
     let section = match source_section(row, &source) {
         Ok(section) => section,
         Err(error) if args.cached && is_source_range_error(&error) => {
-            let snapshot = open_ogrid_show_snapshot(&args.paths, context, false, &args.id)?;
-            ensure_unique_ogrid_show_row(&snapshot.rows, &args.id)?;
+            let snapshot = open_orgid_show_snapshot(&args.paths, context, false, &args.id)?;
+            ensure_unique_orgid_show_row(&snapshot.rows, &args.id)?;
             let row = snapshot
                 .rows
                 .first()
@@ -137,21 +137,21 @@ pub(crate) fn run_ogrid_show(
                 .with_context(|| format!("failed to read Org task source `{}`", row.source_path))?;
             let section = source_section(row, &source)?;
             if context.output() != OutputFormat::Text {
-                emit_ogrid_show_json(args, &snapshot, row, &section, context)?;
+                emit_orgid_show_json(args, &snapshot, row, &section, context)?;
                 return Ok(CommandOutcome::success());
             }
-            render_ogrid_show_row(row, &section, context, args.full);
+            render_orgid_show_row(row, &section, context, args.full);
             return Ok(CommandOutcome::success());
         }
         Err(error) => return Err(error),
     };
 
     if context.output() != OutputFormat::Text {
-        emit_ogrid_show_json(args, &snapshot, row, &section, context)?;
+        emit_orgid_show_json(args, &snapshot, row, &section, context)?;
         return Ok(CommandOutcome::success());
     }
 
-    render_ogrid_show_row(row, &section, context, args.full);
+    render_orgid_show_row(row, &section, context, args.full);
     Ok(CommandOutcome::success())
 }
 
@@ -179,8 +179,8 @@ pub(crate) fn run_task_sdd(
     args: &OrgizeTaskSddArgs,
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
-    let snapshot = open_ogrid_show_snapshot(&args.paths, context, args.cached, &args.id)?;
-    ensure_unique_ogrid_show_row(&snapshot.rows, &args.id)?;
+    let snapshot = open_orgid_show_snapshot(&args.paths, context, args.cached, &args.id)?;
+    ensure_unique_orgid_show_row(&snapshot.rows, &args.id)?;
     let row = snapshot
         .rows
         .first()
@@ -593,14 +593,14 @@ fn open_task_query_snapshot_matching(
     }
 }
 
-fn open_ogrid_show_snapshot(
+fn open_orgid_show_snapshot(
     paths: &[PathBuf],
     context: &ClientContext,
     cached: bool,
     orgid: &str,
 ) -> Result<TaskQuerySnapshot> {
     if cached {
-        match open_cached_ogrid_show_snapshot(paths, context, orgid) {
+        match open_cached_orgid_show_snapshot(paths, context, orgid) {
             Ok(Some(snapshot)) => return Ok(snapshot),
             Ok(None) => {}
             Err(error) if is_duckdb_schema_mismatch_error(&error) => {}
@@ -608,10 +608,10 @@ fn open_ogrid_show_snapshot(
         }
     }
 
-    match open_fresh_ogrid_show_snapshot(paths, context, orgid) {
+    match open_fresh_orgid_show_snapshot(paths, context, orgid) {
         Ok(snapshot) => Ok(snapshot),
         Err(error) if is_duckdb_lock_error(&error) => {
-            open_read_only_ogrid_show_snapshot_after_refresh_lock(
+            open_read_only_orgid_show_snapshot_after_refresh_lock(
                 paths,
                 context,
                 orgid,
@@ -622,7 +622,7 @@ fn open_ogrid_show_snapshot(
     }
 }
 
-fn open_cached_ogrid_show_snapshot(
+fn open_cached_orgid_show_snapshot(
     paths: &[PathBuf],
     context: &ClientContext,
     orgid: &str,
@@ -643,7 +643,7 @@ fn open_cached_ogrid_show_snapshot(
     }))
 }
 
-fn open_fresh_ogrid_show_snapshot(
+fn open_fresh_orgid_show_snapshot(
     paths: &[PathBuf],
     context: &ClientContext,
     orgid: &str,
@@ -661,7 +661,7 @@ fn open_fresh_ogrid_show_snapshot(
     })
 }
 
-fn open_read_only_ogrid_show_snapshot_after_refresh_lock(
+fn open_read_only_orgid_show_snapshot_after_refresh_lock(
     paths: &[PathBuf],
     context: &ClientContext,
     orgid: &str,
@@ -786,7 +786,7 @@ fn open_snapshot_connection(
     }
 }
 
-fn ensure_unique_ogrid_show_row(
+fn ensure_unique_orgid_show_row(
     rows: &[super::model::AgentOrgTaskListRow],
     orgid: &str,
 ) -> Result<()> {

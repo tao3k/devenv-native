@@ -86,7 +86,7 @@ fn audio_materialization_reuses_existing_chunks_without_splitter() -> Result<(),
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 #[test]
 fn audio_materialization_restores_missing_output_from_artifact_cache() -> Result<(), String> {
     let tempdir = tempfile::tempdir().map_err(error_to_string)?;
@@ -126,6 +126,7 @@ fn audio_materialization_restores_missing_output_from_artifact_cache() -> Result
         std::fs::read(second_items[0].output_path.as_path()).map_err(error_to_string)?,
         b"cached"
     );
+    assert_eq!(second_items[0].shard_byte_len, 6);
     assert_eq!(
         second_items[0].materialization_source,
         AudioShardMaterializationSource::ArtifactCache
@@ -134,7 +135,7 @@ fn audio_materialization_restores_missing_output_from_artifact_cache() -> Result
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 #[test]
 fn audio_materialization_force_restores_verified_artifact_cache() -> Result<(), String> {
     let tempdir = tempfile::tempdir().map_err(error_to_string)?;
@@ -186,6 +187,7 @@ fn audio_materialization_force_restores_verified_artifact_cache() -> Result<(), 
         std::fs::read(second_items[0].output_path.as_path()).map_err(error_to_string)?,
         b"cached"
     );
+    assert_eq!(second_items[0].shard_byte_len, 6);
     assert_eq!(second_items[0].shard_sha256, first_items[0].shard_sha256);
     assert_eq!(
         std::fs::read_to_string(log_path).map_err(error_to_string)?,

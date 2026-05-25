@@ -15,6 +15,6 @@ mod settings;
 mod store;
 
 pub(crate) use run::{
-    run_ogrid_show, run_read_model, run_task_archive, run_task_list, run_task_probe,
+    run_orgid_show, run_read_model, run_task_archive, run_task_list, run_task_probe,
     run_task_recover, run_task_report, run_task_sdd,
 };

@@ -6,13 +6,13 @@ use std::ffi::OsString;
 use std::fs;
 use std::io::Read;
 use std::process::Command;
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::{
     ArtifactBlobCache, ArtifactBlobCacheBackend, ArtifactBlobCacheBackendConfig, ArtifactBlobWrite,
     ArtifactKey, ArtifactKeyParts, ArtifactKind,
 };
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use super::identity::sha256_hex;
 use super::plan::plan_audio_shards;
 use super::types::{
@@ -20,8 +20,14 @@ use super::types::{
     AudioShardMaterializedItem, AudioShardPlan,
 };
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 const AUDIO_SHARD_ARTIFACT_CACHE_NAMESPACE: &str = "audio-shards";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AudioShardDigest {
+    sha256: String,
+    byte_len: u64,
+}
 
 /// Materialize planned audio shards with local `ffmpeg` in parallel.
 ///
@@ -54,17 +60,17 @@ pub fn materialize_audio_shard_manifests(
             input.output_dir.display()
         )
     })?;
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     let artifact_cache = audio_artifact_blob_cache(input)?;
     manifests
         .to_vec()
         .into_par_iter()
         .map(|manifest| {
-            #[cfg(feature = "artifact-cache")]
+            #[cfg(feature = "foyer-artifact-cache")]
             {
                 materialize_one(plan, input, manifest, artifact_cache.as_ref())
             }
-            #[cfg(not(feature = "artifact-cache"))]
+            #[cfg(not(feature = "foyer-artifact-cache"))]
             {
                 materialize_one(plan, input, manifest)
             }
@@ -72,7 +78,7 @@ pub fn materialize_audio_shard_manifests(
         .collect()
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn materialize_one(
     plan: &AudioShardPlan,
     input: &AudioShardMaterializationInput,
@@ -87,23 +93,25 @@ fn materialize_one(
     }
     let output_path = input.output_dir.join(shard_file_name(&manifest));
     if output_path.exists() && !input.force {
-        let shard_sha256 = file_sha256_hex(output_path.as_path())?;
+        let digest = file_digest(output_path.as_path())?;
         return Ok(AudioShardMaterializedItem {
             manifest,
             output_path,
-            shard_sha256,
+            shard_sha256: digest.sha256,
+            shard_byte_len: digest.byte_len,
             materialization_source: AudioShardMaterializationSource::ExistingOutput,
         });
     }
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     if let Some(cache) = artifact_cache
-        && let Some(shard_sha256) =
+        && let Some(digest) =
             restore_audio_shard_from_artifact_cache(cache, &manifest, output_path.as_path())?
     {
         return Ok(AudioShardMaterializedItem {
             manifest,
             output_path,
-            shard_sha256,
+            shard_sha256: digest.sha256,
+            shard_byte_len: digest.byte_len,
             materialization_source: AudioShardMaterializationSource::ArtifactCache,
         });
     }
@@ -127,19 +135,22 @@ fn materialize_one(
             manifest.shard_id
         ));
     }
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
+    let (digest, cache_bytes) =
+        file_digest_with_optional_bytes(output_path.as_path(), artifact_cache.is_some())?;
     if let Some(cache) = artifact_cache {
-        write_audio_shard_to_artifact_cache(cache, &manifest, output_path.as_path())?;
+        write_audio_shard_to_artifact_cache(cache, &manifest, cache_bytes.as_slice())?;
     }
     Ok(AudioShardMaterializedItem {
-        shard_sha256: file_sha256_hex(output_path.as_path())?,
+        shard_sha256: digest.sha256,
+        shard_byte_len: digest.byte_len,
         manifest,
         output_path,
         materialization_source: AudioShardMaterializationSource::MediaSplitter,
     })
 }
 
-#[cfg(not(feature = "artifact-cache"))]
+#[cfg(not(feature = "foyer-artifact-cache"))]
 fn materialize_one(
     plan: &AudioShardPlan,
     input: &AudioShardMaterializationInput,
@@ -153,11 +164,12 @@ fn materialize_one(
     }
     let output_path = input.output_dir.join(shard_file_name(&manifest));
     if output_path.exists() && !input.force {
-        let shard_sha256 = file_sha256_hex(output_path.as_path())?;
+        let digest = file_digest(output_path.as_path())?;
         return Ok(AudioShardMaterializedItem {
             manifest,
             output_path,
-            shard_sha256,
+            shard_sha256: digest.sha256,
+            shard_byte_len: digest.byte_len,
             materialization_source: AudioShardMaterializationSource::ExistingOutput,
         });
     }
@@ -181,15 +193,17 @@ fn materialize_one(
             manifest.shard_id
         ));
     }
+    let digest = file_digest(output_path.as_path())?;
     Ok(AudioShardMaterializedItem {
-        shard_sha256: file_sha256_hex(output_path.as_path())?,
+        shard_sha256: digest.sha256,
+        shard_byte_len: digest.byte_len,
         manifest,
         output_path,
         materialization_source: AudioShardMaterializationSource::MediaSplitter,
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn audio_artifact_blob_cache(
     input: &AudioShardMaterializationInput,
 ) -> Result<Option<ArtifactBlobCacheBackend>, String> {
@@ -212,12 +226,12 @@ fn audio_artifact_blob_cache(
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn restore_audio_shard_from_artifact_cache(
     cache: &dyn ArtifactBlobCache,
     manifest: &AudioShardManifestItem,
     output_path: &std::path::Path,
-) -> Result<Option<String>, String> {
+) -> Result<Option<AudioShardDigest>, String> {
     let key = audio_shard_artifact_key(manifest)?;
     let Some(read) = cache
         .read(&key)
@@ -225,35 +239,30 @@ fn restore_audio_shard_from_artifact_cache(
     else {
         return Ok(None);
     };
-    fs::write(output_path, read.bytes()).map_err(|error| {
+    let bytes = read.bytes();
+    fs::write(output_path, bytes).map_err(|error| {
         format!(
             "failed to restore audio shard {} from artifact cache: {error}",
             output_path.display()
         )
     })?;
-    file_sha256_hex(output_path).map(Some)
+    Ok(Some(bytes_digest(bytes)))
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn write_audio_shard_to_artifact_cache(
     cache: &dyn ArtifactBlobCache,
     manifest: &AudioShardManifestItem,
-    output_path: &std::path::Path,
+    bytes: &[u8],
 ) -> Result<(), String> {
-    let bytes = fs::read(output_path).map_err(|error| {
-        format!(
-            "failed to read audio shard {} for artifact cache: {error}",
-            output_path.display()
-        )
-    })?;
     let key = audio_shard_artifact_key(manifest)?;
     cache
-        .write(&key, ArtifactBlobWrite::new(bytes.as_slice()))
+        .write(&key, ArtifactBlobWrite::new(bytes))
         .map_err(|error| format!("write audio shard artifact cache: {error}"))?;
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn audio_shard_artifact_key(manifest: &AudioShardManifestItem) -> Result<ArtifactKey, String> {
     ArtifactKey::from_parts(ArtifactKeyParts {
         namespace: AUDIO_SHARD_ARTIFACT_CACHE_NAMESPACE.to_owned(),
@@ -307,11 +316,20 @@ fn seconds_arg(ms: u64) -> OsString {
     format!("{seconds}.{milliseconds:03}").into()
 }
 
-fn file_sha256_hex(path: &std::path::Path) -> Result<String, String> {
+fn file_digest(path: &std::path::Path) -> Result<AudioShardDigest, String> {
+    file_digest_with_optional_bytes(path, false).map(|(digest, _)| digest)
+}
+
+fn file_digest_with_optional_bytes(
+    path: &std::path::Path,
+    keep_bytes: bool,
+) -> Result<(AudioShardDigest, Vec<u8>), String> {
     let mut file = fs::File::open(path)
         .map_err(|error| format!("failed to open audio shard {}: {error}", path.display()))?;
     let mut hasher = sha2::Sha256::new();
     let mut buffer = vec![0_u8; 64 * 1024];
+    let mut byte_len = 0_u64;
+    let mut bytes = Vec::new();
     loop {
         let bytes_read = file
             .read(&mut buffer)
@@ -319,7 +337,28 @@ fn file_sha256_hex(path: &std::path::Path) -> Result<String, String> {
         if bytes_read == 0 {
             break;
         }
-        hasher.update(&buffer[..bytes_read]);
+        let chunk = &buffer[..bytes_read];
+        hasher.update(chunk);
+        byte_len = byte_len.saturating_add(u64::try_from(bytes_read).unwrap_or(u64::MAX));
+        if keep_bytes {
+            bytes.extend_from_slice(chunk);
+        }
     }
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok((
+        AudioShardDigest {
+            sha256: format!("{:x}", hasher.finalize()),
+            byte_len,
+        },
+        bytes,
+    ))
+}
+
+#[cfg(feature = "foyer-artifact-cache")]
+fn bytes_digest(bytes: &[u8]) -> AudioShardDigest {
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(bytes);
+    AudioShardDigest {
+        sha256: format!("{:x}", hasher.finalize()),
+        byte_len: u64::try_from(bytes.len()).unwrap_or(u64::MAX),
+    }
 }

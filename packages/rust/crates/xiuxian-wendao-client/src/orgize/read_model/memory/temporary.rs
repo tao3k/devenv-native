@@ -5,12 +5,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use xiuxian_memory_engine::{
-    Episode, EpisodeDraft, IntentEncoder, QTable, TwoPhaseSearch, TwoPhaseSearchRequest,
+    Episode, EpisodeDraft, InferredMemoryObjectKind, IntentEncoder, QTable, TwoPhaseSearch,
+    TwoPhaseSearchRequest,
 };
 
 use super::super::model::AgentOrgTaskListRow;
 use super::super::row_view::property_value;
 use super::super::section_lens::TaskSectionLens;
+use super::reflection::reflection_memory_objects_for_row;
 
 const TEMPORARY_MEMORY_SCOPE: &str = "wendao-client:agent-org-temporary-memory";
 const EMBEDDING_DIMENSION: usize = 128;
@@ -154,6 +156,7 @@ impl CandidateEvidence {
         let mut facets = Vec::new();
         push_candidate_base_facets(&mut facets, candidate);
         push_candidate_property_facets(&mut facets, candidate);
+        push_candidate_reflection_memory_facets(&mut facets, candidate);
         push_candidate_sdd_facets(&mut facets, candidate);
         push_candidate_lens_facets(&mut facets, candidate);
 
@@ -266,6 +269,21 @@ fn push_candidate_property_facets(
     }
 }
 
+fn push_candidate_reflection_memory_facets(
+    facets: &mut Vec<OrgEvidenceFacet>,
+    candidate: &RecallCandidate<'_>,
+) {
+    for object in reflection_memory_objects_for_row(candidate.row) {
+        let value = format!("{} {}", object.question, object.value);
+        push_evidence_facet(
+            facets,
+            memory_object_facet_kind(object.kind),
+            object.kind.facet_label(),
+            Some(value.as_str()),
+        );
+    }
+}
+
 fn push_candidate_lens_facets(facets: &mut Vec<OrgEvidenceFacet>, candidate: &RecallCandidate<'_>) {
     let Some(lens) = candidate.lens.as_ref() else {
         return;
@@ -360,6 +378,11 @@ enum OrgEvidenceFacetKind {
     Tags,
     Planning,
     Property,
+    MemoryFinality,
+    MemoryClaim,
+    MemoryEvidence,
+    MemoryFailure,
+    MemoryPreference,
     NextAction,
     Graph,
     Progress,
@@ -368,7 +391,7 @@ enum OrgEvidenceFacetKind {
 }
 
 impl OrgEvidenceFacetKind {
-    const COUNT: usize = 12;
+    const COUNT: usize = 17;
 
     const fn label(self) -> &'static str {
         match self {
@@ -379,6 +402,11 @@ impl OrgEvidenceFacetKind {
             Self::Tags => "tags",
             Self::Planning => "planning",
             Self::Property => "property",
+            Self::MemoryFinality => "memory-finality",
+            Self::MemoryClaim => "memory-claim",
+            Self::MemoryEvidence => "memory-evidence",
+            Self::MemoryFailure => "memory-failure",
+            Self::MemoryPreference => "memory-preference",
             Self::NextAction => "next-action",
             Self::Graph => "graph",
             Self::Progress => "progress",
@@ -657,6 +685,11 @@ fn org_facet_signal(facets: &HashSet<OrgEvidenceFacetKind>) -> f32 {
             OrgEvidenceFacetKind::Heading | OrgEvidenceFacetKind::NextAction => 0.14,
             OrgEvidenceFacetKind::Checklist => 0.13,
             OrgEvidenceFacetKind::Graph => 0.12,
+            OrgEvidenceFacetKind::MemoryFinality
+            | OrgEvidenceFacetKind::MemoryClaim
+            | OrgEvidenceFacetKind::MemoryEvidence
+            | OrgEvidenceFacetKind::MemoryFailure
+            | OrgEvidenceFacetKind::MemoryPreference => 0.16,
             OrgEvidenceFacetKind::Source | OrgEvidenceFacetKind::Property => 0.10,
             OrgEvidenceFacetKind::Tags => 0.08,
             OrgEvidenceFacetKind::ChildHeadings => 0.07,
@@ -708,6 +741,11 @@ const fn facet_is_recovery_anchor(kind: OrgEvidenceFacetKind) -> bool {
             | OrgEvidenceFacetKind::Source
             | OrgEvidenceFacetKind::NextAction
             | OrgEvidenceFacetKind::Graph
+            | OrgEvidenceFacetKind::MemoryFinality
+            | OrgEvidenceFacetKind::MemoryClaim
+            | OrgEvidenceFacetKind::MemoryEvidence
+            | OrgEvidenceFacetKind::MemoryFailure
+            | OrgEvidenceFacetKind::MemoryPreference
             | OrgEvidenceFacetKind::Checklist
     )
 }
@@ -716,6 +754,11 @@ fn facet_coverage_weight(kind: OrgEvidenceFacetKind) -> f32 {
     match kind {
         OrgEvidenceFacetKind::Identity => 1.0,
         OrgEvidenceFacetKind::Heading => 0.98,
+        OrgEvidenceFacetKind::MemoryFinality
+        | OrgEvidenceFacetKind::MemoryClaim
+        | OrgEvidenceFacetKind::MemoryEvidence
+        | OrgEvidenceFacetKind::MemoryFailure
+        | OrgEvidenceFacetKind::MemoryPreference => 0.99,
         OrgEvidenceFacetKind::NextAction => 0.97,
         OrgEvidenceFacetKind::Checklist => 0.95,
         OrgEvidenceFacetKind::Graph => 0.90,
@@ -1009,6 +1052,16 @@ fn task_row_file_key(row: &AgentOrgTaskListRow) -> String {
         .and_then(|stem| stem.to_str())
         .unwrap_or(row.source_path.as_str())
         .to_string()
+}
+
+const fn memory_object_facet_kind(kind: InferredMemoryObjectKind) -> OrgEvidenceFacetKind {
+    match kind {
+        InferredMemoryObjectKind::Finality => OrgEvidenceFacetKind::MemoryFinality,
+        InferredMemoryObjectKind::Claim => OrgEvidenceFacetKind::MemoryClaim,
+        InferredMemoryObjectKind::Evidence => OrgEvidenceFacetKind::MemoryEvidence,
+        InferredMemoryObjectKind::Failure => OrgEvidenceFacetKind::MemoryFailure,
+        InferredMemoryObjectKind::Preference => OrgEvidenceFacetKind::MemoryPreference,
+    }
 }
 
 fn property_facet_kind(key: &str) -> OrgEvidenceFacetKind {

@@ -82,7 +82,7 @@ pub struct OrgizeTaskProbeArgs {
 
 /// CLI arguments for showing one agent Org task subtree by stable Org section ID.
 #[derive(Args, Debug)]
-pub struct OrgizeOgridShowArgs {
+pub struct OrgizeOrgidShowArgs {
     /// Reuse the existing `DuckDB` snapshot when available instead of refreshing first.
     #[arg(long = "cached")]
     pub cached: bool,

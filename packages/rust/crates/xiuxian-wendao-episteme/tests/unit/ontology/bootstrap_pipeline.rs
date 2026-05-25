@@ -1,9 +1,9 @@
 use std::fs;
 
 use tempfile::tempdir;
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::ContentAddressedFilesystemBlobCache;
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_wendao_episteme::{
     EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
     EpistemeOntologyBootstrapArtifactCacheOptions,
@@ -124,7 +124,7 @@ ontology_generation_run_root = "runs/ontology-generation"
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 #[test]
 fn bootstrap_pipeline_artifact_cache_admission_validates_digest_components()
 -> Result<(), Box<dyn std::error::Error>> {
@@ -156,7 +156,7 @@ fn bootstrap_pipeline_artifact_cache_admission_validates_digest_components()
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 #[test]
 fn bootstrap_pipeline_artifact_cache_writes_stage_bundles() -> Result<(), Box<dyn std::error::Error>>
 {
@@ -208,7 +208,7 @@ ontology_generation_run_root = "runs/ontology-generation"
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 #[test]
 fn bootstrap_pipeline_artifact_cache_readthrough_restores_warm_stage_dirs()
 -> Result<(), Box<dyn std::error::Error>> {

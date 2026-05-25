@@ -8,7 +8,7 @@ use arrow::record_batch::RecordBatch;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::WendaoGraphOntologyReadModelQualityRequestBatches;
+use xiuxian_julia_core::integration_support::WendaoGraphOntologyReadModelQualityRequestBatches;
 use xiuxian_wendao_parsers::{EpistemeExtractionQueueRow, EpistemeFileRow, EpistemeSourceManifest};
 
 use crate::episteme::source_contract::facade::{

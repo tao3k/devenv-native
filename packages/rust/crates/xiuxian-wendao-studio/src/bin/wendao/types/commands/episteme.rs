@@ -90,7 +90,7 @@ pub(crate) enum EpistemeStructureCommand {
     WriteToc(EpistemeWriteStructureTocArgs),
 }
 
-#[cfg(feature = "episteme-artifact-cache")]
+#[cfg(feature = "episteme-foyer-artifact-cache")]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
 pub(crate) enum EpistemeBootstrapArtifactCacheModeArg {
     /// Run the deterministic bootstrap pipeline without artifact-cache use.
@@ -143,15 +143,15 @@ pub(crate) struct EpistemeBootstrapPipelineArgs {
     #[arg(long, default_value_t = 1024)]
     pub reasoning_fill_plan_limit: usize,
     /// Artifact cache mode for generated bootstrap run directories.
-    #[cfg(feature = "episteme-artifact-cache")]
+    #[cfg(feature = "episteme-foyer-artifact-cache")]
     #[arg(long, value_enum, default_value_t = EpistemeBootstrapArtifactCacheModeArg::Disabled)]
     pub artifact_cache_mode: EpistemeBootstrapArtifactCacheModeArg,
     /// Source digest component for artifact-cache identities.
-    #[cfg(feature = "episteme-artifact-cache")]
+    #[cfg(feature = "episteme-foyer-artifact-cache")]
     #[arg(long, value_name = "DIGEST")]
     pub artifact_cache_source_digest: Option<String>,
     /// Profile digest component for artifact-cache identities.
-    #[cfg(feature = "episteme-artifact-cache")]
+    #[cfg(feature = "episteme-foyer-artifact-cache")]
     #[arg(long, value_name = "DIGEST")]
     pub artifact_cache_profile_digest: Option<String>,
 }

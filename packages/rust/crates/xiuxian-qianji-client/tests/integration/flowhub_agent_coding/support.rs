@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use tempfile::TempDir;
-use xiuxian_qianji_client::{FlowhubCliOutput, run_xiuxian_qianji_client_cli_with_args};
+use xiuxian_qianji_client::{
+    FlowhubCliOutput, QianjiClientError, run_xiuxian_qianji_client_cli_with_args,
+};
 
 pub(super) struct FlowhubTestProject {
     _temp_dir: TempDir,
@@ -47,13 +49,13 @@ impl FlowhubTestProject {
         args
     }
 
-    pub(super) fn check_args(
+    pub(super) fn lint_args(
         &self,
         scenario: Option<&str>,
         slug: Option<&str>,
         json: bool,
     ) -> Vec<String> {
-        let mut head = vec!["check"];
+        let mut head = vec!["lint"];
         if let Some(scenario) = scenario {
             head.extend(["--scenario", scenario]);
         }
@@ -67,8 +69,8 @@ impl FlowhubTestProject {
         args
     }
 
-    pub(super) fn check_all_args(&self, json: bool) -> Vec<String> {
-        let mut args = self.flowhub_args(&["check", "--all"]);
+    pub(super) fn lint_all_args(&self, json: bool) -> Vec<String> {
+        let mut args = self.flowhub_args(&["lint", "--all"]);
         if json {
             args.push("--json".to_string());
         }
@@ -83,7 +85,7 @@ impl FlowhubTestProject {
         args
     }
 
-    fn flowhub_args(&self, action_args: &[&str]) -> Vec<String> {
+    pub(super) fn flowhub_args(&self, action_args: &[&str]) -> Vec<String> {
         let mut args = vec!["qianji-client".to_string(), "flowhub".to_string()];
         args.extend(action_args.iter().map(|arg| (*arg).to_string()));
         args.extend([
@@ -109,6 +111,13 @@ pub(super) fn repo_root() -> PathBuf {
 pub(super) fn run(args: &[String], label: &str) -> FlowhubCliOutput {
     run_xiuxian_qianji_client_cli_with_args(args)
         .unwrap_or_else(|error| panic!("{label} should render a report: {error}"))
+}
+
+pub(super) fn run_error(args: &[String], label: &str) -> String {
+    match run_xiuxian_qianji_client_cli_with_args(args) {
+        Ok(output) => panic!("{label} should fail, rendered output: {}", output.rendered),
+        Err(QianjiClientError::Message(message)) => message,
+    }
 }
 
 pub(super) fn rendered_json(output: &FlowhubCliOutput) -> serde_json::Value {

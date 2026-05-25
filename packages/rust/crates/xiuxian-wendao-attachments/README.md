@@ -31,21 +31,21 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature                | Purpose                                                                  |
-| ---------------------- | ------------------------------------------------------------------------ |
-| `archive-audit`        | Enables tar and tar.gz member manifest audits for archive fixtures.      |
-| `artifact-cache`       | Enables db-store `ArtifactBlobCache` reuse for derived attachment bytes. |
-| `foyer-artifact-cache` | Forwards the db-store Foyer backend while keeping the same cache trait.  |
-| `audio-shard-arrow`    | Enables Arrow builders/decoders for audio shard Flight rows.            |
-| `pdf-source-range`     | Enables `lopdf` source-page manifests without PDFium.                    |
-| `pdf-render`           | Adds PDFium-backed region/page raster proofs on top of source range.     |
+| Feature                | Purpose                                                                     |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `archive-audit`        | Enables tar and tar.gz member manifest audits for archive fixtures.         |
+| `foyer-artifact-cache` | Enables the Foyer-backed artifact substrate for attachment materialization. |
+| `audio-shard-arrow`    | Enables Arrow builders/decoders for audio shard Flight rows.                |
+| `pdf-source-range`     | Enables `lopdf` source-page manifests without PDFium.                       |
+| `pdf-render`           | Adds PDFium-backed region/page raster proofs on top of source range.        |
 
-The `artifact-cache` feature consumes the db-store artifact substrate through
-`ArtifactBlobCache` and the stable `attachment_artifact_key` namespace. Derived
-bytes such as audio chunks, source payloads, PDF rasters, OCR region crops, VLM
-atlases, and Arrow IPC batches may be stored through that contract. Attachments
-still owns parser/materialization facts only; DuckDB/Arrow own structured truth
-and Studio/Gateway own route scheduling and merge decisions.
+The `foyer-artifact-cache` feature consumes the db-store artifact substrate
+through `ArtifactBlobCache` and the stable `attachment_artifact_key` namespace,
+with Foyer as the backend. Derived bytes such as audio chunks, source payloads,
+PDF rasters, OCR region crops, VLM atlases, and Arrow IPC batches may be stored
+through that contract. Attachments still owns parser/materialization facts only;
+DuckDB/Arrow own structured truth and Studio/Gateway own route scheduling and
+merge decisions.
 
 ## Boundaries
 
@@ -179,17 +179,19 @@ rows in `readingOrderKey` order, removes exact overlap text only at shard
 boundaries, and reports failed, skipped, missing, and duplicate shard coverage
 for Studio precision gates. Backend model names remain analyzer configuration,
 not attachment identity.
-When the optional `artifact-cache` feature is enabled, materialization can also
+When the optional `foyer-artifact-cache` feature is enabled, materialization can
 restore or persist normalized shard media through the db-store
-`ArtifactBlobCache` backend factory. The filesystem backend remains the
-baseline; `foyer-artifact-cache` forwards the same interface to the Foyer
-artifact backend candidate when the operator selects it. This cache stores
-artifact bytes only: it does not change the audio shard Arrow schemas, backend
-selection, merge rules, or precision gates. Force refresh still bypasses stale
-request-output files, but verified content-addressed shard artifacts may satisfy the
-materialization request without invoking the media splitter again. Cache keys
-derive from artifact kind, source digest, profile digest, and shard digest;
-raw source paths are never treated as artifact identity.
+`ArtifactBlobCache` backend factory with Foyer as the default backend.
+This cache stores artifact bytes only: it does not change the audio shard Arrow
+schemas, backend selection, merge rules, or precision gates. Force refresh still
+bypasses stale request-output files, but verified content-addressed shard
+artifacts may satisfy the materialization request without invoking the media
+splitter again. Cache keys derive from artifact kind, source digest, profile
+digest, and shard digest; raw source paths are never treated as artifact
+identity. The materialization result carries each shard's byte length from the
+same digest/read path that produced or restored the shard, so Studio reports can
+prove artifact-cache hit bytes without rescanning shard files after
+materialization.
 Attachments also owns accepted transcript admission for audio shard rows. The
 admission API validates shard identity, backend/task identity, non-empty text,
 and merge coverage before persisting a transcript row for reuse. A planned

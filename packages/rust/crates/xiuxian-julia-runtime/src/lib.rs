@@ -1,8 +1,7 @@
 //! Julia runtime contracts and feature-scoped adapters.
 //!
-//! This crate is the successor boundary for Julia runtime facts that should not
-//! be owned by a Wendao-specific plugin crate. Wendao integration lives behind
-//! the `wendao` feature.
+//! Wendao integration lives behind the `wendao` feature and consumes inert
+//! Julia fact catalogs from `xiuxian-polyglot-orchestrator`.
 
 #[cfg(test)]
 rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
@@ -23,7 +22,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
                 )
                 .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
                 .with_rationale(
-                    "Wendao Julia profile facts are feature-scoped under the runtime crate",
+                    "Wendao Julia runtime adapters consume feature-scoped polyglot facts",
                 ),
             )
     }

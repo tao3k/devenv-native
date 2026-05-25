@@ -15,7 +15,7 @@ fn sample_binding(
     PluginCapabilityBinding {
         selector: PluginProviderSelector {
             capability_id: CapabilityId("rerank".to_string()),
-            provider: PluginId("xiuxian-wendao-julia".to_string()),
+            provider: PluginId("xiuxian-julia-core".to_string()),
         },
         endpoint: PluginTransportEndpoint {
             base_url: base_url.map(ToString::to_string),

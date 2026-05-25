@@ -13,7 +13,7 @@ This note is the first concrete `M4` deliverable for the Wendao
 core/runtime/plugin migration program.
 
 It defines the package list for externalizing Julia ownership into
-`xiuxian-wendao-julia`.
+`xiuxian-julia-core`.
 
 Primary references:
 
@@ -28,7 +28,7 @@ paired ExecPlan rather than this persistent package-list note.
 
 ## M4 Goal
 
-Make `xiuxian-wendao-julia` the physical owner of Julia-specific plugin
+Make `xiuxian-julia-core` the physical owner of Julia-specific plugin
 behavior.
 
 At the end of `M4`, the host should consume Julia through:
@@ -36,11 +36,11 @@ At the end of `M4`, the host should consume Julia through:
 1. stable contracts from `core`
 2. orchestration from `runtime`
 3. Julia-owned plugin declarations and launch/artifact semantics from
-   `xiuxian-wendao-julia`
+   `xiuxian-julia-core`
 
 ## Externalization Rule
 
-A Julia-related boundary belongs in `xiuxian-wendao-julia` if it is true that:
+A Julia-related boundary belongs in `xiuxian-julia-core` if it is true that:
 
 1. it expresses Julia-specific capability behavior
 2. it encodes Julia-specific launch or CLI semantics
@@ -54,7 +54,7 @@ If it is only host orchestration, it should move to `runtime`.
 
 The first dependency blocker has now been removed:
 
-1. `xiuxian-wendao-julia` no longer depends on `xiuxian-wendao` directly
+1. `xiuxian-julia-core` no longer depends on `xiuxian-wendao` directly
 2. repo-intelligence contracts and the Julia Arrow analyzer
    column/schema-contract surface now come from `xiuxian-wendao-core`
 3. the former `M4` blockers are no longer Cargo-edge blockers; they have been
@@ -76,7 +76,7 @@ Current source boundary:
 - Julia plugin entry and capability declaration code
 - Julia capability metadata that is currently bridged through the host crate
 
-Target `xiuxian-wendao-julia` ownership:
+Target `xiuxian-julia-core` ownership:
 
 1. Julia capability identifiers and declarations
 2. Julia provider metadata
@@ -96,7 +96,7 @@ Current source boundary:
 - Julia service descriptor assembly
 - Julia CLI argument meaning
 
-Target `xiuxian-wendao-julia` ownership:
+Target `xiuxian-julia-core` ownership:
 
 1. Julia launch manifest schema interpretation
 2. Julia CLI ordering and package-owned defaults
@@ -115,7 +115,7 @@ Current source boundary:
   `LinkGraphJuliaDeploymentArtifact`
 - Julia-specific TOML/JSON deployment contract meaning
 
-Target `xiuxian-wendao-julia` ownership:
+Target `xiuxian-julia-core` ownership:
 
 1. Julia deployment artifact schema interpretation
 2. Julia artifact metadata fields and package-owned defaults
@@ -135,7 +135,7 @@ Current source boundary:
 - `.data/WendaoArrow.jl` and `.data/WendaoAnalyzer.jl` package path conventions
 - Julia launch defaults that are currently host-side
 
-Target `xiuxian-wendao-julia` ownership:
+Target `xiuxian-julia-core` ownership:
 
 1. Julia package path conventions
 2. Julia default launcher and script locations
@@ -164,7 +164,7 @@ Target ownership after `M4`:
 
 ## Explicit Non-Julia-Package List
 
-These boundaries must remain out of `xiuxian-wendao-julia`:
+These boundaries must remain out of `xiuxian-julia-core`:
 
 ### Core-Owned
 
@@ -185,13 +185,13 @@ These boundaries must remain out of `xiuxian-wendao-julia`:
 The desired dependency shape after `M4` is:
 
 ```text
-xiuxian-wendao-julia
+xiuxian-julia-core
   -> xiuxian-wendao-core
   -> optional narrow runtime integration seam if unavoidable
 
 xiuxian-wendao-runtime
   -> xiuxian-wendao-core
-  -> xiuxian-wendao-julia
+  -> xiuxian-julia-core
 
 xiuxian-wendao
   -> facade / compatibility / transitional assembly
@@ -199,7 +199,7 @@ xiuxian-wendao
 
 The key rule is:
 
-`xiuxian-wendao-julia` must stop depending on the monolithic host crate as its
+`xiuxian-julia-core` must stop depending on the monolithic host crate as its
 primary dependency surface.
 
 ## First Physical Externalization Cut
@@ -214,7 +214,7 @@ It should not attempt to remove every Julia compatibility shim in one landing.
 
 Current implementation status:
 
-1. `xiuxian-wendao-julia` now has a direct dependency on
+1. `xiuxian-julia-core` now has a direct dependency on
    `xiuxian-wendao-core`
 2. repo-intelligence contract imports in the Julia plugin entry, discovery,
    linking, project, sources, and transport modules now source stable records
@@ -225,10 +225,10 @@ Current implementation status:
 4. the Julia Arrow analyzer column/schema contract also now lives in
    `xiuxian-wendao-core::repo_intelligence`, which removes the last direct
    `xiuxian-wendao` Cargo dependency from the Julia package
-5. `xiuxian-wendao` now loads `xiuxian-wendao-julia` through a normal crate
+5. `xiuxian-wendao` now loads `xiuxian-julia-core` through a normal crate
    dependency instead of `#[path]` source inclusion, so Julia publication is
    no longer blocked by host-side source embedding
-6. `xiuxian-wendao-julia::compatibility::link_graph` now owns the Julia
+6. `xiuxian-julia-core::compatibility::link_graph` now owns the Julia
    plugin selector ids/helpers, `LinkGraphJuliaAnalyzerServiceDescriptor`,
    `LinkGraphJuliaAnalyzerLaunchManifest`,
    `LinkGraphJuliaDeploymentArtifact`, the Julia CLI-arg mapping for analyzer
@@ -238,7 +238,7 @@ Current implementation status:
    compatibility re-export seams for those Julia-owned DTOs, while
    `runtime.rs` now delegates Julia analyzer-launch arg encoding back into the
    Julia crate
-8. `xiuxian-wendao-julia::compatibility::link_graph` now also owns the Julia
+8. `xiuxian-julia-core::compatibility::link_graph` now also owns the Julia
    analyzer package-dir/default path slice through `paths.rs`, including the
    default analyzer launcher path and the default analyzer example-config path,
    so the monolithic host no longer carries those package-owned defaults in
@@ -247,7 +247,7 @@ Current implementation status:
    Julia-owned path defaults instead of embedding raw
    `.data/WendaoAnalyzer.jl/...` or `.data/WendaoArrow.jl/...` literals
    across the touched `M4` seams
-10. `xiuxian-wendao-julia::compatibility::link_graph` now also owns
+10. `xiuxian-julia-core::compatibility::link_graph` now also owns
     `LinkGraphJuliaRerankRuntimeConfig` and its provider-binding / launch /
     artifact normalization methods through `runtime.rs`
 11. the host `runtime.rs` and `conversions.rs` files now behave as
@@ -256,23 +256,23 @@ Current implementation status:
 12. the staged mixed-graph structural plugin contract now also follows the
     same ownership rule: Julia-specific graph-structural route names, draft
     schema-version defaults, request or response column inventories, and Arrow
-    batch validation live in `xiuxian-wendao-julia`, while
+    batch validation live in `xiuxian-julia-core`, while
     `xiuxian-wendao-runtime` stays limited to reusable Flight client and route
     normalization helpers
 13. the next graph-search dispatch layer now follows that same rule too:
     Julia-specific repository option parsing for `graph_structural_transport`,
     graph-structural route-kind defaults, and request or response dispatch
-    helpers live in `xiuxian-wendao-julia` instead of being reintroduced into
+    helpers live in `xiuxian-julia-core` instead of being reintroduced into
     `xiuxian-wendao-runtime`
 14. the typed graph-search exchange surface now follows that rule as well:
     request-row structs, response-row structs, Arrow batch builders, Arrow
     batch decoders, and repository-scoped fetch helpers for structural rerank
-    or constraint filter live in `xiuxian-wendao-julia`, while
+    or constraint filter live in `xiuxian-julia-core`, while
     `xiuxian-wendao` keeps at most a thin plugin consumption seam
 15. the semantic projection layer above those row types now also follows the
     same rule: normalized query-anchor DTOs, candidate-subgraph DTOs, rerank
     signal DTOs, and filter-constraint DTOs for graph-structural requests live
-    in `xiuxian-wendao-julia` so the host does not have to manually align
+    in `xiuxian-julia-core` so the host does not have to manually align
     request-list columns
 16. the current host-side proof also follows that rule: a real
     `LinkGraphIndex` agentic-expansion pair is projected into
@@ -282,43 +282,43 @@ Current implementation status:
 17. the pair-specific projection helpers above that proof now also follow the
     same rule: stable pair candidate id normalization, pair candidate-subgraph
     construction, and pair-to-request-row projection live in
-    `xiuxian-wendao-julia`, so the host no longer rebuilds two-node candidate
+    `xiuxian-julia-core`, so the host no longer rebuilds two-node candidate
     ids or candidate-subgraph wrappers by hand
 18. the next simple request-semantics layer also follows that same rule:
     keyword-or-tag query-context builders and binary keyword-or-tag rerank
-    signal builders live in `xiuxian-wendao-julia`, so the host no longer
+    signal builders live in `xiuxian-julia-core`, so the host no longer
     manually constructs those anchors or maps boolean plane matches to staged
     score columns
 19. the convenience layer above those helpers now also follows that same rule:
     combined keyword-or-tag pair-rerank request-row builders live in
-    `xiuxian-wendao-julia`, so the host no longer manually composes
+    `xiuxian-julia-core`, so the host no longer manually composes
     `query context -> rerank signals -> pair rerank row` in sequence
 20. the shared-tag overlap discovery step now also follows that same rule:
     normalized shared-tag anchor extraction and overlap-aware combined
-    pair-rerank helpers live in `xiuxian-wendao-julia`, so the host no longer
+    pair-rerank helpers live in `xiuxian-julia-core`, so the host no longer
     computes tag overlap before calling the plugin-owned request builder
 21. the next metadata projection seam now also follows that same rule:
     plugin-owned node-metadata input bundles and a metadata-aware overlap
-    helper live in `xiuxian-wendao-julia`, so the host no longer threads raw
+    helper live in `xiuxian-julia-core`, so the host no longer threads raw
     tag vectors directly into the staged request-row builder
 22. the next row-to-batch assembly seam now also follows that same rule:
     scored metadata-aware rerank input bundles and a metadata-aware rerank
-    batch helper live in `xiuxian-wendao-julia`, so the host no longer builds
+    batch helper live in `xiuxian-julia-core`, so the host no longer builds
     `Vec<GraphStructuralRerankRequestRow>` before Arrow batch materialization
 23. the next higher-level candidate-input seam now also follows that same
     rule: single-bundle keyword-overlap request inputs and a candidate-input
-    batch helper live in `xiuxian-wendao-julia`, so the host no longer
+    batch helper live in `xiuxian-julia-core`, so the host no longer
     composes query-input, metadata-input, pair-input, and scored-rerank-input
     bundles by hand for each pair
 24. the next shared-query and candidate-bundle seam now also follows that
     same rule: one shared keyword-overlap query bundle, one plugin-owned
     per-pair candidate bundle, and the query-plus-candidate batch helper live
     in
-    `xiuxian-wendao-julia`, so the host no longer constructs higher-level
+    `xiuxian-julia-core`, so the host no longer constructs higher-level
     request-input bundles by hand before staging the Arrow batch
 25. the next repository-fetch seam now also follows that same rule: the
     query-plus-candidate rerank fetch helper lives in
-    `xiuxian-wendao-julia`, so a host caller with those plugin-owned DTOs no
+    `xiuxian-julia-core`, so a host caller with those plugin-owned DTOs no
     longer needs to materialize Arrow batches before dispatching the
     repository-configured structural-rerank request, and the host only
     re-exports that helper through its thin language seam; the bounded host
@@ -327,24 +327,24 @@ Current implementation status:
     `xiuxian_wendao::analyzers::languages`
 26. the next raw-to-candidate staging seam now also follows that same rule:
     `build_graph_structural_keyword_overlap_candidate_inputs(...)` lives in
-    `xiuxian-wendao-julia`, so the host no longer manually constructs
+    `xiuxian-julia-core`, so the host no longer manually constructs
     `GraphStructuralNodeMetadataInputs`,
     `GraphStructuralKeywordOverlapCandidateInputs` before calling the
     plugin-owned request-batch or repository-fetch helpers
 27. the next raw-to-query staging seam now also follows that same rule:
     `build_graph_structural_keyword_overlap_query_inputs(...)` lives in
-    `xiuxian-wendao-julia`, so the host no longer manually constructs
+    `xiuxian-julia-core`, so the host no longer manually constructs
     `GraphStructuralKeywordOverlapQueryInputs` before calling the plugin-owned
     request-batch or repository-fetch helpers
 28. the next raw-to-pair staging seam now also follows that same rule:
     `build_graph_structural_pair_candidate_inputs(...)` lives in
-    `xiuxian-wendao-julia`, so the host no longer manually constructs
+    `xiuxian-julia-core`, so the host no longer manually constructs
     `GraphStructuralPairCandidateInputs` before calling the plugin-owned
     request-batch or repository-fetch helpers
 29. the next raw pair-metadata-to-candidate staging seam now also follows
     that same rule:
     `build_graph_structural_keyword_overlap_pair_candidate_inputs_from_raw(...)`
-    lives in `xiuxian-wendao-julia`, so the host no longer manually composes
+    lives in `xiuxian-julia-core`, so the host no longer manually composes
     `build_graph_structural_keyword_overlap_pair_candidate_metadata_inputs(...)`
     and `build_graph_structural_keyword_overlap_candidate_inputs(...)` before
     calling the plugin-owned request-batch or repository-fetch helpers
@@ -355,7 +355,7 @@ Current implementation status:
     `build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_raw_candidates(...)`,
     and
     `fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates(...)`
-    live in `xiuxian-wendao-julia`, so the host no longer manually normalizes
+    live in `xiuxian-julia-core`, so the host no longer manually normalizes
     each raw candidate before calling the plugin-owned request-batch or
     repository-fetch helpers
 31. the Julia plugin capability-discovery seam now also follows that same
@@ -363,7 +363,7 @@ Current implementation status:
     the Rust host keeps only static plugin identity registration, while
     Julia-specific capability discovery, manifest decoding, manifest-to-binding
     conversion, and repository transport interpretation for a
-    `/plugin/capabilities` Arrow route now live in `xiuxian-wendao-julia`
+    `/plugin/capabilities` Arrow route now live in `xiuxian-julia-core`
     instead of growing a second host-owned registration adapter
 32. the bounded host live-smoke slice now also follows that same rule:
     `xiuxian-wendao` consumes the existing Julia-owned graph-structural fetch
@@ -400,7 +400,7 @@ Current implementation status:
     worker-batch dependency, keyword, and tag scores from real plan-aware
     batch semantics and validates those staged request-batch columns before the
     live solver-demo downcall, so the host proof is less synthetic without
-    moving planner ranking semantics into `xiuxian-wendao-julia`
+    moving planner ranking semantics into `xiuxian-julia-core`
 39. that same host-through-language-seam live lane now also validates the
     staged `semantic_score` request column derived from real worker-partition
     pair semantics before the live solver-demo downcall, so the outgoing Arrow

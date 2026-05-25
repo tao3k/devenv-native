@@ -96,6 +96,22 @@ def _artifact_report(report_name: str, latency: float) -> dict[str, object]:
             if report_name == "artifact-registry-reuse.json"
             else {"media-splitter": 900}
         ),
+        "audioMaterializationWorkflowId": "audio.recovery",
+        "audioMaterializationWorkflowStageCount": 2,
+        "audioMaterializationWorkflowTotalElapsedMs": (
+            2.0 if report_name == "artifact-registry-reuse.json" else 12.0
+        ),
+        "audioMaterializationWorkflowStageElapsedMs": (
+            {
+                "audio.base.materialize_shards": 0.5,
+                "audio.base.invoke_worker": 1.5,
+            }
+            if report_name == "artifact-registry-reuse.json"
+            else {
+                "audio.base.materialize_shards": 5.0,
+                "audio.base.invoke_worker": 7.0,
+            }
+        ),
         "structureArrowExists": True,
         "structureRowCount": 21,
         "structureOcrPageBlocks": 21,

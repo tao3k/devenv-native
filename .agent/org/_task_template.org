@@ -23,7 +23,7 @@ SCHEDULED: <YYYY-MM-DD Day>
 - [ ] Implementation complete.
 - [ ] Validation complete.
 - [ ] Related package or canonical docs synced or explicitly judged unchanged.
-- [ ] Evidence, closure questions, and archive readiness updated.
+- [ ] Evidence, reflection questions, and archive readiness updated.
 
 ** Context
 
@@ -38,7 +38,7 @@ SCHEDULED: <YYYY-MM-DD Day>
 - [ ] Implementation complete.
 - [ ] Validation complete.
 - [ ] Related package or canonical docs synced or explicitly judged unchanged.
-- [ ] Evidence, closure questions, and archive readiness updated.
+- [ ] Evidence, reflection questions, and archive readiness updated.
 
 ** Checkpoints
 
@@ -64,10 +64,10 @@ docs were intentionally left unchanged.
 - Updated:
 - Unchanged rationale:
 
-** Closure Questions
+** Reflection Questions
 
 Complete this table before a completed task is archived. Add, remove, or rename
-questions when the slice needs different closure probes; lint only requires
+questions when the slice needs different reflection probes; lint only requires
 that every row with a =Question= has a non-empty =Value= answer.
 
 | Question | Value |
@@ -77,7 +77,7 @@ that every row with a =Question= has a non-empty =Value= answer.
 | Did the final implementation differ from the starting task, plan, or user intent? | |
 | Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | |
 | Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | |
-| Does this task improve future =task-probe=, =ogrid-show=, SDD graph, or agent recovery understanding? | |
+| Does this task improve future =task-probe=, =orgid-show=, SDD graph, or agent recovery understanding? | |
 | What should the next agent query, verify, or avoid? | |
 
 ** Recovery
@@ -87,7 +87,7 @@ work with the lowest-token query that matches the agent's memory state:
 
 #+begin_src bash
 wendao-client orgize task-probe --cached --text '<remembered title-or-file-key>' $PRJ_CACHE_HOME/agent/org
-wendao-client orgize ogrid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
+wendao-client orgize orgid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
 wendao-client orgize task-recover --cached $PRJ_CACHE_HOME/agent/org
 #+end_src
 
@@ -97,7 +97,7 @@ Lifecycle contract for agent-owned task headings:
 
 - Keep a new planned task as =TODO= while no implementation work has started and progress remains =0%=.
 - When an agent begins the task and the heading progress cookie moves above =0%=, change the heading keyword from =TODO= to =DOING=.
-- When the heading reaches =100%=, change =DOING= to =DONE=, add an inactive =CLOSED: [YYYY-MM-DD Day]= timestamp after validation/evidence is recorded, and complete the =Closure Questions= table.
-- Archive readiness requires all closure signals: =DONE= + =100%= + =CLOSED= + non-empty =Value= cells for every =Closure Questions= table row that has a =Question= value.
+- When the heading reaches =100%=, change =DOING= to =DONE=, add an inactive =CLOSED: [YYYY-MM-DD Day]= timestamp after validation/evidence is recorded, and complete the =Reflection Questions= table.
+- Archive readiness requires all closure signals: =DONE= + =100%= + =CLOSED= + non-empty =Value= cells for every =Reflection Questions= table row that has a =Question= value.
 - After archive readiness is reached, move the task to the default archive path derived from the task source filename so completed work does not pollute active memory recovery.
 - =wendao-client orgize lint= warns when these lifecycle/progress states drift.

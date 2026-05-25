@@ -149,8 +149,7 @@ pub(super) fn document_extract_conversion_concurrency_limit_with_lookup(
 #[cfg(feature = "document-extract-audio-shards")]
 fn audio_worker_limit() -> usize {
     std::thread::available_parallelism()
-        .map(std::num::NonZeroUsize::get)
-        .unwrap_or(1)
+        .map_or(1, std::num::NonZeroUsize::get)
         .max(1)
 }
 

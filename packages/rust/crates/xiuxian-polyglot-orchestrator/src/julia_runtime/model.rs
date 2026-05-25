@@ -1,7 +1,7 @@
 //! Julia runtime fact projections for the polyglot control plane.
 
-use xiuxian_julia_runtime::wendao as julia_wendao;
-pub use xiuxian_julia_runtime::wendao::{
+use super::facts as julia_wendao;
+pub use super::facts::{
     MEMORY_JULIA_COMPUTE_CALIBRATION_PROFILE_ID,
     MEMORY_JULIA_COMPUTE_CALIBRATION_REQUEST_SCHEMA_ID,
     MEMORY_JULIA_COMPUTE_CALIBRATION_RESPONSE_SCHEMA_ID,
@@ -143,7 +143,7 @@ impl JuliaProfileSchedulingFacts {
 }
 
 impl WendaoGraphScheduledAlgorithmRef {
-    /// Projects a runtime-owned Julia algorithm fact into scheduler terms.
+    /// Projects a polyglot-owned Julia algorithm fact into scheduler terms.
     #[must_use]
     pub const fn from_runtime(reference: WendaoGraphAlgorithmRef) -> Self {
         Self {
@@ -182,37 +182,37 @@ impl WendaoGraphScheduledAlgorithmRef {
 /// Returns the `WendaoGraph.jl` `LinkGraph` algorithm catalog in scheduler terms.
 #[must_use]
 pub fn wendaograph_link_graph_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    project_algorithm_refs(julia_wendao::wendaograph_link_graph_algorithm_refs())
+    project_algorithm_refs(julia_wendao::wendaograph_fact_link_graph_algorithm_refs())
 }
 
 /// Returns the `WendaoGraph.jl` relationship-search catalog in scheduler terms.
 #[must_use]
 pub fn wendaograph_relationship_search_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    project_algorithm_refs(julia_wendao::wendaograph_relationship_search_algorithm_refs())
+    project_algorithm_refs(julia_wendao::wendaograph_fact_relationship_search_algorithm_refs())
 }
 
 /// Returns the `WendaoGraph.jl` `PageIndex` catalog in scheduler terms.
 #[must_use]
 pub fn wendaograph_page_index_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    project_algorithm_refs(julia_wendao::wendaograph_page_index_algorithm_refs())
+    project_algorithm_refs(julia_wendao::wendaograph_fact_page_index_algorithm_refs())
 }
 
 /// Returns the `WendaoGraph.jl` `SearchStrategyFlow` catalog in scheduler terms.
 #[must_use]
 pub fn wendaograph_search_strategy_flow_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    project_algorithm_refs(julia_wendao::wendaograph_search_strategy_flow_algorithm_refs())
+    project_algorithm_refs(julia_wendao::wendaograph_fact_search_strategy_flow_algorithm_refs())
 }
 
 /// Returns the `WendaoGraph.jl` GNN catalog in scheduler terms.
 #[must_use]
 pub fn wendaograph_gnn_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    project_algorithm_refs(julia_wendao::wendaograph_gnn_algorithm_refs())
+    project_algorithm_refs(julia_wendao::wendaograph_fact_gnn_algorithm_refs())
 }
 
 /// Returns all staged `WendaoGraph.jl` algorithms in scheduler terms.
 #[must_use]
 pub fn wendaograph_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    julia_wendao::wendaograph_algorithm_refs()
+    julia_wendao::wendaograph_fact_algorithm_refs()
         .into_iter()
         .map(WendaoGraphScheduledAlgorithmRef::from_runtime)
         .collect()
@@ -223,7 +223,7 @@ pub fn wendaograph_algorithm_refs() -> Vec<WendaoGraphScheduledAlgorithmRef> {
 pub fn wendaograph_algorithm_ref(
     algorithm_id: WendaoGraphAlgorithmId,
 ) -> Option<WendaoGraphScheduledAlgorithmRef> {
-    julia_wendao::wendaograph_algorithm_ref(algorithm_id)
+    julia_wendao::wendaograph_fact_algorithm_ref(algorithm_id)
         .map(WendaoGraphScheduledAlgorithmRef::from_runtime)
 }
 
@@ -241,7 +241,7 @@ pub fn wendaograph_algorithm_task_shape(
 pub fn wendaograph_frontier_algorithm_ref(
     evidence_kind: &str,
 ) -> Option<WendaoGraphScheduledAlgorithmRef> {
-    julia_wendao::wendaograph_frontier_algorithm_ref(evidence_kind)
+    julia_wendao::wendaograph_fact_frontier_algorithm_ref(evidence_kind)
         .map(WendaoGraphScheduledAlgorithmRef::from_runtime)
 }
 
@@ -288,7 +288,7 @@ pub fn wendaograph_frontier_schedule_plan(
 pub fn wendaograph_algorithm_refs_for_profile(
     profile_id: WendaoGraphProfileId,
 ) -> Vec<WendaoGraphScheduledAlgorithmRef> {
-    julia_wendao::wendaograph_algorithm_refs_for_profile(profile_id)
+    julia_wendao::wendaograph_fact_algorithm_refs_for_profile(profile_id)
         .into_iter()
         .map(WendaoGraphScheduledAlgorithmRef::from_runtime)
         .collect()

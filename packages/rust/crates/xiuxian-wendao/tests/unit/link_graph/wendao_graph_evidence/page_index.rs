@@ -1,4 +1,4 @@
-use xiuxian_wendao_julia::validate_wendao_graph_page_index_reasoning_request_schema;
+use xiuxian_julia_core::validate_wendao_graph_page_index_reasoning_request_schema;
 
 use super::support::{
     fixture_index, float_column, int64_column, page_index_edge_rows, page_index_node_rows,

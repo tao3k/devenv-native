@@ -3,6 +3,11 @@ use crate::episteme::source_contract::support::decode_single_arrow_batch;
 #[cfg(feature = "julia")]
 use crate::episteme::source_contract::support::string_column;
 #[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::{
+    build_wendaograph_ontology_read_model_quality_arrow_request,
+    build_wendaograph_ontology_read_model_quality_flight_request_batch,
+};
+#[cfg(feature = "julia")]
 use xiuxian_wendao::episteme::{
     build_episteme_wendaograph_quality_request_batches,
     materialize_episteme_ontology_registry_snapshot_read_model_seed,
@@ -11,11 +16,6 @@ use xiuxian_wendao::episteme::{
 use xiuxian_wendao_episteme::{
     EpistemeOntologyRegistryReadModelInput, EpistemeOntologyRegistrySnapshot,
     EpistemeOntologyRegistrySnapshotReport,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
-    build_wendaograph_ontology_read_model_quality_arrow_request,
-    build_wendaograph_ontology_read_model_quality_flight_request_batch,
 };
 
 #[test]

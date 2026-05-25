@@ -106,24 +106,26 @@ def summarize_results(
             for result in results
         ),
         "totalForceAudioMaterializationArtifactCacheHitCount": sum(
-            result.get("forceAudioMaterializationArtifactCacheHitCount", 0)
-            for result in results
+            result.get("forceAudioMaterializationArtifactCacheHitCount", 0) for result in results
         ),
         "totalForceAudioMaterializationArtifactCacheHitBytes": sum(
-            result.get("forceAudioMaterializationArtifactCacheHitBytes", 0)
-            for result in results
+            result.get("forceAudioMaterializationArtifactCacheHitBytes", 0) for result in results
         ),
         "totalForceAudioMaterializationMediaSplitterCount": sum(
-            result.get("forceAudioMaterializationMediaSplitterCount", 0)
-            for result in results
+            result.get("forceAudioMaterializationMediaSplitterCount", 0) for result in results
         ),
         "totalForceAudioMaterializationMediaSplitterBytes": sum(
-            result.get("forceAudioMaterializationMediaSplitterBytes", 0)
-            for result in results
+            result.get("forceAudioMaterializationMediaSplitterBytes", 0) for result in results
         ),
         "totalForceAudioMaterializationArtifactCacheConfigErrors": sum(
             result.get("forceAudioMaterializationArtifactCacheConfigErrorCount", 0)
             for result in results
+        ),
+        "forceAudioMaterializationWorkflowStageElapsedMs": _combine_float_counts(
+            result.get("forceAudioMaterializationWorkflowStageElapsedMs", {}) for result in results
+        ),
+        "totalForceAudioMaterializationWorkflowElapsedMs": sum(
+            result.get("forceAudioMaterializationWorkflowTotalElapsedMs", 0.0) for result in results
         ),
         "totalArtifactReuseAudioMaterializationShardCount": sum(
             result.get("artifactRegistryReuseAudioMaterializationShardCount", 0)
@@ -166,6 +168,20 @@ def summarize_results(
             result.get(
                 "artifactRegistryReuseAudioMaterializationArtifactCacheConfigErrorCount",
                 0,
+            )
+            for result in results
+        ),
+        "artifactReuseAudioMaterializationWorkflowStageElapsedMs": _combine_float_counts(
+            result.get(
+                "artifactRegistryReuseAudioMaterializationWorkflowStageElapsedMs",
+                {},
+            )
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationWorkflowElapsedMs": sum(
+            result.get(
+                "artifactRegistryReuseAudioMaterializationWorkflowTotalElapsedMs",
+                0.0,
             )
             for result in results
         ),
@@ -740,7 +756,23 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "reuseMediaSplitterBytes="
         f"{payload['summary'].get('totalArtifactReuseAudioMaterializationMediaSplitterBytes')}, "
         "reuseConfigErrors="
-        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationArtifactCacheConfigErrors')}`",
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationArtifactCacheConfigErrors')}, "
+        "forceWorkflowMs="
+        f"{payload['summary'].get('totalForceAudioMaterializationWorkflowElapsedMs')}, "
+        "forceWorkflowStages="
+        f"{_format_float_counts(payload['summary'].get('forceAudioMaterializationWorkflowStageElapsedMs'))}, "
+        "reuseWorkflowMs="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationWorkflowElapsedMs')}, "
+        "reuseWorkflowStages="
+        f"{_format_float_counts(payload['summary'].get('artifactReuseAudioMaterializationWorkflowStageElapsedMs'))}`",
+        "- Audio hosted non-model timing: "
+        f"`requestWallMs={_format_optional_float(payload['summary'].get('forceAudioHostedRequestWallSpanMs'))}, "
+        "analyzerCallMs="
+        f"{_format_optional_float(payload['summary'].get('forceAudioHostedAnalyzerCallMs'))}, "
+        "analyzerRequestWallGapMs="
+        f"{_format_optional_float(payload['summary'].get('forceAudioHostedAnalyzerRequestWallGapMs'))}, "
+        "workflowRequestWallGapMs="
+        f"{_format_optional_float(payload['summary'].get('forceAudioHostedWorkflowRequestWallGapMs'))}`",
         "- Audio transcript admission: "
         f"`forceHits={payload['summary'].get('totalForceAudioTranscriptAdmissionHitCount')}, "
         f"forceMisses={payload['summary'].get('totalForceAudioTranscriptAdmissionMissCount')}, "

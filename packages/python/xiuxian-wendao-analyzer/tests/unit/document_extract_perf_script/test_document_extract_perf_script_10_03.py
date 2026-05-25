@@ -48,57 +48,26 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     assert result["shardCacheReuseForceMs"] == 42.0
     assert result["shardCacheReuseErrorRows"] == 0
     assert result["shardCacheReuseMetricsRustSchedulerElapsedMs"] == 40.0
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingPhaseElapsedMs"]["ocrScheduler"]
-        == 4.0
-    )
+    assert result["shardCacheReuseHybridPageOcrTimingPhaseElapsedMs"]["ocrScheduler"] == 4.0
     assert result["forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 6
     assert result["forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"] == 125.0
-    assert (
-        result["forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"] == 2
-    )
+    assert result["forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"] == 2
     assert result["forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] == 4
     assert result["forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] == 3
     assert result["forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] == 2
     assert result["forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"] == 2
     assert result["forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"] == 2
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount"] == 6
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 0
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"] == 0.0
     assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount"] == 6
+        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"] == 2
     )
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount"] == 0
-    )
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"]
-        == 0.0
-    )
-    assert (
-        result[
-            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
-        ]
-        == 2
-    )
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] == 4
-    )
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"]
-        == 3
-    )
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"]
-        == 2
-    )
-    assert (
-        result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"]
-        == 2
-    )
-    assert (
-        result[
-            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
-        ]
-        == 2
-    )
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] == 4
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] == 3
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] == 2
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"] == 2
+    assert result["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"] == 2
     assert result["artifactRegistryReuseEnabled"] is True
     assert result["artifactRegistryReuseForceMs"] == 9.0
     assert result["artifactRegistryReuseErrorRows"] == 0
@@ -108,28 +77,32 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     }
     assert result["forceAudioMaterializationArtifactCacheHitBytes"] == 0
     assert result["forceAudioMaterializationMediaSplitterBytes"] == 900
+    assert result["forceAudioMaterializationWorkflowTotalElapsedMs"] == 12.0
+    assert result["forceAudioMaterializationWorkflowStageElapsedMs"] == {
+        "audio.base.invoke_worker": 7.0,
+        "audio.base.materialize_shards": 5.0,
+    }
     assert result["artifactRegistryReuseAudioMaterializationByteCount"] == 900
-    assert result[
-        "artifactRegistryReuseAudioMaterializationArtifactCacheBackendCounts"
-    ] == {"foyer": 1}
-    assert result[
-        "artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes"
-    ] == 900
+    assert result["artifactRegistryReuseAudioMaterializationArtifactCacheBackendCounts"] == {
+        "foyer": 1
+    }
+    assert result["artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes"] == 900
     assert result["artifactRegistryReuseAudioMaterializationMediaSplitterBytes"] == 0
+    assert result["artifactRegistryReuseAudioMaterializationWorkflowTotalElapsedMs"] == 2.0
+    assert result["artifactRegistryReuseAudioMaterializationWorkflowStageElapsedMs"] == {
+        "audio.base.invoke_worker": 1.5,
+        "audio.base.materialize_shards": 0.5,
+    }
     assert result["cacheHitP50Ms"] == 4.0
     assert result["metricsRows"] == 21
     assert result["metricsResultChars"] == 2048
     assert result["metricsBboxCount"] == 21
     assert (
-        result["forceHybridPageOcrTimingSchedulerTraceSummary"][
-            "sourceRangeLongestOcrProfile"
-        ]
+        result["forceHybridPageOcrTimingSchedulerTraceSummary"]["sourceRangeLongestOcrProfile"]
         == "docling-fast-text-ocr"
     )
     assert (
-        result["forceHybridPageOcrTimingSchedulerTraceSummary"][
-            "sourceRangeLongestShardType"
-        ]
+        result["forceHybridPageOcrTimingSchedulerTraceSummary"]["sourceRangeLongestShardType"]
         == "page"
     )
     assert result["structureAuthorityPages"] == 2
@@ -141,34 +114,21 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
         result["forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"]["strategy"]
         == "source-profile-weighted"
     )
+    assert result["forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"]["targetChunkCount"] == 4
     assert (
-        result["forceHybridPageOcrTimingPageRangeDoclingFallbackPlan"][
-            "targetChunkCount"
-        ]
-        == 4
-    )
-    assert (
-        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
-            "elapsedMsMax"
-        ]
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"]["elapsedMsMax"]
         == 19_327.0
     )
     assert (
-        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
-            "elapsedMsMin"
-        ]
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"]["elapsedMsMin"]
         == 19_327.0
     )
     assert (
-        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
-            "elapsedMsMean"
-        ]
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"]["elapsedMsMean"]
         == 19_327.0
     )
     assert (
-        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
-            "elapsedMsSpread"
-        ]
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"]["elapsedMsSpread"]
         == 0.0
     )
     assert (
@@ -178,9 +138,7 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
         == 1.0
     )
     assert (
-        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"][
-            "longestPageEnd"
-        ]
+        result["forceHybridPageOcrTimingPageRangeDoclingFallbackChunkSummary"]["longestPageEnd"]
         == 6
     )
     assert (

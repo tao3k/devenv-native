@@ -586,7 +586,7 @@ fn agent_task_progress_finding(
         ProgressCookie::Complete if !matches!(todo.state, TodoState::Done) => Some(LintFinding {
             code: "agent-task-progress-complete",
             severity: LintSeverity::Warning,
-            message: "agent task is 100% complete; change lifecycle state to DONE, add inactive CLOSED: [YYYY-MM-DD Day], and complete Closure Questions"
+            message: "agent task is 100% complete; change lifecycle state to DONE, add inactive CLOSED: [YYYY-MM-DD Day], and complete Reflection Questions"
                 .to_string(),
             location,
         }),
@@ -620,7 +620,7 @@ fn agent_task_progress_finding(
             Some(LintFinding {
                 code: "agent-task-closure-questions-missing",
                 severity: LintSeverity::Warning,
-                message: "completed agent task is missing Closure Questions answers; fill non-empty Value cells before archive"
+                message: "completed agent task is missing Reflection Questions answers; fill non-empty Value cells before archive"
                     .to_string(),
                 location,
             })
@@ -677,7 +677,7 @@ fn agent_task_has_answered_question_table(
                 break;
             }
             in_closure_questions =
-                level == target_level && title.eq_ignore_ascii_case("closure questions");
+                level == target_level && is_agent_task_reflection_table_title(title);
             continue;
         }
 
@@ -697,6 +697,11 @@ fn agent_task_has_answered_question_table(
     }
 
     !table_lines.is_empty() && question_table_has_all_values(&table_lines)
+}
+
+fn is_agent_task_reflection_table_title(title: &str) -> bool {
+    title.eq_ignore_ascii_case("reflection questions")
+        || title.eq_ignore_ascii_case("closure questions")
 }
 
 fn agent_task_closed_uses_inactive_timestamp(

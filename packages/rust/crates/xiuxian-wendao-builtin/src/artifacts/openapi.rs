@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-use xiuxian_wendao_julia::compatibility::link_graph::{
+use xiuxian_julia_runtime::wendao::link_graph::{
     julia_deployment_artifact_openapi_json_example, julia_deployment_artifact_openapi_toml_example,
     julia_plugin_artifact_openapi_json_example, julia_plugin_artifact_openapi_toml_example,
 };

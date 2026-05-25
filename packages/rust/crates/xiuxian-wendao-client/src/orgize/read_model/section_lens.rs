@@ -76,7 +76,9 @@ impl TaskSectionLens {
     }
 
     pub(super) fn section_has_reflection_content(section: &str) -> bool {
-        section_has_direct_child_content(section, "reflection")
+        ["reflection", "reflection questions", "closure questions"]
+            .iter()
+            .any(|title| section_has_direct_child_content(section, title))
     }
 
     pub(super) fn checklist_text(&self) -> String {

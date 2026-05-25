@@ -6,11 +6,12 @@ use anyhow::{Context, Result};
 use serde_json::json;
 
 use crate::orgize::{
-    OrgizeOgridShowArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
+    OrgizeOrgidShowArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
 };
 use crate::{ClientContext, OutputFormat};
 
 use super::archive::{ArchiveApplyReport, archive_target_for_row};
+use super::memory::reflection_memory_objects_for_row;
 use super::model::{
     AGENT_ORG_TASKS_TABLE, AgentOrgReadModelMaterializationReport, AgentOrgTaskListRow,
     ResolvedReadModelSettings, TaskQuerySnapshot,
@@ -78,15 +79,15 @@ pub(super) fn emit_task_list_json(input: &TaskListJsonContext<'_>) -> Result<()>
     emit_json_report(&report, input.context.output(), "orgize task-list")
 }
 
-pub(super) fn emit_ogrid_show_json(
-    args: &OrgizeOgridShowArgs,
+pub(super) fn emit_orgid_show_json(
+    args: &OrgizeOrgidShowArgs,
     snapshot: &TaskQuerySnapshot,
     row: &AgentOrgTaskListRow,
     section: &str,
     context: &ClientContext,
 ) -> Result<()> {
     let report = json!({
-        "command": "orgize ogrid-show",
+        "command": "orgize orgid-show",
         "backend": "duckdb",
         "table": AGENT_ORG_TASKS_TABLE,
         "orgid": args.id,
@@ -95,9 +96,9 @@ pub(super) fn emit_ogrid_show_json(
         "snapshot": snapshot.snapshot_label,
         "snapshotRows": snapshot.materialized.as_ref().map(|materialized| materialized.rows),
         "refreshWarning": &snapshot.refresh_warning,
-        "task": ogrid_show_row_json(row, section, context),
+        "task": orgid_show_row_json(row, section, context),
     });
-    emit_json_report(&report, context.output(), "orgize ogrid-show")
+    emit_json_report(&report, context.output(), "orgize orgid-show")
 }
 
 pub(super) fn emit_task_report_json(
@@ -248,10 +249,11 @@ fn task_list_row_json(
         "repeat": task_repeater_labels(row),
         "next": property_value(row, "NEXT_ACTION"),
         "resume": property_value(row, "RESUME_QUERY"),
+        "memoryObjects": memory_objects_json(row),
     })
 }
 
-fn ogrid_show_row_json(
+fn orgid_show_row_json(
     row: &AgentOrgTaskListRow,
     section: &str,
     context: &ClientContext,
@@ -271,8 +273,25 @@ fn ogrid_show_row_json(
         "outline": row.outline_path,
         "next": property_value(row, "NEXT_ACTION"),
         "resume": property_value(row, "RESUME_QUERY"),
+        "memoryObjects": memory_objects_json(row),
         "section": section,
     })
+}
+
+fn memory_objects_json(row: &AgentOrgTaskListRow) -> Vec<serde_json::Value> {
+    reflection_memory_objects_for_row(row)
+        .into_iter()
+        .enumerate()
+        .map(|(index, object)| {
+            json!({
+                "index": index + 1,
+                "kind": object.kind.name(),
+                "facet": object.kind.facet_label(),
+                "question": object.question,
+                "value": object.value,
+            })
+        })
+        .collect()
 }
 
 fn task_report_tag_counts(rows: &[&AgentOrgTaskListRow]) -> BTreeMap<String, usize> {

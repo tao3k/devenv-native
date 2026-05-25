@@ -1,4 +1,4 @@
-use xiuxian_wendao_julia::validate_wendao_graph_evidence_request_schema;
+use xiuxian_julia_core::validate_wendao_graph_evidence_request_schema;
 
 use super::support::{fixture_index, float_column, inject_page_index_edge, string_column};
 use crate::link_graph::{

@@ -129,6 +129,38 @@ fn foyer_agent_evidence_pack_reopens_cached_bytes() -> Result<(), Box<dyn std::e
 }
 
 #[test]
+fn foyer_memory_capacity_uses_artifact_byte_weight() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let cache = FoyerArtifactBlobCache::from_config(
+        FoyerArtifactBlobCacheConfig::new_with_runtime_workers(temp.path(), 512, 64 * 1024, 1)
+            .with_memory_shards(1)
+            .with_block_size_bytes(16 * 1024)
+            .with_recover_concurrency(1)
+            .with_flushers(1)
+            .with_reclaimers(1),
+    )?;
+
+    for chunk_index in 0..8 {
+        let key = ArtifactKey::from_parts(ArtifactKeyParts {
+            namespace: "attachment".to_owned(),
+            kind: ArtifactKind::AudioChunk,
+            source_digest: "source-byte-weight".to_owned(),
+            profile_digest: "profile-byte-weight".to_owned(),
+            shard_digest: format!("shard-{chunk_index:04}"),
+        })?;
+        let payload = vec![chunk_index; 256];
+        cache.write(&key, ArtifactBlobWrite::new(payload.as_slice()))?;
+    }
+    cache.close()?;
+
+    assert!(
+        cache.event_stats().evicted_entries() > 0,
+        "byte-weighted memory capacity should evict oversized artifact payloads"
+    );
+    Ok(())
+}
+
+#[test]
 fn foyer_blob_cache_drops_inside_tokio_runtime_worker() -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::TempDir::new()?;
     let root = temp.path().to_path_buf();

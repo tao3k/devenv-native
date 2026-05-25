@@ -61,11 +61,11 @@ fn episteme_source_contract_bootstrap_pipeline_args_capture_artifact_roots() {
         reasoning_packet_limit: 16,
         reasoning_ledger_seed_limit: 32,
         reasoning_fill_plan_limit: 64,
-        #[cfg(feature = "episteme-artifact-cache")]
+        #[cfg(feature = "episteme-foyer-artifact-cache")]
         artifact_cache_mode: Default::default(),
-        #[cfg(feature = "episteme-artifact-cache")]
+        #[cfg(feature = "episteme-foyer-artifact-cache")]
         artifact_cache_source_digest: None,
-        #[cfg(feature = "episteme-artifact-cache")]
+        #[cfg(feature = "episteme-foyer-artifact-cache")]
         artifact_cache_profile_digest: None,
     };
     assert_eq!(
@@ -131,11 +131,11 @@ fn episteme_source_contract_command_debug_names_bootstrap_pipeline_variant() {
             reasoning_packet_limit: 256,
             reasoning_ledger_seed_limit: 512,
             reasoning_fill_plan_limit: 1024,
-            #[cfg(feature = "episteme-artifact-cache")]
+            #[cfg(feature = "episteme-foyer-artifact-cache")]
             artifact_cache_mode: Default::default(),
-            #[cfg(feature = "episteme-artifact-cache")]
+            #[cfg(feature = "episteme-foyer-artifact-cache")]
             artifact_cache_source_digest: None,
-            #[cfg(feature = "episteme-artifact-cache")]
+            #[cfg(feature = "episteme-foyer-artifact-cache")]
             artifact_cache_profile_digest: None,
         }),
     };

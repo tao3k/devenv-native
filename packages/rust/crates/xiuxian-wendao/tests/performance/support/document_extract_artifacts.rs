@@ -64,6 +64,10 @@ pub(crate) struct ArtifactReport {
     pub(crate) audio_materialization_media_splitter_bytes: u64,
     pub(crate) audio_materialization_source_counts: BTreeMap<String, usize>,
     pub(crate) audio_materialization_source_bytes: BTreeMap<String, u64>,
+    pub(crate) audio_materialization_workflow_id: Option<String>,
+    pub(crate) audio_materialization_workflow_stage_count: usize,
+    pub(crate) audio_materialization_workflow_total_elapsed_ms: f64,
+    pub(crate) audio_materialization_workflow_stage_elapsed_ms: BTreeMap<String, f64>,
     pub(crate) audio_transcript_admission_report_bytes: u64,
     pub(crate) audio_transcript_admission_enabled: bool,
     pub(crate) audio_transcript_admission_hit_count: usize,
@@ -195,6 +199,10 @@ fn inspect_artifact_dir(
         audio_materialization_media_splitter_bytes: 0,
         audio_materialization_source_counts: BTreeMap::new(),
         audio_materialization_source_bytes: BTreeMap::new(),
+        audio_materialization_workflow_id: None,
+        audio_materialization_workflow_stage_count: 0,
+        audio_materialization_workflow_total_elapsed_ms: 0.0,
+        audio_materialization_workflow_stage_elapsed_ms: BTreeMap::new(),
         audio_transcript_admission_report_bytes: 0,
         audio_transcript_admission_enabled: false,
         audio_transcript_admission_hit_count: 0,
@@ -461,7 +469,29 @@ fn populate_audio_materialization_report(
     report.audio_materialization_media_splitter_bytes = value_u64(&value, "mediaSplitterBytes");
     report.audio_materialization_source_counts = value_string_usize_map(&value, "sourceCounts");
     report.audio_materialization_source_bytes = value_string_u64_map(&value, "sourceBytes");
+    populate_audio_materialization_workflow(report, &value);
     Ok(())
+}
+
+fn populate_audio_materialization_workflow(report: &mut ArtifactReport, value: &Value) {
+    let Some(workflow) = value.get("workflow").and_then(Value::as_object) else {
+        return;
+    };
+    report.audio_materialization_workflow_id = workflow
+        .get("workflowId")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    report.audio_materialization_workflow_stage_count = workflow
+        .get("stageCount")
+        .and_then(Value::as_u64)
+        .and_then(|count| usize::try_from(count).ok())
+        .unwrap_or_default();
+    report.audio_materialization_workflow_total_elapsed_ms = workflow
+        .get("totalElapsedMs")
+        .and_then(Value::as_f64)
+        .unwrap_or_default();
+    report.audio_materialization_workflow_stage_elapsed_ms =
+        nested_value_string_f64_map(value, "workflow", "stageElapsedMs");
 }
 
 fn populate_audio_materialization_artifact_cache(report: &mut ArtifactReport, value: &Value) {
@@ -725,6 +755,29 @@ fn value_string_u64_map(value: &Value, key: &str) -> BTreeMap<String, u64> {
                 .iter()
                 .filter_map(|(entry_key, entry_value)| {
                     entry_value.as_u64().map(|count| (entry_key.clone(), count))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn nested_value_string_f64_map(
+    value: &Value,
+    parent_key: &str,
+    child_key: &str,
+) -> BTreeMap<String, f64> {
+    value
+        .get(parent_key)
+        .and_then(Value::as_object)
+        .and_then(|parent| parent.get(child_key))
+        .and_then(Value::as_object)
+        .map(|object| {
+            object
+                .iter()
+                .filter_map(|(entry_key, entry_value)| {
+                    entry_value
+                        .as_f64()
+                        .map(|elapsed_ms| (entry_key.clone(), elapsed_ms))
                 })
                 .collect()
         })

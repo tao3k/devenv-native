@@ -48,12 +48,12 @@ pub(super) fn render_task_list_row(
         println!("resume: {resume_query}");
     }
     println!(
-        "show: wendao-client orgize ogrid-show --cached --id {}",
+        "show: wendao-client orgize orgid-show --cached --id {}",
         row.orgid
     );
 }
 
-pub(super) fn render_ogrid_show_row(
+pub(super) fn render_orgid_show_row(
     row: &AgentOrgTaskListRow,
     section: &str,
     context: &ClientContext,
@@ -76,16 +76,16 @@ pub(super) fn render_ogrid_show_row(
         println!("section:");
         println!("{section}");
     } else {
-        render_ogrid_recovery_view(section);
+        render_orgid_recovery_view(section);
         println!();
         println!(
-            "full: wendao-client orgize ogrid-show --cached --id {} --full",
+            "full: wendao-client orgize orgid-show --cached --id {} --full",
             row.orgid
         );
     }
 }
 
-fn render_ogrid_recovery_view(section: &str) {
+fn render_orgid_recovery_view(section: &str) {
     let view = TaskSectionLens::from_section(section);
     if let Some(progress) = view.progress_label() {
         println!("checklist-progress: {progress}");
@@ -134,7 +134,7 @@ pub(super) fn render_recovery_candidate_row(
     }
     render_probe_properties(row);
     println!(
-        "show: wendao-client orgize ogrid-show --cached --id {}",
+        "show: wendao-client orgize orgid-show --cached --id {}",
         row.orgid
     );
 }
@@ -156,7 +156,7 @@ pub(super) fn render_probe_candidate_row(
     render_probe_properties(row);
     render_probe_recovery_evidence(row);
     println!(
-        "show: wendao-client orgize ogrid-show --cached --id {}",
+        "show: wendao-client orgize orgid-show --cached --id {}",
         row.orgid
     );
 }

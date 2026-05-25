@@ -43,7 +43,7 @@ async fn build_plugin_rerank_request_batch_with_metadata_uses_explicit_query_vec
                 anchor_id: "doc-1#alpha".to_string(),
                 vector_score: 0.31,
             }],
-            "xiuxian-wendao-julia",
+            "xiuxian-julia-core",
             "demo",
             "v1",
         )
@@ -54,7 +54,7 @@ async fn build_plugin_rerank_request_batch_with_metadata_uses_explicit_query_vec
     assert!(batch.column_by_name("query_embedding").is_some());
     assert_eq!(
         batch.schema().metadata().get("trace_id"),
-        Some(&"plugin-rerank:xiuxian-wendao-julia:demo".to_string())
+        Some(&"plugin-rerank:xiuxian-julia-core:demo".to_string())
     );
     assert_eq!(
         batch.schema().metadata().get("wendao.schema_version"),

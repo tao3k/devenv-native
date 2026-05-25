@@ -1,11 +1,11 @@
 //! Graph-structural Julia service fixtures for builtin integration tests.
 
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     JuliaServiceGuard, spawn_wendaosearch_solver_demo_multi_route_service,
     spawn_wendaosearch_solver_demo_structural_rerank_service,
 };
 
-pub use xiuxian_wendao_julia::{
+pub use xiuxian_julia_core::{
     GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN, GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN,
     GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN,
     GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_EDGE_SOURCES_COLUMN,

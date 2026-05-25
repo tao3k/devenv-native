@@ -28,7 +28,7 @@ pub enum OrgizeCommand {
     TaskProbe(super::OrgizeTaskProbeArgs),
     /// Show one agent Org task subtree by stable Org section ID.
     #[cfg(feature = "orgize-agent-read-model")]
-    OgridShow(super::OrgizeOgridShowArgs),
+    OrgidShow(super::OrgizeOrgidShowArgs),
     /// Show one agent Org task's SDD/plan relation graph.
     #[cfg(feature = "orgize-agent-read-model")]
     TaskSdd(super::OrgizeTaskSddArgs),

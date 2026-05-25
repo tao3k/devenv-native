@@ -420,6 +420,7 @@ pub(crate) fn sample_materialized_item() -> AudioShardMaterializedItem {
         },
         output_path: std::path::PathBuf::from("/tmp/materialized.wav"),
         shard_sha256: "materialized-shardhash".to_owned(),
+        shard_byte_len: 128,
         materialization_source: AudioShardMaterializationSource::MediaSplitter,
     }
 }

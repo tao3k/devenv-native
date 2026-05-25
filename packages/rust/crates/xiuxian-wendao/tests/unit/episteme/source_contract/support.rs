@@ -23,6 +23,13 @@ use arrow::array::{Int64Array, StringArray};
 use arrow::ipc::reader::StreamReader;
 use arrow::record_batch::RecordBatch;
 use sha2::{Digest, Sha256};
+#[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::{
+    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
+    WendaoGraphOntologyReadModelQualityRequestBatches,
+    build_wendaograph_ontology_read_model_quality_flight_binding,
+    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
+};
 use xiuxian_wendao::episteme::EpistemeReadModelMaterialization;
 #[cfg(feature = "julia")]
 use xiuxian_wendao::episteme::{
@@ -36,13 +43,6 @@ use xiuxian_wendao::episteme::{
 };
 #[cfg(feature = "julia")]
 use xiuxian_wendao_core::{capabilities::PluginCapabilityBinding, transport::PluginTransportKind};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
-    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
-    WendaoGraphOntologyReadModelQualityRequestBatches,
-    build_wendaograph_ontology_read_model_quality_flight_binding,
-    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
-};
 
 #[cfg(feature = "julia")]
 pub(super) const RUN_EPISTEME_SOURCE_CONTRACT_WENDAOGRAPH_QUALITY_LIVE_ENV: &str =

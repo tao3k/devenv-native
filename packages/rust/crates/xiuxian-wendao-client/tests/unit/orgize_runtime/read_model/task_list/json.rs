@@ -15,6 +15,10 @@ fn standalone_orgize_task_list_json_outputs_limited_recovery_rows() {
             ":NEXT_ACTION: Continue first\n",
             ":RESUME_QUERY: wendao-client orgize task-list --text 'First active'\n",
             ":END:\n",
+            "** Reflection Questions\n",
+            "| Question | Value |\n",
+            "|---+---|\n",
+            "| Which preference or naming correction should future generated plans preserve? | Prefer orgid-show for exact recovery. |\n",
             "* TODO Second active task :agent:performance:\n",
             "SCHEDULED: <2026-05-18 Mon ++1d>\n",
             ":PROPERTIES:\n",
@@ -64,6 +68,15 @@ fn standalone_orgize_task_list_json_outputs_limited_recovery_rows() {
     assert_eq!(
         parsed["tasks"][0]["resume"],
         "wendao-client orgize task-list --text 'First active'"
+    );
+    assert_eq!(parsed["tasks"][0]["memoryObjects"][0]["kind"], "preference");
+    assert_eq!(
+        parsed["tasks"][0]["memoryObjects"][0]["facet"],
+        "memory-preference"
+    );
+    assert_eq!(
+        parsed["tasks"][0]["memoryObjects"][0]["value"],
+        "Prefer orgid-show for exact recovery."
     );
     assert_eq!(parsed["tasks"][1]["title"], "Second active task");
     assert_eq!(parsed["tasks"][1]["repeat"][0], "scheduled ++1d (catchUp)");

@@ -1,12 +1,12 @@
 //! `memory::julia::client` owns Wendao memory julia client behavior.
 
-use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
-use xiuxian_wendao_julia::memory::downcall::{
+use xiuxian_julia_runtime::wendao::memory::downcall::{
     fetch_calibration_artifact_rows_from_inputs as fetch_calibration_artifact_rows_with_runtime,
     fetch_episodic_recall_score_rows_from_projection as fetch_episodic_recall_score_rows_with_runtime,
     fetch_gate_score_recommendation_rows_from_evidence as fetch_gate_score_recommendation_rows_with_runtime,
     fetch_plan_tuning_advice_rows_from_inputs as fetch_plan_tuning_advice_rows_with_runtime,
 };
+use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;
 
 use super::runtime::{

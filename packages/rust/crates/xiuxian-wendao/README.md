@@ -31,7 +31,7 @@ When the `julia` feature is enabled, `xiuxian-wendao` now exposes one thin
 memory-family bridge at `xiuxian_wendao::memory::julia`, while
 `xiuxian-julia-runtime` owns inert Julia profile identities,
 `xiuxian-polyglot-orchestrator` owns cross-language profile refs and schedule
-projection, and `xiuxian-wendao-julia` continues to own the actual
+projection, and `xiuxian-julia-core` continues to own the actual
 Julia-specific memory ABI surface behind it. The product crate does not keep a
 second host-local profile implementation layer, but it can now resolve the
 current `memory.julia_compute` runtime and generic capability bindings through
@@ -40,7 +40,7 @@ that thin bridge.
 The same feature boundary now covers Modelica repo-intelligence too:
 `plugins = ["modelica"]` still selects the Modelica analyzer at runtime, but
 the Rust implementation now lives on the Julia line in
-`xiuxian-wendao-julia` instead of a standalone `xiuxian-wendao-modelica`
+`xiuxian-julia-core` instead of a standalone `xiuxian-wendao-modelica`
 crate. The same Julia-owned line now also owns parser-summary transport
 discovery for both languages, so plain `plugins = ["julia-code-parser"]` and
 `plugins = ["modelica"]` repository config can resolve the standard
@@ -101,19 +101,19 @@ The memory-family Julia lane follows the same ownership rule as the RFC:
    default route facts, and schema identifiers
 3. `xiuxian-polyglot-orchestrator` owns memory-family profile references,
    Julia admission, and schedule-plan projection from owner-supplied facts
-4. `xiuxian-wendao-julia` owns the Julia-specific ABI surface: typed rows,
+4. `xiuxian-julia-core` owns the Julia-specific ABI surface: typed rows,
    request/response batches, manifest projection, schema validation, decoding,
    route defaults, and plugin-owned host-adapter helpers over Rust memory
    read models or evidence
 5. `xiuxian-wendao` exposes only a thin host-facing bridge and delegates the
-   actual Julia memory ABI work into `xiuxian-wendao-julia`
+   actual Julia memory ABI work into `xiuxian-julia-core`
 6. `xiuxian-memory-engine` and the Rust host remain authoritative for memory
    state, lifecycle, fallback, audit, and final mutation decisions
 
 That means new memory-family profile identities belong in
 `xiuxian-julia-runtime`, cross-language scheduling contracts belong in
 `xiuxian-polyglot-orchestrator`, and Julia-specific manifest logic, decoder
-logic, or validation rules should land in `xiuxian-wendao-julia`, not in
+logic, or validation rules should land in `xiuxian-julia-core`, not in
 `xiuxian-wendao`.
 
 The product crate's side of that boundary is now explicit:
@@ -128,7 +128,7 @@ Host callers that only want configured memory-family Julia compute should stay
 on `xiuxian_wendao::memory::julia::*`, with
 `xiuxian_wendao::memory::julia::ComputeClient` as the primary host-facing
 entry. Raw downcall helpers, runtime-to-binding builders, and gate-evidence
-builder helpers remain plugin-owned in `xiuxian-wendao-julia` and are no
+builder helpers remain plugin-owned in `xiuxian-julia-core` and are no
 longer re-exported from the product crate.
 
 Use `xiuxian-wendao` for:
@@ -323,7 +323,7 @@ false`, while actual OCR execution remains a later Gateway/analyzer
 
 SearchStrategyFlow uses that same ownership split. The product crate owns the
 structured search backend, including DuckDB-backed candidate retrieval where
-configured. `xiuxian-wendao-julia` receives narrowed candidate batches for
+configured. `xiuxian-julia-core` receives narrowed candidate batches for
 Julia strategy/frontier selection; Julia does not own DuckDB access or full
 candidate discovery. The domain-owned Flight host also prewarms bootstrap
 projected pages and page-index trees, then serves projected page-index and
@@ -879,7 +879,7 @@ Wendao is physically grounded in cutting-edge RAG research:
 ### Julia Arrow Adapter
 
 The Julia Arrow rerank exchange is plugin-owned in
-`xiuxian-wendao-julia`. Typed request rows, typed score rows, request-batch
+`xiuxian-julia-core`. Typed request rows, typed score rows, request-batch
 assembly, response decoding, repository fetch helpers, and graph-structural
 transport helpers now live in the plugin crate instead of under
 `xiuxian-wendao::analyzers`.
@@ -888,12 +888,12 @@ transport helpers now live in the plugin crate instead of under
 column-name constants and shared Arrow schema builders. For the memory-family
 Julia lane, host callers should prefer the thin bridge at
 `xiuxian_wendao::memory::julia`; anything below that bridge still belongs in
-`xiuxian-wendao-julia`.
+`xiuxian-julia-core`.
 
 The memory-family Julia compute lane follows the same rule. Julia-specific
 memory profile contracts, manifest semantics, validators, decoders, route
 defaults, host staging, transport, and composed downcalls belong in
-`xiuxian-wendao-julia`. `xiuxian-wendao` now keeps only the thin
+`xiuxian-julia-core`. `xiuxian-wendao` now keeps only the thin
 `memory::julia` bridge that points at those plugin-owned surfaces.
 
 For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` provides the local
@@ -901,7 +901,7 @@ For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` provides the local
 `LinkGraphIndex` document links plus optional diffusion seeds and
 either `semantic_neighbors` rows or host-precomputed `semantic_overlay` rows
 into the existing `/graph/link/evidence` request tables by reusing the
-`xiuxian-wendao-julia` contract mirror. The semantic paths validate node
+`xiuxian-julia-core` contract mirror. The semantic paths validate node
 identity, one-based vertex indices, rank, distance, overlay weight, and edge
 kind before Arrow batch construction so Julia can derive `semantic_overlay`,
 `diffusion_scores`, and `link_frontier` deterministically. The two semantic
@@ -1039,13 +1039,13 @@ The deployment artifact now also carries artifact-level inspection metadata:
 `artifact_schema_version` identifies the artifact contract itself, while
 `generated_at` records when a concrete JSON/TOML export instance was rendered.
 On top of that, the remaining Julia-shaped launch and deployment DTOs are now
-package-owned by `xiuxian-wendao-julia`, so callers that still need the
-legacy Julia compatibility records should import them from the Julia package
-rather than from `xiuxian-wendao` shims or selector re-exports.
+runtime-owned by `xiuxian-julia-runtime`, so callers that still need the
+legacy Julia compatibility records should import them from the Julia runtime
+package rather than from `xiuxian-wendao` shims or selector re-exports.
 
 For downstream Rust imports:
 
-- prefer `xiuxian_wendao_julia::compatibility::link_graph::*` for Julia-owned
+- prefer `xiuxian_julia_runtime::wendao::link_graph::*` for Julia-owned
   deployment and launch compatibility DTOs such as
   `LinkGraphJuliaRerankRuntimeConfig` and
   `LinkGraphJuliaDeploymentArtifact`
@@ -1055,14 +1055,14 @@ For downstream Rust imports:
   that host migration shim is retired
 
 ```rust
-use xiuxian_wendao_julia::compatibility::link_graph::{
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, LinkGraphJuliaDeploymentArtifact,
+use xiuxian_julia_runtime::wendao::link_graph::{
+    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH, LinkGraphJuliaDeploymentArtifact,
     LinkGraphJuliaRerankRuntimeConfig,
 };
 
 let _ = core::mem::size_of::<LinkGraphJuliaRerankRuntimeConfig>();
 let _ = core::mem::size_of::<LinkGraphJuliaDeploymentArtifact>();
-let _launcher = DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH;
+let _launcher = DEFAULT_JULIA_SEARCH_LAUNCHER_PATH;
 ```
 
 For inspection surfaces, the same export is now visible through

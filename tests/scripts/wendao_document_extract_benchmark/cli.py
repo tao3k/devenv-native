@@ -370,8 +370,7 @@ def build_report_payload(
         ),
         "rustAudioTranscriptAdmissionDir": (
             str(path)
-            if (path := getattr(args, "rust_audio_transcript_admission_dir", None))
-            is not None
+            if (path := getattr(args, "rust_audio_transcript_admission_dir", None)) is not None
             else None
         ),
         "rustAudioBaseWorkers": getattr(args, "rust_audio_base_workers", None),
@@ -573,7 +572,55 @@ def build_report_payload(
     }
     payload["hostedVlmPromotionGate"] = hosted_vlm_promotion_gate(payload)
     payload["candidateTaxonomy"] = candidate_taxonomy(payload)
+    record_hosted_audio_non_model_timing(payload)
     return payload
+
+
+def record_hosted_audio_non_model_timing(payload: dict[str, Any]) -> None:
+    """Record hosted-audio timing gaps outside the provider request wall span."""
+    summary = payload.get("summary")
+    if not isinstance(summary, dict):
+        return
+    hosted_audio = payload.get("hostedAudio")
+    if not isinstance(hosted_audio, dict):
+        return
+    request_summary = hosted_audio.get("requestSummary")
+    if not isinstance(request_summary, dict):
+        return
+    request_wall_ms = _numeric_or_none(request_summary.get("requestWallSpanMs"))
+    if request_wall_ms is None:
+        return
+    workflow_total_ms = _numeric_or_none(
+        summary.get("totalForceAudioMaterializationWorkflowElapsedMs")
+    )
+    if workflow_total_ms is not None:
+        summary["forceAudioHostedWorkflowRequestWallGapMs"] = round(
+            workflow_total_ms - request_wall_ms,
+            3,
+        )
+    call_analyzer_ms = _hosted_audio_call_analyzer_ms(summary)
+    if call_analyzer_ms is not None:
+        summary["forceAudioHostedAnalyzerRequestWallGapMs"] = round(
+            call_analyzer_ms - request_wall_ms,
+            3,
+        )
+        summary["forceAudioHostedAnalyzerCallMs"] = round(call_analyzer_ms, 3)
+    summary["forceAudioHostedRequestWallSpanMs"] = round(request_wall_ms, 3)
+
+
+def _hosted_audio_call_analyzer_ms(summary: dict[str, Any]) -> float | None:
+    stages = summary.get("forceAudioMaterializationWorkflowStageElapsedMs")
+    if not isinstance(stages, dict):
+        return None
+    return _numeric_or_none(
+        stages.get("audio.base.call_analyzer_flight") or stages.get("audio.base.invoke_worker")
+    )
+
+
+def _numeric_or_none(value: object) -> float | None:
+    if isinstance(value, int | float):
+        return float(value)
+    return None
 
 
 def reset_process_log_dir(process_log_dir: Path) -> None:

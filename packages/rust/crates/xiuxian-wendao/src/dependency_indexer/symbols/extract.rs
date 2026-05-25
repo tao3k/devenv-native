@@ -2,7 +2,9 @@
 
 use std::path::Path;
 
-use super::{ExternalSymbol, SymbolKind};
+use super::ExternalSymbol;
+#[cfg(feature = "search-runtime")]
+use super::SymbolKind;
 #[cfg(feature = "search-runtime")]
 use xiuxian_code_intelligence::{
     CodeLanguageId, SymbolKind as CodeSymbolKind, extract_code_dependency_symbols,

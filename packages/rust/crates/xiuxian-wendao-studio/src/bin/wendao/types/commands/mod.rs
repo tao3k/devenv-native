@@ -29,7 +29,7 @@ pub(crate) use docs::{
     DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs, DocsSearchPageIndexArgs,
     DocsSegmentArgs, DocsTocArgs, DocsTreeArgs,
 };
-#[cfg(feature = "episteme-artifact-cache")]
+#[cfg(feature = "episteme-foyer-artifact-cache")]
 pub(crate) use episteme::EpistemeBootstrapArtifactCacheModeArg;
 pub(crate) use episteme::{
     EpistemeApplyOntologySourcePatchArgs, EpistemeBootstrapPipelineArgs, EpistemeCommand,

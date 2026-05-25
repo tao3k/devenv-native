@@ -34,7 +34,7 @@ let matches = scan("def hello(): pass", "def $NAME", Lang::Python)?;
 
 Julia and Modelica no longer live in this crate. The active Wendao lane owns
 those languages through `WendaoCodeParser.jl` native routes consumed by
-`xiuxian-wendao-julia` over Arrow Flight.
+`xiuxian-julia-core` over Arrow Flight.
 
 ## Parser Registry
 

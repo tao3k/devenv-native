@@ -42,7 +42,7 @@ pub use lint::{
     SemanticLintWritebackArgs,
 };
 #[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeOgridShowArgs;
+pub use orgize::OrgizeOrgidShowArgs;
 #[cfg(feature = "orgize-agent-read-model")]
 pub use orgize::OrgizeReadModelArgs;
 #[cfg(feature = "orgize-agent-read-model")]

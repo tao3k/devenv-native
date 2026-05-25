@@ -12,7 +12,7 @@ pub use command::{
 };
 #[cfg(feature = "orgize-agent-read-model")]
 pub use command::{
-    OrgizeOgridShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
+    OrgizeOrgidShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
     OrgizeTaskListView, OrgizeTaskProbeArgs, OrgizeTaskRecoverArgs, OrgizeTaskReportArgs,
     OrgizeTaskSddArgs,
 };

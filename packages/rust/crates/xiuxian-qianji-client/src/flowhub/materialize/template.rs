@@ -175,7 +175,7 @@ fn render_sdd_decision_section(input: &SddTemplateInput<'_>) -> String {
 Use this generated tracking surface as the active agent plan contract for the current implementation slice.
 
 *** Consequences
-- Consequence: The project can run =qianji-client flowhub check= to validate the generated surface.
+- Consequence: The project can run =qianji-client flowhub lint= to validate the generated surface.
 - Risk: Manually edited tracking files may fail Org lint until corrected.
 
 ",
@@ -204,7 +204,7 @@ fn render_sdd_audit_section(input: &SddTemplateInput<'_>) -> String {
 - Question: Does the active Org task record validation evidence before completion?
 
 *** Fitness Criteria
-- Gate: =qianji-client flowhub check= passes.
+- Gate: =qianji-client flowhub lint= passes.
 - Gate: The active Org task records completed validation evidence.
 
 *** Linked Implementation
@@ -273,7 +273,7 @@ It is bound to the selected Org+BPMN source pair:
 ** Validation
 
 - [ ] Targeted validation commands pass.
-- [ ] =qianji-client flowhub check= passes.
+- [ ] =qianji-client flowhub lint= passes.
 - [ ] Evidence is recorded before completion.
 
 ** Evidence
@@ -349,7 +349,7 @@ Deliver the bounded implementation slice described by the paired SDD and Org tas
 ** Validation
 
 - [ ] Targeted tests pass.
-- [ ] =qianji-client flowhub check= passes.
+- [ ] =qianji-client flowhub lint= passes.
 
 ** Notes
 

@@ -5,9 +5,9 @@ use std::sync::Arc;
 use xiuxian_code_intelligence::CodeLanguageId;
 use xiuxian_git_repo::MaterializedRepo;
 use xiuxian_git_repo::SyncMode;
-use xiuxian_wendao_core::repo_intelligence::RegisteredRepository;
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::fetch_modelica_ast_query_analysis_blocking_for_repository;
+use xiuxian_julia_core::fetch_modelica_ast_query_analysis_blocking_for_repository;
+use xiuxian_wendao_core::repo_intelligence::RegisteredRepository;
 
 use crate::studio::router::{
     GatewayState, StudioApiError, configured_repositories, map_repo_intelligence_error,

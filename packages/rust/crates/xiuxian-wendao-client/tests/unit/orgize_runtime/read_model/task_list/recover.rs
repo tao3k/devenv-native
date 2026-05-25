@@ -82,7 +82,7 @@ fn standalone_orgize_task_recover_renders_recent_orgid_candidates() {
     assert!(
         output
             .stdout
-            .contains("show: wendao-client orgize ogrid-show --cached --id recent-candidate"),
+            .contains("show: wendao-client orgize orgid-show --cached --id recent-candidate"),
         "stdout: {}",
         output.stdout
     );

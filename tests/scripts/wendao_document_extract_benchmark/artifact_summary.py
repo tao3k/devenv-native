@@ -20,9 +20,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         for report in reports
     )
     return {
-        "resourcesArrowExists": any(
-            bool(report.get("resourcesArrowExists")) for report in reports
-        ),
+        "resourcesArrowExists": any(bool(report.get("resourcesArrowExists")) for report in reports),
         "resourcesRows": _sum_int_report_values(reports, "resourcesRowCount"),
         "audioTranscriptChars": _sum_int_report_values(
             reports,
@@ -40,8 +38,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             bool(report.get("audioMaterializationReportBytes")) for report in reports
         ),
         "audioMaterializationArtifactCacheConfigured": any(
-            bool(report.get("audioMaterializationArtifactCacheConfigured"))
-            for report in reports
+            bool(report.get("audioMaterializationArtifactCacheConfigured")) for report in reports
         ),
         "audioMaterializationArtifactCacheBackendCounts": _string_report_counts(
             reports,
@@ -56,9 +53,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             "audioMaterializationArtifactCacheStorageBytes",
         ),
         "audioMaterializationArtifactCacheConfigErrorCount": sum(
-            1
-            for report in reports
-            if report.get("audioMaterializationArtifactCacheConfigError")
+            1 for report in reports if report.get("audioMaterializationArtifactCacheConfigError")
         ),
         "audioMaterializationShardCount": _sum_int_report_values(
             reports,
@@ -100,6 +95,22 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "audioMaterializationSourceBytes",
         ),
+        "audioMaterializationWorkflowIds": _string_report_values(
+            reports,
+            "audioMaterializationWorkflowId",
+        ),
+        "audioMaterializationWorkflowStageCount": _sum_int_report_values(
+            reports,
+            "audioMaterializationWorkflowStageCount",
+        ),
+        "audioMaterializationWorkflowTotalElapsedMs": _sum_float_report_values(
+            reports,
+            "audioMaterializationWorkflowTotalElapsedMs",
+        ),
+        "audioMaterializationWorkflowStageElapsedMs": _aggregate_float_report_maps(
+            reports,
+            "audioMaterializationWorkflowStageElapsedMs",
+        ),
         "audioTranscriptAdmissionReportExists": any(
             bool(report.get("audioTranscriptAdmissionReportBytes")) for report in reports
         ),
@@ -138,9 +149,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "audioTranscriptAdmissionPlannedStaleCount",
         ),
-        "structureArrowExists": any(
-            bool(report.get("structureArrowExists")) for report in reports
-        ),
+        "structureArrowExists": any(bool(report.get("structureArrowExists")) for report in reports),
         "structureRows": _sum_int_report_values(reports, "structureRowCount"),
         "structureOcrPageBlocks": _sum_int_report_values(
             reports,
@@ -164,9 +173,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "structureParityErrorCount": sum(
             1 for report in reports if report.get("structureParityError")
         ),
-        "metricsArrowExists": any(
-            bool(report.get("metricsArrowExists")) for report in reports
-        ),
+        "metricsArrowExists": any(bool(report.get("metricsArrowExists")) for report in reports),
         "metricsRows": _sum_int_report_values(reports, "metricsRowCount"),
         "metricsResultChars": _sum_int_report_values(reports, "metricsResultChars"),
         "metricsBboxCount": _sum_int_report_values(reports, "metricsBboxCount"),
@@ -323,9 +330,7 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "archiveAccelerationCandidates": _archive_acceleration_candidates(reports),
         "archiveExtensionCounts": _archive_extension_counts(reports),
         "maxArchiveLargestMemberSizeBytes": _max_archive_largest_member_size(reports),
-        "artifactErrorCount": sum(
-            1 for report in reports if report.get("artifactError")
-        ),
+        "artifactErrorCount": sum(1 for report in reports if report.get("artifactError")),
     }
 
 
@@ -333,8 +338,7 @@ def _hybrid_page_ocr_fallback_reasons(reports: list[dict[str, Any]]) -> list[str
     return [
         reason
         for report in reports
-        if isinstance((reason := report.get("hybridPageOcrFallbackReason")), str)
-        and reason
+        if isinstance((reason := report.get("hybridPageOcrFallbackReason")), str) and reason
     ]
 
 
@@ -342,22 +346,18 @@ def _structure_parity_passed(reports: list[dict[str, Any]]) -> bool | None:
     checked_reports = [
         report
         for report in reports
-        if report.get("structureParity") is not None
-        or report.get("structureParityError")
+        if report.get("structureParity") is not None or report.get("structureParityError")
     ]
     if not checked_reports:
         return None
     return all(
-        report.get("structureParity") is not None
-        and not report.get("structureParityError")
+        report.get("structureParity") is not None and not report.get("structureParityError")
         for report in checked_reports
     )
 
 
 def _sum_int_report_values(reports: list[dict[str, Any]], key: str) -> int:
-    return sum(
-        value for report in reports if isinstance((value := report.get(key)), int)
-    )
+    return sum(value for report in reports if isinstance((value := report.get(key)), int))
 
 
 def _max_int_report_value(reports: list[dict[str, Any]], key: str) -> int:
@@ -369,9 +369,7 @@ def _max_int_report_value(reports: list[dict[str, Any]], key: str) -> int:
 
 def _sum_float_report_values(reports: list[dict[str, Any]], key: str) -> float:
     return sum(
-        float(value)
-        for report in reports
-        if isinstance((value := report.get(key)), int | float)
+        float(value) for report in reports if isinstance((value := report.get(key)), int | float)
     )
 
 
@@ -414,6 +412,12 @@ def _string_report_counts(reports: list[dict[str, Any]], key: str) -> dict[str, 
     return dict(sorted(counts.items()))
 
 
+def _string_report_values(reports: list[dict[str, Any]], key: str) -> list[str]:
+    return sorted(
+        {value for report in reports if isinstance((value := report.get(key)), str) and value}
+    )
+
+
 def _document_timing_arrow_exists(report: dict[str, Any]) -> bool:
     if bool(report.get("documentTimingArrowExists")):
         return True
@@ -430,9 +434,7 @@ def _hybrid_page_ocr_timing_report_exists(report: dict[str, Any]) -> bool:
     report_bytes = report.get("hybridPageOcrTimingReportBytes")
     total_elapsed_ms = report.get("hybridPageOcrTimingTotalElapsedMs")
     has_report_bytes = isinstance(report_bytes, int) and report_bytes > 0
-    has_total_elapsed = (
-        isinstance(total_elapsed_ms, int | float) and total_elapsed_ms > 0
-    )
+    has_total_elapsed = isinstance(total_elapsed_ms, int | float) and total_elapsed_ms > 0
     return has_report_bytes or has_total_elapsed
 
 
@@ -529,9 +531,7 @@ def _page_range_docling_fallback_chunk_summary(
         default={},
     )
     elapsed_values = [
-        float(value)
-        for row in chunks
-        if isinstance((value := row.get("elapsedMs")), int | float)
+        float(value) for row in chunks if isinstance((value := row.get("elapsedMs")), int | float)
     ]
     elapsed_total = sum(elapsed_values)
     elapsed_max = max(elapsed_values, default=None)
@@ -631,9 +631,7 @@ def _str_or_none(value: Any) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
-def _sum_nested_int_values(
-    rows: list[dict[str, Any]], parent_key: str, key: str
-) -> int:
+def _sum_nested_int_values(rows: list[dict[str, Any]], parent_key: str, key: str) -> int:
     return sum(
         value
         for row in rows
@@ -643,16 +641,12 @@ def _sum_nested_int_values(
 
 
 def _max_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:
-    values = [
-        float(value) for row in rows if isinstance((value := row.get(key)), int | float)
-    ]
+    values = [float(value) for row in rows if isinstance((value := row.get(key)), int | float)]
     return max(values, default=None)
 
 
 def _min_float_trace_value(rows: list[dict[str, Any]], key: str) -> float | None:
-    values = [
-        float(value) for row in rows if isinstance((value := row.get(key)), int | float)
-    ]
+    values = [float(value) for row in rows if isinstance((value := row.get(key)), int | float)]
     return min(values, default=None)
 
 
@@ -669,9 +663,7 @@ def _int_or_none(value: Any) -> int | None:
 
 
 def _image_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
-    return sum(
-        1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict)
-    )
+    return sum(1 for report in reports if isinstance(report.get("imageAttachmentAudit"), dict))
 
 
 def _image_known_dimension_count(reports: list[dict[str, Any]]) -> int:
@@ -744,11 +736,7 @@ def _max_image_pixel_count(reports: list[dict[str, Any]]) -> int | None:
 
 
 def _archive_attachment_audit_count(reports: list[dict[str, Any]]) -> int:
-    return sum(
-        1
-        for report in reports
-        if isinstance(report.get("archiveAttachmentAudit"), dict)
-    )
+    return sum(1 for report in reports if isinstance(report.get("archiveAttachmentAudit"), dict))
 
 
 def _sum_archive_audit_int(reports: list[dict[str, Any]], key: str) -> int:

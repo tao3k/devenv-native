@@ -8,7 +8,7 @@ mod commands;
 mod enums;
 
 pub(crate) use cli::Cli;
-#[cfg(feature = "episteme-artifact-cache")]
+#[cfg(feature = "episteme-foyer-artifact-cache")]
 pub(crate) use commands::EpistemeBootstrapArtifactCacheModeArg;
 pub(crate) use commands::{
     AgenticCommand, AuditArgs, Command, DocsCommand, DocsContextArgs, DocsNavigationArgs,

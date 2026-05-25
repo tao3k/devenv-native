@@ -20,6 +20,7 @@ wendao-client orgize lint [--format compact|text|json] [--json] [PATH]...
 wendao-client orgize agent-planning --date YYYY-MM-DD [--end YYYY-MM-DD] [--include-done] [--include-archived] [--include-comments] [--match EXPR] [PATH]...
 wendao-client orgize read-model [PATH]...
 wendao-client orgize task-list [--text TEXT] [--tag TAG]... [--include-done] [--include-archived] [--limit N] [PATH]...
+wendao-client orgize orgid-show --id ORGID [--full] [PATH]...
 wendao-client orgize task-report [--text TEXT] [--tag TAG]... [--include-archived] [--limit N] [PATH]...
 wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG]... [--limit N] [PATH]...
 wendao-client orgize sparse-tree [--text TEXT] [--match EXPR] [--exclude-done] [--exclude-archived] [--include-comments] [--explain-skips] [PATH]...
@@ -189,8 +190,8 @@ Behavior:
     relation engine is DuckDB.
 37. exposes upstream Orgize tooling through `orgize fmt`, `orgize lint`,
     `orgize agent-planning`, `orgize read-model`, `orgize task-list`,
-    `orgize task-probe`, `orgize task-report`, `orgize task-archive`,
-    `orgize sparse-tree`, and `orgize sdd status`.
+    `orgize orgid-show`, `orgize task-probe`, `orgize task-report`,
+    `orgize task-archive`, `orgize sparse-tree`, and `orgize sdd status`.
     Formatting and linting use parser-owned Orgize adapters from
     `xiuxian-wendao-parsers`; planning and sparse-tree commands render compact
     cards derived from native Org agenda and sparse-tree semantics. The `sdd
@@ -205,7 +206,11 @@ status` command renders Org-native SDD
     remembered-task recovery view; it reranks candidates with
     `xiuxian-memory-engine` plus structured Org facet fusion so title text,
     properties, SDD references, checklist state, and next actions vote together
-    instead of letting one noisy title phrase dominate. The `task-report`
+    instead of letting one noisy title phrase dominate. The `task-list` and
+    `orgid-show` JSON outputs include inferred `memoryObjects` derived from
+    completed Reflection Questions rows; the memory engine owns the object
+    classification and the client only projects Org evidence.
+    The `task-report`
     command summarizes the same snapshot for active rows, completed
     achievements, archive candidates, repeating rows, and tag counts. The
     `task-archive` command renders an archive plan by default and only mutates

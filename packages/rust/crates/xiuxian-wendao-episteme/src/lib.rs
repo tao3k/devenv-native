@@ -95,7 +95,7 @@ pub use ontology::{
     write_episteme_ontology_structural_facts_reasoning_packet,
     write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan,
 };
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub use ontology::{
     EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
     EpistemeOntologyArtifactBundleRestoreReport, EpistemeOntologyArtifactBundleWriteReport,

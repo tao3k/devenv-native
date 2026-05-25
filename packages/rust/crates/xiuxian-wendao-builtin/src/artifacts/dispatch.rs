@@ -3,7 +3,7 @@
 use serde_yaml::Value;
 use xiuxian_wendao_core::artifacts::{PluginArtifactPayload, PluginArtifactSelector};
 
-use xiuxian_wendao_julia::compatibility::link_graph::{
+use xiuxian_julia_runtime::wendao::link_graph::{
     LinkGraphJuliaRerankRuntimeConfig, julia_deployment_artifact_selector,
     render_julia_plugin_artifact_toml_for_selector,
     resolve_julia_plugin_artifact_payload_for_selector,

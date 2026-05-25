@@ -8,7 +8,7 @@ license.workspace = true
 publish = false
 
 [features]
-artifact-cache = ["dep:xiuxian-db-store", "xiuxian-db-store/artifact-cache"]
+foyer-artifact-cache = ["dep:xiuxian-db-store", "xiuxian-db-store/foyer-artifact-cache"]
 
 [dependencies]
 anyhow = { workspace = true }

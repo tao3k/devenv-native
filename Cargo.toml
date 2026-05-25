@@ -35,10 +35,10 @@ members = [
   "packages/rust/crates/xiuxian-qianhuan",
   "packages/rust/crates/xiuxian-qianji-bpmn-engine",
   "packages/rust/crates/xiuxian-llm",
+  "packages/rust/crates/xiuxian-julia-core",
   "packages/rust/crates/xiuxian-julia-runtime",
   "packages/rust/crates/xiuxian-polyglot-orchestrator",
   "packages/rust/crates/xiuxian-wendao-client",
-  "packages/rust/crates/xiuxian-wendao-julia",
   "packages/rust/crates/xiuxian-window",
   "packages/rust/crates/xiuxian-qianji-control",
   "packages/rust/crates/xiuxian-qianji-runtime",
@@ -88,7 +88,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "e2a6372a97f19940805a1dc051d2bb2bf39483a8" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "d9a307eef420781b2a91084e1e1bef4bd4b683d5" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"

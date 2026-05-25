@@ -95,10 +95,10 @@ pub struct FlowhubScenarioRegistryValidation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FlowhubValidation {
-    pub(crate) flowhub_contract: FlowhubCheckStatus,
-    pub(crate) generated_files: FlowhubCheckStatus,
-    pub(crate) generated_metadata: FlowhubCheckStatus,
-    pub(crate) org_lint: FlowhubCheckStatus,
+    pub(crate) flowhub_contract: FlowhubLintStatus,
+    pub(crate) generated_files: FlowhubLintStatus,
+    pub(crate) generated_metadata: FlowhubLintStatus,
+    pub(crate) org_lint: FlowhubLintStatus,
     pub(crate) diagnostics: Vec<String>,
     pub(crate) generated_metadata_failures: Vec<FlowhubGeneratedMetadataFailure>,
 }
@@ -113,7 +113,7 @@ impl FlowhubValidation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FlowhubCheckStatus {
+pub(crate) enum FlowhubLintStatus {
     Passed,
     Failed,
 }
@@ -126,7 +126,7 @@ pub(crate) struct FlowhubGeneratedMetadataFailure {
     pub(crate) expected: String,
 }
 
-impl FlowhubCheckStatus {
+impl FlowhubLintStatus {
     pub(crate) fn from_bool(passed: bool) -> Self {
         if passed { Self::Passed } else { Self::Failed }
     }

@@ -7,6 +7,7 @@ mod catalog;
 mod memory_binding;
 mod memory_profile;
 mod profile;
+mod semantic;
 mod workload;
 
 pub use catalog::{
@@ -42,4 +43,14 @@ pub use profile::{
     WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID, WENDAOSEARCH_STRUCTURAL_RERANK_ROUTE,
     WendaoGraphAlgorithmId, WendaoGraphProfileId,
 };
+pub use semantic::{
+    JuliaContractEnabled, JuliaContractId, JuliaContractKind, JuliaContractMode, JuliaContractPath,
+    JuliaContractReason, JuliaContractRoute, JuliaContractSchemaVersion, JuliaContractSecondsU64,
+    JuliaContractState, JuliaContractTimestampMsI64, JuliaContractTransport, JuliaContractUrl,
+};
 pub use workload::WendaoGraphAlgorithmWorkload;
+
+/// Wendao link-graph Julia runtime config, launch, and artifact helpers.
+pub mod link_graph;
+/// Wendao memory-family Julia compute contracts, staging, and transport helpers.
+pub mod memory;

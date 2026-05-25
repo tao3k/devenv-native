@@ -37,6 +37,33 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     tmp_path: Path,
 ) -> None:
     benchmark = _load_benchmark_module()
+    audio_trace_dir = tmp_path / "audio-traces"
+    audio_trace_dir.mkdir()
+    (audio_trace_dir / "worker.hosted-audio.jsonl").write_text(
+        "\n".join(
+            [
+                benchmark.json.dumps(
+                    {
+                        "status": "succeeded",
+                        "provider": "openrouter",
+                        "model": "qwen/qwen3-asr-flash-2026-02-10",
+                        "endpointKind": "audio-transcriptions",
+                        "requestKind": "audio-shard",
+                        "shardElementId": "audio-shard-1",
+                        "shardProfile": "audio-shards-v1",
+                        "mediaStartMs": 0,
+                        "durationMs": 30_000,
+                        "mediaDurationMs": 30_000,
+                        "latencyMs": 80.0,
+                        "textChars": 42,
+                        "startedUnixMs": 1_000,
+                        "endedUnixMs": 1_080,
+                    }
+                )
+            ]
+        ),
+        encoding="utf-8",
+    )
     args = benchmark.argparse.Namespace(
         real_docling=False,
         benchmark_host="127.0.0.1",
@@ -72,6 +99,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         artifact_registry_reuse_probe=True,
         ocr_shard_cache_root=tmp_path / "ocr-shards",
         hosted_vlm_ocr_image_optimization="region-whitespace-trim",
+        hosted_audio_request_trace_log_dir=audio_trace_dir,
     )
     result = {
         "fixture": "markdown",
@@ -88,6 +116,11 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         "requestCount": 1,
         "arrowIpcBytes": 64,
         "duplicateMissConverterCalls": None,
+        "forceAudioMaterializationWorkflowTotalElapsedMs": 112.0,
+        "forceAudioMaterializationWorkflowStageElapsedMs": {
+            "audio.base.call_analyzer_flight": 82.0,
+            "audio.base.materialize_shards": 30.0,
+        },
         "structureRows": 1,
         "structureReadingOrderSorted": True,
         "structureOrderStable": True,
@@ -107,9 +140,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         },
     )
 
-    assert (
-        payload["precisionSpeedSummary"] == payload["summary"]["precisionSpeedSummary"]
-    )
+    assert payload["precisionSpeedSummary"] == payload["summary"]["precisionSpeedSummary"]
     assert payload["precisionSpeedSummary"]["maxArtifactRegistryReuseForceMs"] == 4.0
     assert payload["hostedVlmOcr"]["imageOptimizationMode"] == "region-whitespace-trim"
     assert payload["pdfOcrPrewarmProfiles"] == ["docling-fast-text-ocr"]
@@ -134,6 +165,10 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     assert payload["rustAudioSpeechMergeGapMs"] == 500
     assert payload["rustAudioSpeechMinWindowMs"] == 5_000
     assert payload["rustAudioSpeechLimitChunks"] == 24
+    assert payload["summary"]["forceAudioHostedRequestWallSpanMs"] == 80.0
+    assert payload["summary"]["forceAudioHostedAnalyzerCallMs"] == 82.0
+    assert payload["summary"]["forceAudioHostedAnalyzerRequestWallGapMs"] == 2.0
+    assert payload["summary"]["forceAudioHostedWorkflowRequestWallGapMs"] == 32.0
 
 
 def test_report_gate_rejects_structure_parity_failures() -> None:

@@ -10,8 +10,8 @@ use crate::QianjiClientError;
 pub enum FlowhubAction {
     /// Materialize the agent planning surface.
     Init,
-    /// Validate the generated agent planning surface.
-    Check,
+    /// Lint the generated agent planning surface.
+    Lint,
     /// List Flowhub Org+BPMN source pairs.
     Scenarios,
 }
@@ -36,15 +36,15 @@ pub(crate) struct FlowhubCommand {
     pub(crate) mode: String,
     pub(crate) scenario: String,
     pub(crate) slug: String,
-    pub(crate) check_all: bool,
+    pub(crate) lint_all: bool,
     pub(crate) output_format: FlowhubOutputFormat,
 }
 
 pub(crate) fn parse_client_command(args: &[String]) -> Result<ClientCommand, QianjiClientError> {
     match args.get(1).map(String::as_str) {
         Some("flowhub") => parse_flowhub_command(args),
-        Some("check") => {
-            let rewritten = rewrite_default_flowhub_action(args, "check");
+        Some("lint") => {
+            let rewritten = rewrite_default_flowhub_action(args, "lint");
             parse_flowhub_command(&rewritten)
         }
         Some("init") => {
@@ -69,7 +69,7 @@ fn parse_flowhub_command(args: &[String]) -> Result<ClientCommand, QianjiClientE
     let mut cache_home = None;
     let mut flowhub_root = None;
     let mut slug = None;
-    let mut check_all = false;
+    let mut lint_all = false;
     let mut output_format = FlowhubOutputFormat::Markdown;
     let mut action = None;
     let mut index = 2;
@@ -77,7 +77,7 @@ fn parse_flowhub_command(args: &[String]) -> Result<ClientCommand, QianjiClientE
     while index < args.len() {
         match args[index].as_str() {
             "init" => set_action(&mut action, FlowhubAction::Init)?,
-            "check" => set_action(&mut action, FlowhubAction::Check)?,
+            "lint" => set_action(&mut action, FlowhubAction::Lint)?,
             "scenarios" | "list" => set_action(&mut action, FlowhubAction::Scenarios)?,
             "--mode" => mode = Some(parse_value(args, &mut index, "--mode")?),
             "--scenario" | "--Scenario" => {
@@ -105,7 +105,7 @@ fn parse_flowhub_command(args: &[String]) -> Result<ClientCommand, QianjiClientE
                 )?));
             }
             "--slug" => slug = Some(parse_value(args, &mut index, "--slug")?),
-            "--all" => check_all = true,
+            "--all" => lint_all = true,
             "--json" => output_format = FlowhubOutputFormat::Json,
             "--help" | "-h" => return Err(QianjiClientError::message(usage())),
             other => {
@@ -118,7 +118,7 @@ fn parse_flowhub_command(args: &[String]) -> Result<ClientCommand, QianjiClientE
         index += 1;
     }
 
-    let action = action.unwrap_or(FlowhubAction::Check);
+    let action = action.unwrap_or(FlowhubAction::Lint);
     let mode = mode.unwrap_or_else(|| "plan".to_string());
     let scenario = scenario.unwrap_or_else(|| "agent-coding".to_string());
     if mode != "plan" {
@@ -126,9 +126,9 @@ fn parse_flowhub_command(args: &[String]) -> Result<ClientCommand, QianjiClientE
             "unsupported qianji-client flowhub mode `{mode}`; only `plan` is supported"
         )));
     }
-    if check_all && action != FlowhubAction::Check {
+    if lint_all && action != FlowhubAction::Lint {
         return Err(QianjiClientError::message(
-            "`--all` is only supported for `qianji-client flowhub check`".to_string(),
+            "`--all` is only supported for `qianji-client flowhub lint`".to_string(),
         ));
     }
 
@@ -149,7 +149,7 @@ fn parse_flowhub_command(args: &[String]) -> Result<ClientCommand, QianjiClientE
         mode,
         slug: slug.unwrap_or_else(|| scenario.clone()),
         scenario,
-        check_all,
+        lint_all,
         output_format,
     }))
 }
@@ -171,7 +171,7 @@ fn set_action(
 ) -> Result<(), QianjiClientError> {
     if action.replace(value).is_some() {
         return Err(QianjiClientError::message(
-            "qianji-client flowhub accepts exactly one action: `init`, `check`, or `scenarios`"
+            "qianji-client flowhub accepts exactly one action: `init`, `lint`, or `scenarios`"
                 .to_string(),
         ));
     }
@@ -228,6 +228,6 @@ fn resolve_path(path: PathBuf, base: &Path) -> PathBuf {
 }
 
 fn usage() -> String {
-    "Usage: qianji-client flowhub --mode plan --scenario <id> init [--json]\n       qianji-client flowhub check [--all] [--json]\n       qianji-client flowhub scenarios [--json]\n       qianji-client check [--json]"
+    "Usage: qianji-client flowhub --mode plan --scenario <id> init [--json]\n       qianji-client flowhub lint [--all] [--json]\n       qianji-client flowhub scenarios [--json]\n       qianji-client lint [--json]"
         .to_string()
 }

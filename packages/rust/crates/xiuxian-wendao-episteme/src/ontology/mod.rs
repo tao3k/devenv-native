@@ -1,6 +1,6 @@
 //! Ontology source-contract admission.
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 mod artifact_bundle;
 mod bootstrap_pipeline;
 mod candidate_review;
@@ -28,13 +28,13 @@ mod structural_facts_reasoning_ledger_seed;
 mod structural_facts_reasoning_packet;
 mod structural_facts_reasoning_qianji_schedule_plan;
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub use artifact_bundle::{
     EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
     EpistemeOntologyArtifactBundleRestoreReport, EpistemeOntologyArtifactBundleWriteReport,
     restore_episteme_ontology_artifact_bundle, write_episteme_ontology_artifact_bundle,
 };
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub use bootstrap_pipeline::{
     EpistemeOntologyBootstrapArtifactCacheOptions,
     EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,

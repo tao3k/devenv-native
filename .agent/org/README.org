@@ -102,12 +102,12 @@ pretty= when automation needs limited task rows, next actions, resume queries,
 and repeater metadata as a machine-readable recovery contract.
 
 Each agent task row is identified by the Org section =:ID:= property and renders
-that value as =orgid:=. Use =ogrid-show= when a resumed session already knows the
+that value as =orgid:=. Use =orgid-show= when a resumed session already knows the
 current section ID and needs the exact subtree instead of a broad SDD or task
 directory scan:
 
 #+begin_src text
-rtk wendao-client orgize ogrid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize orgid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 When the resumed agent remembers the task title or lane phrase, use that memory
@@ -261,7 +261,7 @@ When a slice is complete:
 1. Mark the task heading =DONE=.
 2. Add a =CLOSED:= timestamp.
 3. Record exact evidence in =EVIDENCE= and the task's =** Evidence= section.
-4. Complete the task's =** Closure Questions= table. The table may contain any
+4. Complete the task's =** Reflection Questions= table. The table may contain any
    number of question rows; every row with a non-empty =Question= cell must have
    a non-empty =Value= answer cell.
 5. Update the paired SDD audit or evidence note when the architecture contract
@@ -279,7 +279,7 @@ headings do not block the next agent turn even before physical archival.
 At the start of a resumed turn:
 
 1. Run =task-probe= when the remembered title or file key is available.
-2. Run =ogrid-show --id= when the remembered Org section ID is available.
+2. Run =orgid-show --id= when the remembered Org section ID is available.
 3. Use =task-recover= only when the session has no useful task memory.
 4. Read the top-level progress cookie and the next unchecked checklist item.
 5. Read the paired SDD or optional ExecPlan only after the task-local checklist
@@ -297,7 +297,7 @@ tasks.
 Archive targets are raw subtree sinks named after the task source file. Do not
 add =#+TITLE=, =#+AUTHOR=, =#+DATE=, or =#+FILETAGS= headers to archive target
 files; the archived subtree already carries its lifecycle state, inactive
-=CLOSED:= timestamp, =ARCHIVE= tag, evidence, and answered closure table.
+=CLOSED:= timestamp, =ARCHIVE= tag, evidence, and answered reflection table.
 
 Archived tasks may remain queryable by omitting sparse-tree =--exclude-archived=
 and =--exclude-done= filters. They should not appear in active task-list

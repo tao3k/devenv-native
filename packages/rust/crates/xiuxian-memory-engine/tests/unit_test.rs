@@ -12,6 +12,8 @@ mod episode;
 mod feedback_tracking;
 #[path = "unit/gate.rs"]
 mod gate;
+#[path = "unit/inference.rs"]
+mod inference;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
 #[path = "unit/memory_engine/mod.rs"]

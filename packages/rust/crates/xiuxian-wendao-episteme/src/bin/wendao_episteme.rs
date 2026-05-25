@@ -4,9 +4,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_wendao_episteme::{
     EpistemeOntologyBootstrapArtifactCacheOptions,
     EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
@@ -57,7 +57,7 @@ fn run_ontology_command(command: OntologyCommand) -> Result<serde_json::Value> {
 }
 
 fn run_bootstrap_pipeline_command(args: &BootstrapPipelineArgs) -> Result<serde_json::Value> {
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     {
         if args.artifact_cache_mode != BootstrapArtifactCacheModeArg::Disabled {
             return run_bootstrap_pipeline_artifact_cache_command(args);
@@ -67,7 +67,7 @@ fn run_bootstrap_pipeline_command(args: &BootstrapPipelineArgs) -> Result<serde_
     Ok(serde_json::to_value(report)?)
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn run_bootstrap_pipeline_artifact_cache_command(
     args: &BootstrapPipelineArgs,
 ) -> Result<serde_json::Value> {
@@ -182,15 +182,15 @@ struct BootstrapPipelineArgs {
     #[arg(long, default_value_t = 1024)]
     reasoning_fill_plan_limit: usize,
     /// Artifact cache mode for generated bootstrap run directories.
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     #[arg(long, value_enum, default_value_t = BootstrapArtifactCacheModeArg::Disabled)]
     artifact_cache_mode: BootstrapArtifactCacheModeArg,
     /// Source digest component for artifact-cache identities.
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     #[arg(long)]
     artifact_cache_source_digest: Option<String>,
     /// Profile digest component for artifact-cache identities.
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     #[arg(long)]
     artifact_cache_profile_digest: Option<String>,
 }
@@ -321,7 +321,7 @@ impl BootstrapPipelineArgs {
         request
     }
 
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     fn artifact_cache_options(&self) -> Result<EpistemeOntologyBootstrapArtifactCacheOptions> {
         let source_digest = self
             .artifact_cache_source_digest
@@ -341,7 +341,7 @@ impl BootstrapPipelineArgs {
     }
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
 enum BootstrapArtifactCacheModeArg {
     /// Run the deterministic bootstrap pipeline without artifact-cache use.
@@ -373,7 +373,7 @@ impl From<ValidationModeArg> for EpistemeOntologyStructuralFactsValidationMode {
     }
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn bootstrap_artifact_report_json(
     mode: &str,
     report: EpistemeOntologyBootstrapArtifactCacheReport,
@@ -397,7 +397,7 @@ fn bootstrap_artifact_report_json(
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn bootstrap_readthrough_report_json(
     report: EpistemeOntologyBootstrapArtifactCacheReadThroughReport,
     backend: &str,
@@ -420,7 +420,7 @@ fn bootstrap_readthrough_report_json(
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn bootstrap_restore_report_json(
     mode: &str,
     report: &EpistemeOntologyBootstrapArtifactCacheRestoreReport,
@@ -436,7 +436,7 @@ fn bootstrap_restore_report_json(
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn restore_report_json(
     report: &EpistemeOntologyBootstrapArtifactCacheRestoreReport,
 ) -> serde_json::Value {
@@ -459,7 +459,7 @@ fn restore_report_json(
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn artifact_key_json(key: &xiuxian_db_store::artifact_cache::ArtifactKey) -> serde_json::Value {
     serde_json::json!({
         "namespace": key.namespace().as_str(),
@@ -470,7 +470,7 @@ fn artifact_key_json(key: &xiuxian_db_store::artifact_cache::ArtifactKey) -> ser
     })
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 const fn bootstrap_stage_name(stage: EpistemeOntologyBootstrapArtifactCacheStage) -> &'static str {
     match stage {
         EpistemeOntologyBootstrapArtifactCacheStage::StructuralFacts => "structural-facts",
@@ -484,9 +484,9 @@ const fn bootstrap_stage_name(stage: EpistemeOntologyBootstrapArtifactCacheStage
 mod tests {
     use clap::Parser;
 
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     use super::BootstrapArtifactCacheModeArg;
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     use super::run_cli;
     use super::{Cli, Command, OntologyCommand, ValidationModeArg};
 
@@ -523,7 +523,7 @@ mod tests {
         assert_eq!(args.reasoning_packet_limit, 16);
     }
 
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     #[test]
     fn parses_bootstrap_pipeline_artifact_readthrough_command() {
         let cli = Cli::try_parse_from([
@@ -561,7 +561,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     #[test]
     fn bootstrap_pipeline_artifact_cache_mode_requires_digests() {
         let cli = Cli::try_parse_from([
@@ -588,7 +588,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "artifact-cache")]
+    #[cfg(feature = "foyer-artifact-cache")]
     #[test]
     fn bootstrap_pipeline_artifact_cache_mode_rejects_unsafe_digests() {
         let cli = Cli::try_parse_from([

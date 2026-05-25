@@ -1,0 +1,49 @@
+---
+source: packages/rust/crates/xiuxian-julia-core/src/plugin/../../tests/unit/plugin/common.rs
+assertion_line: 140
+expression: payload
+---
+[
+  {
+    "key": [
+      [
+        0,
+        ""
+      ],
+      [
+        0,
+        "Controllers"
+      ],
+      [
+        0,
+        "Examples"
+      ],
+      [
+        0,
+        "Step"
+      ]
+    ],
+    "path": "Controllers/Examples/Step.mo"
+  },
+  {
+    "key": [
+      [
+        0,
+        ""
+      ],
+      [
+        0,
+        "Controllers"
+      ],
+      [
+        0,
+        "Examples"
+      ],
+      [
+        1,
+        "Alpha"
+      ]
+    ],
+    "path": "Controllers/Examples/Alpha.mo"
+  }
+]

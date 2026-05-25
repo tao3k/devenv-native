@@ -1,0 +1,29 @@
+---
+source: packages/rust/crates/xiuxian-julia-core/src/modelica_plugin/../../tests/unit/plugin/relations.rs
+assertion_line: 168
+expression: payload
+---
+[
+  {
+    "path": "UsersGuide/Overview.mo",
+    "targets": [
+      "repo:modelica-demo:module:DemoLib",
+      "repo:modelica-demo:module:DemoLib.UsersGuide"
+    ]
+  },
+  {
+    "path": "Controllers/UsersGuide/Tuning.mo",
+    "targets": [
+      "repo:modelica-demo:module:DemoLib.Controllers",
+      "repo:modelica-demo:module:DemoLib.Controllers.UsersGuide"
+    ]
+  },
+  {
+    "path": "Controllers/UsersGuide/Tutorial/FirstSteps.mo",
+    "targets": [
+      "repo:modelica-demo:module:DemoLib.Controllers",
+      "repo:modelica-demo:module:DemoLib.Controllers.UsersGuide",
+      "repo:modelica-demo:module:DemoLib.Controllers.UsersGuide.Tutorial"
+    ]
+  }
+]

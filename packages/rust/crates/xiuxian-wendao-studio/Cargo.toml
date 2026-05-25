@@ -101,7 +101,7 @@ duckdb = [
 ]
 julia = [
   "local-runtime",
-  "dep:xiuxian-wendao-julia",
+  "dep:xiuxian-julia-core",
   "xiuxian-wendao/julia",
 ]
 performance = [
@@ -128,7 +128,7 @@ document-extract-pdf-source-range = [
   "local-runtime",
   "dep:num-traits",
   "dep:xiuxian-wendao-attachments",
-  "xiuxian-db-store/artifact-cache",
+  "xiuxian-db-store/foyer-artifact-cache",
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
 ]
@@ -142,12 +142,12 @@ document-extract-audio-shards = [
   "dep:sha2",
   "dep:xiuxian-qianji",
   "dep:xiuxian-wendao-attachments",
-  "xiuxian-wendao-attachments/artifact-cache",
+  "xiuxian-wendao-attachments/foyer-artifact-cache",
   "xiuxian-wendao-attachments/audio-shard-arrow",
 ]
 foyer-artifact-cache = [
   "document-extract-audio-shards",
-  "episteme-artifact-cache",
+  "episteme-foyer-artifact-cache",
   "xiuxian-db-store/foyer-artifact-cache",
   "xiuxian-wendao-attachments/foyer-artifact-cache",
 ]
@@ -156,10 +156,10 @@ document-extract-pdf-render = [
   "xiuxian-wendao/document-extract-pdf-render",
   "xiuxian-wendao-attachments/pdf-render",
 ]
-episteme-artifact-cache = [
+episteme-foyer-artifact-cache = [
   "local-runtime",
   "xiuxian-db-store/foyer-artifact-cache",
-  "xiuxian-wendao-episteme/artifact-cache",
+  "xiuxian-wendao-episteme/foyer-artifact-cache",
 ]
 
 [[bench]]
@@ -200,7 +200,7 @@ xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features 
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme", optional = true }
-xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
+xiuxian-julia-core = { path = "../xiuxian-julia-core", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }

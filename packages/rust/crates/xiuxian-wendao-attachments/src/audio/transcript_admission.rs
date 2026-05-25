@@ -1,6 +1,7 @@
 //! Rust-owned accepted transcript admission for audio shard execution.
 
 use std::collections::{HashMap, HashSet};
+use std::hash::BuildHasher;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -170,7 +171,7 @@ enum AudioTranscriptAdmissionLookupRow {
 }
 
 enum AudioPlannedTranscriptAdmissionLookupRow {
-    Hit(AudioShardInput, AudioShardResult),
+    Hit(Box<AudioShardInput>, Box<AudioShardResult>),
     Miss,
     Stale,
 }
@@ -223,8 +224,8 @@ pub fn lookup_planned_audio_transcript_admission(
     for (manifest, row) in manifests.iter().zip(rows) {
         match row {
             AudioPlannedTranscriptAdmissionLookupRow::Hit(input, result) => {
-                inputs.push(input);
-                results.push(result);
+                inputs.push(*input);
+                results.push(*result);
             }
             AudioPlannedTranscriptAdmissionLookupRow::Miss
             | AudioPlannedTranscriptAdmissionLookupRow::Stale => {
@@ -367,9 +368,9 @@ pub fn persist_audio_transcript_admission(
 
 /// Combine admitted and fresh transcript rows in input order.
 #[must_use]
-pub fn combine_admitted_and_fresh_audio_transcripts(
+pub fn combine_admitted_and_fresh_audio_transcripts<S: BuildHasher>(
     inputs: &[AudioShardInput],
-    admitted_results: &HashMap<String, AudioShardResult>,
+    admitted_results: &HashMap<String, AudioShardResult, S>,
     fresh_results: &[AudioShardResult],
 ) -> Vec<AudioShardResult> {
     let fresh_by_shard = audio_results_by_shard(fresh_results);
@@ -432,9 +433,10 @@ fn lookup_planned_audio_transcript_admission_row(
         manifest,
         profile,
     ) {
-        Ok(Some((input, result))) => {
-            Ok(AudioPlannedTranscriptAdmissionLookupRow::Hit(input, result))
-        }
+        Ok(Some((input, result))) => Ok(AudioPlannedTranscriptAdmissionLookupRow::Hit(
+            Box::new(input),
+            Box::new(result),
+        )),
         Ok(None) => Ok(AudioPlannedTranscriptAdmissionLookupRow::Miss),
         Err(_) => Ok(AudioPlannedTranscriptAdmissionLookupRow::Stale),
     }
@@ -704,7 +706,7 @@ fn audio_planned_transcript_admission_key_from_input(
         hosted_endpoint: request_options.hosted_endpoint.as_deref(),
         hosted_model: request_options.hosted_model.as_deref(),
     };
-    audio_planned_transcript_admission_key(key)
+    audio_planned_transcript_admission_key(&key)
 }
 
 fn audio_planned_transcript_admission_key_from_manifest(
@@ -736,11 +738,11 @@ fn audio_planned_transcript_admission_key_from_manifest(
         hosted_endpoint: request_options.hosted_endpoint.as_deref(),
         hosted_model: request_options.hosted_model.as_deref(),
     };
-    audio_planned_transcript_admission_key(key)
+    audio_planned_transcript_admission_key(&key)
 }
 
 fn audio_planned_transcript_admission_key(
-    key: AudioPlannedTranscriptAdmissionKey<'_>,
+    key: &AudioPlannedTranscriptAdmissionKey<'_>,
 ) -> Result<String, String> {
     let payload = serde_json::to_vec(&key)
         .map_err(|error| format!("serialize audio planned transcript admission key: {error}"))?;

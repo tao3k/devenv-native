@@ -99,12 +99,8 @@ def run_distinct_miss_probe(
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxRunningConversions": rust_jobs_status_summary[
-            "maxRunningConversions"
-        ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxRunningConversions": rust_jobs_status_summary["maxRunningConversions"],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
     }
 
 
@@ -171,9 +167,7 @@ def run_structure_baseline_probe(
                 "errorRows": error_rows,
                 "resourcesRows": artifact_summary["resourcesRows"],
                 "structureRows": artifact_summary["structureRows"],
-                "structureReadingOrderSorted": artifact_summary[
-                    "structureReadingOrderSorted"
-                ],
+                "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
                 "doclingGroundtruth": summarize_docling_groundtruth_reports(
                     docling_groundtruth_reports,
                 ),
@@ -191,9 +185,7 @@ def run_structure_baseline_probe(
         "root": str(baseline_root),
         "fixtureCount": len(fixture_reports),
         "totalErrorRows": sum(report["errorRows"] for report in fixture_reports),
-        "totalStructureRows": sum(
-            report["structureRows"] for report in fixture_reports
-        ),
+        "totalStructureRows": sum(report["structureRows"] for report in fixture_reports),
         "allStructureReadingOrderSorted": (
             all(bool(value) for value in sorted_values) if sorted_values else None
         ),
@@ -222,9 +214,7 @@ def run_fixture_probe(
         )
         converter_count_after = read_converter_count(args)
         if converter_count_before is not None and converter_count_after is not None:
-            duplicate_miss_converter_calls = (
-                converter_count_after - converter_count_before
-            )
+            duplicate_miss_converter_calls = converter_count_after - converter_count_before
         duplicate_error_rows = duplicate_report.get("errorRowCount", 0)
         if args.fail_on_error_rows and duplicate_error_rows:
             raise SystemExit(
@@ -290,12 +280,10 @@ def run_fixture_probe(
         fixture_name,
         output_dir,
     )
-    audio_transcript_reference_draft = (
-        export_audio_transcript_reference_draft_for_fixture(
-            args,
-            fixture_name,
-            output_dir,
-        )
+    audio_transcript_reference_draft = export_audio_transcript_reference_draft_for_fixture(
+        args,
+        fixture_name,
+        output_dir,
     )
     cached_latencies = cached_report["latenciesMs"]
     request_count = cached_report["requestCount"]
@@ -303,9 +291,7 @@ def run_fixture_probe(
     total_rows = row_count * request_count
     force_error_rows = force_report.get("errorRowCount", 0)
     shard_cache_reuse_error_rows = (
-        shard_cache_reuse_report.get("errorRowCount", 0)
-        if shard_cache_reuse_report
-        else 0
+        shard_cache_reuse_report.get("errorRowCount", 0) if shard_cache_reuse_report else 0
     )
     artifact_registry_reuse_error_rows = (
         artifact_registry_reuse_report.get("errorRowCount", 0)
@@ -313,21 +299,15 @@ def run_fixture_probe(
         else 0
     )
     cache_error_rows = cached_report.get("errorRowCount", 0)
-    force_artifact_summary = summarize_artifact_reports(
-        force_report.get("artifactReports", [])
-    )
-    artifact_summary = summarize_artifact_reports(
-        cached_report.get("artifactReports", [])
-    )
+    force_artifact_summary = summarize_artifact_reports(force_report.get("artifactReports", []))
+    artifact_summary = summarize_artifact_reports(cached_report.get("artifactReports", []))
     shard_cache_reuse_artifact_summary = (
         summarize_artifact_reports(shard_cache_reuse_report.get("artifactReports", []))
         if shard_cache_reuse_report
         else None
     )
     artifact_registry_reuse_artifact_summary = (
-        summarize_artifact_reports(
-            artifact_registry_reuse_report.get("artifactReports", [])
-        )
+        summarize_artifact_reports(artifact_registry_reuse_report.get("artifactReports", []))
         if artifact_registry_reuse_report
         else None
     )
@@ -336,13 +316,11 @@ def run_fixture_probe(
         "cache": artifact_summary["metricsRows"],
     }
     if shard_cache_reuse_artifact_summary:
-        metrics_rows_by_run["shard_cache_reuse"] = shard_cache_reuse_artifact_summary[
+        metrics_rows_by_run["shard_cache_reuse"] = shard_cache_reuse_artifact_summary["metricsRows"]
+    if artifact_registry_reuse_artifact_summary:
+        metrics_rows_by_run["artifact_registry_reuse"] = artifact_registry_reuse_artifact_summary[
             "metricsRows"
         ]
-    if artifact_registry_reuse_artifact_summary:
-        metrics_rows_by_run["artifact_registry_reuse"] = (
-            artifact_registry_reuse_artifact_summary["metricsRows"]
-        )
     structure_order_consistency = fixture_structure_order_consistency(
         force_report,
         cached_report,
@@ -364,9 +342,7 @@ def run_fixture_probe(
         )
     if getattr(args, "fail_on_missing_ocr_metrics", False):
         missing_metrics_runs = [
-            name
-            for name, metrics_rows in metrics_rows_by_run.items()
-            if metrics_rows <= 0
+            name for name, metrics_rows in metrics_rows_by_run.items() if metrics_rows <= 0
         ]
         if missing_metrics_runs:
             fallback_reasons = hybrid_page_ocr_fallback_reasons_by_run(
@@ -402,11 +378,7 @@ def run_fixture_probe(
         )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
-            (
-                duplicate_report.get("rustJobsStatusSummary", {})
-                if duplicate_report
-                else {}
-            ),
+            (duplicate_report.get("rustJobsStatusSummary", {}) if duplicate_report else {}),
             force_report.get("rustJobsStatusSummary", {}),
             (
                 shard_cache_reuse_report.get("rustJobsStatusSummary", {})
@@ -454,20 +426,14 @@ def run_fixture_probe(
         "doclingGroundtruthMinMarkdownSimilarity": force_docling_groundtruth[
             "minMarkdownSimilarity"
         ],
-        "doclingGroundtruthMinCharCoverageRatio": force_docling_groundtruth[
-            "minCharCoverageRatio"
-        ],
+        "doclingGroundtruthMinCharCoverageRatio": force_docling_groundtruth["minCharCoverageRatio"],
         "shardCacheReuseEnabled": args.shard_cache_reuse_probe,
         "shardCacheReuseForceMs": (
-            shard_cache_reuse_report["latenciesMs"][0]
-            if shard_cache_reuse_report
-            else None
+            shard_cache_reuse_report["latenciesMs"][0] if shard_cache_reuse_report else None
         ),
         "shardCacheReuseErrorRows": shard_cache_reuse_error_rows,
         "shardCacheReuseStatusCounts": (
-            shard_cache_reuse_report.get("statusCounts", {})
-            if shard_cache_reuse_report
-            else {}
+            shard_cache_reuse_report.get("statusCounts", {}) if shard_cache_reuse_report else {}
         ),
         "artifactRegistryReuseEnabled": args.artifact_registry_reuse_probe,
         "artifactRegistryReuseForceMs": (
@@ -497,15 +463,11 @@ def run_fixture_probe(
         "rustJobsMaxInProcessRunningConversions": rust_jobs_status_summary[
             "maxInProcessRunningConversions"
         ],
-        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary[
-            "maxInProcessScheduledJobs"
-        ],
+        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary["maxInProcessScheduledJobs"],
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
         "rows": row_count,
         "totalRows": total_rows,
         "batches": cached_report["batchCount"],
@@ -516,9 +478,7 @@ def run_fixture_probe(
         "audioTranscriptTimelineMarkerCount": artifact_summary[
             "audioTranscriptTimelineMarkerCount"
         ],
-        "audioTranscriptTimelineMarkedRows": artifact_summary[
-            "audioTranscriptTimelineMarkedRows"
-        ],
+        "audioTranscriptTimelineMarkedRows": artifact_summary["audioTranscriptTimelineMarkedRows"],
         "forceAudioMaterializationShardCount": force_artifact_summary[
             "audioMaterializationShardCount"
         ],
@@ -560,6 +520,18 @@ def run_fixture_probe(
         ],
         "forceAudioMaterializationSourceBytes": force_artifact_summary[
             "audioMaterializationSourceBytes"
+        ],
+        "forceAudioMaterializationWorkflowIds": force_artifact_summary[
+            "audioMaterializationWorkflowIds"
+        ],
+        "forceAudioMaterializationWorkflowStageCount": force_artifact_summary[
+            "audioMaterializationWorkflowStageCount"
+        ],
+        "forceAudioMaterializationWorkflowTotalElapsedMs": force_artifact_summary[
+            "audioMaterializationWorkflowTotalElapsedMs"
+        ],
+        "forceAudioMaterializationWorkflowStageElapsedMs": force_artifact_summary[
+            "audioMaterializationWorkflowStageElapsedMs"
         ],
         "forceAudioTranscriptAdmissionEnabled": force_artifact_summary[
             "audioTranscriptAdmissionEnabled"
@@ -606,9 +578,7 @@ def run_fixture_probe(
             else {}
         ),
         "artifactRegistryReuseAudioMaterializationArtifactCacheMemoryBytes": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationArtifactCacheMemoryBytes"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationArtifactCacheMemoryBytes"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
@@ -627,44 +597,32 @@ def run_fixture_probe(
             else 0
         ),
         "artifactRegistryReuseAudioMaterializationArtifactCacheHitCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationArtifactCacheHitCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationArtifactCacheHitCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationArtifactCacheHitBytes"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationArtifactCacheHitBytes"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioMaterializationExistingOutputCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationExistingOutputCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationExistingOutputCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioMaterializationExistingOutputBytes": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationExistingOutputBytes"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationExistingOutputBytes"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioMaterializationMediaSplitterCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationMediaSplitterCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationMediaSplitterCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioMaterializationMediaSplitterBytes": (
-            artifact_registry_reuse_artifact_summary[
-                "audioMaterializationMediaSplitterBytes"
-            ]
+            artifact_registry_reuse_artifact_summary["audioMaterializationMediaSplitterBytes"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
@@ -675,6 +633,26 @@ def run_fixture_probe(
         ),
         "artifactRegistryReuseAudioMaterializationSourceBytes": (
             artifact_registry_reuse_artifact_summary["audioMaterializationSourceBytes"]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowIds": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowIds"]
+            if artifact_registry_reuse_artifact_summary
+            else []
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowStageCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowStageCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowTotalElapsedMs": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowTotalElapsedMs"]
+            if artifact_registry_reuse_artifact_summary
+            else 0.0
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowStageElapsedMs": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowStageElapsedMs"]
             if artifact_registry_reuse_artifact_summary
             else {}
         ),
@@ -704,51 +682,38 @@ def run_fixture_probe(
             else 0
         ),
         "artifactRegistryReuseAudioTranscriptAdmissionPlannedHitCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioTranscriptAdmissionPlannedHitCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedHitCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioTranscriptAdmissionPlannedMissCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioTranscriptAdmissionPlannedMissCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedMissCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioTranscriptAdmissionPlannedStoredCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioTranscriptAdmissionPlannedStoredCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedStoredCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
         "artifactRegistryReuseAudioTranscriptAdmissionPlannedStaleCount": (
-            artifact_registry_reuse_artifact_summary[
-                "audioTranscriptAdmissionPlannedStaleCount"
-            ]
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedStaleCount"]
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
-        "cacheAudioMaterializationShardCount": artifact_summary[
-            "audioMaterializationShardCount"
-        ],
+        "cacheAudioMaterializationShardCount": artifact_summary["audioMaterializationShardCount"],
         "cacheAudioMaterializationSourceCounts": artifact_summary[
             "audioMaterializationSourceCounts"
+        ],
+        "cacheAudioMaterializationWorkflowStageElapsedMs": artifact_summary[
+            "audioMaterializationWorkflowStageElapsedMs"
         ],
         "audioTranscriptOrgPath": audio_transcript_org["path"],
         "audioTranscriptOrgRows": audio_transcript_org["rows"],
         "audioTranscriptOrgChars": audio_transcript_org["chars"],
-        "audioTranscriptOrgTimelineMarkerCount": audio_transcript_org[
-            "timelineMarkerCount"
-        ],
-        "audioTranscriptReferenceDraftJsonlPath": audio_transcript_reference_draft[
-            "jsonlPath"
-        ],
-        "audioTranscriptReferenceDraftTsvPath": audio_transcript_reference_draft[
-            "tsvPath"
-        ],
+        "audioTranscriptOrgTimelineMarkerCount": audio_transcript_org["timelineMarkerCount"],
+        "audioTranscriptReferenceDraftJsonlPath": audio_transcript_reference_draft["jsonlPath"],
+        "audioTranscriptReferenceDraftTsvPath": audio_transcript_reference_draft["tsvPath"],
         "audioTranscriptReferenceDraftRows": audio_transcript_reference_draft["rows"],
         "audioTranscriptReferenceDraftChars": audio_transcript_reference_draft["chars"],
         "structureArrowExists": artifact_summary["structureArrowExists"],
@@ -765,9 +730,7 @@ def run_fixture_probe(
         "metricsRows": artifact_summary["metricsRows"],
         "metricsResultChars": artifact_summary["metricsResultChars"],
         "metricsBboxCount": artifact_summary["metricsBboxCount"],
-        "metricsRustSchedulerElapsedMs": artifact_summary[
-            "metricsRustSchedulerElapsedMs"
-        ],
+        "metricsRustSchedulerElapsedMs": artifact_summary["metricsRustSchedulerElapsedMs"],
         "forceHybridPageOcrTimingTotalElapsedMs": force_artifact_summary[
             "hybridPageOcrTimingTotalElapsedMs"
         ],
@@ -790,44 +753,30 @@ def run_fixture_probe(
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
         ],
         "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
-            force_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
-            ]
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"]
         ),
         "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
-            force_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
-            ]
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"]
         ),
         "forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
             force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineEndpointCount"]
         ),
         "forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": (
-            force_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"
-            ]
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"]
         ),
         "forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
-            force_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"
-            ]
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"]
         ),
         "forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
-            force_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"
-            ]
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"]
         ),
         "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
-            force_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
-            ]
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"]
         ),
         "structureAuthorityPages": force_artifact_summary["structureAuthorityPages"],
         "textShortcutPages": force_artifact_summary["textShortcutPages"],
         "ocrPatchRegions": force_artifact_summary["ocrPatchRegions"],
-        "pageRangeDoclingFallbackPages": force_artifact_summary[
-            "pageRangeDoclingFallbackPages"
-        ],
+        "pageRangeDoclingFallbackPages": force_artifact_summary["pageRangeDoclingFallbackPages"],
         "pageRangeDoclingFallbackChunkCount": force_artifact_summary[
             "pageRangeDoclingFallbackChunkCount"
         ],
@@ -857,37 +806,27 @@ def run_fixture_probe(
             else {}
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionShardCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionShardCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionShardCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRequestCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRequestCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRequestCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderedShardCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderedShardCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRenderedShardCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRenderCacheHitCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRenderCacheMissCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
@@ -906,9 +845,7 @@ def run_fixture_probe(
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionPipelineEndpointCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineEndpointCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
@@ -941,24 +878,16 @@ def run_fixture_probe(
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingSchedulerTraceSummary": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingSchedulerTraceSummary"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingSchedulerTraceSummary"]
             if shard_cache_reuse_artifact_summary
             else {}
         ),
         "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
         "documentTimingRows": artifact_summary["documentTimingRows"],
-        "documentTimingTotalElapsedMs": artifact_summary[
-            "documentTimingTotalElapsedMs"
-        ],
+        "documentTimingTotalElapsedMs": artifact_summary["documentTimingTotalElapsedMs"],
         "documentTimingOverheadMs": document_timing_overhead_ms,
-        "documentTimingPhaseElapsedMs": artifact_summary[
-            "documentTimingPhaseElapsedMs"
-        ],
-        "hybridPageOcrFallbackReasons": artifact_summary[
-            "hybridPageOcrFallbackReasons"
-        ],
+        "documentTimingPhaseElapsedMs": artifact_summary["documentTimingPhaseElapsedMs"],
+        "hybridPageOcrFallbackReasons": artifact_summary["hybridPageOcrFallbackReasons"],
         "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
         "imageKnownDimensionCount": artifact_summary["imageKnownDimensionCount"],
         "imageFormatCounts": artifact_summary["imageFormatCounts"],
@@ -974,13 +903,9 @@ def run_fixture_probe(
         "archiveImageMemberCount": artifact_summary["archiveImageMemberCount"],
         "archiveTotalMemberSizeBytes": artifact_summary["archiveTotalMemberSizeBytes"],
         "archiveFormatCounts": artifact_summary["archiveFormatCounts"],
-        "archiveAccelerationCandidates": artifact_summary[
-            "archiveAccelerationCandidates"
-        ],
+        "archiveAccelerationCandidates": artifact_summary["archiveAccelerationCandidates"],
         "archiveExtensionCounts": artifact_summary["archiveExtensionCounts"],
-        "maxArchiveLargestMemberSizeBytes": artifact_summary[
-            "maxArchiveLargestMemberSizeBytes"
-        ],
+        "maxArchiveLargestMemberSizeBytes": artifact_summary["maxArchiveLargestMemberSizeBytes"],
         "artifactErrorCount": artifact_summary["artifactErrorCount"],
         "artifactReports": cached_report.get("artifactReports", []),
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
@@ -1000,9 +925,7 @@ def export_audio_transcript_org_for_fixture(
             "chars": 0,
             "timelineMarkerCount": 0,
         }
-    report_dir = Path(
-        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
-    )
+    report_dir = Path(getattr(args, "report_dir_path", getattr(args, "report_dir", ".")))
     org_path = report_dir / "audio-transcripts" / f"{fixture_name}.org"
     return export_audio_transcript_org(
         output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
@@ -1022,9 +945,7 @@ def export_audio_transcript_reference_draft_for_fixture(
             "rows": 0,
             "chars": 0,
         }
-    report_dir = Path(
-        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
-    )
+    report_dir = Path(getattr(args, "report_dir_path", getattr(args, "report_dir", ".")))
     draft_dir = report_dir / "audio-transcripts"
     return export_audio_transcript_reference_drafts(
         output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
@@ -1143,9 +1064,7 @@ def run_cargo_perf_test(
         )
     structure_baseline_root = getattr(args, "structure_baseline_root", None)
     if include_structure_baseline_root and structure_baseline_root is not None:
-        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(
-            structure_baseline_root
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(structure_baseline_root)
     command = [
         args.cargo,
         "test",
@@ -1172,9 +1091,7 @@ def run_cargo_perf_test(
     report["maxRssKb"] = max_rss_kb()
     report["rustJobsStatusSamples"] = status_samples
     report["rustJobsStatusSummary"] = summarize_rust_jobs_status_samples(status_samples)
-    report_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     return report
 
 

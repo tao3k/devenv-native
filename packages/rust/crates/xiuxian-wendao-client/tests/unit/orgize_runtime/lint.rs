@@ -11,6 +11,15 @@ fn answered_closure_questions() -> &'static str {
     )
 }
 
+fn answered_reflection_questions() -> &'static str {
+    concat!(
+        "** Reflection Questions\n",
+        "| Question | Value |\n",
+        "|---+---|\n",
+        "| What finality signal should future agents recall from this slice? | The slice landed with validation evidence. |\n",
+    )
+}
+
 fn unanswered_closure_questions() -> &'static str {
     concat!(
         "** Closure Questions\n",
@@ -457,7 +466,7 @@ fn standalone_orgize_lint_warns_when_complete_agent_task_is_not_done() {
     assert!(
         output
             .stdout
-            .contains("change lifecycle state to DONE, add inactive CLOSED: [YYYY-MM-DD Day], and complete Closure Questions"),
+            .contains("change lifecycle state to DONE, add inactive CLOSED: [YYYY-MM-DD Day], and complete Reflection Questions"),
         "stdout: {}",
         output.stdout
     );
@@ -494,7 +503,9 @@ fn standalone_orgize_lint_warns_when_done_agent_task_is_missing_closure_question
         output.stdout
     );
     assert!(
-        output.stdout.contains("missing Closure Questions answers"),
+        output
+            .stdout
+            .contains("missing Reflection Questions answers"),
         "stdout: {}",
         output.stdout
     );
@@ -562,6 +573,17 @@ fn standalone_orgize_lint_warns_when_closed_answered_agent_task_needs_archive() 
         "stdout: {}",
         output.stdout
     );
+}
+
+#[test]
+fn standalone_orgize_lint_accepts_reflection_questions_for_done_agent_task() {
+    let body = format!("- [X] one\n- [X] two\n{}", answered_reflection_questions());
+    let output = run_lint_for_agent_heading_and_body(
+        "* DONE Agent slice [2/2] [100%] :agent:ARCHIVE:\nCLOSED: [2026-05-24 Sun]\n",
+        &body,
+    );
+    assert_eq!(output.status_code, Some(0), "stdout: {}", output.stdout);
+    assert_eq!(output.stdout, "[ok] orgize lint\n");
 }
 
 #[test]

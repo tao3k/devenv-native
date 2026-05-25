@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use serial_test::serial;
-use xiuxian_wendao_julia::integration_support::probe_wendaograph_page_index_host_request_with_fixture;
+use xiuxian_julia_core::integration_support::probe_wendaograph_page_index_host_request_with_fixture;
 
 use crate::analyzers::resolve_registered_repository_source;
 use crate::link_graph::{LinkGraphIndex, LinkGraphSearchOptions, PageIndexNode};

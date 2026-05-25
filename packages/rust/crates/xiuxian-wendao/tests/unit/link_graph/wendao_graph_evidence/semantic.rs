@@ -1,4 +1,4 @@
-use xiuxian_wendao_julia::validate_wendao_graph_evidence_request_schema;
+use xiuxian_julia_core::validate_wendao_graph_evidence_request_schema;
 
 use super::support::{
     fixture_index, float_column, int64_column, semantic_overlay_edge, string_column,

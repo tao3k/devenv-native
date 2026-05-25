@@ -1,6 +1,6 @@
 mod julia {
     use serde_yaml::Value;
-    use xiuxian_wendao_julia::compatibility::link_graph::julia_rerank_provider_selector;
+    use xiuxian_julia_runtime::wendao::link_graph::julia_rerank_provider_selector;
 
     use crate::resolve_builtin_rerank_runtime_projection_with_settings;
 

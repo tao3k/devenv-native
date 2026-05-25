@@ -15,12 +15,12 @@ use crate::transport::plugin_arrow_exchange::{
 #[test]
 fn plugin_arrow_request_trace_id_normalizes_query_text() {
     assert_eq!(
-        plugin_arrow_request_trace_id("xiuxian-wendao-julia", "  alpha   signal "),
-        "plugin-rerank:xiuxian-wendao-julia:alpha_signal"
+        plugin_arrow_request_trace_id("xiuxian-julia-core", "  alpha   signal "),
+        "plugin-rerank:xiuxian-julia-core:alpha_signal"
     );
     assert_eq!(
-        plugin_arrow_request_trace_id("xiuxian-wendao-julia", ""),
-        "plugin-rerank:xiuxian-wendao-julia:query"
+        plugin_arrow_request_trace_id("xiuxian-julia-core", ""),
+        "plugin-rerank:xiuxian-julia-core:query"
     );
 }
 
@@ -38,14 +38,14 @@ fn attach_plugin_arrow_request_metadata_sets_schema_metadata() {
 
     let traced_batch = attach_plugin_arrow_request_metadata(
         &batch,
-        plugin_arrow_request_trace_id("xiuxian-wendao-julia", "alpha signal").as_str(),
+        plugin_arrow_request_trace_id("xiuxian-julia-core", "alpha signal").as_str(),
         "v1",
     )
     .unwrap_or_else(|error| panic!("metadata: {error}"));
 
     assert_eq!(
         traced_batch.schema().metadata().get("trace_id"),
-        Some(&"plugin-rerank:xiuxian-wendao-julia:alpha_signal".to_string())
+        Some(&"plugin-rerank:xiuxian-julia-core:alpha_signal".to_string())
     );
     assert_eq!(
         traced_batch

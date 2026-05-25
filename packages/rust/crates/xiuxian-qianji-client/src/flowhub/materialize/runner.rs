@@ -9,10 +9,11 @@ use xiuxian_wendao_parsers::{OrgizeLintOutputFormat, OrgizeLintRequest, lint_org
 
 use crate::flowhub::contract::{
     FlowhubSourcePair, list_flowhub_source_pairs, parse_org_properties, property_value,
-    resolve_flowhub_source_pair, validate_flowhub_source_pair_contract,
+    resolve_flowhub_source_pair, validate_flowhub_module_policy_entries,
+    validate_flowhub_source_pair_contract,
 };
 use crate::flowhub::model::{
-    FlowhubCheckStatus, FlowhubCliOutput, FlowhubGeneratedFile, FlowhubGeneratedMetadataFailure,
+    FlowhubCliOutput, FlowhubGeneratedFile, FlowhubGeneratedMetadataFailure, FlowhubLintStatus,
     FlowhubScenarioRegistry, FlowhubScenarioRegistrySourcePair, FlowhubScenarioRegistryValidation,
     FlowhubSourcePairSummary, FlowhubValidation,
 };
@@ -40,11 +41,11 @@ pub(crate) fn run_flowhub_plan(
     let agent_root = command.cache_home.join("agent");
     let generated_files = match command.action {
         FlowhubAction::Init => materialize_agent_tracking_files(&command, &agent_root)?,
-        FlowhubAction::Check if command.check_all => discovered_generated_file_groups(&agent_root)?
+        FlowhubAction::Lint if command.lint_all => discovered_generated_file_groups(&agent_root)?
             .into_iter()
             .flat_map(|group| group.files)
             .collect(),
-        FlowhubAction::Check => expected_generated_file_group(&command, &agent_root).files,
+        FlowhubAction::Lint => expected_generated_file_group(&command, &agent_root).files,
         FlowhubAction::Scenarios => Vec::new(),
     };
     let mut source_pairs = Vec::new();
@@ -67,6 +68,7 @@ pub(crate) fn load_registry(
     let mut diagnostics = Vec::new();
     let pairs = list_flowhub_source_pairs(flowhub_root, &mut diagnostics)?;
     let mut passed = !pairs.is_empty();
+    passed &= validate_flowhub_module_policy_entries(flowhub_root, &mut diagnostics)?;
     for pair in &pairs {
         passed &= validate_flowhub_source_pair_contract(
             flowhub_root,
@@ -236,7 +238,7 @@ fn validate_agent_coding_plan(
     generated_files: &[FlowhubGeneratedFile],
     source_pairs: &mut Vec<FlowhubSourcePairSummary>,
 ) -> Result<FlowhubValidation, QianjiClientError> {
-    if command.action == FlowhubAction::Check && command.check_all {
+    if command.action == FlowhubAction::Lint && command.lint_all {
         return validate_all_agent_plans(command, source_pairs);
     }
 
@@ -254,7 +256,7 @@ fn validate_agent_coding_plan(
             &mut diagnostics,
             source_pairs,
         )?,
-        FlowhubAction::Init | FlowhubAction::Check => validate_flowhub_contract(
+        FlowhubAction::Init | FlowhubAction::Lint => validate_flowhub_contract(
             command.flowhub_root.as_deref(),
             &validation_scenario,
             &mut diagnostics,
@@ -282,10 +284,10 @@ fn validate_agent_coding_plan(
     };
 
     Ok(FlowhubValidation {
-        flowhub_contract: FlowhubCheckStatus::from_bool(flowhub_contract_passed),
-        generated_files: FlowhubCheckStatus::from_bool(generated_files_present),
-        generated_metadata: FlowhubCheckStatus::from_bool(generated_metadata_report.passed),
-        org_lint: FlowhubCheckStatus::from_bool(org_lint_passed),
+        flowhub_contract: FlowhubLintStatus::from_bool(flowhub_contract_passed),
+        generated_files: FlowhubLintStatus::from_bool(generated_files_present),
+        generated_metadata: FlowhubLintStatus::from_bool(generated_metadata_report.passed),
+        org_lint: FlowhubLintStatus::from_bool(org_lint_passed),
         diagnostics,
         generated_metadata_failures: generated_metadata_report.failures,
     })
@@ -304,10 +306,10 @@ fn validate_all_agent_plans(
             agent_root.display()
         ));
         return Ok(FlowhubValidation {
-            flowhub_contract: FlowhubCheckStatus::Failed,
-            generated_files: FlowhubCheckStatus::Failed,
-            generated_metadata: FlowhubCheckStatus::Failed,
-            org_lint: FlowhubCheckStatus::Failed,
+            flowhub_contract: FlowhubLintStatus::Failed,
+            generated_files: FlowhubLintStatus::Failed,
+            generated_metadata: FlowhubLintStatus::Failed,
+            org_lint: FlowhubLintStatus::Failed,
             diagnostics,
             generated_metadata_failures: Vec::new(),
         });
@@ -317,13 +319,17 @@ fn validate_all_agent_plans(
     let mut generated_files_present = true;
     let mut generated_metadata_report = MetadataValidationReport::passed();
     let mut org_lint_passed = true;
+    if let Some(flowhub_root) = command.flowhub_root.as_deref() {
+        flowhub_contract_passed &=
+            validate_flowhub_module_policy_entries(flowhub_root, &mut diagnostics)?;
+    }
 
     for group in groups {
         let group_files_present = validate_generated_files(&group.files, &mut diagnostics);
         generated_files_present &= group_files_present;
         let validation_scenario =
             validation_scenario_for_generated_files(command, &group.files, group_files_present);
-        flowhub_contract_passed &= validate_flowhub_contract(
+        flowhub_contract_passed &= validate_flowhub_source_contract(
             command.flowhub_root.as_deref(),
             &validation_scenario,
             &mut diagnostics,
@@ -349,10 +355,10 @@ fn validate_all_agent_plans(
     }
 
     Ok(FlowhubValidation {
-        flowhub_contract: FlowhubCheckStatus::from_bool(flowhub_contract_passed),
-        generated_files: FlowhubCheckStatus::from_bool(generated_files_present),
-        generated_metadata: FlowhubCheckStatus::from_bool(generated_metadata_report.passed),
-        org_lint: FlowhubCheckStatus::from_bool(org_lint_passed),
+        flowhub_contract: FlowhubLintStatus::from_bool(flowhub_contract_passed),
+        generated_files: FlowhubLintStatus::from_bool(generated_files_present),
+        generated_metadata: FlowhubLintStatus::from_bool(generated_metadata_report.passed),
+        org_lint: FlowhubLintStatus::from_bool(org_lint_passed),
         diagnostics,
         generated_metadata_failures: generated_metadata_report.failures,
     })
@@ -363,7 +369,7 @@ fn validation_scenario_for_generated_files(
     generated_files: &[FlowhubGeneratedFile],
     generated_files_present: bool,
 ) -> String {
-    if command.action != FlowhubAction::Check || !generated_files_present {
+    if command.action != FlowhubAction::Lint || !generated_files_present {
         return command.scenario.clone();
     }
 
@@ -383,6 +389,7 @@ fn list_flowhub_contract(
     };
     let pairs = list_flowhub_source_pairs(flowhub_root, diagnostics)?;
     let mut passed = !pairs.is_empty();
+    passed &= validate_flowhub_module_policy_entries(flowhub_root, diagnostics)?;
     for pair in &pairs {
         passed &=
             validate_flowhub_source_pair_contract(flowhub_root, &pair.scenario_id, diagnostics)?;
@@ -435,6 +442,30 @@ fn registry_source_pair(
 }
 
 fn validate_flowhub_contract(
+    flowhub_root: Option<&Path>,
+    scenario: &str,
+    diagnostics: &mut Vec<String>,
+) -> Result<bool, QianjiClientError> {
+    if flowhub_root.is_none() && scenario != "agent-coding" {
+        diagnostics.push(format!(
+            "scenario `{scenario}` requires --flowhub-root because only `agent-coding` is embedded"
+        ));
+        return Ok(false);
+    }
+    if !embedded_agent_coding_contract_is_valid() {
+        diagnostics.push("embedded agent-coding contract is incomplete".to_string());
+        return Ok(false);
+    }
+
+    let Some(flowhub_root) = flowhub_root else {
+        return Ok(true);
+    };
+    let mut passed = validate_flowhub_module_policy_entries(flowhub_root, diagnostics)?;
+    passed &= validate_flowhub_source_pair_contract(flowhub_root, scenario, diagnostics)?;
+    Ok(passed)
+}
+
+fn validate_flowhub_source_contract(
     flowhub_root: Option<&Path>,
     scenario: &str,
     diagnostics: &mut Vec<String>,

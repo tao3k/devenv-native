@@ -203,7 +203,7 @@ Use Org-native SDD status for system/capability/view/decision/audit recovery:
 Use the DuckDB-backed Org task probe for low-token remembered-task recovery:
 =wendao-client orgize task-probe --cached --text '<remembered text>' <path>=.
 If the Org section ID is known, use the local checklist recovery view:
-=wendao-client orgize ogrid-show --cached --id <org-section-id> <path>=.
+=wendao-client orgize orgid-show --cached --id <org-section-id> <path>=.
 Use the recent modified fallback only when the agent has no useful memory:
 =wendao-client orgize task-recover --cached <path>=.
 Use the richer task list only after a probe when extra row metadata is needed:

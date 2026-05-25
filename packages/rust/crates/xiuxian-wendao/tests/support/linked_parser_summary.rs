@@ -7,10 +7,10 @@ use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use toml::Value;
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
-use xiuxian_wendao_julia::{
+use xiuxian_julia_core::{
     clear_modelica_parser_summary_transport_cache_for_tests,
     set_linked_julia_parser_summary_base_url_for_tests,
     set_linked_modelica_parser_summary_base_url_for_tests,

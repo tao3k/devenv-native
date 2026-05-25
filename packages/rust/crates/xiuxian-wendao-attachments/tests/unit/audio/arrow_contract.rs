@@ -15,6 +15,7 @@ fn audio_shard_arrow_contract_roundtrips_results() -> Result<(), String> {
         manifest,
         output_path: std::path::PathBuf::from("/tmp/audio.wav"),
         shard_sha256: "b".repeat(64),
+        shard_byte_len: 42,
         materialization_source: AudioShardMaterializationSource::MediaSplitter,
     };
     let profile = AudioShardWorkerProfile::transcription("hosted-audio");

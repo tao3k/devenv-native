@@ -41,7 +41,7 @@ fn artisan_workshop_include_dirs() -> Vec<String> {
         "semantic".to_string(),
         "packages/rust/crates/xiuxian-wendao".to_string(),
         "packages/rust/crates/xiuxian-wendao/src/link_graph".to_string(),
-        "packages/rust/crates/xiuxian-wendao-julia".to_string(),
+        "packages/rust/crates/xiuxian-julia-runtime".to_string(),
     ]
 }
 

@@ -1,7 +1,7 @@
 use super::support::{FlowhubTestProject, copy_agent_coding_pair, rendered_json, run};
 
 #[test]
-fn check_rejects_generated_metadata_drift() {
+fn lint_rejects_generated_metadata_drift() {
     let project = FlowhubTestProject::live();
     let init_output = run(
         &project.init_args("agent-coding", None, false),
@@ -19,12 +19,9 @@ fn check_rejects_generated_metadata_drift() {
     std::fs::write(&org_task, drifted)
         .unwrap_or_else(|error| panic!("generated Org task should be editable: {error}"));
 
-    let check_output = run(
-        &project.check_args(None, None, true),
-        "metadata drift check",
-    );
-    assert!(!check_output.passed, "{}", check_output.rendered);
-    let rendered = rendered_json(&check_output);
+    let lint_output = run(&project.lint_args(None, None, true), "metadata drift lint");
+    assert!(!lint_output.passed, "{}", lint_output.rendered);
+    let rendered = rendered_json(&lint_output);
     assert_eq!(rendered["validation"]["flowhubContractPassed"], true);
     assert_eq!(rendered["validation"]["generatedFilesPresent"], true);
     assert_eq!(rendered["validation"]["generatedMetadataMatched"], false);
@@ -133,7 +130,7 @@ fn registry_resolves_non_default_scenario_from_org_properties() {
 }
 
 #[test]
-fn check_inferrs_non_default_scenario_from_generated_files() {
+fn lint_inferrs_non_default_scenario_from_generated_files() {
     let project = FlowhubTestProject::live();
     let init_output = run(
         &project.init_args("deep_read", Some("paper-deep-read"), false),
@@ -141,12 +138,12 @@ fn check_inferrs_non_default_scenario_from_generated_files() {
     );
     assert!(init_output.passed, "{}", init_output.rendered);
 
-    let check_output = run(
-        &project.check_args(None, Some("paper-deep-read"), true),
-        "inferred scenario check",
+    let lint_output = run(
+        &project.lint_args(None, Some("paper-deep-read"), true),
+        "inferred scenario lint",
     );
-    assert!(check_output.passed, "{}", check_output.rendered);
-    let rendered = rendered_json(&check_output);
+    assert!(lint_output.passed, "{}", lint_output.rendered);
+    let rendered = rendered_json(&lint_output);
     assert_eq!(rendered["validation"]["flowhubContractPassed"], true);
     assert_eq!(rendered["validation"]["generatedFilesPresent"], true);
     assert_eq!(rendered["validation"]["generatedMetadataMatched"], true);
@@ -154,7 +151,7 @@ fn check_inferrs_non_default_scenario_from_generated_files() {
 }
 
 #[test]
-fn check_rejects_inconsistent_generated_scenario_ids() {
+fn lint_rejects_inconsistent_generated_scenario_ids() {
     let project = FlowhubTestProject::live();
     let init_output = run(
         &project.init_args("deep_read", Some("paper-deep-read"), false),
@@ -174,12 +171,12 @@ fn check_rejects_inconsistent_generated_scenario_ids() {
     std::fs::write(&execplan_path, drifted)
         .unwrap_or_else(|error| panic!("generated ExecPlan should be editable: {error}"));
 
-    let check_output = run(
-        &project.check_args(None, Some("paper-deep-read"), true),
-        "inconsistent scenario check",
+    let lint_output = run(
+        &project.lint_args(None, Some("paper-deep-read"), true),
+        "inconsistent scenario lint",
     );
-    assert!(!check_output.passed, "{}", check_output.rendered);
-    let rendered = rendered_json(&check_output);
+    assert!(!lint_output.passed, "{}", lint_output.rendered);
+    let rendered = rendered_json(&lint_output);
     assert_eq!(rendered["validation"]["generatedFilesPresent"], true);
     assert_eq!(rendered["validation"]["generatedMetadataMatched"], false);
     assert!(
@@ -203,7 +200,7 @@ fn check_rejects_inconsistent_generated_scenario_ids() {
 }
 
 #[test]
-fn check_rejects_flowhub_org_source_hash_drift() {
+fn lint_rejects_flowhub_org_source_hash_drift() {
     let project = FlowhubTestProject::isolated_flowhub();
     copy_agent_coding_pair(&project, "plan");
 
@@ -224,12 +221,12 @@ fn check_rejects_flowhub_org_source_hash_drift() {
     )
     .unwrap_or_else(|error| panic!("Flowhub Org source should be editable: {error}"));
 
-    let check_output = run(
-        &project.check_args(None, None, true),
-        "source hash drift check",
+    let lint_output = run(
+        &project.lint_args(None, None, true),
+        "source hash drift lint",
     );
-    assert!(!check_output.passed, "{}", check_output.rendered);
-    let rendered = rendered_json(&check_output);
+    assert!(!lint_output.passed, "{}", lint_output.rendered);
+    let rendered = rendered_json(&lint_output);
     assert_eq!(rendered["validation"]["flowhubContractPassed"], true);
     assert_eq!(rendered["validation"]["generatedFilesPresent"], true);
     assert_eq!(rendered["validation"]["generatedMetadataMatched"], false);
@@ -255,7 +252,7 @@ fn check_rejects_flowhub_org_source_hash_drift() {
 }
 
 #[test]
-fn check_all_rejects_flowhub_org_source_hash_drift() {
+fn lint_all_rejects_flowhub_org_source_hash_drift() {
     let project = FlowhubTestProject::isolated_flowhub();
     copy_agent_coding_pair(&project, "plan");
 
@@ -269,16 +266,16 @@ fn check_all_rejects_flowhub_org_source_hash_drift() {
     std::fs::write(
         &org_source,
         format!(
-            "{}\n** Check All Source Hash Drift\n\nThis valid Org change should force generated metadata drift.\n",
+            "{}\n** Lint All Source Hash Drift\n\nThis valid Org change should force generated metadata drift.\n",
             std::fs::read_to_string(&org_source)
                 .unwrap_or_else(|error| panic!("Flowhub Org source should be readable: {error}"))
         ),
     )
     .unwrap_or_else(|error| panic!("Flowhub Org source should be editable: {error}"));
 
-    let check_output = run(&project.check_all_args(true), "check all source drift");
-    assert!(!check_output.passed, "{}", check_output.rendered);
-    let rendered = rendered_json(&check_output);
+    let lint_output = run(&project.lint_all_args(true), "lint all source drift");
+    assert!(!lint_output.passed, "{}", lint_output.rendered);
+    let rendered = rendered_json(&lint_output);
     assert_eq!(rendered["validation"]["flowhubContractPassed"], true);
     assert_eq!(rendered["validation"]["generatedFilesPresent"], true);
     assert_eq!(rendered["validation"]["generatedMetadataMatched"], false);

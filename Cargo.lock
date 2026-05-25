@@ -6827,7 +6827,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=e2a6372a97f19940805a1dc051d2bb2bf39483a8#e2a6372a97f19940805a1dc051d2bb2bf39483a8"
+source = "git+https://github.com/tao3k/orgize?rev=d9a307eef420781b2a91084e1e1bef4bd4b683d5#d9a307eef420781b2a91084e1e1bef4bd4b683d5"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -11306,10 +11306,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "xiuxian-julia-core"
+version = "0.1.1"
+dependencies = [
+ "arrow",
+ "arrow-flight",
+ "arrow-ipc",
+ "async-trait",
+ "blake3",
+ "chrono",
+ "futures",
+ "insta",
+ "inventory",
+ "parquet",
+ "regex",
+ "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "serial_test",
+ "tempfile",
+ "tokio",
+ "tokio-stream",
+ "toml 0.8.23",
+ "tonic",
+ "walkdir",
+ "xiuxian-code-intelligence",
+ "xiuxian-julia-runtime",
+ "xiuxian-memory-engine",
+ "xiuxian-polyglot-orchestrator",
+ "xiuxian-wendao-core",
+ "xiuxian-wendao-parsers",
+ "xiuxian-wendao-runtime",
+ "xiuxian-wendao-sql",
+]
+
+[[package]]
 name = "xiuxian-julia-runtime"
 version = "0.1.1"
 dependencies = [
+ "arrow",
+ "chrono",
  "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "toml 0.8.23",
+ "xiuxian-memory-engine",
+ "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",
  "xiuxian-wendao-runtime",
 ]
@@ -11406,7 +11450,6 @@ dependencies = [
  "rust-lang-project-harness",
  "serde",
  "serde_json",
- "xiuxian-julia-runtime",
  "xiuxian-wendao-runtime",
 ]
 
@@ -11519,12 +11562,14 @@ name = "xiuxian-qianji-client"
 version = "0.1.1"
 dependencies = [
  "chrono",
+ "orgize",
  "rust-lang-project-harness",
  "serde",
  "serde_json",
  "sha2",
  "tempfile",
  "thiserror 2.0.18",
+ "toml 0.8.23",
  "xiuxian-qianji-bpmn-engine",
  "xiuxian-wendao-parsers",
 ]
@@ -11687,6 +11732,7 @@ dependencies = [
  "xiuxian-db-store",
  "xiuxian-git-repo",
  "xiuxian-io",
+ "xiuxian-julia-core",
  "xiuxian-julia-runtime",
  "xiuxian-llm",
  "xiuxian-logging",
@@ -11697,7 +11743,6 @@ dependencies = [
  "xiuxian-wendao-client",
  "xiuxian-wendao-core",
  "xiuxian-wendao-episteme",
- "xiuxian-wendao-julia",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
  "xiuxian-wendao-sql",
@@ -11736,8 +11781,9 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "toml 0.8.23",
+ "xiuxian-julia-core",
+ "xiuxian-julia-runtime",
  "xiuxian-wendao-core",
- "xiuxian-wendao-julia",
  "xiuxian-wendao-runtime",
 ]
 
@@ -11804,42 +11850,6 @@ dependencies = [
  "xiuxian-db-store",
  "xiuxian-qianji-control",
  "xiuxian-wendao-parsers",
-]
-
-[[package]]
-name = "xiuxian-wendao-julia"
-version = "0.1.1"
-dependencies = [
- "arrow",
- "arrow-flight",
- "arrow-ipc",
- "async-trait",
- "blake3",
- "chrono",
- "futures",
- "insta",
- "inventory",
- "parquet",
- "regex",
- "rust-lang-project-harness",
- "serde",
- "serde_json",
- "serde_yaml",
- "serial_test",
- "tempfile",
- "tokio",
- "tokio-stream",
- "toml 0.8.23",
- "tonic",
- "walkdir",
- "xiuxian-code-intelligence",
- "xiuxian-julia-runtime",
- "xiuxian-memory-engine",
- "xiuxian-polyglot-orchestrator",
- "xiuxian-wendao-core",
- "xiuxian-wendao-parsers",
- "xiuxian-wendao-runtime",
- "xiuxian-wendao-sql",
 ]
 
 [[package]]
@@ -11980,6 +11990,7 @@ dependencies = [
  "xiuxian-db-store",
  "xiuxian-git-repo",
  "xiuxian-io",
+ "xiuxian-julia-core",
  "xiuxian-logging",
  "xiuxian-polyglot-orchestrator",
  "xiuxian-qianji",
@@ -11989,7 +12000,6 @@ dependencies = [
  "xiuxian-wendao-client",
  "xiuxian-wendao-core",
  "xiuxian-wendao-episteme",
- "xiuxian-wendao-julia",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
  "xiuxian-wendao-server",

@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::orgize::OrgizeCommand;
 #[cfg(feature = "orgize-agent-read-model")]
 use crate::orgize::read_model::{
-    run_ogrid_show, run_read_model, run_task_archive, run_task_list, run_task_probe,
+    run_orgid_show, run_read_model, run_task_archive, run_task_list, run_task_probe,
     run_task_recover, run_task_report, run_task_sdd,
 };
 use crate::{ClientContext, CommandOutcome};
@@ -37,7 +37,7 @@ pub(crate) fn run_command(
         #[cfg(feature = "orgize-agent-read-model")]
         OrgizeCommand::TaskProbe(args) => run_task_probe(args, context),
         #[cfg(feature = "orgize-agent-read-model")]
-        OrgizeCommand::OgridShow(args) => run_ogrid_show(args, context),
+        OrgizeCommand::OrgidShow(args) => run_orgid_show(args, context),
         #[cfg(feature = "orgize-agent-read-model")]
         OrgizeCommand::TaskSdd(args) => run_task_sdd(args, context),
         #[cfg(feature = "orgize-agent-read-model")]

@@ -2,12 +2,15 @@
 
 use std::{
     path::{Path, PathBuf},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU64, Ordering},
+    },
 };
 
 use foyer::{
-    BlockEngineConfig, DeviceBuilder, FsDeviceBuilder, HybridCache, HybridCacheBuilder,
-    HybridCachePolicy, Load,
+    BlockEngineConfig, DeviceBuilder, Event, EventListener, FsDeviceBuilder, HybridCache,
+    HybridCacheBuilder, HybridCachePolicy, Load,
 };
 use tokio::runtime::{Builder as TokioRuntimeBuilder, Runtime};
 
@@ -19,6 +22,13 @@ use crate::artifact_cache::{
 const FOYER_BACKEND_NAME: &str = "foyer";
 const DEFAULT_MEMORY_CAPACITY_BYTES: usize = 64 * 1024 * 1024;
 const DEFAULT_STORAGE_CAPACITY_BYTES: usize = 512 * 1024 * 1024;
+const MIN_FOYER_BLOCK_SIZE_BYTES: usize = 4 * 1024;
+/// Foyer in-memory admission uses byte weight for artifact keys and payloads.
+pub const FOYER_ARTIFACT_MEMORY_WEIGHTER: &str = "bytes";
+/// Artifact persistence writes through to disk on insertion for restart reuse.
+pub const FOYER_ARTIFACT_CACHE_POLICY: &str = "write-on-insertion";
+/// Default Foyer block size used by the artifact backend.
+pub const FOYER_ARTIFACT_BLOCK_SIZE_BYTES: usize = 16 * 1024 * 1024;
 
 type FoyerBlobCache = HybridCache<String, Vec<u8>>;
 
@@ -28,6 +38,12 @@ pub struct FoyerArtifactBlobCacheConfig {
     root: PathBuf,
     memory_capacity_bytes: usize,
     storage_capacity_bytes: usize,
+    runtime_worker_threads: usize,
+    memory_shards: usize,
+    block_size_bytes: usize,
+    recover_concurrency: usize,
+    flushers: usize,
+    reclaimers: usize,
 }
 
 impl FoyerArtifactBlobCacheConfig {
@@ -42,6 +58,34 @@ impl FoyerArtifactBlobCacheConfig {
             root: root.into(),
             memory_capacity_bytes,
             storage_capacity_bytes,
+            runtime_worker_threads: default_runtime_worker_threads(),
+            memory_shards: default_memory_shards(),
+            block_size_bytes: FOYER_ARTIFACT_BLOCK_SIZE_BYTES,
+            recover_concurrency: default_recover_concurrency(),
+            flushers: default_io_lanes(),
+            reclaimers: default_io_lanes(),
+        }
+    }
+
+    /// Create a Foyer backend configuration with explicit capacities and
+    /// runtime worker count.
+    #[must_use]
+    pub fn new_with_runtime_workers(
+        root: impl Into<PathBuf>,
+        memory_capacity_bytes: usize,
+        storage_capacity_bytes: usize,
+        runtime_worker_threads: usize,
+    ) -> Self {
+        Self {
+            root: root.into(),
+            memory_capacity_bytes,
+            storage_capacity_bytes,
+            runtime_worker_threads,
+            memory_shards: default_memory_shards(),
+            block_size_bytes: FOYER_ARTIFACT_BLOCK_SIZE_BYTES,
+            recover_concurrency: default_recover_concurrency(),
+            flushers: default_io_lanes(),
+            reclaimers: default_io_lanes(),
         }
     }
 
@@ -52,7 +96,48 @@ impl FoyerArtifactBlobCacheConfig {
             root: root.into(),
             memory_capacity_bytes: DEFAULT_MEMORY_CAPACITY_BYTES,
             storage_capacity_bytes: DEFAULT_STORAGE_CAPACITY_BYTES,
+            runtime_worker_threads: default_runtime_worker_threads(),
+            memory_shards: default_memory_shards(),
+            block_size_bytes: FOYER_ARTIFACT_BLOCK_SIZE_BYTES,
+            recover_concurrency: default_recover_concurrency(),
+            flushers: default_io_lanes(),
+            reclaimers: default_io_lanes(),
         }
+    }
+
+    /// Set Foyer memory shard count.
+    #[must_use]
+    pub fn with_memory_shards(mut self, memory_shards: usize) -> Self {
+        self.memory_shards = memory_shards;
+        self
+    }
+
+    /// Set the Foyer block-engine block size in bytes.
+    #[must_use]
+    pub fn with_block_size_bytes(mut self, block_size_bytes: usize) -> Self {
+        self.block_size_bytes = block_size_bytes;
+        self
+    }
+
+    /// Set the Foyer disk recover concurrency.
+    #[must_use]
+    pub fn with_recover_concurrency(mut self, recover_concurrency: usize) -> Self {
+        self.recover_concurrency = recover_concurrency;
+        self
+    }
+
+    /// Set Foyer disk flusher count.
+    #[must_use]
+    pub fn with_flushers(mut self, flushers: usize) -> Self {
+        self.flushers = flushers;
+        self
+    }
+
+    /// Set Foyer disk reclaimer count.
+    #[must_use]
+    pub fn with_reclaimers(mut self, reclaimers: usize) -> Self {
+        self.reclaimers = reclaimers;
+        self
     }
 
     /// Root directory used by Foyer's filesystem device.
@@ -72,6 +157,111 @@ impl FoyerArtifactBlobCacheConfig {
     pub const fn storage_capacity_bytes(&self) -> usize {
         self.storage_capacity_bytes
     }
+
+    /// Tokio runtime worker threads used by Foyer disk operations.
+    #[must_use]
+    pub const fn runtime_worker_threads(&self) -> usize {
+        self.runtime_worker_threads
+    }
+
+    /// Foyer memory shard count.
+    #[must_use]
+    pub const fn memory_shards(&self) -> usize {
+        self.memory_shards
+    }
+
+    /// Foyer block-engine block size in bytes.
+    #[must_use]
+    pub const fn block_size_bytes(&self) -> usize {
+        self.block_size_bytes
+    }
+
+    /// Foyer disk recover concurrency.
+    #[must_use]
+    pub const fn recover_concurrency(&self) -> usize {
+        self.recover_concurrency
+    }
+
+    /// Foyer disk flusher count.
+    #[must_use]
+    pub const fn flushers(&self) -> usize {
+        self.flushers
+    }
+
+    /// Foyer disk reclaimer count.
+    #[must_use]
+    pub const fn reclaimers(&self) -> usize {
+        self.reclaimers
+    }
+}
+
+/// Snapshot of Foyer in-memory cache leave events.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct FoyerArtifactBlobCacheEventStats {
+    evicted: u64,
+    replaced: u64,
+    removed: u64,
+    cleared: u64,
+}
+
+impl FoyerArtifactBlobCacheEventStats {
+    /// Entries evicted from the in-memory tier.
+    #[must_use]
+    pub const fn evicted_entries(self) -> u64 {
+        self.evicted
+    }
+
+    /// Entries replaced by a newer value.
+    #[must_use]
+    pub const fn replaced_entries(self) -> u64 {
+        self.replaced
+    }
+
+    /// Entries removed explicitly.
+    #[must_use]
+    pub const fn removed_entries(self) -> u64 {
+        self.removed
+    }
+
+    /// Entries removed by a cache clear.
+    #[must_use]
+    pub const fn cleared_entries(self) -> u64 {
+        self.cleared
+    }
+}
+
+#[derive(Debug, Default)]
+struct FoyerArtifactBlobCacheEvents {
+    evicted: AtomicU64,
+    replaced: AtomicU64,
+    removed: AtomicU64,
+    cleared: AtomicU64,
+}
+
+impl FoyerArtifactBlobCacheEvents {
+    fn snapshot(&self) -> FoyerArtifactBlobCacheEventStats {
+        FoyerArtifactBlobCacheEventStats {
+            evicted: self.evicted.load(Ordering::Relaxed),
+            replaced: self.replaced.load(Ordering::Relaxed),
+            removed: self.removed.load(Ordering::Relaxed),
+            cleared: self.cleared.load(Ordering::Relaxed),
+        }
+    }
+}
+
+impl EventListener for FoyerArtifactBlobCacheEvents {
+    type Key = String;
+    type Value = Vec<u8>;
+
+    fn on_leave(&self, reason: Event, _key: &Self::Key, _value: &Self::Value) {
+        let counter = match reason {
+            Event::Evict => &self.evicted,
+            Event::Replace => &self.replaced,
+            Event::Remove => &self.removed,
+            Event::Clear => &self.cleared,
+        };
+        counter.fetch_add(1, Ordering::Relaxed);
+    }
 }
 
 /// Optional Foyer backend for artifact blob bytes.
@@ -81,6 +271,7 @@ impl FoyerArtifactBlobCacheConfig {
 pub struct FoyerArtifactBlobCache {
     inner: Option<FoyerArtifactBlobCacheInner>,
     pending_disk_work: AtomicBool,
+    events: Arc<FoyerArtifactBlobCacheEvents>,
 }
 
 struct FoyerArtifactBlobCacheInner {
@@ -96,8 +287,9 @@ impl FoyerArtifactBlobCache {
     /// Returns [`ArtifactCacheError`] when the internal runtime or Foyer
     /// hybrid cache cannot be created.
     pub fn from_config(config: FoyerArtifactBlobCacheConfig) -> Result<Self, ArtifactCacheError> {
+        let events = Arc::new(FoyerArtifactBlobCacheEvents::default());
         let runtime = TokioRuntimeBuilder::new_multi_thread()
-            .worker_threads(2)
+            .worker_threads(config.runtime_worker_threads())
             .enable_all()
             .thread_name("xiuxian-db-store-foyer-artifact-cache")
             .build()
@@ -109,10 +301,11 @@ impl FoyerArtifactBlobCache {
                 )
             })?;
 
-        let cache = build_foyer_cache_on_runtime(&runtime, config)?;
+        let cache = build_foyer_cache_on_runtime(&runtime, config, Arc::clone(&events))?;
         Ok(Self {
             inner: Some(FoyerArtifactBlobCacheInner { cache, runtime }),
             pending_disk_work: AtomicBool::new(false),
+            events,
         })
     }
 
@@ -130,10 +323,21 @@ impl FoyerArtifactBlobCache {
         run_on_foyer_runtime(&inner.runtime, {
             let cache = inner.cache.clone();
             async move {
-                cache.storage().wait().await;
-                Ok(())
+                cache.close().await.map_err(|error| {
+                    ArtifactCacheError::backend(
+                        FOYER_BACKEND_NAME,
+                        "closing hybrid cache",
+                        error.to_string(),
+                    )
+                })
             }
         })
+    }
+
+    /// Return in-memory cache leave-event counters.
+    #[must_use]
+    pub fn event_stats(&self) -> FoyerArtifactBlobCacheEventStats {
+        self.events.snapshot()
     }
 
     fn inner(&self) -> Result<&FoyerArtifactBlobCacheInner, ArtifactCacheError> {
@@ -210,8 +414,13 @@ impl Drop for FoyerArtifactBlobCache {
                 let _ = run_on_foyer_runtime(&inner.runtime, {
                     let cache = inner.cache.clone();
                     async move {
-                        cache.storage().wait().await;
-                        Ok(())
+                        cache.close().await.map_err(|error| {
+                            ArtifactCacheError::backend(
+                                FOYER_BACKEND_NAME,
+                                "closing hybrid cache",
+                                error.to_string(),
+                            )
+                        })
                     }
                 });
             }
@@ -223,8 +432,27 @@ impl Drop for FoyerArtifactBlobCache {
 fn build_foyer_cache_on_runtime(
     runtime: &Runtime,
     config: FoyerArtifactBlobCacheConfig,
+    events: Arc<FoyerArtifactBlobCacheEvents>,
 ) -> Result<FoyerBlobCache, ArtifactCacheError> {
     run_on_foyer_runtime(runtime, async move {
+        let block_size_bytes = normalized_block_size_bytes(config.block_size_bytes());
+        let memory_shards =
+            effective_memory_shards(config.memory_shards(), config.memory_capacity_bytes());
+        let recover_concurrency = effective_recover_concurrency(
+            config.recover_concurrency(),
+            config.storage_capacity_bytes(),
+            block_size_bytes,
+        );
+        let flushers = effective_io_lanes(
+            config.flushers(),
+            config.storage_capacity_bytes(),
+            block_size_bytes,
+        );
+        let reclaimers = effective_io_lanes(
+            config.reclaimers(),
+            config.storage_capacity_bytes(),
+            block_size_bytes,
+        );
         let device = FsDeviceBuilder::new(config.root())
             .with_capacity(config.storage_capacity_bytes())
             .build()
@@ -240,9 +468,18 @@ fn build_foyer_cache_on_runtime(
             .with_name("xiuxian-db-store-artifact-cache")
             .with_policy(HybridCachePolicy::WriteOnInsertion)
             .with_flush_on_close(false)
+            .with_event_listener(events)
             .memory(config.memory_capacity_bytes())
+            .with_shards(memory_shards)
+            .with_weighter(|key, value| key.len().saturating_add(value.len()))
             .storage()
-            .with_engine_config(BlockEngineConfig::new(device))
+            .with_engine_config(
+                BlockEngineConfig::new(device)
+                    .with_block_size(block_size_bytes)
+                    .with_recover_concurrency(recover_concurrency)
+                    .with_flushers(flushers)
+                    .with_reclaimers(reclaimers),
+            )
             .build()
             .await
             .map_err(|error| {
@@ -294,4 +531,62 @@ fn foyer_storage_key(key: &ArtifactKey) -> String {
         key.profile_digest().as_str(),
         key.shard_digest().as_str()
     )
+}
+
+fn default_runtime_worker_threads() -> usize {
+    system_parallelism()
+}
+
+fn default_memory_shards() -> usize {
+    system_parallelism()
+}
+
+fn default_recover_concurrency() -> usize {
+    system_parallelism()
+}
+
+fn default_io_lanes() -> usize {
+    system_parallelism().div_ceil(4).max(1)
+}
+
+fn system_parallelism() -> usize {
+    std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get)
+}
+
+fn normalized_block_size_bytes(block_size_bytes: usize) -> usize {
+    block_size_bytes.max(MIN_FOYER_BLOCK_SIZE_BYTES)
+}
+
+fn effective_memory_shards(memory_shards: usize, memory_capacity_bytes: usize) -> usize {
+    memory_shards.max(1).min(memory_capacity_bytes.max(1))
+}
+
+fn effective_recover_concurrency(
+    recover_concurrency: usize,
+    storage_capacity_bytes: usize,
+    block_size_bytes: usize,
+) -> usize {
+    recover_concurrency.max(1).min(storage_block_count(
+        storage_capacity_bytes,
+        block_size_bytes,
+    ))
+}
+
+fn effective_io_lanes(
+    io_lanes: usize,
+    storage_capacity_bytes: usize,
+    block_size_bytes: usize,
+) -> usize {
+    io_lanes.max(1).min(
+        storage_block_count(storage_capacity_bytes, block_size_bytes)
+            .saturating_sub(1)
+            .max(1),
+    )
+}
+
+fn storage_block_count(storage_capacity_bytes: usize, block_size_bytes: usize) -> usize {
+    storage_capacity_bytes
+        .checked_div(normalized_block_size_bytes(block_size_bytes))
+        .unwrap_or(0)
+        .max(1)
 }

@@ -247,6 +247,9 @@ pub struct AudioShardMaterializedItem {
     pub output_path: PathBuf,
     /// SHA-256 of the normalized shard media bytes.
     pub shard_sha256: String,
+    /// Byte length of the normalized shard media bytes.
+    #[serde(default)]
+    pub shard_byte_len: u64,
     /// Materialization source used for this request.
     #[serde(default)]
     pub materialization_source: AudioShardMaterializationSource,

@@ -146,6 +146,7 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Audio transcript admission" in markdown
     assert "forceMisses=2" in markdown
     assert "reuseHits=2" in markdown
+    assert "Audio hosted non-model timing" in markdown
     assert "Hosted audio requests" in markdown
     assert "uniqueMediaStarts=2" in markdown
     assert "duplicateMediaStarts=0" in markdown

@@ -15,7 +15,7 @@ runtime code.
   itself.
 - `foyer-artifact-cache`: enables the optional Foyer implementation behind
   `ArtifactBlobCache`. This feature admits Foyer as the feature-gated
-  artifact byte-cache candidate for repeated agent/model artifact reads.
+  mainline artifact byte-cache backend for repeated agent/model artifact reads.
 - `vector-store`: re-exports the Lance/vector storage surface from
   `xiuxian-vector` for explicit vector-store consumers.
 - `duckdb-types`: exposes generic DuckDB runtime config and SQL helper types
@@ -49,14 +49,13 @@ review packets, ontology read-model payloads, parser projections, and
 prompt/evidence packs.
 
 `ArtifactBlobCache` is the only consumer interface for those bytes. The
-filesystem backend is the baseline implementation and stores artifact bytes in
-a content-addressed layout keyed by namespace, artifact kind, source digest,
+filesystem backend is the contract baseline and stores artifact bytes in a
+content-addressed layout keyed by namespace, artifact kind, source digest,
 profile digest, and shard digest. The Foyer backend is the mainline
-memory-plus-disk candidate behind `foyer-artifact-cache`; it must stay behind
-the same trait and prove warm-restart reuse, managed eviction, or observability
-benefits before any route makes it the default. Moka is intentionally out of
-scope for this artifact substrate because the active bottleneck is repeated large
-artifact reuse, not process-local metadata lookup.
+memory-plus-disk backend behind `foyer-artifact-cache`; it stays behind the
+same trait so route code never owns backend selection directly. Moka is
+intentionally out of scope for this artifact substrate because the active
+bottleneck is repeated large artifact reuse, not process-local metadata lookup.
 
 Agent and model loops should use the first-class artifact kinds
 `agent-evidence-pack`, `org-projection`, `json-projection`,
@@ -76,17 +75,46 @@ truth, ontology approval, or structured manifests out of the owning crates.
 
 Runtime selection is data/config driven:
 
-- `WENDAO_ARTIFACT_CACHE_BACKEND`: `filesystem` or `foyer`, default
-  `filesystem`.
+- `WENDAO_ARTIFACT_CACHE_BACKEND`: `filesystem` or `foyer`; when the
+  `foyer-artifact-cache` feature is enabled, the default is `foyer`.
+  Contract-only builds without Foyer default to `filesystem`.
 - `WENDAO_ARTIFACT_CACHE_ROOT`: artifact root, default
   `$PRJ_CACHE_HOME/wendao/artifacts` when the project cache root is available.
 - `WENDAO_ARTIFACT_CACHE_MEMORY_BYTES`: Foyer memory-tier capacity in bytes.
 - `WENDAO_ARTIFACT_CACHE_STORAGE_BYTES`: Foyer disk-tier capacity in bytes.
+- `WENDAO_ARTIFACT_CACHE_RUNTIME_WORKERS`: Foyer runtime workers, either
+  `auto` or a positive integer. The default is `auto`, which uses the system
+  parallelism available to the Gateway process.
+- `WENDAO_ARTIFACT_CACHE_MEMORY_SHARDS`: Foyer memory shard count, either
+  `auto` or a positive integer. The default is system parallelism.
+- `WENDAO_ARTIFACT_CACHE_BLOCK_SIZE_BYTES`: Foyer block-engine block size in
+  bytes. The default follows the artifact backend block-size contract.
+- `WENDAO_ARTIFACT_CACHE_RECOVER_CONCURRENCY`: Foyer disk recovery concurrency,
+  either `auto` or a positive integer. The default is system parallelism.
+- `WENDAO_ARTIFACT_CACHE_FLUSHERS`: Foyer disk flusher count, either `auto` or
+  a positive integer. The default derives from system parallelism for I/O lanes.
+- `WENDAO_ARTIFACT_CACHE_RECLAIMERS`: Foyer disk reclaimer count, either `auto`
+  or a positive integer. The default derives from system parallelism for I/O
+  lanes.
+
+`auto` is machine-adaptive, not a fixed package constant. Runtime workers,
+memory shards, and recovery concurrency start from the system parallelism
+available to the Gateway process. Disk flusher and reclaimer lanes derive from
+that same signal, then the resolver constrains the effective lane count by the
+configured block geometry so small test or edge deployments do not ask Foyer
+to run more disk lanes than the backing store can make progress on.
 
 The `foyer-artifact-cache` feature closes the synchronous wrapper lifecycle
 gate for roundtrip, replace, remove, and close/reopen persistence. Callers still
 consume only `ArtifactBlobCache`; Studio, attachments, and future agent parse
 artifact loops must not construct route-local cache backends directly.
+Gateway and route startup should rely on the shared backend resolver so Foyer
+capacity and runtime concurrency are selected once by deployment configuration
+instead of being hardcoded in individual routes.
+The Foyer memory tier is byte-weighted by artifact key plus payload length, so
+`WENDAO_ARTIFACT_CACHE_MEMORY_BYTES` is a byte-capacity control rather than an
+entry-count control. The default hybrid policy is `write-on-insertion` to keep
+agent artifacts restart-reusable; DuckDB/Arrow remain the truth and query plane.
 
 DuckLake support is intentionally embedded-first. This crate owns local
 metadata-file and PostgreSQL-catalog attach configuration, extension bootstrap

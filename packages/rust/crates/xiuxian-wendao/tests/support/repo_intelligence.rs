@@ -5,12 +5,12 @@ use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
 use serde::Serialize;
+use xiuxian_julia_core::integration_support::{
+    JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
+};
 use xiuxian_wendao::analyzers::{
     DocRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
     RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
-};
-use xiuxian_wendao_julia::integration_support::{
-    JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 
 use super::repo_fixture;

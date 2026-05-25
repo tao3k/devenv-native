@@ -324,11 +324,11 @@ fn parses_orgize_task_probe_command() {
 
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
-fn parses_orgize_ogrid_show_command() {
+fn parses_orgize_orgid_show_command() {
     let cli = ClientCli::parse_from([
         "wendao",
         "orgize",
-        "ogrid-show",
+        "orgid-show",
         "--cached",
         "--id",
         "target-task",
@@ -338,13 +338,31 @@ fn parses_orgize_ogrid_show_command() {
         panic!("expected orgize command");
     };
     match command {
-        OrgizeCommand::OgridShow(args) => {
+        OrgizeCommand::OrgidShow(args) => {
             assert!(args.cached);
             assert_eq!(args.id, "target-task");
             assert_eq!(args.paths, vec![PathBuf::from(".cache/agent/org")]);
         }
-        _ => panic!("expected orgize ogrid-show command"),
+        _ => panic!("expected orgize orgid-show command"),
     }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn rejects_legacy_orgize_ogrid_show_command() {
+    let result = ClientCli::try_parse_from([
+        "wendao",
+        "orgize",
+        "ogrid-show",
+        "--id",
+        "target-task",
+        ".cache/agent/org",
+    ]);
+
+    assert!(
+        result.is_err(),
+        "legacy ogrid-show must not remain an alias"
+    );
 }
 
 #[cfg(feature = "orgize-agent-read-model")]

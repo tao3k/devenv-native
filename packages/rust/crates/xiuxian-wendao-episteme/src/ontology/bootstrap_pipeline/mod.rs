@@ -3,16 +3,16 @@
 mod types;
 
 use std::path::Path;
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 
 use crate::load_episteme_runtime_config;
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 use super::{
     EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
     restore_episteme_ontology_artifact_bundle, write_episteme_ontology_artifact_bundle,
@@ -28,7 +28,7 @@ use super::{
     write_episteme_ontology_structural_facts_reasoning_packet,
 };
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub use types::{
     EpistemeOntologyBootstrapArtifactCacheOptions,
     EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
@@ -46,7 +46,7 @@ pub use types::{
 const BOOTSTRAP_PIPELINE_REPORT_SCHEMA_VERSION: &str =
     "xiuxian_wendao.episteme_ontology_bootstrap_pipeline_report.v1";
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 const BOOTSTRAP_ARTIFACT_CACHE_ADMISSION_RUN_DIGEST: &str = "bootstrap-digest-admission";
 
 /// Run the deterministic Episteme ontology bootstrap pipeline.
@@ -140,7 +140,7 @@ pub fn run_episteme_ontology_bootstrap_pipeline(
 /// Returns an error when the deterministic pipeline fails, a cache identity is
 /// invalid, a generated run directory cannot be packed, or the cache backend
 /// cannot persist the bundle bytes.
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub fn run_episteme_ontology_bootstrap_pipeline_with_artifact_cache(
     request: &EpistemeOntologyBootstrapPipelineRequest,
     cache: &(dyn ArtifactBlobCache + Send + Sync),
@@ -188,7 +188,7 @@ pub fn run_episteme_ontology_bootstrap_pipeline_with_artifact_cache(
 /// Returns an error when runtime roots cannot be resolved, an artifact identity
 /// is invalid, a cached bundle cannot be read, or restored bytes cannot be
 /// unpacked into their deterministic target directory.
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub fn restore_episteme_ontology_bootstrap_pipeline_artifacts(
     request: &EpistemeOntologyBootstrapPipelineRequest,
     cache: &(dyn ArtifactBlobCache + Send + Sync),
@@ -220,7 +220,7 @@ pub fn restore_episteme_ontology_bootstrap_pipeline_artifacts(
 ///
 /// Returns an error when restore fails for a non-miss reason, or when the
 /// deterministic bootstrap pipeline/cache write fails after a cache miss.
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub fn read_through_episteme_ontology_bootstrap_artifacts(
     request: &EpistemeOntologyBootstrapPipelineRequest,
     cache: &(dyn ArtifactBlobCache + Send + Sync),
@@ -249,7 +249,7 @@ pub fn read_through_episteme_ontology_bootstrap_artifacts(
 ///
 /// Returns an error when the source or profile digest is not safe for
 /// deterministic artifact storage.
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 pub fn admit_episteme_ontology_bootstrap_artifact_cache_options(
     source_digest: impl Into<String>,
     profile_digest: impl Into<String>,
@@ -259,7 +259,7 @@ pub fn admit_episteme_ontology_bootstrap_artifact_cache_options(
     Ok(options)
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn write_bootstrap_stage_bundle(
     cache: &(dyn ArtifactBlobCache + Send + Sync),
     options: &EpistemeOntologyBootstrapArtifactCacheOptions,
@@ -276,7 +276,7 @@ fn write_bootstrap_stage_bundle(
     write_episteme_ontology_artifact_bundle(cache, &identity, run_dir)
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn validate_bootstrap_artifact_cache_options(
     options: &EpistemeOntologyBootstrapArtifactCacheOptions,
 ) -> Result<()> {
@@ -291,12 +291,12 @@ fn validate_bootstrap_artifact_cache_options(
     Ok(())
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn bootstrap_stage_run_digest(stage: &str, run_id: &str) -> String {
     format!("{stage}-{run_id}")
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 struct BootstrapStageTarget {
     stage: EpistemeOntologyBootstrapArtifactCacheStage,
     stage_label: &'static str,
@@ -304,7 +304,7 @@ struct BootstrapStageTarget {
     run_dir: PathBuf,
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 impl BootstrapStageTarget {
     fn identity(
         &self,
@@ -319,7 +319,7 @@ impl BootstrapStageTarget {
     }
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn bootstrap_stage_targets(
     request: &EpistemeOntologyBootstrapPipelineRequest,
 ) -> Result<Vec<BootstrapStageTarget>> {
@@ -360,13 +360,13 @@ fn bootstrap_stage_targets(
     ])
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 struct BootstrapArtifactRoots {
     structure_run_root: PathBuf,
     ontology_generation_run_root: PathBuf,
 }
 
-#[cfg(feature = "artifact-cache")]
+#[cfg(feature = "foyer-artifact-cache")]
 fn resolve_bootstrap_artifact_roots(
     request: &EpistemeOntologyBootstrapPipelineRequest,
 ) -> Result<BootstrapArtifactRoots> {

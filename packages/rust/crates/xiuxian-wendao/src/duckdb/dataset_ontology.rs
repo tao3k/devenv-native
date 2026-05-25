@@ -14,7 +14,7 @@ use arrow::ipc::reader::StreamReader;
 use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     WendaoGraphOntologyExtensionProofRequestBatches,
     WendaoGraphOntologyReadModelQualityRequestBatches,
 };

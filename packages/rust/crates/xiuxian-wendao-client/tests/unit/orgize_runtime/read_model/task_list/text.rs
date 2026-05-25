@@ -79,7 +79,7 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
         "stdout: {stdout}"
     );
     assert!(
-        stdout.contains("show: wendao-client orgize ogrid-show --cached --id agent-task"),
+        stdout.contains("show: wendao-client orgize orgid-show --cached --id agent-task"),
         "stdout: {stdout}"
     );
     assert!(!stdout.contains("Closed task"), "stdout: {stdout}");

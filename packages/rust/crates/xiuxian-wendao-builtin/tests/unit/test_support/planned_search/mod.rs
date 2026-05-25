@@ -1,4 +1,4 @@
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     julia_planned_search_openai_runtime_config_toml,
     julia_planned_search_vector_store_runtime_config_toml,
 };

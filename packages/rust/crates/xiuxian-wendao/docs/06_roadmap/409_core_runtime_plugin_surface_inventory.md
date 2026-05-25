@@ -318,7 +318,7 @@ This inventory uses the following target owners:
 2. `runtime`
    - process launch, transport negotiation, routing, health, fallback, and
      UI-facing host assembly
-3. `xiuxian-wendao-julia`
+3. `xiuxian-julia-core`
    - Julia-specific capability declarations, launch details, deployment
      artifacts, and plugin-owned transport defaults
 
@@ -340,7 +340,7 @@ The current live outward surfaces are:
 | Studio docs gateway family            | `/api/docs/*`                                                                                                  | external Modelica proof now covers docs-facing search, retrieval, navigation, family, gap-report, and planner peers              | no host-owned language-specific route family remains in this surface |
 | Studio repo query/projection family   | `/api/repo/overview`, `/api/repo/*search`, `/api/repo/doc-coverage`, `/api/repo/sync`, `/api/repo/projected-*` | external Modelica proof now covers repo-facing query, projection, reopen, and navigation peers                                   | additive proof stays on generic host surfaces                        |
 | Studio repo service-state family      | `/analysis/repo-index`, `/analysis/repo-index-status`                                                          | `Stage A` is complete; the active Studio repo service-state bundle now stays on Flight while JSON compatibility remains optional | bounded local helper reuse only; no dead-code suppressions added     |
-| Remaining Julia compatibility imports | `xiuxian_wendao_julia::compatibility::link_graph::*`                                                           | package-owned only                                                                                                               | host crate-root compatibility shims are retired                      |
+| Remaining Julia compatibility imports | `xiuxian_julia_runtime::wendao::link_graph::*`                                                                 | runtime-owned only                                                                                                               | host crate-root compatibility shims are retired                      |
 
 The current late-`M6` outward story is therefore:
 
@@ -415,7 +415,7 @@ Current Stage-B implementation status:
    bounded rollout
 3. semver governance is now explicitly owned by `xiuxian-wendao-core`; the
    initial blocking semver lane should target that crate only
-4. `xiuxian-wendao`, `xiuxian-wendao-runtime`, `xiuxian-wendao-julia`, and
+4. `xiuxian-wendao`, `xiuxian-wendao-runtime`, `xiuxian-julia-core`, and
    `xiuxian-wendao-modelica` are not part of the initial semver gate because
    their public surfaces are still migration-owned
 5. dependency-hygiene rollout stays advisory-first:
@@ -577,17 +577,17 @@ Scope correction:
 The table below remains as the resolved extraction-era ownership map that got
 the program to the current late-`M6` shape.
 
-| Current surface                                                                                                                                                                                              | Current path                                                                                                                                                           | Current problem                                                                                                                                                                                                           | Target owner                                                      | Target namespace                                                                                                                                                   | Planned phase    |
-| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------- |
-| Julia-specific runtime config records such as `LinkGraphJuliaRerankRuntimeConfig`, `LinkGraphJuliaAnalyzerServiceDescriptor`, `LinkGraphJuliaAnalyzerLaunchManifest`, and `LinkGraphJuliaDeploymentArtifact` | `src/link_graph/runtime_config/models.rs`                                                                                                                              | Stable runtime config is encoded as Julia-only types inside the host                                                                                                                                                      | `runtime` and `xiuxian-wendao-julia`                              | `runtime/runtime_config/providers/`, `runtime/artifacts/`, `xiuxian-wendao-julia/capabilities/`, `xiuxian-wendao-julia/artifacts/`, `xiuxian-wendao-julia/launch/` | `P1`, `P3`, `P4` |
-| `link_graph.retrieval.julia_rerank` host config path                                                                                                                                                         | `src/link_graph/runtime_config/models.rs`, `src/link_graph/runtime_config/resolve/policy.rs`                                                                           | Provider identity is hardcoded into the config shape, which blocks generic capability routing                                                                                                                             | `runtime`                                                         | `runtime/runtime_config/capabilities/`, `runtime/negotiation/`                                                                                                     | `P1`, `P3`       |
-| Julia-specific environment variables and launcher defaults such as `XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_*` and `.data/WendaoAnalyzer/scripts/run_analyzer_service.sh`                                     | `src/link_graph/runtime_config/constants.rs`                                                                                                                           | Host runtime defaults are language-scoped rather than provider-scoped                                                                                                                                                     | `runtime` with Julia-owned defaults in plugin package             | `runtime/runtime_config/providers/`, `runtime/launch/`, `xiuxian-wendao-julia/manifest/`, `xiuxian-wendao-julia/launch/`                                           | `P1`, `P3`, `P4` |
-| Builtin Julia registration in host bootstrap                                                                                                                                                                 | `src/analyzers/service/bootstrap.rs`                                                                                                                                   | The host owns Julia plugin assembly directly instead of loading a package-defined provider                                                                                                                                | `runtime` and `xiuxian-wendao-julia`                              | `runtime/registry/`, `runtime/discovery/`, `xiuxian-wendao-julia/entry/`                                                                                           | `P3`, `P4`       |
-| Former sibling-source inclusion hacks for package-local plugin code                                                                                                                                          | `src/analyzers/languages/mod.rs`                                                                                                                                       | Julia and Modelica previously entered the host through `#[path]`; the current tree now uses normal crate dependencies for both, so this row remains only as a resolved retirement checkpoint for future plugin onboarding | resolved for Julia and Modelica                                   | `xiuxian-wendao-julia/plugin/`, `xiuxian-wendao-modelica/plugin/`, and package dependency registration instead of source inclusion                                 | `P4`, `P6`       |
-| Julia-specific rerank planning and transport helpers                                                                                                                                                         | `src/link_graph/index/search/plan/payload/quantum.rs`                                                                                                                  | Capability execution path is hardcoded to Julia rather than routed through a generic provider binding                                                                                                                     | `runtime` with Julia-specific transport details in plugin package | `runtime/capabilities/rerank/`, `runtime/transport/`, `runtime/negotiation/`, `xiuxian-wendao-julia/transport/`, `xiuxian-wendao-julia/capabilities/rerank/`       | `P1`, `P3`, `P4` |
-| Julia-specific request-batch builder names in ignition helpers                                                                                                                                               | `src/link_graph/index/search/quantum_fusion/openai_ignition.rs`, `src/link_graph/index/search/quantum_fusion/vector_ignition.rs`                                       | Shared preparation logic is named after one provider even though the long-term host contract is capability-oriented                                                                                                       | `runtime`                                                         | `runtime/capabilities/rerank/request/`                                                                                                                             | `P1`, `P3`       |
-| Link-graph public re-exports of Julia-specific types                                                                                                                                                         | `src/link_graph/mod.rs`, `src/link_graph/runtime_config.rs`                                                                                                            | The link-graph domain surface leaks one plugin provider as core vocabulary                                                                                                                                                | `core` compatibility shim plus `runtime` implementation           | `core/capabilities/`, `runtime/capabilities/`, `runtime/artifacts/`                                                                                                | `P1`, `P2`, `P5` |
-| Julia-specific test fixtures and planned integration tests                                                                                                                                                   | `tests/integration/planned_search_julia_rerank*.rs`, `packages/rust/crates/xiuxian-wendao-julia/src/integration_support/`, `src/gateway/studio/router/tests/config.rs` | The WendaoSearch service-fixture launch helpers are now plugin-owned, but the broader integration-test topology still spans host and plugin crates and should keep moving toward plugin-owned or runtime-owned seams      | split across `runtime` and `xiuxian-wendao-julia`                 | `runtime/tests/capabilities/rerank/`, `runtime/tests/artifacts/`, `xiuxian-wendao-julia/tests/launch/`, `xiuxian-wendao-julia/tests/artifacts/`                    | `P3`, `P4`, `P5` |
+| Current surface                                                                                                                                                                                              | Current path                                                                                                                                                         | Current problem                                                                                                                                                                                                           | Target owner                                                      | Target namespace                                                                                                                                             | Planned phase    |
+| :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------- |
+| Julia-specific runtime config records such as `LinkGraphJuliaRerankRuntimeConfig`, `LinkGraphJuliaAnalyzerServiceDescriptor`, `LinkGraphJuliaAnalyzerLaunchManifest`, and `LinkGraphJuliaDeploymentArtifact` | `src/link_graph/runtime_config/models.rs`                                                                                                                            | Stable runtime config is encoded as Julia-only types inside the host                                                                                                                                                      | `runtime` and `xiuxian-julia-core`                                | `runtime/runtime_config/providers/`, `runtime/artifacts/`, `xiuxian-julia-core/capabilities/`, `xiuxian-julia-core/artifacts/`, `xiuxian-julia-core/launch/` | `P1`, `P3`, `P4` |
+| `link_graph.retrieval.julia_rerank` host config path                                                                                                                                                         | `src/link_graph/runtime_config/models.rs`, `src/link_graph/runtime_config/resolve/policy.rs`                                                                         | Provider identity is hardcoded into the config shape, which blocks generic capability routing                                                                                                                             | `runtime`                                                         | `runtime/runtime_config/capabilities/`, `runtime/negotiation/`                                                                                               | `P1`, `P3`       |
+| Julia-specific environment variables and launcher defaults such as `XIUXIAN_WENDAO_LINK_GRAPH_JULIA_RERANK_*` and `.data/WendaoAnalyzer/scripts/run_analyzer_service.sh`                                     | `src/link_graph/runtime_config/constants.rs`                                                                                                                         | Host runtime defaults are language-scoped rather than provider-scoped                                                                                                                                                     | `runtime` with Julia-owned defaults in plugin package             | `runtime/runtime_config/providers/`, `runtime/launch/`, `xiuxian-julia-core/manifest/`, `xiuxian-julia-core/launch/`                                         | `P1`, `P3`, `P4` |
+| Builtin Julia registration in host bootstrap                                                                                                                                                                 | `src/analyzers/service/bootstrap.rs`                                                                                                                                 | The host owns Julia plugin assembly directly instead of loading a package-defined provider                                                                                                                                | `runtime` and `xiuxian-julia-core`                                | `runtime/registry/`, `runtime/discovery/`, `xiuxian-julia-core/entry/`                                                                                       | `P3`, `P4`       |
+| Former sibling-source inclusion hacks for package-local plugin code                                                                                                                                          | `src/analyzers/languages/mod.rs`                                                                                                                                     | Julia and Modelica previously entered the host through `#[path]`; the current tree now uses normal crate dependencies for both, so this row remains only as a resolved retirement checkpoint for future plugin onboarding | resolved for Julia and Modelica                                   | `xiuxian-julia-core/plugin/`, `xiuxian-wendao-modelica/plugin/`, and package dependency registration instead of source inclusion                             | `P4`, `P6`       |
+| Julia-specific rerank planning and transport helpers                                                                                                                                                         | `src/link_graph/index/search/plan/payload/quantum.rs`                                                                                                                | Capability execution path is hardcoded to Julia rather than routed through a generic provider binding                                                                                                                     | `runtime` with Julia-specific transport details in plugin package | `runtime/capabilities/rerank/`, `runtime/transport/`, `runtime/negotiation/`, `xiuxian-julia-core/transport/`, `xiuxian-julia-core/capabilities/rerank/`     | `P1`, `P3`, `P4` |
+| Julia-specific request-batch builder names in ignition helpers                                                                                                                                               | `src/link_graph/index/search/quantum_fusion/openai_ignition.rs`, `src/link_graph/index/search/quantum_fusion/vector_ignition.rs`                                     | Shared preparation logic is named after one provider even though the long-term host contract is capability-oriented                                                                                                       | `runtime`                                                         | `runtime/capabilities/rerank/request/`                                                                                                                       | `P1`, `P3`       |
+| Link-graph public re-exports of Julia-specific types                                                                                                                                                         | `src/link_graph/mod.rs`, `src/link_graph/runtime_config.rs`                                                                                                          | The link-graph domain surface leaks one plugin provider as core vocabulary                                                                                                                                                | `core` compatibility shim plus `runtime` implementation           | `core/capabilities/`, `runtime/capabilities/`, `runtime/artifacts/`                                                                                          | `P1`, `P2`, `P5` |
+| Julia-specific test fixtures and planned integration tests                                                                                                                                                   | `tests/integration/planned_search_julia_rerank*.rs`, `packages/rust/crates/xiuxian-julia-core/src/integration_support/`, `src/gateway/studio/router/tests/config.rs` | The WendaoSearch service-fixture launch helpers are now plugin-owned, but the broader integration-test topology still spans host and plugin crates and should keep moving toward plugin-owned or runtime-owned seams      | split across `runtime` and `xiuxian-julia-core`                   | `runtime/tests/capabilities/rerank/`, `runtime/tests/artifacts/`, `xiuxian-julia-core/tests/launch/`, `xiuxian-julia-core/tests/artifacts/`                  | `P3`, `P4`, `P5` |
 
 ## Immediate Ownership Decisions
 
@@ -596,7 +596,7 @@ The current inventory resolves the previously ambiguous boundaries as follows:
 1. `core` keeps only generic capability, artifact, and schema contracts.
 2. `runtime` owns every host behavior that launches, negotiates with, routes
    to, or renders plugin providers.
-3. `xiuxian-wendao-julia` owns Julia-specific launch metadata, deployment
+3. `xiuxian-julia-core` owns Julia-specific launch metadata, deployment
    artifact payload shape, transport defaults, and capability declarations.
 4. temporary Julia-named public exports may remain only as compatibility
    shims while the generic runtime surface becomes authoritative.
@@ -636,7 +636,7 @@ xiuxian-wendao-runtime
       types/
         artifacts/
 
-xiuxian-wendao-julia
+xiuxian-julia-core
   plugin/
   capabilities/
     rerank/
@@ -664,7 +664,7 @@ During migration, the following compatibility rules apply:
 Current live status note:
 
 - Julia-owned launch/deployment DTO meaning and selector ownership now live in
-  `packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/`,
+  `packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/`,
   so the host `launch.rs` and `artifact.rs` files now behave as compatibility
   re-export seams instead of owning those records directly
 - the same Julia compatibility folder now also owns
@@ -673,13 +673,13 @@ Current live status note:
   the remaining host ownership had been narrowed to
   `LinkGraphJuliaRerankRuntimeConfig` plus package-path/default ownership
 - the Julia package-path/default seam now lives in
-  `packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/paths.rs`,
+  `packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/paths.rs`,
   which owns the default analyzer package dir, launcher path, and example
   config path; the touched host runtime/tests and integration fixtures now
   consume those Julia-owned constants instead of embedding raw
   `.data/WendaoAnalyzer/...` literals
 - the Julia rerank runtime-record seam now also lives in
-  `packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/runtime.rs`,
+  `packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/runtime.rs`,
   which owns `LinkGraphJuliaRerankRuntimeConfig` and its provider-binding /
   launch / artifact normalization helpers; the host `runtime.rs` and
   `conversions.rs` files now serve only as compatibility wrappers
@@ -708,7 +708,7 @@ Current live status note:
   `src/compatibility/julia.rs`, `src/compatibility/link_graph.rs`, and the
   `pub mod compatibility;` mount in `src/lib.rs` are all gone, so the touched
   internal consumers now read Julia compatibility imports directly from
-  `packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/`
+  `packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/`
 - the first `M6` additive-plugin proof is now landed too:
   `xiuxian-wendao-modelica` consumes
   `xiuxian-wendao-core::repo_intelligence` for production contracts, the host
@@ -967,7 +967,7 @@ default host vocabulary.
 No host-owned outward compatibility route, tool surface, or crate-root
 compatibility namespace remains in the live artifact path. The remaining
 Julia-specific compatibility imports are package-owned in
-`packages/rust/crates/xiuxian-wendao-julia/src/compatibility/link_graph/`.
+`packages/rust/crates/xiuxian-julia-core/src/compatibility/link_graph/`.
 
 ### Julia names that are now compatibility-seam only
 
@@ -995,12 +995,12 @@ should not reappear on higher-level host surfaces:
 The current compatibility seams are now physically grouped as follows:
 
 ```text
-packages/rust/crates/xiuxian-wendao-julia/src/compatibility/
+packages/rust/crates/xiuxian-julia-core/src/compatibility/
   link_graph/
 ```
 
 The remaining compatibility import work is now package-owned under
-`xiuxian-wendao-julia`.
+`xiuxian-julia-core`.
 
 The host crate-root compatibility shim is gone. The flat crate-root Julia
 re-export block, the `runtime_config` compatibility sub-namespace, the former
@@ -1011,8 +1011,8 @@ crate-root compatibility helper path.
 
 Downstream migration guidance now becomes:
 
-1. prefer `xiuxian_wendao_julia::compatibility::link_graph::*` for
-   Julia-specific deployment and launch compatibility DTO imports
+1. prefer `xiuxian_julia_runtime::wendao::link_graph::*` for
+   Julia-specific deployment and launch/runtime DTO imports
 2. treat host crate-root compatibility imports as retired from code
 3. keep generic plugin-artifact inspection on the canonical `xiuxian-wendao`
    surfaces instead of restoring a host compatibility namespace

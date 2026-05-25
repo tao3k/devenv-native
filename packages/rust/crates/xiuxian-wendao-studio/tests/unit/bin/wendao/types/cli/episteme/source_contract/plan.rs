@@ -1,5 +1,5 @@
 use super::{Cli, Command, EpistemeCommand, EpistemeSourceContractCommand, Parser};
-#[cfg(feature = "episteme-artifact-cache")]
+#[cfg(feature = "episteme-foyer-artifact-cache")]
 use crate::bin_support::wendao::types::EpistemeBootstrapArtifactCacheModeArg;
 use crate::bin_support::wendao::types::EpistemeStructuralFactsValidationModeArg;
 
@@ -138,7 +138,7 @@ fn parses_episteme_source_contract_bootstrap_pipeline_command() {
     assert_eq!(args.reasoning_fill_plan_limit, 64);
 }
 
-#[cfg(feature = "episteme-artifact-cache")]
+#[cfg(feature = "episteme-foyer-artifact-cache")]
 #[test]
 fn parses_episteme_source_contract_bootstrap_pipeline_artifact_cache_command() {
     let cli = Cli::parse_from([

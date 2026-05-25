@@ -8,6 +8,15 @@ use std::collections::BTreeMap;
 #[cfg(feature = "julia")]
 use std::collections::HashSet;
 #[cfg(feature = "julia")]
+use xiuxian_julia_core::{
+    GraphStructuralKeywordOverlapCandidateMetadataInput,
+    GraphStructuralKeywordOverlapCandidateMetadataInputs, GraphStructuralKeywordOverlapQueryInput,
+    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInput,
+    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralKeywordTagQueryContextInput,
+    GraphStructuralQueryContext, GraphStructuralRawConnectedPairCollectionRawTupleInput,
+    JuliaContractKind,
+};
+#[cfg(feature = "julia")]
 use xiuxian_wendao::{
     LinkGraphAgenticCandidatePair, LinkGraphAgenticExpansionPlan, LinkGraphAgenticWorkerPlan,
     LinkGraphIndex, RegisteredRepository, RepoIntelligenceError, RepositoryPluginConfig,
@@ -18,15 +27,6 @@ use xiuxian_wendao_builtin::{
     GraphStructuralRawConnectedPairCollectionCandidateInputs, GraphStructuralRerankScoreRow,
     build_graph_structural_keyword_overlap_pair_rerank_request_batch_from_raw_candidates,
     fetch_graph_structural_generic_topology_rerank_rows_for_repository_from_raw_connected_pair_collections,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::{
-    GraphStructuralKeywordOverlapCandidateMetadataInput,
-    GraphStructuralKeywordOverlapCandidateMetadataInputs, GraphStructuralKeywordOverlapQueryInput,
-    GraphStructuralKeywordOverlapQueryInputs, GraphStructuralKeywordOverlapRawCandidateInput,
-    GraphStructuralKeywordOverlapRawCandidateInputs, GraphStructuralKeywordTagQueryContextInput,
-    GraphStructuralQueryContext, GraphStructuralRawConnectedPairCollectionRawTupleInput,
-    JuliaContractKind,
 };
 
 #[cfg(feature = "julia")]

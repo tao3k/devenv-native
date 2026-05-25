@@ -15,7 +15,7 @@ pub(crate) use eval::{OrgizeEvalPatchArgs, OrgizeEvalPlanArgs};
 pub use planning::OrgizeAgentPlanningArgs;
 #[cfg(feature = "orgize-agent-read-model")]
 pub use read_model::{
-    OrgizeOgridShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
+    OrgizeOrgidShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
     OrgizeTaskListView, OrgizeTaskProbeArgs, OrgizeTaskRecoverArgs, OrgizeTaskReportArgs,
     OrgizeTaskSddArgs,
 };
