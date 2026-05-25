@@ -59,7 +59,7 @@ async fn workflow_control_service_loads_checkpoint_status_from_duckdb_store() {
     );
     assert!(matches!(
         status_report.instance.lifecycle,
-        qianji_bpmn_engine::InstanceLifecycle::Waiting
+        xiuxian_qianji_bpmn_engine::InstanceLifecycle::Waiting
     ));
     assert_eq!(status_report.instance.waits.len(), 1);
     assert_eq!(status_report.instance.variables, json!({ "risk": "high" }));

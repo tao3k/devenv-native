@@ -9,7 +9,7 @@ use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::execution::DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS;
 use crate::bpmn::ownership::QianjiBpmnSchedulerLeaseConfig;
 use crate::telemetry::unix_millis_now;
-use qianji_bpmn_engine::{BpmnCheckpointEnvelope, InstanceLifecycle, SuspendReason};
+use xiuxian_qianji_bpmn_engine::{BpmnCheckpointEnvelope, InstanceLifecycle, SuspendReason};
 
 pub(crate) async fn interrupt_workflow(
     service: &QianjiBpmnWorkflowControlService,

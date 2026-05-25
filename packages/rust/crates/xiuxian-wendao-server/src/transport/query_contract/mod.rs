@@ -41,11 +41,14 @@ pub use identifiers::{EntityIdRef, ModuleIdRef, NodeIdRef, PageIdRef, RepoIdRef,
 pub use metadata::{WENDAO_SCHEMA_VERSION_HEADER, flight_descriptor_path, normalize_flight_route};
 pub use ontology::{
     DATASET_ONTOLOGY_HANDOFF_SCHEMA_VERSION, DatasetOntologyFlightManifest,
-    DatasetOntologySourceTablePayload, ONTOLOGY_DATASET_MATERIALIZE_ROUTE,
-    WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER, WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER,
-    WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER, WENDAO_DATASET_ONTOLOGY_PAYLOAD_ID_HEADER,
-    decode_dataset_ontology_manifest_header, encode_dataset_ontology_manifest_header,
-    validate_dataset_ontology_flight_manifest,
+    DatasetOntologySourceTablePayload, ONTOLOGY_CANDIDATE_INSPECT_ROUTE,
+    ONTOLOGY_CANDIDATE_INSPECTION_SCHEMA_VERSION, ONTOLOGY_DATASET_MATERIALIZE_ROUTE,
+    OntologyCandidateInspectionFlightRequest, WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER,
+    WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER, WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER,
+    WENDAO_DATASET_ONTOLOGY_PAYLOAD_ID_HEADER, WENDAO_ONTOLOGY_CANDIDATE_INSPECTION_REQUEST_HEADER,
+    decode_dataset_ontology_manifest_header, decode_ontology_candidate_inspection_request_header,
+    encode_dataset_ontology_manifest_header, encode_ontology_candidate_inspection_request_header,
+    validate_dataset_ontology_flight_manifest, validate_ontology_candidate_inspection_request,
 };
 pub use query::{QUERY_SQL_ROUTE, WENDAO_SQL_QUERY_HEADER};
 pub use repo::{

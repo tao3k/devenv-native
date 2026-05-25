@@ -6,9 +6,9 @@ use crate::bpmn::identity::{
     QianjiBpmnWorkflowInstanceId,
 };
 use crate::bpmn::session::QianjiBpmnSession;
-use qianji_bpmn_engine::{BpmnAdvanceOutcome, BpmnPackage, PendingHostWorkResult};
 use serde_json::Value;
 use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{BpmnAdvanceOutcome, BpmnPackage, PendingHostWorkResult};
 
 /// Host-owned BPMN execution driver built on the session/checkpoint facade.
 #[derive(Debug, Clone)]

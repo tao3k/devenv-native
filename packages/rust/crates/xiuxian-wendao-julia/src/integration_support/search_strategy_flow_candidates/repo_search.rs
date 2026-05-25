@@ -2,6 +2,7 @@
 
 use super::discovery::{clamp_score, edge_kinds, line_context_cost, markdown_anchor};
 use super::types::{SearchStrategyFlowCandidateInput, SearchStrategyFlowRepoSearchHit};
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 pub(crate) fn search_strategy_flow_candidate_input_from_repo_search_hit(
     hit: &SearchStrategyFlowRepoSearchHit<'_>,
@@ -39,7 +40,7 @@ fn non_blank(value: Option<&str>) -> Option<&str> {
 
 fn repo_search_edge_kinds(relative_path: &str, title: &str) -> Vec<String> {
     let mut kinds = edge_kinds(relative_path, title);
-    kinds.push("arrow-flight".to_owned());
+    kinds.push(WENDAO_ARROW_FLIGHT_DATA_PLANE.to_owned());
     kinds.push("repo-search".to_owned());
     kinds.sort();
     kinds.dedup();

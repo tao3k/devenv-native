@@ -3,6 +3,11 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
+use xiuxian_db_store::artifact_cache::{
+    ArtifactBlobCache, ArtifactBlobCacheBackend, ArtifactBlobCacheBackendConfig, ArtifactBlobWrite,
+    ArtifactKey, ArtifactKeyParts, ArtifactKind, pack_artifact_directory,
+    unpack_artifact_directory,
+};
 use xiuxian_wendao_server::transport::DocumentExtractFlightRouteResponse;
 
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
@@ -11,9 +16,11 @@ use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
 };
 
 const FULL_ARTIFACT_CACHE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_PDF_FULL_ARTIFACT_CACHE";
-const FULL_ARTIFACT_CACHE_ROOT_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_PDF_FULL_ARTIFACT_CACHE_ROOT";
 const FULL_ARTIFACT_CACHE_ENABLED: &str = "enabled";
 const FULL_ARTIFACT_CACHE_SCHEMA: &str = "xiuxian_wendao.hybrid_page_ocr_artifact_cache.v1";
+const FULL_ARTIFACT_CACHE_NAMESPACE: &str = "wendao-pdf-full-artifact";
+const FULL_ARTIFACT_CACHE_KIND: &str = "document-extract-bundle";
+const FULL_ARTIFACT_CACHE_SHARD: &str = "full-document";
 
 const CACHE_SIGNATURE_ENV_KEYS: &[&str] = &[
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER",
@@ -88,15 +95,24 @@ fn hybrid_page_ocr_artifact_cache_response_with_lookup(
     if !hybrid_page_ocr_artifact_cache_enabled(lookup) {
         return Ok(None);
     }
-    let artifact_dir = hybrid_page_ocr_artifact_cache_dir(source, lookup)?;
-    if !artifact_dir.join("_complete.marker").exists()
-        || !artifact_dir
-            .join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME)
-            .exists()
-    {
+    let backend = hybrid_page_ocr_artifact_cache_backend(lookup)?;
+    let artifact_key = hybrid_page_ocr_artifact_key(source, lookup)?;
+    let Some(read) = backend
+        .read(&artifact_key)
+        .map_err(|error| format!("read PDF full artifact bundle cache: {error}"))?
+    else {
+        return Ok(None);
+    };
+    unpack_artifact_directory(read.bytes(), output)
+        .map_err(|error| format!("unpack PDF full artifact bundle: {error}"))?;
+    rewrite_document_extract_resource_paths(
+        output,
+        hybrid_page_ocr_artifact_virtual_root(&artifact_key).as_path(),
+        output,
+    )?;
+    if !output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).exists() {
         return Ok(None);
     }
-    mirror_document_extract_cache(artifact_dir.as_path(), output)?;
     let batches = read_arrow_file(output.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME).as_path())?;
     Ok(Some(DocumentExtractFlightRouteResponse::from_batches(
         batches,
@@ -116,79 +132,69 @@ fn store_hybrid_page_ocr_artifact_cache_with_lookup(
     {
         return Ok(false);
     }
-    let artifact_dir = hybrid_page_ocr_artifact_cache_dir(source, lookup)?;
-    let parent = artifact_dir.parent().ok_or_else(|| {
-        format!(
-            "invalid OCR artifact cache path `{}`",
-            artifact_dir.display()
-        )
-    })?;
-    fs::create_dir_all(parent).map_err(|error| {
-        format!(
-            "create OCR artifact cache parent `{}`: {error}",
-            parent.display()
-        )
-    })?;
-    let temp_dir = parent.join(format!(
-        ".{}.tmp",
-        artifact_dir
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("artifact")
-    ));
-    if temp_dir.exists() {
-        fs::remove_dir_all(temp_dir.as_path()).map_err(|error| {
-            format!(
-                "remove stale OCR artifact cache temp `{}`: {error}",
-                temp_dir.display()
-            )
-        })?;
-    }
-    mirror_document_extract_cache(output, temp_dir.as_path())?;
-    if artifact_dir.exists() {
-        fs::remove_dir_all(artifact_dir.as_path()).map_err(|error| {
-            format!(
-                "remove stale OCR artifact cache `{}`: {error}",
-                artifact_dir.display()
-            )
-        })?;
-    }
-    fs::rename(temp_dir.as_path(), artifact_dir.as_path()).map_err(|error| {
-        format!(
-            "promote OCR artifact cache `{}` to `{}`: {error}",
-            temp_dir.display(),
-            artifact_dir.display()
-        )
-    })?;
+    let backend = hybrid_page_ocr_artifact_cache_backend(lookup)?;
+    let artifact_key = hybrid_page_ocr_artifact_key(source, lookup)?;
+    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    let temp_dir = tempfile::Builder::new()
+        .prefix(".wendao-pdf-full-artifact.")
+        .tempdir_in(parent)
+        .map_err(|error| format!("create PDF full artifact bundle temp dir: {error}"))?;
+    mirror_document_extract_cache(output, temp_dir.path())?;
     rewrite_document_extract_resource_paths(
-        artifact_dir.as_path(),
-        temp_dir.as_path(),
-        artifact_dir.as_path(),
+        temp_dir.path(),
+        temp_dir.path(),
+        hybrid_page_ocr_artifact_virtual_root(&artifact_key).as_path(),
     )?;
+    let bytes = pack_artifact_directory(temp_dir.path())
+        .map_err(|error| format!("pack PDF full artifact bundle: {error}"))?;
+    backend
+        .write(&artifact_key, ArtifactBlobWrite::new(bytes.as_slice()))
+        .map_err(|error| format!("write PDF full artifact bundle cache: {error}"))?;
     Ok(true)
 }
 
-fn hybrid_page_ocr_artifact_cache_dir(
-    source: &Path,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> Result<PathBuf, String> {
-    let root = hybrid_page_ocr_artifact_cache_root(lookup)?;
-    let key = hybrid_page_ocr_artifact_cache_key(source, lookup)?;
-    Ok(root.join(&key[..2]).join(key))
-}
-
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 fn hybrid_page_ocr_artifact_cache_key(
     source: &Path,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<String, String> {
+    let key = hybrid_page_ocr_artifact_key(source, lookup)?;
+    Ok(format!(
+        "{}/{}/{}/{}/{}",
+        key.namespace().as_str(),
+        key.kind().as_storage_component(),
+        key.source_digest().as_str(),
+        key.profile_digest().as_str(),
+        key.shard_digest().as_str()
+    ))
+}
+
+fn hybrid_page_ocr_artifact_key(
+    source: &Path,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<ArtifactKey, String> {
     let source_hash = sha256_file(source)?;
+    let profile_digest = hybrid_page_ocr_artifact_profile_digest(source, lookup)?;
+    ArtifactKey::from_parts(ArtifactKeyParts {
+        namespace: FULL_ARTIFACT_CACHE_NAMESPACE.to_owned(),
+        kind: ArtifactKind::custom(FULL_ARTIFACT_CACHE_KIND)
+            .map_err(|error| format!("build PDF full artifact kind: {error}"))?,
+        source_digest: source_hash,
+        profile_digest,
+        shard_digest: FULL_ARTIFACT_CACHE_SHARD.to_owned(),
+    })
+    .map_err(|error| format!("build PDF full artifact key: {error}"))
+}
+
+fn hybrid_page_ocr_artifact_profile_digest(
+    source: &Path,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<String, String> {
     let metadata = source
         .metadata()
         .map_err(|error| format!("read OCR artifact cache source metadata: {error}"))?;
     let mut hasher = Sha256::new();
     hasher.update(FULL_ARTIFACT_CACHE_SCHEMA.as_bytes());
-    hasher.update(b"\nsource_sha256=");
-    hasher.update(source_hash.as_bytes());
     hasher.update(b"\nsource_len=");
     hasher.update(metadata.len().to_string().as_bytes());
     hasher.update(b"\nsource_ext=");
@@ -218,24 +224,24 @@ fn hybrid_page_ocr_artifact_cache_enabled(lookup: &dyn Fn(&str) -> Option<String
     })
 }
 
-fn hybrid_page_ocr_artifact_cache_root(
+fn hybrid_page_ocr_artifact_cache_backend(
     lookup: &dyn Fn(&str) -> Option<String>,
-) -> Result<PathBuf, String> {
-    if let Some(root) =
-        lookup(FULL_ARTIFACT_CACHE_ROOT_ENV).filter(|value| !value.trim().is_empty())
-    {
-        return Ok(PathBuf::from(root));
-    }
-    let cache_home = lookup("PRJ_CACHE_HOME")
-        .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| {
-            format!(
-                "{FULL_ARTIFACT_CACHE_ROOT_ENV} or PRJ_CACHE_HOME must be set when full OCR artifact cache is enabled"
-            )
-        })?;
-    Ok(PathBuf::from(cache_home)
-        .join("wendao-document-extract")
-        .join("hybrid-page-ocr-artifacts"))
+) -> Result<ArtifactBlobCacheBackend, String> {
+    let config = ArtifactBlobCacheBackendConfig::from_lookup(lookup)
+        .map_err(|error| format!("resolve PDF full artifact cache backend: {error}"))?;
+    config
+        .build()
+        .map_err(|error| format!("build PDF full artifact cache backend: {error}"))
+}
+
+fn hybrid_page_ocr_artifact_virtual_root(key: &ArtifactKey) -> PathBuf {
+    PathBuf::from(format!(
+        "/__wendao_artifact_bundle/{}/{}/{}/{}",
+        key.namespace().as_str(),
+        key.source_digest().as_str(),
+        key.profile_digest().as_str(),
+        key.shard_digest().as_str()
+    ))
 }
 
 fn sha256_file(path: &Path) -> Result<String, String> {

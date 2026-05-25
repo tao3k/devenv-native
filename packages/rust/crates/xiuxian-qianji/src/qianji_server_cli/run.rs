@@ -1,4 +1,7 @@
 use super::cli::{QianjiServerCommand, QianjiServerServeCommand, qianji_server_usage};
+use super::flowhub::{
+    QianjiServerFlowhubState, qianji_server_flowhub_router, resolve_qianji_server_flowhub_root,
+};
 use super::health::{QianjiServerHealthState, check_valkey_ready, qianji_server_health_router};
 #[cfg(test)]
 use crate::runtime_config::resolve_qianji_runtime_checkpoint_config_with_env;
@@ -60,10 +63,12 @@ pub(crate) fn build_qianji_server_router(
         QianjiBpmnHostBridge::default(),
     );
     let health_state = QianjiServerHealthState::new(valkey_url);
-    Ok(
-        qianji_server_health_router(health_state)
-            .merge(qianji_bpmn_workflow_router(workflow_state)),
-    )
+    let flowhub_state = QianjiServerFlowhubState::new(resolve_qianji_server_flowhub_root(
+        command.flowhub_root.as_deref(),
+    ));
+    Ok(qianji_server_health_router(health_state)
+        .merge(qianji_server_flowhub_router(flowhub_state))
+        .merge(qianji_bpmn_workflow_router(workflow_state)))
 }
 
 pub(crate) fn resolve_qianji_server_bind_addr(

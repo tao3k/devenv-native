@@ -159,7 +159,7 @@ fn studio_polyglot_document_extract_provider_hint() -> RustVerificationProfileHi
         RustVerificationTaskKind::Chaos,
     ])
     .with_rationale(
-        "Studio full-document Docling dispatch adopts the runtime polyglot schedule plan while retaining endpoint-pool and Flight authority",
+        "Studio full-document Docling dispatch adopts the orchestrator Wendao contract schedule plan while retaining endpoint-pool and Flight authority",
     )
 }
 

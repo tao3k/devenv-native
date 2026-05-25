@@ -189,8 +189,8 @@ Behavior:
     relation engine is DuckDB.
 37. exposes upstream Orgize tooling through `orgize fmt`, `orgize lint`,
     `orgize agent-planning`, `orgize read-model`, `orgize task-list`,
-    `orgize task-report`, `orgize task-archive`, `orgize sparse-tree`, and
-    `orgize sdd status`.
+    `orgize task-probe`, `orgize task-report`, `orgize task-archive`,
+    `orgize sparse-tree`, and `orgize sdd status`.
     Formatting and linting use parser-owned Orgize adapters from
     `xiuxian-wendao-parsers`; planning and sparse-tree commands render compact
     cards derived from native Org agenda and sparse-tree semantics. The `sdd
@@ -201,15 +201,23 @@ status` command renders Org-native SDD
     `--duckdb` runtime selector. The `task-list` command refreshes the same
     DuckDB read model and renders active task rows for agent recovery, with
     optional text/tag filtering and explicit
-    DONE/archive inclusion flags. The `task-report` command summarizes the
-    same snapshot for active rows, completed achievements, archive candidates,
-    repeating rows, and tag counts. The `task-archive` command renders an
-    archive plan by default and only mutates Org source when `--apply` is
-    passed; applied tasks are moved to their `ARCHIVE_TARGET` or the default
-    agent archive file and receive the native `ARCHIVE` tag. Native Org
-    repeater cookies on `SCHEDULED` or `DEADLINE` timestamps are preserved and
-    rendered as `repeat:` metadata so recurring profile, benchmark, or audit
-    tasks remain visible without a custom schedule DSL. When no source path is
+    DONE/archive inclusion flags. The `task-probe` command is the compact
+    remembered-task recovery view; it reranks candidates with
+    `xiuxian-memory-engine` plus structured Org facet fusion so title text,
+    properties, SDD references, checklist state, and next actions vote together
+    instead of letting one noisy title phrase dominate. The `task-report`
+    command summarizes the same snapshot for active rows, completed
+    achievements, archive candidates, repeating rows, and tag counts. The
+    `task-archive` command renders an archive plan by default and only mutates
+    Org source when `--apply` is passed; applied tasks are moved to
+    `archives/<source-task-file>.org` by default, receive the native `ARCHIVE`
+    tag, and are appended as raw Org subtrees without synthesized archive-file
+    metadata headers. Deprecated yearly bucket targets such as `2026.org` are
+    ignored in favor of the source-task-file target. Native Org repeater
+    cookies on `SCHEDULED` or
+    `DEADLINE` timestamps are preserved and rendered as `repeat:` metadata so
+    recurring profile, benchmark, or audit tasks remain visible without a
+    custom schedule DSL. When no source path is
     supplied, read-model commands read from `$PRJ_CACHE_HOME/agent/org`; the
     default database is
     `$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb`. Optional

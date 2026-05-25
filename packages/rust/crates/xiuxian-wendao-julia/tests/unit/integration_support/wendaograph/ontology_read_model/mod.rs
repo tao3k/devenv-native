@@ -34,6 +34,7 @@ pub(crate) use crate::integration_support::wendaograph::{
     build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope,
     build_wendaograph_ontology_read_model_quality_request_batches_from_rdf_source_artifacts,
     build_wendaograph_ontology_read_model_quality_request_batches_from_semantic_preview_artifacts,
+    build_wendaograph_ontology_read_model_quality_request_batches_from_structural_facts_artifacts,
     roundtrip_wendaograph_ontology_extension_proof_with_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
     wendaograph_ontology_read_model_quality_provider_selector,
@@ -47,4 +48,5 @@ mod fake_flight;
 mod live_loopback;
 mod roundtrip;
 mod semantic_preview;
+mod structural_facts;
 mod support;

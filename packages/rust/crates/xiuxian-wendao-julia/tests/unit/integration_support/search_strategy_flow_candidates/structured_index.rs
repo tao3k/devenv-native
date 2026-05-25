@@ -6,6 +6,7 @@ use super::{
     search_strategy_flow_total_structured_candidate_index_contract,
 };
 use crate::integration_support::search_strategy_flow_candidates::WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE;
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 #[test]
 fn total_structured_candidate_index_contract_uses_dynamic_promotion_denominator() {
@@ -102,7 +103,7 @@ fn candidate_discovery_contract_maps_code_inventory_source_to_total_structured_d
         Some(CODE_INTELLIGENCE_CANDIDATE_SOURCE),
         12,
         Some(&serde_json::json!({
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/search/repos/main",
             "attemptCount": 2,
         })),
@@ -144,7 +145,7 @@ fn candidate_discovery_contract_maps_code_inventory_source_to_total_structured_d
         summary
             .get("discoveryReceipt")
             .and_then(|receipt| receipt.get("transport")),
-        Some(&serde_json::json!("arrow-flight"))
+        Some(&serde_json::json!(WENDAO_ARROW_FLIGHT_DATA_PLANE))
     );
 }
 
@@ -184,7 +185,7 @@ fn candidate_discovery_contract_maps_gateway_retrieval_source() {
         Some(WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE),
         32,
         Some(&serde_json::json!({
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/search/repo",
             "retrievalOwner": "wendao-gateway",
         })),

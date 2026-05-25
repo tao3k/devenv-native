@@ -17,7 +17,7 @@ async fn execution_driver_runs_fresh_session_without_checkpoint() {
     let driver = QianjiBpmnExecutionDriver::new(Arc::clone(&package), None);
     let host = QianjiBpmnHostBridge::builder()
         .on_business_rule_task(|request| async move {
-            Ok(qianji_bpmn_engine::BusinessRuleTaskOutcome {
+            Ok(xiuxian_qianji_bpmn_engine::BusinessRuleTaskOutcome {
                 evaluation: DmnEvaluationResult::new(
                     request.evaluation.decision.decision_id.as_ref(),
                     json!({ "approved": true, "path": "auto_approved" }),
@@ -61,21 +61,25 @@ async fn execution_driver_runs_fresh_session_without_checkpoint() {
 fn execution_driver_requires_fresh_context_when_checkpoint_is_missing() {
     let package = Arc::new(BpmnPackage::new(
         "pkg_review",
-        vec![qianji_bpmn_engine::BpmnProcessSpec::new(
+        vec![xiuxian_qianji_bpmn_engine::BpmnProcessSpec::new(
             ProcessKey::new("pkg_review", "review", "digest_review"),
             vec![
-                qianji_bpmn_engine::BpmnNodeSpec::new(
+                xiuxian_qianji_bpmn_engine::BpmnNodeSpec::new(
                     0,
                     "start",
-                    qianji_bpmn_engine::BpmnNodeKind::StartEvent,
+                    xiuxian_qianji_bpmn_engine::BpmnNodeKind::StartEvent,
                 ),
-                qianji_bpmn_engine::BpmnNodeSpec::new(
+                xiuxian_qianji_bpmn_engine::BpmnNodeSpec::new(
                     1,
                     "end",
-                    qianji_bpmn_engine::BpmnNodeKind::EndEvent,
+                    xiuxian_qianji_bpmn_engine::BpmnNodeKind::EndEvent,
                 ),
             ],
-            vec![qianji_bpmn_engine::BpmnEdgeSpec::new(0, 1, None::<&str>)],
+            vec![xiuxian_qianji_bpmn_engine::BpmnEdgeSpec::new(
+                0,
+                1,
+                None::<&str>,
+            )],
             Vec::new(),
         )],
     ));
@@ -110,21 +114,25 @@ fn execution_driver_requires_fresh_context_when_checkpoint_is_missing() {
 fn resume_from_checkpoint_rejects_process_identity_drift() {
     let package = Arc::new(BpmnPackage::new(
         "pkg_review",
-        vec![qianji_bpmn_engine::BpmnProcessSpec::new(
+        vec![xiuxian_qianji_bpmn_engine::BpmnProcessSpec::new(
             ProcessKey::new("pkg_review", "review", "digest_review"),
             vec![
-                qianji_bpmn_engine::BpmnNodeSpec::new(
+                xiuxian_qianji_bpmn_engine::BpmnNodeSpec::new(
                     0,
                     "start",
-                    qianji_bpmn_engine::BpmnNodeKind::StartEvent,
+                    xiuxian_qianji_bpmn_engine::BpmnNodeKind::StartEvent,
                 ),
-                qianji_bpmn_engine::BpmnNodeSpec::new(
+                xiuxian_qianji_bpmn_engine::BpmnNodeSpec::new(
                     1,
                     "end",
-                    qianji_bpmn_engine::BpmnNodeKind::EndEvent,
+                    xiuxian_qianji_bpmn_engine::BpmnNodeKind::EndEvent,
                 ),
             ],
-            vec![qianji_bpmn_engine::BpmnEdgeSpec::new(0, 1, None::<&str>)],
+            vec![xiuxian_qianji_bpmn_engine::BpmnEdgeSpec::new(
+                0,
+                1,
+                None::<&str>,
+            )],
             Vec::new(),
         )],
     ));

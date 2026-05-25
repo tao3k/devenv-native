@@ -125,6 +125,12 @@ impl QianjiBpmnWorkflowActionHttpRequest {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QianjiBpmnWorkflowTaskCompletionHttpKind {
+    /// Complete a BPMN `sendTask`.
+    Send,
+    /// Complete a BPMN `serviceTask`.
+    Service,
+    /// Complete a BPMN `scriptTask`.
+    Script,
     /// Complete a BPMN `userTask`.
     User,
     /// Complete a BPMN `manualTask`.
@@ -142,7 +148,8 @@ pub struct QianjiBpmnWorkflowTaskCompletionHttpPayload {
     pub activity_id: QianjiBpmnActivityId,
     /// Pending host-work result kind.
     pub kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
-    /// User- or operator-supplied payload merged into workflow variables.
+    /// Worker-, user-, or operator-supplied payload merged into workflow
+    /// variables.
     pub data: Value,
     /// Optional claimant supplied by the host when completing claimed human
     /// work.
@@ -181,6 +188,15 @@ impl QianjiBpmnWorkflowTaskCompleteHttpRequest {
                 process_id: self.completion.process_id,
                 activity_id: self.completion.activity_id,
                 kind: match self.completion.kind {
+                    QianjiBpmnWorkflowTaskCompletionHttpKind::Send => {
+                        QianjiBpmnWorkflowTaskCompletionKind::Send
+                    }
+                    QianjiBpmnWorkflowTaskCompletionHttpKind::Service => {
+                        QianjiBpmnWorkflowTaskCompletionKind::Service
+                    }
+                    QianjiBpmnWorkflowTaskCompletionHttpKind::Script => {
+                        QianjiBpmnWorkflowTaskCompletionKind::Script
+                    }
                     QianjiBpmnWorkflowTaskCompletionHttpKind::User => {
                         QianjiBpmnWorkflowTaskCompletionKind::User
                     }

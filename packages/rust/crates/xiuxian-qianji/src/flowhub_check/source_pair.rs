@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use qianji_bpmn_engine::{BpmnSourceFile, lint_bpmn_source};
+use xiuxian_qianji_bpmn_engine::{BpmnSourceFile, lint_bpmn_source};
 use xiuxian_wendao_parsers::{OrgizeLintOutputFormat, OrgizeLintRequest, lint_org_files};
 
 use crate::contracts::FlowhubStructureContract;
@@ -129,6 +129,7 @@ fn validate_org_source(
         priority_highest: None,
         priority_lowest: None,
         priority_default: None,
+        fix: false,
     };
     match lint_org_files(&request) {
         Ok(report) if report.is_clean() => {}

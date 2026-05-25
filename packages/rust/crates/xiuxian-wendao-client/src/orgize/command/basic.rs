@@ -31,6 +31,10 @@ pub struct OrgizeLintArgs {
     #[arg(long = "json")]
     pub json: bool,
 
+    /// Apply safe Org source fixes before rendering lint diagnostics.
+    #[arg(long = "fix")]
+    pub fix: bool,
+
     /// Highest priority bound for Org priority validation.
     #[arg(long = "priority-highest", value_name = "VALUE")]
     pub priority_highest: Option<String>,

@@ -3,36 +3,46 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use xiuxian_db_store::artifact_cache::{
+    ArtifactBlobCache, ArtifactBlobCacheBackend, ArtifactBlobCacheBackendConfig, ArtifactBlobWrite,
+};
 use xiuxian_wendao_attachments::pdf::ocr::{
     PdfOcrShardInput, PdfOcrShardResult, PdfOcrShardResultStatus, build_ocr_shard_result_batch,
     decode_ocr_shard_result_batches,
 };
 
-use super::key::{ocr_shard_cache_key, temporary_cache_path};
+use super::key::{ocr_shard_artifact_key, ocr_shard_cache_key, temporary_cache_path};
 use super::prune::prune_ocr_shard_cache;
 use super::types::{
-    DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV, PdfOcrShardCache, PdfOcrShardCachePolicy,
-    PdfOcrShardCachePruneReport, PdfOcrShardCacheResolution,
+    PdfOcrShardCache, PdfOcrShardCachePolicy, PdfOcrShardCachePruneReport,
+    PdfOcrShardCacheResolution,
 };
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
-    read_arrow_file, write_arrow_file,
+    read_arrow_bytes, read_arrow_file, write_arrow_bytes, write_arrow_file,
 };
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_order::validate_ocr_result_matches_input;
 
 impl PdfOcrShardCache {
     pub(crate) fn from_environment() -> Self {
-        if let Some(root) = std::env::var_os(DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV) {
-            return Self::new_with_policy(
-                PathBuf::from(root),
-                PdfOcrShardCachePolicy::from_environment(),
-            );
-        }
-        let cache_root = std::env::var_os("PRJ_CACHE_HOME")
-            .map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
-        Self::new_with_policy(
-            cache_root.join("wendao-document-extract/ocr-shards"),
+        Self::artifact_blob_from_environment().unwrap_or_else(|reason| {
+            panic!("configure PDF OCR shard ArtifactBlobCache: {reason}");
+        })
+    }
+
+    fn artifact_blob_from_environment() -> Result<Self, String> {
+        let config = ArtifactBlobCacheBackendConfig::from_lookup(&artifact_cache_env_lookup)
+            .map_err(|error| {
+                format!("resolve ArtifactBlobCache backend for PDF OCR shard cache: {error}")
+            })?;
+        let root = config.root().to_path_buf();
+        let backend = config.build().map_err(|error| {
+            format!("build ArtifactBlobCache backend for PDF OCR shard cache: {error}")
+        })?;
+        Ok(Self::new_with_artifact_cache_backend(
+            root,
             PdfOcrShardCachePolicy::from_environment(),
-        )
+            Arc::new(backend),
+        ))
     }
 
     #[cfg(test)]
@@ -40,11 +50,26 @@ impl PdfOcrShardCache {
         Self::new_with_policy(root, PdfOcrShardCachePolicy::default())
     }
 
+    #[cfg(test)]
     pub(crate) fn new_with_policy(root: PathBuf, policy: PdfOcrShardCachePolicy) -> Self {
         Self {
             root,
             policy,
             last_sweep: Arc::new(Mutex::new(None)),
+            artifact_cache: None,
+        }
+    }
+
+    pub(crate) fn new_with_artifact_cache_backend(
+        root: PathBuf,
+        policy: PdfOcrShardCachePolicy,
+        artifact_cache: Arc<ArtifactBlobCacheBackend>,
+    ) -> Self {
+        Self {
+            root,
+            policy,
+            last_sweep: Arc::new(Mutex::new(None)),
+            artifact_cache: Some(artifact_cache),
         }
     }
 
@@ -71,6 +96,16 @@ impl PdfOcrShardCache {
             return Ok(false);
         }
         validate_ocr_result_matches_input(input, result)?;
+        let batch = build_ocr_shard_result_batch(std::slice::from_ref(result))?;
+        if let Some(cache) = &self.artifact_cache {
+            let bytes = write_arrow_bytes(std::slice::from_ref(&batch))?;
+            let key = ocr_shard_artifact_key(input)?;
+            cache
+                .write(&key, ArtifactBlobWrite::new(bytes.as_slice()))
+                .map_err(|error| format!("write PDF OCR shard ArtifactBlobCache entry: {error}"))?;
+            return Ok(true);
+        }
+
         let path = self.cache_path(input);
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|error| {
@@ -80,7 +115,6 @@ impl PdfOcrShardCache {
                 )
             })?;
         }
-        let batch = build_ocr_shard_result_batch(std::slice::from_ref(result))?;
         let temporary = temporary_cache_path(path.as_path());
         write_arrow_file(temporary.as_path(), std::slice::from_ref(&batch))?;
         fs::rename(temporary.as_path(), path.as_path()).map_err(|error| {
@@ -125,6 +159,9 @@ impl PdfOcrShardCache {
     }
 
     fn read(&self, input: &PdfOcrShardInput) -> Option<PdfOcrShardResult> {
+        if let Some(cache) = &self.artifact_cache {
+            return self.read_artifact_blob(input, cache);
+        }
         let path = self.cache_path(input);
         if !path.exists() {
             return None;
@@ -140,6 +177,31 @@ impl PdfOcrShardCache {
         let key = ocr_shard_cache_key(input);
         self.root.join(&key[0..2]).join(format!("{key}.arrow"))
     }
+
+    fn read_artifact_blob(
+        &self,
+        input: &PdfOcrShardInput,
+        cache: &ArtifactBlobCacheBackend,
+    ) -> Option<PdfOcrShardResult> {
+        let key = ocr_shard_artifact_key(input).ok()?;
+        let bytes = cache.read(&key).ok()??;
+        let batches = read_arrow_bytes(bytes.bytes()).ok()?;
+        let result = result_from_batches(input, batches.as_slice());
+        if result.is_none() {
+            let _ = cache.remove(&key);
+        }
+        result
+    }
+}
+
+fn artifact_cache_env_lookup(key: &str) -> Option<String> {
+    std::env::var(key).ok().or_else(|| {
+        (key == "PRJ_CACHE_HOME").then(|| {
+            std::env::current_dir()
+                .map(|root| root.join(".cache").to_string_lossy().into_owned())
+                .unwrap_or_else(|_| ".cache".to_string())
+        })
+    })
 }
 
 struct PdfOcrShardCacheResolutionBuilder {
@@ -186,7 +248,14 @@ impl PdfOcrShardCacheResolutionBuilder {
 
 fn read_existing_result(input: &PdfOcrShardInput, path: &Path) -> Option<PdfOcrShardResult> {
     let batches = read_arrow_file(path).ok()?;
-    let mut results = decode_ocr_shard_result_batches(batches.as_slice()).ok()?;
+    result_from_batches(input, batches.as_slice())
+}
+
+fn result_from_batches(
+    input: &PdfOcrShardInput,
+    batches: &[arrow::record_batch::RecordBatch],
+) -> Option<PdfOcrShardResult> {
+    let mut results = decode_ocr_shard_result_batches(batches).ok()?;
     if results.len() != 1 {
         return None;
     }

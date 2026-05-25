@@ -13,8 +13,8 @@ use crate::runtime_config::{
     resolve_qianji_runtime_workflow_state_config,
     resolve_qianji_runtime_workflow_state_config_with_env,
 };
-use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 use std::io;
+use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
 pub(crate) fn resolve_checkpoint_store(
     service: &QianjiBpmnWorkflowControlService,

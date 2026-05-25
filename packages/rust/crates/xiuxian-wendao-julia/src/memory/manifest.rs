@@ -15,7 +15,10 @@ use xiuxian_wendao_runtime::{
 
 use crate::{JuliaContractEnabled, JuliaContractId, JuliaContractSecondsU64};
 
-use super::profile::{MEMORY_JULIA_COMPUTE_FAMILY_ID, MemoryJuliaComputeProfile};
+use super::profile::{
+    MEMORY_JULIA_COMPUTE_FAMILY_ID, MemoryJuliaComputeProfile, request_schema_id,
+    response_schema_id,
+};
 
 /// Response column carrying the capability family id.
 pub const MEMORY_JULIA_COMPUTE_MANIFEST_FAMILY_COLUMN: &str = "family";
@@ -89,21 +92,18 @@ pub fn build_memory_julia_compute_manifest_rows(
 ) -> Vec<MemoryJuliaComputeManifestRow> {
     MemoryJuliaComputeProfile::ALL
         .iter()
-        .map(|profile| {
-            let contract = profile.contract();
-            MemoryJuliaComputeManifestRow {
-                family: contract.family.to_string(),
-                capability_id: contract.capability_id.into(),
-                profile_id: contract.profile_id.into(),
-                request_schema_id: contract.request_schema_id.into(),
-                response_schema_id: contract.response_schema_id.into(),
-                route: route_for_profile(runtime, *profile).to_string(),
-                health_route: runtime.health_route.clone(),
-                schema_version: runtime.schema_version.clone(),
-                timeout_secs: Some(runtime.timeout_secs.value().into()),
-                scenario_pack: runtime.scenario_pack.clone(),
-                enabled: runtime.enabled.into(),
-            }
+        .map(|profile| MemoryJuliaComputeManifestRow {
+            family: MEMORY_JULIA_COMPUTE_FAMILY_ID.to_string(),
+            capability_id: profile.capability_id().into(),
+            profile_id: profile.profile_id().into(),
+            request_schema_id: request_schema_id(*profile).into(),
+            response_schema_id: response_schema_id(*profile).into(),
+            route: route_for_profile(runtime, *profile).to_string(),
+            health_route: runtime.health_route.clone(),
+            schema_version: runtime.schema_version.clone(),
+            timeout_secs: Some(runtime.timeout_secs.value().into()),
+            scenario_pack: runtime.scenario_pack.clone(),
+            enabled: runtime.enabled.into(),
         })
         .collect()
 }
@@ -488,11 +488,9 @@ fn validate_manifest_response_row(
             "`{MEMORY_JULIA_COMPUTE_MANIFEST_PROFILE_ID_COLUMN}` contains unknown profile `{profile_id_value}` at row {row}"
         ));
     };
-    let contract = profile.contract();
-
     validate_contract_match(
         capability_id_value,
-        contract.capability_id,
+        profile.capability_id(),
         MEMORY_JULIA_COMPUTE_MANIFEST_CAPABILITY_ID_COLUMN,
         row,
     )?;
@@ -504,7 +502,7 @@ fn validate_manifest_response_row(
     )?;
     validate_contract_match(
         request_schema_id_value,
-        contract.request_schema_id,
+        request_schema_id(profile),
         MEMORY_JULIA_COMPUTE_MANIFEST_REQUEST_SCHEMA_ID_COLUMN,
         row,
     )?;
@@ -516,7 +514,7 @@ fn validate_manifest_response_row(
     )?;
     validate_contract_match(
         response_schema_id_value,
-        contract.response_schema_id,
+        response_schema_id(profile),
         MEMORY_JULIA_COMPUTE_MANIFEST_RESPONSE_SCHEMA_ID_COLUMN,
         row,
     )?;

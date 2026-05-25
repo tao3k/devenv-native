@@ -3,12 +3,18 @@ use crate::contract_feedback::{
     RoleAuditFinding,
 };
 use anyhow::{Result, anyhow};
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_qianhuan::read_through_injection_snapshot_pack;
 use xiuxian_qianhuan::{
     InjectionSessionId, InjectionSnapshotId, InjectionSnapshotInput, InjectionTurnId,
     PersonaProfile, PromptContextBlock, PromptContextBlockId, PromptContextBlockInput,
     PromptContextCategory, PromptContextSource, PromptSessionScope, RoleMixProfile, RoleMixRole,
 };
 
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use super::QianjiAdvisoryPromptPackArtifactReport;
 use super::evidence::{
     advisory_labels, advisory_summary, findings_summary, pack_summary, primary_finding,
     primary_finding_summary, primary_trace_id, role_mix_profile_id, runtime_trace_artifact_summary,
@@ -27,6 +33,35 @@ impl QianjiAdvisoryAuditExecutor {
     pub(crate) async fn build_plan_internal(
         &self,
         request: &AdvisoryAuditRequest,
+    ) -> Result<QianjiAdvisoryExecutionPlan> {
+        #[cfg(feature = "advisory-prompt-pack-cache")]
+        {
+            return self
+                .build_plan_internal_with_prompt_context_pack_cache(request, None)
+                .await;
+        }
+        #[cfg(not(feature = "advisory-prompt-pack-cache"))]
+        {
+            self.build_plan_internal_common(request).await
+        }
+    }
+
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    pub(crate) async fn build_plan_internal_with_prompt_context_pack_cache(
+        &self,
+        request: &AdvisoryAuditRequest,
+        prompt_context_pack_cache: Option<&(dyn ArtifactBlobCache + Send + Sync)>,
+    ) -> Result<QianjiAdvisoryExecutionPlan> {
+        self.build_plan_internal_common(request, prompt_context_pack_cache)
+            .await
+    }
+
+    async fn build_plan_internal_common(
+        &self,
+        request: &AdvisoryAuditRequest,
+        #[cfg(feature = "advisory-prompt-pack-cache")] prompt_context_pack_cache: Option<
+            &(dyn ArtifactBlobCache + Send + Sync),
+        >,
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         let resolved_roles = self.requested_roles(request);
         let role_mix = Self::build_role_mix(request, &resolved_roles);
@@ -64,12 +99,17 @@ impl QianjiAdvisoryAuditExecutor {
             snapshot.validate().map_err(|error| {
                 anyhow!("invalid advisory injection snapshot for role '{role_id}': {error}")
             })?;
+            #[cfg(feature = "advisory-prompt-pack-cache")]
+            let prompt_context_pack_artifact =
+                Self::prompt_context_pack_artifact_report(prompt_context_pack_cache, &snapshot)?;
 
             roles.push(QianjiAdvisoryRolePlan {
                 role_id: role_id.clone(),
                 persona_name: persona.name.clone(),
                 snapshot,
                 rendered_prompt,
+                #[cfg(feature = "advisory-prompt-pack-cache")]
+                prompt_context_pack_artifact,
             });
         }
 
@@ -145,6 +185,18 @@ impl QianjiAdvisoryAuditExecutor {
                         role_plan.snapshot.total_chars
                     ),
                 });
+                #[cfg(feature = "advisory-prompt-pack-cache")]
+                if let Some(report) = role_plan.prompt_context_pack_artifact {
+                    finding.evidence.push(FindingEvidence {
+                        kind: EvidenceKind::DerivedInvariant,
+                        path: None,
+                        locator: Some("prompt-context-pack".to_string()),
+                        message: format!(
+                            "Prompt-context artifact pack cache_hit={} byte_len={}.",
+                            report.cache_hit, report.byte_len
+                        ),
+                    });
+                }
                 finding.labels = advisory_labels(request, &plan.role_mix, role_plan);
 
                 finding
@@ -196,6 +248,24 @@ impl QianjiAdvisoryAuditExecutor {
         self.registry.get(role_id).ok_or_else(|| {
             anyhow!("advisory role '{role_id}' is not registered in PersonaRegistry")
         })
+    }
+
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    fn prompt_context_pack_artifact_report(
+        cache: Option<&(dyn ArtifactBlobCache + Send + Sync)>,
+        snapshot: &xiuxian_qianhuan::InjectionSnapshot,
+    ) -> Result<Option<QianjiAdvisoryPromptPackArtifactReport>> {
+        let Some(cache) = cache else {
+            return Ok(None);
+        };
+        let read_through =
+            read_through_injection_snapshot_pack(cache, snapshot).map_err(|error| {
+                anyhow!("failed to read through advisory prompt-context artifact pack: {error}")
+            })?;
+        Ok(Some(QianjiAdvisoryPromptPackArtifactReport::new(
+            read_through.cache_hit(),
+            read_through.byte_len(),
+        )))
     }
 
     fn build_blocks(

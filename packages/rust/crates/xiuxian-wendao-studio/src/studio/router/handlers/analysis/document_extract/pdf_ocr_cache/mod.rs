@@ -11,6 +11,8 @@ pub(super) use key::ocr_shard_cache_key;
 pub(super) use types::PdfOcrShardCache;
 
 #[cfg(test)]
+pub(super) use key::ocr_shard_artifact_key;
+#[cfg(test)]
 use std::time::Duration;
 #[cfg(test)]
 pub(super) use types::PdfOcrShardCachePolicy;

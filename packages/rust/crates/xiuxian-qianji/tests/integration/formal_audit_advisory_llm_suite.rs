@@ -6,6 +6,8 @@ use async_trait::async_trait;
 use futures::stream;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::{ArtifactBlobCache, ContentAddressedFilesystemBlobCache};
 use xiuxian_llm::llm::client::ChatStream;
 use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmError, LlmResult};
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
@@ -165,6 +167,55 @@ async fn live_advisory_executor_parses_role_json_output() {
         finding.labels.get("execution_mode").map(String::as_str),
         Some("live_llm")
     );
+}
+
+#[cfg(feature = "advisory-prompt-pack-cache")]
+#[tokio::test]
+async fn live_advisory_executor_reuses_prompt_context_pack_artifacts() {
+    let planner = QianjiAdvisoryAuditExecutor::new(
+        Arc::new(ThousandFacesOrchestrator::new(
+            "Contract Kernel".to_string(),
+            None,
+        )),
+        Arc::new(PersonaRegistry::with_builtins()),
+    );
+    let client = Arc::new(MockAdvisoryLlmClient::new(
+        r#"{
+            "summary":"Role critique: endpoint contract is ambiguous.",
+            "why_it_matters":"Agents cannot infer intent safely.",
+            "remediation":"Document the endpoint purpose and add an example.",
+            "severity":"warning",
+            "confidence":"high"
+        }"#,
+        vec![],
+    ));
+    let cache_root = tempfile::tempdir().expect("cache tempdir should be created");
+    let cache: Arc<dyn ArtifactBlobCache + Send + Sync> =
+        Arc::new(ContentAddressedFilesystemBlobCache::new(cache_root.path()));
+
+    let executor = QianjiLlmAdvisoryAuditExecutor::new(planner, client, "gpt-5.4-mini")
+        .with_prompt_context_pack_cache(cache);
+    let first_findings = executor
+        .run(advisory_request())
+        .await
+        .unwrap_or_else(|error| panic!("first live advisory run should succeed: {error}"));
+    let second_findings = executor
+        .run(advisory_request())
+        .await
+        .unwrap_or_else(|error| panic!("second live advisory run should succeed: {error}"));
+
+    assert!(first_findings.iter().any(|finding| {
+        finding
+            .evidence
+            .iter()
+            .any(|evidence| evidence.message.contains("cache_hit=false"))
+    }));
+    assert!(second_findings.iter().any(|finding| {
+        finding
+            .evidence
+            .iter()
+            .any(|evidence| evidence.message.contains("cache_hit=true"))
+    }));
 }
 
 #[tokio::test]

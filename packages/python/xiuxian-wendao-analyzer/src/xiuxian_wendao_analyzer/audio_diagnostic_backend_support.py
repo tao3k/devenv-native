@@ -63,7 +63,7 @@ def build_asr_result(
     transcript: str,
     transcript_path: Path,
     error: str,
-    result_cache_key: str,
+    task_admission_key: str,
     segments_path: Path,
     segments: list[dict[str, object]],
 ) -> AsrResult:
@@ -84,7 +84,7 @@ def build_asr_result(
         error=error,
         shard_id=chunk.shard_id,
         shard_cache_key=chunk.cache_key,
-        result_cache_key=result_cache_key,
+        task_admission_key=task_admission_key,
         segments_path=str(segments_path) if segments else "",
         segment_count=len(segments),
     )

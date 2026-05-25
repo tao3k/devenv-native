@@ -11,6 +11,8 @@ use futures::stream;
 #[path = "support/workspace.rs"]
 mod workspace;
 use serde_json::json;
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::{ArtifactBlobCache, ContentAddressedFilesystemBlobCache};
 use xiuxian_llm::llm::client::ChatStream;
 use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmError, LlmResult};
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
@@ -319,4 +321,75 @@ async fn live_run_and_persist_contract_feedback_flow_persists_live_entries_throu
             .collect::<Vec<_>>(),
         result.persisted_entry_ids
     );
+}
+
+#[cfg(feature = "advisory-prompt-pack-cache")]
+#[tokio::test]
+async fn live_contract_feedback_runtime_reuses_prompt_context_pack_artifacts() {
+    let cache_root = tempfile::tempdir().expect("cache tempdir should be created");
+    let cache: Arc<dyn ArtifactBlobCache + Send + Sync> =
+        Arc::new(ContentAddressedFilesystemBlobCache::new(cache_root.path()));
+    let sink = InMemoryContractFeedbackSink::new();
+    let client = || {
+        Arc::new(MockAdvisoryLlmClient::new(
+            "",
+            vec![
+                r#"{"summary":"Live critique: endpoint contract is ambiguous.","why_it_matters":"Agents need a stable purpose statement.","remediation":"Add a summary and example.","severity":"warning","confidence":"high"}"#,
+            ],
+        ))
+    };
+
+    let first = must_ok(
+        run_and_persist_contract_feedback_flow_with_live_advisory(
+            &test_suite(),
+            &test_context(),
+            &live_config(),
+            QianjiLiveContractFeedbackRuntime::new(
+                Arc::new(ThousandFacesOrchestrator::new(
+                    "Contract Kernel".to_string(),
+                    None,
+                )),
+                Arc::new(PersonaRegistry::with_builtins()),
+                client(),
+            )
+            .with_prompt_context_pack_cache(cache.clone()),
+            QianjiLiveContractFeedbackOptions::default(),
+            &sink,
+        )
+        .await,
+        "first live contract-feedback runtime run should succeed",
+    );
+    let second = must_ok(
+        run_and_persist_contract_feedback_flow_with_live_advisory(
+            &test_suite(),
+            &test_context(),
+            &live_config(),
+            QianjiLiveContractFeedbackRuntime::new(
+                Arc::new(ThousandFacesOrchestrator::new(
+                    "Contract Kernel".to_string(),
+                    None,
+                )),
+                Arc::new(PersonaRegistry::with_builtins()),
+                client(),
+            )
+            .with_prompt_context_pack_cache(cache),
+            QianjiLiveContractFeedbackOptions::default(),
+            &sink,
+        )
+        .await,
+        "second live contract-feedback runtime run should succeed",
+    );
+
+    assert!(first.run.report.findings.iter().any(|finding| {
+        finding
+            .evidence
+            .iter()
+            .any(|evidence| evidence.message.contains("cache_hit=false"))
+    }));
+    assert!(second.run.report.findings.iter().any(|finding| {
+        finding
+            .evidence
+            .iter()
+            .any(|evidence| evidence.message.contains("cache_hit=true"))
+    }));
 }

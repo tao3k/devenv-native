@@ -312,6 +312,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rust-audio-transcript-admission-dir",
+        type=Path,
+        help=(
+            "Accepted audio transcript admission directory forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_TRANSCRIPT_ADMISSION_DIR. Use this "
+            "to measure warm planned transcript admission independently from "
+            "the shard byte artifact cache."
+        ),
+    )
+    parser.add_argument(
         "--rust-audio-base-workers",
         help=(
             "Base audio shard worker budget forwarded to "

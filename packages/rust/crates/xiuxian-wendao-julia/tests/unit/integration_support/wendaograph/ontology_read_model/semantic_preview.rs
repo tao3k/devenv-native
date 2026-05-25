@@ -1,8 +1,14 @@
 use std::env;
 use std::fs;
+use std::fs::File;
 use std::io;
 use std::path::Path;
+use std::sync::Arc;
 
+use arrow::array::{ArrayRef, Int64Array, StringArray};
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::record_batch::RecordBatch;
+use parquet::arrow::ArrowWriter;
 use tempfile::tempdir;
 
 use super::support::{decode_single_batch, string_column_value};
@@ -164,67 +170,158 @@ fn ontology_read_model_quality_accepts_rdf_source_artifacts_from_env() -> io::Re
 }
 
 fn write_semantic_preview_artifacts(root: &Path, relation_target: &str) -> io::Result<()> {
-    fs::write(
-        root.join("semantic_objects.tsv"),
-        "\
-id\tkind\ttitle\tdomain\tevidence_id\tevidence_status\ttarget_rdf_file\treview_decision\tpromotion_decision\treviewer_id\trelation_count\tstatus\tread_model_projection_staleness
-demo.policy.shanghai_ltc_trial\tdemo.policy_document\tShanghai LTC Trial Policy\tepisteme://private/demo/10_LongTermCare\tevidence:demo.policy\taccepted\t10_LongTermCare/ontology.rdf\taccepted_evidence_candidate\tapproved\treviewer.demo\t1\tactive\tfresh
-demo.city.shanghai\tdemo.pilot_city\tShanghai\tepisteme://private/demo/10_LongTermCare\tevidence:demo.policy\taccepted\t10_LongTermCare/ontology.rdf\taccepted_evidence_candidate\tapproved\treviewer.demo\t1\tactive\tfresh
-",
-    )?;
-    fs::write(
-        root.join("semantic_relations.tsv"),
-        format!(
-            "\
-id\tkind\tsource\ttarget\tdomain\tevidence_id\tevidence_status\ttarget_rdf_file\treview_decision\tpromotion_decision\treviewer_id\tstatus\tread_model_projection_staleness
-demo.relation.policy_city\tdemo.applies_to_city\tdemo.policy.shanghai_ltc_trial\t{relation_target}\tepisteme://private/demo/10_LongTermCare\tevidence:demo.policy\taccepted\t10_LongTermCare/ontology.rdf\taccepted_evidence_candidate\tapproved\treviewer.demo\tactive\tfresh
-"
-        ),
-    )?;
-    fs::write(
-        root.join("semantic_projection_state.json"),
-        r#"[
-  {
-    "projection": "source_patch_semantic_read_model_preview",
-    "status": "active",
-    "staleness": "fresh",
-    "sourceObjectCount": 2,
-    "sourceRelationCount": 1,
-    "sourceEvidenceCount": 1
-  }
-]"#,
+    write_read_model_artifacts(
+        root,
+        "semantic_objects.parquet",
+        "semantic_relations.parquet",
+        "semantic_projection_state.json",
+        "source_patch_semantic_read_model_preview",
+        relation_target,
     )
 }
 
 fn write_rdf_source_artifacts(root: &Path, relation_target: &str) -> io::Result<()> {
-    fs::write(
-        root.join("rdf_source_semantic_objects.tsv"),
-        "\
-id\tkind\ttitle\tdomain\tevidence_id\tevidence_status\ttarget_rdf_file\treview_decision\tpromotion_decision\treviewer_id\trelation_count\tstatus\tread_model_projection_staleness
-demo.policy.shanghai_ltc_trial\tdemo.policy_document\tShanghai LTC Trial Policy\tepisteme://private/demo/10_LongTermCare\tevidence:demo.policy\taccepted\t10_LongTermCare/ontology.rdf\taccepted_evidence_candidate\tapproved\treviewer.demo\t1\tactive\tfresh
-demo.city.shanghai\tdemo.pilot_city\tShanghai\tepisteme://private/demo/10_LongTermCare\tevidence:demo.policy\taccepted\t10_LongTermCare/ontology.rdf\taccepted_evidence_candidate\tapproved\treviewer.demo\t1\tactive\tfresh
-",
+    write_read_model_artifacts(
+        root,
+        "rdf_source_semantic_objects.parquet",
+        "rdf_source_semantic_relations.parquet",
+        "rdf_source_projection_state.json",
+        "source_patch_rdf_source_read_model",
+        relation_target,
+    )
+}
+
+fn write_read_model_artifacts(
+    root: &Path,
+    object_file: &str,
+    relation_file: &str,
+    projection_file: &str,
+    projection: &str,
+    relation_target: &str,
+) -> io::Result<()> {
+    write_parquet(
+        root.join(object_file).as_path(),
+        &RecordBatch::try_new(
+            semantic_object_schema(),
+            vec![
+                strings(["demo.policy.shanghai_ltc_trial", "demo.city.shanghai"]),
+                strings(["demo.policy_document", "demo.pilot_city"]),
+                strings(["Shanghai LTC Trial Policy", "Shanghai"]),
+                strings([
+                    "episteme://private/demo/10_LongTermCare",
+                    "episteme://private/demo/10_LongTermCare",
+                ]),
+                strings(["evidence:demo.policy", "evidence:demo.policy"]),
+                strings(["accepted", "accepted"]),
+                strings([
+                    "10_LongTermCare/ontology.rdf",
+                    "10_LongTermCare/ontology.rdf",
+                ]),
+                strings(["accepted_evidence_candidate", "accepted_evidence_candidate"]),
+                strings(["approved", "approved"]),
+                strings(["reviewer.demo", "reviewer.demo"]),
+                ints([1, 1]),
+                strings(["active", "active"]),
+                strings(["fresh", "fresh"]),
+            ],
+        )
+        .map_err(io::Error::other)?,
+    )?;
+    write_parquet(
+        root.join(relation_file).as_path(),
+        &RecordBatch::try_new(
+            semantic_relation_schema(),
+            vec![
+                strings(["demo.relation.policy_city"]),
+                strings(["demo.applies_to_city"]),
+                strings(["demo.policy.shanghai_ltc_trial"]),
+                strings([relation_target]),
+                strings(["episteme://private/demo/10_LongTermCare"]),
+                strings(["evidence:demo.policy"]),
+                strings(["accepted"]),
+                strings(["10_LongTermCare/ontology.rdf"]),
+                strings(["accepted_evidence_candidate"]),
+                strings(["approved"]),
+                strings(["reviewer.demo"]),
+                strings(["active"]),
+                strings(["fresh"]),
+            ],
+        )
+        .map_err(io::Error::other)?,
     )?;
     fs::write(
-        root.join("rdf_source_semantic_relations.tsv"),
+        root.join(projection_file),
         format!(
-            "\
-id\tkind\tsource\ttarget\tdomain\tevidence_id\tevidence_status\ttarget_rdf_file\treview_decision\tpromotion_decision\treviewer_id\tstatus\tread_model_projection_staleness
-demo.relation.policy_city\tdemo.applies_to_city\tdemo.policy.shanghai_ltc_trial\t{relation_target}\tepisteme://private/demo/10_LongTermCare\tevidence:demo.policy\taccepted\t10_LongTermCare/ontology.rdf\taccepted_evidence_candidate\tapproved\treviewer.demo\tactive\tfresh
-"
-        ),
-    )?;
-    fs::write(
-        root.join("rdf_source_projection_state.json"),
-        r#"[
-  {
-    "projection": "source_patch_rdf_source_read_model",
+            r#"[
+  {{
+    "projection": "{projection}",
     "status": "active",
     "staleness": "fresh",
     "sourceObjectCount": 2,
     "sourceRelationCount": 1,
     "sourceEvidenceCount": 1
-  }
-]"#,
+  }}
+]"#
+        ),
     )
+}
+
+fn write_parquet(path: &Path, batch: &RecordBatch) -> io::Result<()> {
+    let file = File::create(path)?;
+    let mut writer = ArrowWriter::try_new(file, batch.schema(), None).map_err(io::Error::other)?;
+    writer.write(batch).map_err(io::Error::other)?;
+    writer.close().map_err(io::Error::other)?;
+    Ok(())
+}
+
+fn semantic_object_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        string_field("id"),
+        string_field("kind"),
+        string_field("title"),
+        string_field("domain"),
+        string_field("evidence_id"),
+        string_field("evidence_status"),
+        string_field("target_rdf_file"),
+        string_field("review_decision"),
+        string_field("promotion_decision"),
+        string_field("reviewer_id"),
+        int64_field("relation_count"),
+        string_field("status"),
+        string_field("read_model_projection_staleness"),
+    ]))
+}
+
+fn semantic_relation_schema() -> SchemaRef {
+    Arc::new(Schema::new(vec![
+        string_field("id"),
+        string_field("kind"),
+        string_field("source"),
+        string_field("target"),
+        string_field("domain"),
+        string_field("evidence_id"),
+        string_field("evidence_status"),
+        string_field("target_rdf_file"),
+        string_field("review_decision"),
+        string_field("promotion_decision"),
+        string_field("reviewer_id"),
+        string_field("status"),
+        string_field("read_model_projection_staleness"),
+    ]))
+}
+
+fn string_field(name: &'static str) -> Field {
+    Field::new(name, DataType::Utf8, false)
+}
+
+fn int64_field(name: &'static str) -> Field {
+    Field::new(name, DataType::Int64, false)
+}
+
+fn strings<const N: usize>(values: [&str; N]) -> ArrayRef {
+    Arc::new(StringArray::from(values.to_vec()))
+}
+
+fn ints<const N: usize>(values: [i64; N]) -> ArrayRef {
+    Arc::new(Int64Array::from(values.to_vec()))
 }

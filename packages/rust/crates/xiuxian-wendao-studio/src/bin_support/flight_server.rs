@@ -81,10 +81,7 @@ impl SearchFlightServerConfig {
         let repo_id = positional_args
             .next()
             .unwrap_or_else(|| "alpha/repo".to_string());
-        let project_root = positional_args
-            .next()
-            .map(PathBuf::from)
-            .map_or_else(resolve_current_dir, Ok)?;
+        let project_root = resolve_project_root_arg(positional_args.next())?;
         let positional_rerank_dimension = positional_args
             .next()
             .map(|value| {
@@ -107,6 +104,20 @@ impl SearchFlightServerConfig {
 
 fn resolve_current_dir() -> Result<PathBuf> {
     env::current_dir().map_err(|error| anyhow!("failed to resolve current dir: {error}"))
+}
+
+fn resolve_project_root_arg(value: Option<String>) -> Result<PathBuf> {
+    let raw = value
+        .map(PathBuf::from)
+        .map_or_else(resolve_current_dir, Ok)?;
+    let candidate = if raw.is_absolute() {
+        raw
+    } else {
+        resolve_current_dir()?.join(raw)
+    };
+    candidate
+        .canonicalize()
+        .map_err(|error| anyhow!("invalid project root `{}`: {error}", candidate.display()))
 }
 
 fn apply_search_flight_config_override(project_root: &Path) {

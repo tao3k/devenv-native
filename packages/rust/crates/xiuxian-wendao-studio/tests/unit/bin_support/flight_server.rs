@@ -4,7 +4,8 @@ use std::process::Command;
 
 use super::{
     collect_configured_repo_content_documents, configured_bootstrap_repository,
-    configured_repo_content_analysis, search_flight_grpc_web_enabled_with_lookup,
+    configured_repo_content_analysis, resolve_project_root_arg,
+    search_flight_grpc_web_enabled_with_lookup,
 };
 use xiuxian_wendao::analyzers::RegisteredRepository;
 
@@ -27,6 +28,16 @@ fn search_flight_grpc_web_accepts_explicit_override() {
             _ => None,
         }
     ));
+}
+
+#[test]
+fn search_flight_project_root_arg_canonicalizes_relative_path()
+-> Result<(), Box<dyn std::error::Error>> {
+    let resolved = resolve_project_root_arg(Some(".".to_string()))?;
+
+    assert!(resolved.is_absolute());
+    assert_eq!(resolved, std::env::current_dir()?.canonicalize()?);
+    Ok(())
 }
 
 #[test]

@@ -58,12 +58,17 @@ fn materialized_repo_replay_families_consume_benchmark_ready_bridge_rows_only()
     assert!(
         family
             .batch
-            .tsv
+            .candidate_input_arrow_snapshot()
             .lines()
             .all(|line| line.starts_with("repos/ReadyRepo.jl/")),
         "materialized candidate paths should keep repo provenance"
     );
-    assert!(!family.batch.tsv.contains("BacklogRepo.jl"));
+    assert!(
+        !family
+            .batch
+            .candidate_input_arrow_snapshot()
+            .contains("BacklogRepo.jl")
+    );
     Ok(())
 }
 
@@ -131,10 +136,10 @@ fn real_bridge_report_materialized_repo_replay_when_enabled()
         assert!(
             family
                 .batch
-                .tsv
+                .candidate_input_arrow_snapshot()
                 .lines()
                 .all(|line| line.starts_with(&format!("repos/{}/", family.repo_id))),
-            "materialized replay TSV should preserve repo provenance for {}",
+            "materialized replay Arrow snapshot should preserve repo provenance for {}",
             family.repo_id
         );
     }

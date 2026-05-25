@@ -9,6 +9,7 @@ mod types;
 pub use flight::WendaoFlightService;
 pub use ontology::{
     DatasetOntologyMaterializeFlightRouteProvider, DatasetOntologyMaterializeFlightRouteResponse,
+    OntologyCandidateInspectionFlightRouteProvider, OntologyCandidateInspectionFlightRouteResponse,
 };
 pub use sample_host::run_wendao_flight_server_from_args;
 pub use types::{
@@ -37,9 +38,9 @@ pub(crate) use request_metadata::{
     validate_dataset_ontology_materialize_request_metadata, validate_definition_request_metadata,
     validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
     validate_graph_neighbors_request_metadata, validate_markdown_analysis_request_metadata,
-    validate_refine_doc_request_metadata, validate_repo_doc_coverage_request_metadata,
-    validate_repo_index_request_metadata, validate_repo_index_status_request_metadata,
-    validate_repo_overview_request_metadata,
+    validate_ontology_candidate_inspection_request_metadata, validate_refine_doc_request_metadata,
+    validate_repo_doc_coverage_request_metadata, validate_repo_index_request_metadata,
+    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
     validate_repo_projected_page_index_tree_request_metadata,
     validate_repo_projected_retrieval_context_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,

@@ -1,4 +1,4 @@
-"""Audio diagnostic result identity, cache, and summary helpers."""
+"""Audio diagnostic identity, admission cache, and summary helpers."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ class AsrResult:
     error: str
     shard_id: str = ""
     shard_cache_key: str = ""
-    result_cache_key: str = ""
+    task_admission_key: str = ""
     segments_path: str = ""
     segment_count: int = 0
 
@@ -43,14 +43,14 @@ def stable_json_hash(value: object) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def audio_result_cache_key(
+def audio_task_admission_key(
     *,
     shard_cache_key: str,
     task_profile: str,
     backend_id: str,
     backend_config_hash: str,
 ) -> str:
-    """Return the Rust-compatible downstream audio result cache key."""
+    """Return the Rust-compatible downstream audio task admission key."""
 
     payload = f"{shard_cache_key}:{task_profile}:{backend_id}:{backend_config_hash}"
     return f"{task_profile}:{backend_id}:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
@@ -108,19 +108,19 @@ def backend_config_hash(
     return stable_json_hash(identity)
 
 
-def result_cache_path(cache_dir: Path, result_cache_key: str) -> Path:
-    """Return a filesystem-safe path for one result cache key."""
+def admission_cache_path(cache_dir: Path, task_admission_key: str) -> Path:
+    """Return a filesystem-safe path for one task admission key."""
 
-    key_hash = hashlib.sha256(result_cache_key.encode("utf-8")).hexdigest()
+    key_hash = hashlib.sha256(task_admission_key.encode("utf-8")).hexdigest()
     return cache_dir / f"{key_hash}.json"
 
 
-def read_result_cache(
-    cache_dir: Path, result_cache_key: str
+def read_admitted_transcript(
+    cache_dir: Path, task_admission_key: str
 ) -> tuple[str, str, list[dict[str, object]]] | None:
-    """Return cached transcript and model label when available."""
+    """Return an admitted transcript and model label when available."""
 
-    path = result_cache_path(cache_dir, result_cache_key)
+    path = admission_cache_path(cache_dir, task_admission_key)
     if not path.exists():
         return None
     row = json.loads(path.read_text(encoding="utf-8"))
@@ -147,23 +147,23 @@ def write_json(path: Path, value: object) -> None:
     )
 
 
-def write_result_cache(
+def write_admitted_transcript(
     cache_dir: Path,
     *,
-    result_cache_key: str,
+    task_admission_key: str,
     backend: str,
     model: str,
     transcript: str,
     segments: list[dict[str, object]] | None = None,
 ) -> None:
-    """Persist a successful downstream audio result for reuse."""
+    """Persist a successful downstream audio task output for reuse."""
 
     write_json(
-        result_cache_path(cache_dir, result_cache_key),
+        admission_cache_path(cache_dir, task_admission_key),
         {
             "backend": backend,
             "model": model,
-            "resultCacheKey": result_cache_key,
+            "taskAdmissionKey": task_admission_key,
             "segments": [] if segments is None else segments,
             "transcript": transcript,
         },

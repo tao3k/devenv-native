@@ -1,6 +1,6 @@
 use super::{
-    AudioResultCacheInput, AudioShardResult, AudioTranscriptOrgLedgerOptions,
-    DEFAULT_AUDIO_SHARD_PROFILE, audio_result_cache_key, build_audio_transcript_org_ledger,
+    AudioShardResult, AudioTaskAdmissionInput, AudioTranscriptOrgLedgerOptions,
+    DEFAULT_AUDIO_SHARD_PROFILE, audio_task_admission_key, build_audio_transcript_org_ledger,
     error_to_string, merge_audio_shard_results, plan_audio_shards, sample_audio_input, sample_plan,
 };
 
@@ -79,18 +79,18 @@ fn audio_shard_plan_rejects_invalid_contract_inputs() -> Result<(), String> {
 }
 
 #[test]
-fn audio_result_cache_key_includes_backend_and_task_identity() -> Result<(), String> {
-    let input = AudioResultCacheInput {
+fn audio_task_admission_key_includes_backend_and_task_identity() -> Result<(), String> {
+    let input = AudioTaskAdmissionInput {
         shard_cache_key: "audio-shards-v1:abc".to_owned(),
         task_profile: "transcription".to_owned(),
         backend_id: "hosted-audio".to_owned(),
         backend_config_hash: "model-a".to_owned(),
     };
-    let baseline = audio_result_cache_key(&input)?;
+    let baseline = audio_task_admission_key(&input)?;
     let mut changed = input;
     changed.backend_config_hash = "model-b".to_owned();
 
-    let changed_key = audio_result_cache_key(&changed)?;
+    let changed_key = audio_task_admission_key(&changed)?;
 
     assert!(baseline.starts_with("transcription:hosted-audio:"));
     assert_ne!(baseline, changed_key);
@@ -98,15 +98,15 @@ fn audio_result_cache_key_includes_backend_and_task_identity() -> Result<(), Str
 }
 
 #[test]
-fn audio_result_cache_key_rejects_empty_backend_identity() -> Result<(), String> {
-    let input = AudioResultCacheInput {
+fn audio_task_admission_key_rejects_empty_backend_identity() -> Result<(), String> {
+    let input = AudioTaskAdmissionInput {
         shard_cache_key: "audio-shards-v1:abc".to_owned(),
         task_profile: "transcription".to_owned(),
         backend_id: String::new(),
         backend_config_hash: "model-a".to_owned(),
     };
 
-    let Err(error) = audio_result_cache_key(&input) else {
+    let Err(error) = audio_task_admission_key(&input) else {
         return Err("invalid backend identity unexpectedly succeeded".to_owned());
     };
 

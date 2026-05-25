@@ -2,7 +2,7 @@
 
 use super::adapter_error::BpmnAdapterError;
 use futures::future::try_join_all;
-use qianji_bpmn_engine::{
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceState, BpmnPackage, PendingHostWorkApplyInput,
     PendingHostWorkRequest, PendingHostWorkResult, advance_instance,
     apply_pending_host_work_result, build_pending_host_work_requests,

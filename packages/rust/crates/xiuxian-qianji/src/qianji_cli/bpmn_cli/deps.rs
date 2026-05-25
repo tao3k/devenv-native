@@ -25,7 +25,8 @@ pub(crate) use crate::{
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
     SchedulerAgentIdentity, load_bpmn_package_from_files,
 };
-pub(crate) use qianji_bpmn_engine::{
+pub(crate) use serde::Deserialize;
+pub(crate) use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEventKind, BpmnExecutionTraceEvent, BpmnExecutionTraceEventKind,
     BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnHumanTaskLifecycleEvent,
     BpmnHumanTaskLifecycleEventKind, BpmnInstanceState, BpmnLaneMembershipSpec, BpmnNodeKind,
@@ -36,7 +37,6 @@ pub(crate) use qianji_bpmn_engine::{
     ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest,
     WaitKind, build_pending_host_work_requests,
 };
-pub(crate) use serde::Deserialize;
 
 pub(crate) use crate::qianji_cli::input::{
     empty_json_object, invalid_input, parse_flag_value, resolve_cli_path,

@@ -1,6 +1,8 @@
 use super::{
-    ArtifactBlobCache, ArtifactBlobRead, ArtifactBlobWrite, ArtifactKey, ArtifactKeyParts,
-    ArtifactKind, FoyerArtifactBlobCache, FoyerArtifactBlobCacheConfig,
+    AgentArtifactKeyParts, ArtifactBlobCache, ArtifactBlobCacheBackend,
+    ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobWrite, ArtifactCacheBackendKind,
+    ArtifactKey, ArtifactKeyParts, ArtifactKind, FoyerArtifactBlobCache,
+    FoyerArtifactBlobCacheConfig, agent_artifact_key, read_through_artifact_bytes,
 };
 
 fn sample_key() -> Result<ArtifactKey, Box<dyn std::error::Error>> {
@@ -10,6 +12,15 @@ fn sample_key() -> Result<ArtifactKey, Box<dyn std::error::Error>> {
         source_digest: "source-abc".to_owned(),
         profile_digest: "profile-qwen3".to_owned(),
         shard_digest: "shard-0001".to_owned(),
+    })?)
+}
+
+fn agent_evidence_pack_key() -> Result<ArtifactKey, Box<dyn std::error::Error>> {
+    Ok(agent_artifact_key(AgentArtifactKeyParts {
+        kind: ArtifactKind::AgentEvidencePack,
+        source_digest: "org-md-json-source".to_owned(),
+        profile_digest: "prompt-pack-v1".to_owned(),
+        shard_digest: "frontier-0001".to_owned(),
     })?)
 }
 
@@ -48,7 +59,6 @@ fn foyer_blob_cache_roundtrips_bytes() -> Result<(), Box<dyn std::error::Error>>
 }
 
 #[test]
-#[ignore = "pending Foyer close/flush/reopen lifecycle closure under the synchronous ArtifactBlobCache wrapper"]
 fn foyer_blob_cache_reopens_persisted_bytes() -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::TempDir::new()?;
     let key = sample_key()?;
@@ -66,5 +76,99 @@ fn foyer_blob_cache_reopens_persisted_bytes() -> Result<(), Box<dyn std::error::
     );
     reopened.close()?;
 
+    Ok(())
+}
+
+#[test]
+fn foyer_agent_evidence_pack_reopens_cached_bytes() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let key = agent_evidence_pack_key()?;
+    let evidence_pack = br##"{"schema":"xiuxian_wendao.agent_evidence_pack.v1","org":"* Task\n","markdown":"# Note\n","json":{"rows":3}}"##;
+    let mut hit_count = 0;
+    let mut read_bytes = 0;
+    let mut build_count = 0;
+
+    {
+        let cache = FoyerArtifactBlobCache::from_config(test_config(temp.path()))?;
+        let first = read_through_artifact_bytes(&cache, &key, || {
+            build_count += 1;
+            Ok(evidence_pack.to_vec())
+        })?;
+        assert!(first.cache_miss());
+        assert_eq!(first.bytes(), evidence_pack);
+        assert_eq!(
+            first.write_outcome().map(|write| write.byte_len()),
+            Some(evidence_pack.len())
+        );
+        let read = read_through_artifact_bytes(&cache, &key, || {
+            build_count += 1;
+            Ok(b"unexpected hot rebuild".to_vec())
+        })?;
+        assert!(read.cache_hit());
+        hit_count += 1;
+        read_bytes += read.byte_len();
+        assert_eq!(read.bytes(), evidence_pack);
+        cache.close()?;
+    }
+
+    let reopened = FoyerArtifactBlobCache::from_config(test_config(temp.path()))?;
+    let read = read_through_artifact_bytes(&reopened, &key, || {
+        build_count += 1;
+        Ok(b"unexpected restart rebuild".to_vec())
+    })?;
+    assert!(read.cache_hit());
+    hit_count += 1;
+    read_bytes += read.byte_len();
+    assert_eq!(read.bytes(), evidence_pack);
+    reopened.close()?;
+
+    assert_eq!(build_count, 1);
+    assert_eq!(hit_count, 2);
+    assert_eq!(read_bytes, evidence_pack.len() * 2);
+    Ok(())
+}
+
+#[test]
+fn foyer_blob_cache_drops_inside_tokio_runtime_worker() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let root = temp.path().to_path_buf();
+    let key = sample_key()?;
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(1)
+        .enable_all()
+        .build()?;
+
+    runtime.block_on(async move {
+        let cache = FoyerArtifactBlobCache::from_config(test_config(root.as_path()))?;
+        cache.write(&key, ArtifactBlobWrite::new(b"async-context-drop"))?;
+        Ok::<(), Box<dyn std::error::Error>>(())
+    })?;
+    Ok(())
+}
+
+#[test]
+fn foyer_backend_config_builds_artifact_cache_backend() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let config =
+        ArtifactBlobCacheBackendConfig::from_root_and_lookup(temp.path(), &|key| match key {
+            "WENDAO_ARTIFACT_CACHE_BACKEND" => Some("foyer".to_owned()),
+            "WENDAO_ARTIFACT_CACHE_MEMORY_BYTES" => Some((4 * 1024 * 1024).to_string()),
+            "WENDAO_ARTIFACT_CACHE_STORAGE_BYTES" => Some((16 * 1024 * 1024).to_string()),
+            _ => None,
+        })?;
+    assert_eq!(config.kind(), ArtifactCacheBackendKind::Foyer);
+
+    let backend = config.build()?;
+    assert_eq!(backend.backend_name(), "foyer");
+    let ArtifactBlobCacheBackend::Foyer(_) = &backend else {
+        return Err("expected Foyer artifact backend".into());
+    };
+    let key = sample_key()?;
+    backend.write(&key, ArtifactBlobWrite::new(b"backend selected"))?;
+    assert_eq!(
+        backend.read(&key)?.map(ArtifactBlobRead::into_bytes),
+        Some(b"backend selected".to_vec())
+    );
+    backend.close()?;
     Ok(())
 }

@@ -70,6 +70,110 @@ fn standalone_orgize_task_archive_apply_json_outputs_write_receipt() {
 }
 
 #[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_archive_defaults_to_source_file_target() {
+    let temp = tempdir_or_panic();
+    let source = temp.path().join("completed_task.org");
+    std::fs::write(
+        &source,
+        concat!(
+            "* DONE Completed task [1/1] [100%] :agent:\n",
+            "CLOSED: [2026-05-17 Sun]\n",
+            ":PROPERTIES:\n",
+            ":ID: archive-default-target-task\n",
+            ":END:\n",
+            "- [X] Land completed task.\n",
+            "** Reflection\n",
+            "- Summary: The completed task landed.\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write source: {error}"));
+
+    let apply = run_orgize(
+        temp.path(),
+        &[
+            "task-archive",
+            "--apply",
+            "--expect-selected",
+            "1",
+            "completed_task.org",
+        ],
+        "task-archive default target",
+    );
+
+    assert_cli_success(&apply);
+    assert!(
+        apply
+            .stdout
+            .contains("- target: .cache/agent/org/archives/completed_task.org"),
+        "stdout: {}",
+        apply.stdout
+    );
+    let archive_path = temp
+        .path()
+        .join(".cache")
+        .join("agent")
+        .join("org")
+        .join("archives")
+        .join("completed_task.org");
+    assert!(archive_path.is_file());
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn standalone_orgize_task_archive_ignores_deprecated_year_bucket_target() {
+    let temp = tempdir_or_panic();
+    let source = temp.path().join("year_bucket_task.org");
+    std::fs::write(
+        &source,
+        concat!(
+            "* DONE Year bucket task [1/1] [100%] :agent:\n",
+            "CLOSED: [2026-05-17 Sun]\n",
+            ":PROPERTIES:\n",
+            ":ID: archive-year-bucket-task\n",
+            ":ARCHIVE_TARGET: $PRJ_CACHE_HOME/agent/org/archives/2026.org\n",
+            ":END:\n",
+            "- [X] Land completed task.\n",
+            "** Reflection\n",
+            "- Summary: The completed task landed.\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write source: {error}"));
+
+    let apply = run_orgize(
+        temp.path(),
+        &[
+            "task-archive",
+            "--apply",
+            "--expect-selected",
+            "1",
+            "year_bucket_task.org",
+        ],
+        "task-archive deprecated year target",
+    );
+
+    assert_cli_success(&apply);
+    assert!(
+        apply
+            .stdout
+            .contains("- target: .cache/agent/org/archives/year_bucket_task.org"),
+        "stdout: {}",
+        apply.stdout
+    );
+    assert!(
+        !temp
+            .path()
+            .join(".cache")
+            .join("agent")
+            .join("org")
+            .join("archives")
+            .join("2026.org")
+            .exists(),
+        "deprecated yearly bucket should not be created"
+    );
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
 struct ArchiveFixture {
     agenda: PathBuf,
     archive_path: PathBuf,
@@ -96,25 +200,43 @@ fn write_archive_fixture(root: &Path) -> ArchiveFixture {
         concat!(
             "* TODO Active task :agent:\n",
             "SCHEDULED: <2026-05-18 Mon>\n",
-            "* DONE Completed slice :agent:achievement:\n",
+            ":PROPERTIES:\n",
+            ":ID: archive-active-task\n",
+            ":END:\n",
+            "* DONE Completed slice [1/1] [100%] :agent:achievement:\n",
             "CLOSED: [2026-05-17 Sun]\n",
             ":PROPERTIES:\n",
+            ":ID: archive-completed-slice\n",
             ":ARCHIVE_TARGET: $PRJ_CACHE_HOME/agent/org/archives/completed.org\n",
             ":END:\n",
+            "- [X] Land completed slice.\n",
             "Evidence remains with the archived subtree.\n",
-            "* DONE Recent completed slice :agent:\n",
+            "** Reflection\n",
+            "- Summary: The completed slice landed.\n",
+            "* DONE Recent completed slice [1/1] [100%] :agent:\n",
             "CLOSED: [2026-05-20 Wed]\n",
             ":PROPERTIES:\n",
+            ":ID: archive-recent-completed-slice\n",
             ":ARCHIVE_TARGET: $PRJ_CACHE_HOME/agent/org/archives/completed.org\n",
             ":END:\n",
-            "* DONE Secondary completed slice :agent:\n",
+            "- [X] Land recent slice.\n",
+            "** Reflection\n",
+            "- Summary: The recent completed slice landed.\n",
+            "* DONE Secondary completed slice [1/1] [100%] :agent:\n",
             "CLOSED: [2026-05-17 Sun]\n",
             ":PROPERTIES:\n",
+            ":ID: archive-secondary-completed-slice\n",
             ":ARCHIVE_TARGET: $PRJ_CACHE_HOME/agent/org/archives/secondary.org\n",
             ":END:\n",
+            "- [X] Land secondary slice.\n",
+            "** Reflection\n",
+            "- Summary: The secondary completed slice landed.\n",
             "* DONE Repeating cadence :agent:\n",
             "SCHEDULED: <2026-05-18 Mon ++1d>\n",
             "CLOSED: [2026-05-18 Mon]\n",
+            ":PROPERTIES:\n",
+            ":ID: archive-repeating-cadence\n",
+            ":END:\n",
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));
@@ -351,7 +473,7 @@ fn assert_archive_plan_json(root: &Path, _fixture: &ArchiveFixture) {
         1
     );
     assert_eq!(parsed["items"].as_array().map_or(0, Vec::len), 1);
-    assert_eq!(parsed["items"][0]["title"], "Completed slice");
+    assert_eq!(parsed["items"][0]["title"], "Completed slice [1/1] [100%]");
     assert_eq!(
         parsed["items"][0]["target"],
         ".cache/agent/org/archives/completed.org"
@@ -432,9 +554,20 @@ fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
     assert!(agenda_after.contains("Repeating cadence"));
     let archive_after = std::fs::read_to_string(&fixture.archive_path)
         .unwrap_or_else(|error| panic!("read archive: {error}"));
-    assert!(archive_after.contains("#+FILETAGS: :ARCHIVE:"));
     assert!(
-        archive_after.contains("* DONE Completed slice :agent:achievement:ARCHIVE:"),
+        !archive_after.starts_with("#+TITLE:"),
+        "archive should contain only archived subtrees: {archive_after}"
+    );
+    assert!(
+        !archive_after.contains("#+FILETAGS: :ARCHIVE:"),
+        "archive should not synthesize document metadata: {archive_after}"
+    );
+    assert!(
+        archive_after.starts_with("* DONE Completed slice"),
+        "archive should start directly with the archived subtree: {archive_after}"
+    );
+    assert!(
+        archive_after.contains("* DONE Completed slice [1/1] [100%] :agent:achievement:ARCHIVE:"),
         "archive: {archive_after}"
     );
     assert!(

@@ -1,5 +1,6 @@
 #[cfg(feature = "orgize-agent-read-model")]
 mod archive;
+mod eval;
 mod lint;
 mod planning;
 #[cfg(feature = "orgize-agent-read-model")]

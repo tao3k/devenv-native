@@ -7,6 +7,7 @@ use xiuxian_wendao_server::transport::{
 };
 
 use super::dataset_ontology::StudioDatasetOntologyMaterializeFlightRouteProvider;
+use super::ontology_candidate_inspection::StudioOntologyCandidateInspectionFlightRouteProvider;
 use super::provider::StudioSearchFlightRouteProvider;
 use crate::studio::GatewayState;
 use crate::studio::router::handlers::analysis::{
@@ -71,6 +72,9 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     ));
     route_providers.dataset_ontology_materialize = Some(Arc::new(
         StudioDatasetOntologyMaterializeFlightRouteProvider::new(Arc::clone(&state)),
+    ));
+    route_providers.ontology_candidate_inspection = Some(Arc::new(
+        StudioOntologyCandidateInspectionFlightRouteProvider::new(Arc::clone(&state)),
     ));
     route_providers.repo_overview = Some(Arc::new(StudioRepoOverviewFlightRouteProvider::new(
         Arc::clone(&state),

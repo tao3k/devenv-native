@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
@@ -82,13 +82,15 @@ pub(super) fn apply_archive_plan(
             fs::read_to_string(&target)
                 .with_context(|| format!("failed to read `{}`", target.display()))?
         } else {
-            archive_file_header()
+            String::new()
         };
-        if !archive_content.ends_with('\n') {
+        if !archive_content.is_empty() && !archive_content.ends_with('\n') {
             archive_content.push('\n');
         }
         for subtree in subtrees {
-            archive_content.push('\n');
+            if !archive_content.is_empty() {
+                archive_content.push('\n');
+            }
             archive_content.push_str(subtree.trim_end_matches('\n'));
             archive_content.push('\n');
         }
@@ -109,26 +111,63 @@ pub(super) fn archive_target_for_row(
     settings: &ResolvedReadModelSettings,
     context: &ClientContext,
 ) -> PathBuf {
-    property_value(row, "ARCHIVE_TARGET").map_or_else(
-        || {
-            settings
-                .cache_home
-                .join("agent")
-                .join("org")
-                .join("archives")
-                .join("agent_tasks.org")
-        },
-        |value| resolve_config_path_value(value, context.root(), settings.cache_home.as_path()),
-    )
+    property_value(row, "ARCHIVE_TARGET")
+        .filter(|value| !archive_target_is_deprecated_bucket(value))
+        .map_or_else(
+            || default_archive_target_for_row(row, settings),
+            |value| resolve_config_path_value(value, context.root(), settings.cache_home.as_path()),
+        )
 }
 
-fn archive_file_header() -> String {
-    concat!(
-        "#+TITLE: Agent Org Archive\n",
-        "#+AUTHOR: CyberXiuXian Artisan workshop\n",
-        "#+FILETAGS: :ARCHIVE:\n"
-    )
-    .to_string()
+fn default_archive_target_for_row(
+    row: &AgentOrgTaskListRow,
+    settings: &ResolvedReadModelSettings,
+) -> PathBuf {
+    settings
+        .cache_home
+        .join("agent")
+        .join("org")
+        .join("archives")
+        .join(
+            Path::new(row.source_path.as_str())
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(str::to_string)
+                .filter(|name| !name.trim().is_empty())
+                .unwrap_or_else(|| format!("{}.org", archive_slug(row.title.as_str()))),
+        )
+}
+
+fn archive_target_is_deprecated_bucket(value: &str) -> bool {
+    Path::new(value.trim())
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            name == "agent_tasks.org"
+                || name.strip_suffix(".org").is_some_and(|stem| {
+                    stem.len() == 4 && stem.chars().all(|ch| ch.is_ascii_digit())
+                })
+        })
+}
+
+fn archive_slug(title: &str) -> String {
+    let mut slug = String::new();
+    let mut previous_separator = false;
+    for character in title.chars().flat_map(char::to_lowercase) {
+        if character.is_ascii_alphanumeric() {
+            slug.push(character);
+            previous_separator = false;
+        } else if !previous_separator {
+            slug.push('_');
+            previous_separator = true;
+        }
+    }
+    let slug = slug.trim_matches('_');
+    if slug.is_empty() {
+        "agent_task".to_string()
+    } else {
+        slug.to_string()
+    }
 }
 
 fn mark_subtree_archived(subtree: &str) -> String {

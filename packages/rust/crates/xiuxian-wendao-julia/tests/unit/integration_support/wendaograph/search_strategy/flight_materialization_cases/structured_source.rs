@@ -4,21 +4,38 @@ use super::{
     enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization,
     spawn_fake_search_strategy_flow_flight_service_for,
 };
+use crate::integration_support::search_strategy_flow_candidates::{
+    CODE_INTELLIGENCE_CANDIDATE_SOURCE, WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
+};
 
 #[tokio::test]
+async fn search_strategy_flow_flight_materialization_skips_repo_search_for_structured_markdown_source_path()
+ {
+    assert_structured_markdown_source_path_skips_repo_search(CODE_INTELLIGENCE_CANDIDATE_SOURCE)
+        .await;
+}
+
+#[tokio::test]
+async fn search_strategy_flow_flight_materialization_skips_repo_search_for_gateway_retrieval_markdown_source_path()
+ {
+    assert_structured_markdown_source_path_skips_repo_search(
+        WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
+    )
+    .await;
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "Structured source-path preflight fixture keeps the route trace shape explicit"
 )]
-async fn search_strategy_flow_flight_materialization_skips_repo_search_for_structured_markdown_source_path()
- {
+async fn assert_structured_markdown_source_path_skips_repo_search(candidate_input_source: &str) {
     let scenario = SearchStrategyFlowFakeFlightScenario::markdown();
     let candidate_id = format!("{}#{}", scenario.source_path, scenario.node_anchor);
     let trace = serde_json::json!({
         "intent": "find query understanding",
         "backend": "rust-wendao-julia",
         "controlPlane": "rust",
-        "candidateInputSource": "rust-code-intelligence-inventory",
+        "candidateInputSource": candidate_input_source,
         "graphProject": "/tmp/WendaoGraph.jl",
         "searchRoot": "/tmp/WendaoGraph.jl",
         "stageReceipts": [],

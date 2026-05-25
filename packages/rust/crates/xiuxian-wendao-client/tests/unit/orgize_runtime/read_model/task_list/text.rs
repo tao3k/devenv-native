@@ -12,6 +12,7 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
             "* TODO Agent task :agent:performance:\n",
             "SCHEDULED: <2026-05-17 Sun ++1w> DEADLINE: <2026-05-20 Wed .+2d>\n",
             ":PROPERTIES:\n",
+            ":ID: agent-task\n",
             ":NEXT_ACTION: Verify DuckDB snapshot\n",
             ":RESUME_QUERY: wendao-client orgize task-list --text 'Agent task'\n",
             ":END:\n",
@@ -21,6 +22,9 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
             "This inherited agent-tag TODO section should not become a task row.\n",
             "* DONE Closed task :agent:\n",
             "CLOSED: [2026-05-16 Sat]\n",
+            ":PROPERTIES:\n",
+            ":ID: closed-task\n",
+            ":END:\n",
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));
@@ -48,12 +52,8 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
         Some(0),
         "stdout: {stdout}\nstderr: {stderr}"
     );
-    assert!(
-        stdout.contains("orgize agent task-list"),
-        "stdout: {stdout}"
-    );
-    assert!(stdout.contains("rows: 1"), "stdout: {stdout}");
     assert!(stdout.contains("[TASK001] Agent task"), "stdout: {stdout}");
+    assert!(stdout.contains("orgid: agent-task"), "stdout: {stdout}");
     assert!(
         stdout.contains("tags: agent:performance"),
         "stdout: {stdout}"
@@ -76,6 +76,10 @@ fn standalone_orgize_task_list_lists_active_rows_from_duckdb_snapshot() {
     );
     assert!(
         stdout.contains("resume: wendao-client orgize task-list --text 'Agent task'"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("show: wendao-client orgize ogrid-show --cached --id agent-task"),
         "stdout: {stdout}"
     );
     assert!(!stdout.contains("Closed task"), "stdout: {stdout}");

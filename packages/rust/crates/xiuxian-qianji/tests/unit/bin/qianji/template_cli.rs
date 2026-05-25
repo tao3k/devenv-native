@@ -2,12 +2,12 @@ use super::{
     TemplateCliCommand, must_ok, must_some, parse_template_command, run_template_command, to_args,
 };
 use crate::QianjiCompiler;
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
+use xiuxian_qianji_bpmn_engine::{
     BpmnParseOptions, BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source,
     parse_bpmn_package, snapshot_bpmn_source,
 };
-use std::sync::Arc;
-use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_wendao::LinkGraphIndex;
 
 #[test]

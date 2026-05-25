@@ -226,8 +226,8 @@ def build_parser() -> argparse.ArgumentParser:
             "diagnostics."
         ),
     )
-    parser.add_argument("--result-cache-dir", type=Path, default=None)
-    parser.add_argument("--no-result-cache", action="store_true")
+    parser.add_argument("--admission-cache-dir", type=Path, default=None)
+    parser.add_argument("--no-admission-cache", action="store_true")
     parser.add_argument("--reference-jsonl", type=Path, default=None)
     parser.add_argument("--truth-template-jsonl", type=Path, default=None)
     parser.add_argument(
@@ -424,12 +424,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional selected reference draft JSONL output path.",
     )
     parser.add_argument(
-        "--reference-selection-tsv",
-        type=Path,
-        default=None,
-        help="Optional selected reference draft TSV output path.",
-    )
-    parser.add_argument(
         "--materialize-reference-selection-jsonl",
         type=Path,
         default=None,
@@ -450,10 +444,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional report path for materialized reference selection clips.",
     )
     parser.add_argument(
-        "--validate-reference-selection-review-tsv",
+        "--validate-reference-selection-review-table",
         type=Path,
         default=None,
-        help="Validate private reference review clips and TSV readiness.",
+        help="Validate private reference review clips from a Parquet review table.",
     )
     parser.add_argument(
         "--reference-selection-validation-report-json",
@@ -462,7 +456,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional report path for reference review clip validation.",
     )
     parser.add_argument(
-        "--model-review-reference-selection-review-tsv",
+        "--reference-selection-review-org",
+        type=Path,
+        default=None,
+        help=(
+            "Optional private Org checklist path for "
+            "--validate-reference-selection-review-table. The checklist omits "
+            "transcript text and points reviewers back to the Parquet review table."
+        ),
+    )
+    parser.add_argument(
+        "--model-review-reference-selection-review-table",
         type=Path,
         default=None,
         help=(
@@ -475,7 +479,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--reference-selection-model-review-report-json",
         type=Path,
         default=None,
-        help="Optional report path for --model-review-reference-selection-review-tsv.",
+        help="Optional report path for --model-review-reference-selection-review-table.",
     )
     parser.add_argument(
         "--reference-selection-model-review-max-cer",
@@ -487,20 +491,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--curate-reference-draft",
+        "--curate-reference-org",
         type=Path,
         default=None,
         help=(
-            "Convert an edited reference_draft.jsonl into promotion-safe "
-            "curated reference JSONL without running ASR."
-        ),
-    )
-    parser.add_argument(
-        "--curate-reference-tsv",
-        type=Path,
-        default=None,
-        help=(
-            "Convert an edited reference_draft.tsv into promotion-safe "
+            "Convert an edited Org review checklist into promotion-safe "
             "curated reference JSONL without running ASR."
         ),
     )
@@ -508,7 +503,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--curated-reference-jsonl",
         type=Path,
         default=None,
-        help="Output path for --curate-reference-draft.",
+        help="Output path for reference curation commands.",
     )
     parser.add_argument("--max-reference-cer", type=float, default=0.15)
     parser.add_argument("--min-required-term-recall", type=float, default=1.0)

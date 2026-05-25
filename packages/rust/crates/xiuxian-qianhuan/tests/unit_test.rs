@@ -20,6 +20,9 @@ mod test_hot_reload_runtime;
 mod test_manifestation_manager;
 #[path = "unit/test_markdown_config_bridge.rs"]
 mod test_markdown_config_bridge;
+#[cfg(feature = "artifact-cache")]
+#[path = "unit/test_prompt_context_artifacts.rs"]
+mod test_prompt_context_artifacts;
 #[path = "unit/test_thousand_faces.rs"]
 mod test_thousand_faces;
 #[path = "unit/test_window.rs"]

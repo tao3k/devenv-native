@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
 import subprocess
@@ -12,6 +11,9 @@ import urllib.request
 from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from xiuxian_wendao_analyzer.audio_diagnostic_media_probe import (
     audio_duration_seconds,
@@ -31,6 +33,24 @@ if TYPE_CHECKING:
 
 REFERENCE_SELECTION_PACK_SCHEMA = "xiuxian_wendao.audio_reference_selection_pack.v1"
 REFERENCE_SELECTION_MODEL_REVIEW_SCHEMA = "xiuxian_wendao.audio_reference_selection_model_review.v1"
+REFERENCE_SELECTION_REVIEW_ORG_SCHEMA = "xiuxian_wendao.audio_reference_selection_review_org.v1"
+REFERENCE_SELECTION_REVIEW_TABLE_SCHEMA = "xiuxian_wendao.audio_reference_selection_review.v1"
+
+REFERENCE_SELECTION_REVIEW_TABLE = pa.schema(
+    [
+        pa.field("contractVersion", pa.utf8()),
+        pa.field("clipPath", pa.utf8()),
+        pa.field("source", pa.utf8()),
+        pa.field("sourceId", pa.utf8()),
+        pa.field("chunkIndex", pa.int32()),
+        pa.field("startSeconds", pa.float64()),
+        pa.field("durationSeconds", pa.float64()),
+        pa.field("reviewStatus", pa.utf8()),
+        pa.field("selectionReason", pa.utf8()),
+        pa.field("referenceStatus", pa.utf8()),
+        pa.field("text", pa.utf8()),
+    ]
+)
 
 
 def materialize_reference_selection_pack(
@@ -67,13 +87,13 @@ def materialize_reference_selection_pack(
                 "clipFormat": "wav",
             }
         )
-    review_tsv = clip_dir / "reference_selection_review.tsv"
-    _write_review_tsv(review_tsv, packed_rows)
+    review_table = clip_dir / "reference_selection_review.parquet"
+    _write_review_table(review_table, packed_rows)
     return {
         "schema": REFERENCE_SELECTION_PACK_SCHEMA,
         "selectionJsonl": str(selection_jsonl),
         "clipDir": str(clip_dir),
-        "reviewTsv": str(review_tsv),
+        "reviewTable": str(review_table),
         "rows": len(packed_rows),
         "clips": [
             {
@@ -88,61 +108,114 @@ def materialize_reference_selection_pack(
     }
 
 
-def validate_reference_selection_pack(
+def validate_reference_selection_review_table(
     *,
-    review_tsv: Path,
+    review_table: Path,
     duration_tolerance_seconds: float = 0.75,
 ) -> dict[str, object]:
-    """Validate that private review clips are ready for manual curation."""
+    """Validate a DataFusion-friendly private review table."""
 
-    rows = _load_review_rows(review_tsv)
-    issues: list[dict[str, object]] = []
-    duplicate_keys = _duplicate_key_count(rows)
-    candidate_draft_rows = 0
-    curated_rows = 0
-    pending_row_summaries: list[dict[str, object]] = []
-    curated_row_summaries: list[dict[str, object]] = []
+    return _validate_review_rows(
+        _load_review_table_rows(review_table),
+        review_source=review_table,
+        duration_tolerance_seconds=duration_tolerance_seconds,
+    )
+
+
+def write_reference_selection_review_org(
+    *,
+    review_table: Path,
+    output_org: Path,
+    duration_tolerance_seconds: float = 0.75,
+) -> dict[str, object]:
+    """Write a private Org checklist for human reference curation.
+
+    The checklist includes model candidate text for proofreading and leaves a
+    separate reference text block for human truth. Only the human reference
+    block can be promoted into curated reference JSONL.
+    """
+
+    rows = _load_review_table_rows(review_table)
+    validation = _validate_review_rows(
+        rows,
+        review_source=review_table,
+        duration_tolerance_seconds=duration_tolerance_seconds,
+    )
+    lines = [
+        "#+TITLE: Audio Reference Selection Curation",
+        "#+FILETAGS: :audio:reference:private:",
+        "",
+        "* TODO Curate selected audio reference rows",
+        ":PROPERTIES:",
+        f":REVIEW_TABLE: {review_table}",
+        f":ROWS: {len(rows)}",
+        f":CANDIDATE_DRAFT_ROWS: {validation['candidateDraftRows']}",
+        f":CURATED_ROWS: {validation['curatedRows']}",
+        f":PACK_READY: {str(validation['packReady']).lower()}",
+        f":CURATED_READY: {str(validation['curatedReady']).lower()}",
+        ":END:",
+        "",
+        "Listen to each clip, compare it with the `candidate_text` block, then",
+        "write the human reference transcript in the `reference_text` block.",
+        "Change referenceStatus from candidate-draft to curated only after the",
+        "row has been reviewed. The converter ignores candidate_text and only",
+        "promotes reference_text from DONE curated rows.",
+        "",
+    ]
     for index, row in enumerate(rows, start=1):
-        row_issues = _review_row_issues(
+        summary = _redacted_review_row_summary(index, row)
+        issues = _review_row_issues(
             row,
             duration_tolerance_seconds=duration_tolerance_seconds,
         )
-        if row.get("referenceStatus") == "candidate-draft":
-            candidate_draft_rows += 1
-            pending_row_summaries.append(_redacted_review_row_summary(index, row))
-        if row.get("referenceStatus") == "curated":
-            curated_rows += 1
-            curated_row_summaries.append(_redacted_review_row_summary(index, row))
-        if row_issues:
-            issues.append(
-                {
-                    "row": index,
-                    "source": row.get("source", ""),
-                    "chunkIndex": row.get("chunkIndex", ""),
-                    "issues": row_issues,
-                }
-            )
-    pack_ready = bool(rows) and duplicate_keys == 0 and not issues
-    curated_ready = pack_ready and candidate_draft_rows == 0 and curated_rows == len(rows)
+        state = "DONE" if row.get("referenceStatus") == "curated" and not issues else "TODO"
+        lines.extend(
+            [
+                (
+                    f"** {state} Row {index:02d} "
+                    f"{row.get('source', '')} chunk {row.get('chunkIndex', '')}"
+                ),
+                ":PROPERTIES:",
+                f":CLIP_PATH: {row.get('clipPath', '')}",
+                f":SOURCE: {row.get('source', '')}",
+                f":SOURCE_ID: {row.get('sourceId', '')}",
+                f":CHUNK_INDEX: {row.get('chunkIndex', '')}",
+                f":START_SECONDS: {row.get('startSeconds', '')}",
+                f":DURATION_SECONDS: {row.get('durationSeconds', '')}",
+                f":REVIEW_STATUS: {row.get('reviewStatus', '')}",
+                f":SELECTION_REASON: {row.get('selectionReason', '')}",
+                f":REFERENCE_STATUS: {row.get('referenceStatus', '')}",
+                f":TEXT_CHAR_COUNT: {summary['textCharCount']}",
+                f":TEXT_SHA256: {summary['textSha256']}",
+                f":ISSUES: {','.join(issues)}",
+                ":END:",
+                "",
+                "#+begin_src text :name candidate_text",
+                str(row.get("text", "")),
+                "#+end_src",
+                "",
+                "#+begin_src text :name reference_text",
+                "#+end_src",
+                "",
+            ]
+        )
+    write_text(output_org, "\n".join(lines).rstrip() + "\n")
     return {
-        "schema": "xiuxian_wendao.audio_reference_selection_pack_validation.v1",
-        "reviewTsv": str(review_tsv),
+        "schema": REFERENCE_SELECTION_REVIEW_ORG_SCHEMA,
+        "reviewTable": str(review_table),
+        "outputOrg": str(output_org),
         "rows": len(rows),
-        "packReady": pack_ready,
-        "curatedReady": curated_ready,
-        "candidateDraftRows": candidate_draft_rows,
-        "curatedRows": curated_rows,
-        "pendingRows": pending_row_summaries,
-        "curatedRowSummaries": curated_row_summaries,
-        "duplicateKeys": duplicate_keys,
-        "issueRows": len(issues),
-        "issues": issues,
+        "candidateDraftRows": validation["candidateDraftRows"],
+        "curatedRows": validation["curatedRows"],
+        "packReady": validation["packReady"],
+        "curatedReady": validation["curatedReady"],
+        "issueRows": validation["issueRows"],
     }
 
 
 def model_review_reference_selection_pack(
     *,
-    review_tsv: Path,
+    review_table: Path,
     api_key: str,
     model: str,
     base_url: str,
@@ -157,7 +230,7 @@ def model_review_reference_selection_pack(
 ) -> dict[str, object]:
     """Run a hosted model review over private reference clips without curating them."""
 
-    rows = _load_review_rows(review_tsv)
+    rows = _load_review_table_rows(review_table)
     sender = request_sender or _send_openrouter_review_request
     reviewed_rows: list[dict[str, object]] = []
     succeeded_rows = 0
@@ -233,7 +306,7 @@ def model_review_reference_selection_pack(
         )
     return {
         "schema": REFERENCE_SELECTION_MODEL_REVIEW_SCHEMA,
-        "reviewTsv": str(review_tsv),
+        "reviewTable": str(review_table),
         "provider": "openrouter",
         "model": model,
         "baseUrl": base_url,
@@ -265,9 +338,84 @@ def _load_selection_rows(path: Path) -> list[dict[str, object]]:
     return rows
 
 
-def _load_review_rows(path: Path) -> list[dict[str, str]]:
-    with path.open("r", encoding="utf-8", newline="") as handle:
-        return [dict(row) for row in csv.DictReader(handle, dialect="excel-tab")]
+def _load_review_table_rows(path: Path) -> list[dict[str, str]]:
+    table = pq.read_table(path)
+    missing = [
+        field.name
+        for field in REFERENCE_SELECTION_REVIEW_TABLE
+        if field.name not in table.column_names
+    ]
+    if missing:
+        raise ValueError(f"reference review table is missing columns: {','.join(missing)}")
+    rows: list[dict[str, str]] = []
+    for row in table.to_pylist():
+        if not isinstance(row, dict):
+            continue
+        rows.append(
+            {
+                "clipPath": _cell_text(row.get("clipPath")),
+                "source": _cell_text(row.get("source")),
+                "sourceId": _cell_text(row.get("sourceId")),
+                "chunkIndex": _cell_text(row.get("chunkIndex")),
+                "startSeconds": _cell_text(row.get("startSeconds")),
+                "durationSeconds": _cell_text(row.get("durationSeconds")),
+                "reviewStatus": _cell_text(row.get("reviewStatus")),
+                "selectionReason": _cell_text(row.get("selectionReason")),
+                "referenceStatus": _cell_text(row.get("referenceStatus")),
+                "text": _cell_text(row.get("text")),
+            }
+        )
+    return rows
+
+
+def _validate_review_rows(
+    rows: list[dict[str, str]],
+    *,
+    review_source: Path,
+    duration_tolerance_seconds: float,
+) -> dict[str, object]:
+    issues: list[dict[str, object]] = []
+    duplicate_keys = _duplicate_key_count(rows)
+    candidate_draft_rows = 0
+    curated_rows = 0
+    pending_row_summaries: list[dict[str, object]] = []
+    curated_row_summaries: list[dict[str, object]] = []
+    for index, row in enumerate(rows, start=1):
+        row_issues = _review_row_issues(
+            row,
+            duration_tolerance_seconds=duration_tolerance_seconds,
+        )
+        if row.get("referenceStatus") == "candidate-draft":
+            candidate_draft_rows += 1
+            pending_row_summaries.append(_redacted_review_row_summary(index, row))
+        if row.get("referenceStatus") == "curated":
+            curated_rows += 1
+            curated_row_summaries.append(_redacted_review_row_summary(index, row))
+        if row_issues:
+            issues.append(
+                {
+                    "row": index,
+                    "source": row.get("source", ""),
+                    "chunkIndex": row.get("chunkIndex", ""),
+                    "issues": row_issues,
+                }
+            )
+    pack_ready = bool(rows) and duplicate_keys == 0 and not issues
+    curated_ready = pack_ready and candidate_draft_rows == 0 and curated_rows == len(rows)
+    return {
+        "schema": "xiuxian_wendao.audio_reference_selection_pack_validation.v1",
+        "reviewTable": str(review_source),
+        "rows": len(rows),
+        "packReady": pack_ready,
+        "curatedReady": curated_ready,
+        "candidateDraftRows": candidate_draft_rows,
+        "curatedRows": curated_rows,
+        "pendingRows": pending_row_summaries,
+        "curatedRowSummaries": curated_row_summaries,
+        "duplicateKeys": duplicate_keys,
+        "issueRows": len(issues),
+        "issues": issues,
+    }
 
 
 def _resolve_source_path(row: Mapping[str, object]) -> Path:
@@ -317,22 +465,34 @@ def _run_ffmpeg_clip(
         )
 
 
-def _write_review_tsv(path: Path, rows: Sequence[Mapping[str, object]]) -> None:
-    header = [
-        "clipPath",
-        "source",
-        "chunkIndex",
-        "startSeconds",
-        "durationSeconds",
-        "reviewStatus",
-        "selectionReason",
-        "referenceStatus",
-        "text",
-    ]
-    lines = ["\t".join(header)]
+def _write_review_table(path: Path, rows: Sequence[Mapping[str, object]]) -> None:
+    payload = {
+        "contractVersion": [],
+        "clipPath": [],
+        "source": [],
+        "sourceId": [],
+        "chunkIndex": [],
+        "startSeconds": [],
+        "durationSeconds": [],
+        "reviewStatus": [],
+        "selectionReason": [],
+        "referenceStatus": [],
+        "text": [],
+    }
     for row in rows:
-        lines.append("\t".join(_tsv_cell(row.get(field, "")) for field in header))
-    write_text(path, "\n".join(lines) + "\n")
+        payload["contractVersion"].append(REFERENCE_SELECTION_REVIEW_TABLE_SCHEMA)
+        payload["clipPath"].append(_cell_text(row.get("clipPath")))
+        payload["source"].append(_cell_text(row.get("source")))
+        payload["sourceId"].append(_cell_text(row.get("sourceId")))
+        payload["chunkIndex"].append(_int_cell(row.get("chunkIndex")))
+        payload["startSeconds"].append(_float_cell(row.get("startSeconds")))
+        payload["durationSeconds"].append(_float_cell(row.get("durationSeconds")))
+        payload["reviewStatus"].append(_cell_text(row.get("reviewStatus")))
+        payload["selectionReason"].append(_cell_text(row.get("selectionReason")))
+        payload["referenceStatus"].append(_cell_text(row.get("referenceStatus")))
+        payload["text"].append(_cell_text(row.get("text")))
+    table = pa.Table.from_pydict(payload, schema=REFERENCE_SELECTION_REVIEW_TABLE)
+    pq.write_table(table, path)
 
 
 def _review_row_issues(
@@ -451,6 +611,7 @@ def _redacted_review_row_summary(
         "row": row_number,
         "clipPath": row.get("clipPath", ""),
         "source": row.get("source", ""),
+        "sourceId": row.get("sourceId", ""),
         "chunkIndex": _int_or_string(row.get("chunkIndex", "")),
         "startSeconds": _float_or_string(row.get("startSeconds", "")),
         "durationSeconds": _float_or_string(row.get("durationSeconds", "")),
@@ -494,5 +655,30 @@ def _parse_float(value: str) -> float | None:
         return None
 
 
-def _tsv_cell(value: object) -> str:
-    return str(value).replace("\t", " ").replace("\r", " ").replace("\n", "\\n")
+def _cell_text(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value).replace("\r", " ").replace("\n", "\\n")
+
+
+def _int_cell(value: object) -> int:
+    if isinstance(value, bool):
+        raise ValueError("invalid integer cell")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    raise ValueError(f"invalid integer cell: {value}")
+
+
+def _float_cell(value: object) -> float:
+    if isinstance(value, bool):
+        raise ValueError("invalid float cell")
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError as exc:
+            raise ValueError(f"invalid float cell: {value}") from exc
+    raise ValueError(f"invalid float cell: {value}")

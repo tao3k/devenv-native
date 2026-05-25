@@ -95,6 +95,23 @@ pub use ontology::{
     write_episteme_ontology_structural_facts_reasoning_packet,
     write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan,
 };
+#[cfg(feature = "artifact-cache")]
+pub use ontology::{
+    EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
+    EpistemeOntologyArtifactBundleRestoreReport, EpistemeOntologyArtifactBundleWriteReport,
+    EpistemeOntologyBootstrapArtifactCacheOptions,
+    EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
+    EpistemeOntologyBootstrapArtifactCacheReadThroughReport,
+    EpistemeOntologyBootstrapArtifactCacheReport,
+    EpistemeOntologyBootstrapArtifactCacheRestoreMiss,
+    EpistemeOntologyBootstrapArtifactCacheRestoreReport,
+    EpistemeOntologyBootstrapArtifactCacheStage,
+    admit_episteme_ontology_bootstrap_artifact_cache_options,
+    read_through_episteme_ontology_bootstrap_artifacts, restore_episteme_ontology_artifact_bundle,
+    restore_episteme_ontology_bootstrap_pipeline_artifacts,
+    run_episteme_ontology_bootstrap_pipeline_with_artifact_cache,
+    write_episteme_ontology_artifact_bundle,
+};
 pub use runtime_config::{EpistemeRuntimeConfig, load_episteme_runtime_config};
 pub use source_contract::{
     EpistemeActiveSourceContract, EpistemeDomainManifest, EpistemeError,

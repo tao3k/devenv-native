@@ -1,7 +1,8 @@
 //! Intent encoding utilities for self-evolving memory.
 //!
 //! Provides simple intent embedding encoding for episode similarity search.
-//! Uses a hash-based approach for quick encoding without external dependencies.
+//! Uses token-aware feature hashing for quick lexical-semantic recall without
+//! external embedding dependencies.
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -23,38 +24,34 @@ impl IntentEncoder {
         Self { dimension }
     }
 
-    /// Encode intent text into embedding vector.
+    /// Encode intent text into an embedding vector.
     ///
-    /// Uses hash-based encoding:
-    /// 1. Hash the intent text
-    /// 2. Use hash to seed random number generator
-    /// 3. Generate deterministic random vector
-    /// 4. Apply position-based perturbations for uniqueness
+    /// Uses token-aware feature hashing:
+    /// 1. Extract normalized ASCII/CJK tokens from the intent.
+    /// 2. Hash each token into stable vector buckets.
+    /// 3. Add a secondary bucket per token to reduce collision damage.
+    /// 4. Normalize the resulting vector.
     #[must_use]
     pub fn encode(&self, intent: &str) -> Vec<f32> {
         let mut embedding = vec![0.0; self.dimension];
-
-        // Create multiple hash variants for better distribution
-        for (i, slot) in embedding.iter_mut().enumerate().take(self.dimension) {
-            let mut hasher = DefaultHasher::new();
-            intent.hash(&mut hasher);
-            (i as u64).hash(&mut hasher);
-            let hash1 = hasher.finish();
-
-            let mut hasher2 = DefaultHasher::new();
-            intent.hash(&mut hasher2);
-            (i as u64 * 31).hash(&mut hasher2);
-            let hash2 = hasher2.finish();
-
-            // Combine hashes for position-specific encoding
-            let combined = hash1.wrapping_mul(31).wrapping_add(hash2);
-
-            // Convert to float in range [0, 1]
-            let bucket = (combined % 1000) as u16;
-            *slot = f32::from(bucket) / 1000.0;
+        if self.dimension == 0 {
+            return embedding;
         }
 
-        // Normalize to unit vector
+        let tokens = normalized_intent_tokens(intent);
+        if tokens.is_empty() {
+            return embedding;
+        }
+
+        for token in tokens {
+            let primary = token_bucket(token.as_str(), self.dimension, 0);
+            let secondary = token_bucket(token.as_str(), self.dimension, 1);
+            embedding[primary] += 1.0;
+            if secondary != primary {
+                embedding[secondary] += 0.5;
+            }
+        }
+
         Self::normalize(&embedding)
     }
 
@@ -96,4 +93,115 @@ impl Default for IntentEncoder {
     fn default() -> Self {
         Self::new(384) // Common embedding dimension
     }
+}
+
+fn token_bucket(token: &str, dimension: usize, salt: u64) -> usize {
+    let mut hasher = DefaultHasher::new();
+    token.hash(&mut hasher);
+    salt.hash(&mut hasher);
+    hasher
+        .finish()
+        .to_le_bytes()
+        .into_iter()
+        .fold(0usize, |bucket, byte| {
+            bucket.wrapping_mul(257).wrapping_add(usize::from(byte))
+        })
+        % dimension
+}
+
+fn normalized_intent_tokens(intent: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut ascii_run = String::new();
+    let mut cjk_run = Vec::new();
+    for character in intent.chars() {
+        if character.is_ascii_alphanumeric() {
+            flush_cjk_run(&mut tokens, &mut cjk_run);
+            ascii_run.push(character);
+        } else if is_cjk_character(character) {
+            flush_ascii_run(&mut tokens, &mut ascii_run);
+            cjk_run.push(character);
+        } else {
+            flush_ascii_run(&mut tokens, &mut ascii_run);
+            flush_cjk_run(&mut tokens, &mut cjk_run);
+        }
+    }
+    flush_ascii_run(&mut tokens, &mut ascii_run);
+    flush_cjk_run(&mut tokens, &mut cjk_run);
+    tokens
+}
+
+fn flush_ascii_run(tokens: &mut Vec<String>, ascii_run: &mut String) {
+    if ascii_run.is_empty() {
+        return;
+    }
+    let run = std::mem::take(ascii_run);
+    push_unique_token(tokens, run.to_ascii_lowercase());
+    for segment in ascii_semantic_segments(run.as_str()) {
+        push_unique_token(tokens, segment);
+    }
+}
+
+fn ascii_semantic_segments(value: &str) -> Vec<String> {
+    let characters = value.chars().collect::<Vec<_>>();
+    let mut segments = Vec::new();
+    let mut current = String::new();
+
+    for (index, character) in characters.iter().copied().enumerate() {
+        if !current.is_empty() && ascii_segment_boundary(&characters, index) {
+            push_unique_token(&mut segments, current.to_ascii_lowercase());
+            current.clear();
+        }
+        current.push(character);
+    }
+    if !current.is_empty() {
+        push_unique_token(&mut segments, current.to_ascii_lowercase());
+    }
+    segments
+}
+
+fn ascii_segment_boundary(characters: &[char], index: usize) -> bool {
+    if index == 0 {
+        return false;
+    }
+    let previous = characters[index - 1];
+    let current = characters[index];
+    let next = characters.get(index + 1).copied();
+    (previous.is_ascii_lowercase() && current.is_ascii_uppercase())
+        || (previous.is_ascii_alphabetic() && current.is_ascii_digit())
+        || (previous.is_ascii_digit() && current.is_ascii_alphabetic())
+        || (previous.is_ascii_uppercase()
+            && current.is_ascii_uppercase()
+            && next.is_some_and(|next| next.is_ascii_lowercase()))
+}
+
+fn flush_cjk_run(tokens: &mut Vec<String>, cjk_run: &mut Vec<char>) {
+    if cjk_run.is_empty() {
+        return;
+    }
+    for character in cjk_run.iter() {
+        push_unique_token(tokens, character.to_string());
+    }
+    for window in cjk_run.windows(2) {
+        push_unique_token(tokens, window.iter().collect::<String>());
+    }
+    cjk_run.clear();
+}
+
+fn push_unique_token(tokens: &mut Vec<String>, token: String) {
+    if token.chars().count() > 1 && !tokens.iter().any(|existing| existing == &token) {
+        tokens.push(token);
+    }
+}
+
+fn is_cjk_character(character: char) -> bool {
+    matches!(
+        character,
+        '\u{3400}'..='\u{4DBF}'
+            | '\u{4E00}'..='\u{9FFF}'
+            | '\u{F900}'..='\u{FAFF}'
+            | '\u{20000}'..='\u{2A6DF}'
+            | '\u{2A700}'..='\u{2B73F}'
+            | '\u{2B740}'..='\u{2B81F}'
+            | '\u{2B820}'..='\u{2CEAF}'
+    )
 }

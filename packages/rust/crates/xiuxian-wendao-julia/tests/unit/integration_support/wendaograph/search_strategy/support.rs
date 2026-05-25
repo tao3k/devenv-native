@@ -9,9 +9,9 @@ use std::{
 
 use super::{
     RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV,
-    SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowFlightMaterializationConfig,
-    SearchStrategyFlowPersistentBatchHost, SearchStrategyFlowPersistentHostStabilizationLimits,
-    SearchStrategyFlowPersistentHostStabilizationReason,
+    SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch,
+    SearchStrategyFlowFlightMaterializationConfig, SearchStrategyFlowPersistentBatchHost,
+    SearchStrategyFlowPersistentHostStabilizationLimits, SearchStrategyFlowPersistentHostStabilizationReason,
     SearchStrategyFlowPersistentHostStabilizationReport,
     SearchStrategyFlowPersistentHostWarmPathStats,
     configured_wendaograph_search_strategy_flow_markdown_replay_families,
@@ -23,6 +23,7 @@ use super::{
     run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    search_strategy_flow_candidate_input_batch,
     search_strategy_flow_candidate_input_batch_from_repo_search,
     search_strategy_flow_probe_action_route,
     search_strategy_flow_registry_authority_candidate_input_batch,
@@ -38,6 +39,7 @@ use arrow_flight::{
     encode::FlightDataEncoderBuilder,
     flight_service_server::{FlightService, FlightServiceServer},
 };
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 use async_trait::async_trait;
 use futures::Stream;
 use tokio::net::TcpListener;
@@ -1274,7 +1276,7 @@ fn assert_live_flight_trace_contract(
         trace
             .get("candidateInputDiscovery")
             .and_then(|receipt| receipt.get("transport")),
-        Some(&serde_json::json!("arrow-flight")),
+        Some(&serde_json::json!(WENDAO_ARROW_FLIGHT_DATA_PLANE)),
         "{family} must expose the Rust Flight discovery receipt"
     );
     let candidates = json_array(trace, "candidates", family);

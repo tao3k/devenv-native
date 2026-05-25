@@ -6,14 +6,14 @@ use super::error::BpmnOrchestrationError;
 use super::ownership::QianjiBpmnSchedulerLeaseConfig;
 use super::session::QianjiBpmnSession;
 use crate::scheduler_identity::SchedulerAgentIdentity;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
 use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage};
 
 use super::driver::QianjiBpmnExecutionRequest;
 
 /// BPMN-specific execution scheduler above the shared execution driver.
 ///
-/// This scheduler keeps BPMN semantics in `qianji-bpmn-engine` while applying
+/// This scheduler keeps BPMN semantics in `xiuxian-qianji-bpmn-engine` while applying
 /// scheduler-style checkpoint lifecycle rules in the host crate: waiting and
 /// suspended runs remain resumable, while terminal runs clean up stored
 /// checkpoints.

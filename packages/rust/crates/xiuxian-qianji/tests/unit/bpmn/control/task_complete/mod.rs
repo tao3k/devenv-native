@@ -9,7 +9,7 @@ pub(super) use super::support::{
     write_user_service_user_bundle, write_user_task_bundle,
 };
 pub(super) use crate::{QianjiBpmnCheckpointStore, load_bpmn_package_from_files};
-pub(super) use qianji_bpmn_engine::{
+pub(super) use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnInstanceInit, PendingHostWorkApplyInput, PendingHostWorkKind,
     PendingHostWorkResult, ServiceTaskOutcome, UserTaskOutcome, advance_instance,
     apply_pending_host_work_result, create_instance,

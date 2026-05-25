@@ -13,6 +13,8 @@ regex = { workspace = true }
 toml = { workspace = true }
 arrow = { workspace = true }
 arrow-flight = { workspace = true }
+arrow-ipc = { workspace = true }
+parquet = { workspace = true }
 futures = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "time"] }
 serde = { workspace = true }
@@ -24,7 +26,8 @@ inventory = { workspace = true }
 tonic = { workspace = true }
 xiuxian-memory-engine = { path = "../xiuxian-memory-engine" }
 xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence" }
-xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
+xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"] }
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"] }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", features = ["transport"] }
 

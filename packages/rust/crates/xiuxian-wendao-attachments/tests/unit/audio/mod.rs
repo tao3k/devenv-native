@@ -2,12 +2,12 @@
 
 pub(super) use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchCandidate, AudioRecoveryPatchDecisionKind, AudioRecoveryPatchGateOptions,
-    AudioRecoveryPatchMergeRequest, AudioResultCacheInput, AudioRiskParentSelectionOptions,
-    AudioShardInput, AudioShardMaterializationInput, AudioShardMaterializationSource,
-    AudioShardPlan, AudioShardPlannerInput, AudioShardRequestMetric, AudioShardResult,
-    AudioShardResultStatus, AudioShardStrategy, AudioSourceIdentity, AudioSpeechSegment,
-    AudioSpeechWindowPlannerInput, AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
-    apply_audio_recovery_patch_decisions, audio_result_cache_key,
+    AudioRecoveryPatchMergeRequest, AudioRiskParentSelectionOptions, AudioShardInput,
+    AudioShardMaterializationInput, AudioShardMaterializationSource, AudioShardPlan,
+    AudioShardPlannerInput, AudioShardRequestMetric, AudioShardResult, AudioShardResultStatus,
+    AudioShardStrategy, AudioSourceIdentity, AudioSpeechSegment, AudioSpeechWindowPlannerInput,
+    AudioTaskAdmissionInput, AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
+    apply_audio_recovery_patch_decisions, audio_task_admission_key,
     build_audio_recovery_patch_candidates, build_audio_recovery_speech_window_plan_for_inputs,
     build_audio_recovery_split_plan, build_audio_recovery_split_plan_for_inputs,
     build_audio_shard_plan, build_audio_speech_window_plan, build_audio_transcript_org_ledger,

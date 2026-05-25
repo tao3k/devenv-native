@@ -8,8 +8,8 @@ use std::io::Read;
 use std::process::Command;
 #[cfg(feature = "artifact-cache")]
 use xiuxian_db_store::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobWrite, ArtifactKey, ArtifactKeyParts, ArtifactKind,
-    ContentAddressedFilesystemBlobCache,
+    ArtifactBlobCache, ArtifactBlobCacheBackend, ArtifactBlobCacheBackendConfig, ArtifactBlobWrite,
+    ArtifactKey, ArtifactKeyParts, ArtifactKind,
 };
 
 #[cfg(feature = "artifact-cache")]
@@ -33,23 +33,51 @@ pub fn materialize_audio_shards(
     plan: &AudioShardPlan,
     input: &AudioShardMaterializationInput,
 ) -> Result<Vec<AudioShardMaterializedItem>, String> {
+    let manifests = plan_audio_shards(plan)?;
+    materialize_audio_shard_manifests(plan, input, manifests.as_slice())
+}
+
+/// Materialize selected audio shard manifest rows while preserving shard ids.
+///
+/// # Errors
+///
+/// Returns an error when the output directory cannot be created, a selected
+/// shard media window is empty, or `ffmpeg` exits unsuccessfully.
+pub fn materialize_audio_shard_manifests(
+    plan: &AudioShardPlan,
+    input: &AudioShardMaterializationInput,
+    manifests: &[AudioShardManifestItem],
+) -> Result<Vec<AudioShardMaterializedItem>, String> {
     fs::create_dir_all(input.output_dir.as_path()).map_err(|error| {
         format!(
             "failed to create audio shard output dir {}: {error}",
             input.output_dir.display()
         )
     })?;
-    let manifests = plan_audio_shards(plan)?;
+    #[cfg(feature = "artifact-cache")]
+    let artifact_cache = audio_artifact_blob_cache(input)?;
     manifests
+        .to_vec()
         .into_par_iter()
-        .map(|manifest| materialize_one(plan, input, manifest))
+        .map(|manifest| {
+            #[cfg(feature = "artifact-cache")]
+            {
+                materialize_one(plan, input, manifest, artifact_cache.as_ref())
+            }
+            #[cfg(not(feature = "artifact-cache"))]
+            {
+                materialize_one(plan, input, manifest)
+            }
+        })
         .collect()
 }
 
+#[cfg(feature = "artifact-cache")]
 fn materialize_one(
     plan: &AudioShardPlan,
     input: &AudioShardMaterializationInput,
     manifest: AudioShardManifestItem,
+    artifact_cache: Option<&ArtifactBlobCacheBackend>,
 ) -> Result<AudioShardMaterializedItem, String> {
     if manifest.media_duration_ms == 0 {
         return Err(format!(
@@ -68,8 +96,9 @@ fn materialize_one(
         });
     }
     #[cfg(feature = "artifact-cache")]
-    if let Some(shard_sha256) =
-        restore_audio_shard_from_artifact_cache(input, &manifest, output_path.as_path())?
+    if let Some(cache) = artifact_cache
+        && let Some(shard_sha256) =
+            restore_audio_shard_from_artifact_cache(cache, &manifest, output_path.as_path())?
     {
         return Ok(AudioShardMaterializedItem {
             manifest,
@@ -99,7 +128,59 @@ fn materialize_one(
         ));
     }
     #[cfg(feature = "artifact-cache")]
-    write_audio_shard_to_artifact_cache(input, &manifest, output_path.as_path())?;
+    if let Some(cache) = artifact_cache {
+        write_audio_shard_to_artifact_cache(cache, &manifest, output_path.as_path())?;
+    }
+    Ok(AudioShardMaterializedItem {
+        shard_sha256: file_sha256_hex(output_path.as_path())?,
+        manifest,
+        output_path,
+        materialization_source: AudioShardMaterializationSource::MediaSplitter,
+    })
+}
+
+#[cfg(not(feature = "artifact-cache"))]
+fn materialize_one(
+    plan: &AudioShardPlan,
+    input: &AudioShardMaterializationInput,
+    manifest: AudioShardManifestItem,
+) -> Result<AudioShardMaterializedItem, String> {
+    if manifest.media_duration_ms == 0 {
+        return Err(format!(
+            "audio shard {} has empty media duration",
+            manifest.shard_id
+        ));
+    }
+    let output_path = input.output_dir.join(shard_file_name(&manifest));
+    if output_path.exists() && !input.force {
+        let shard_sha256 = file_sha256_hex(output_path.as_path())?;
+        return Ok(AudioShardMaterializedItem {
+            manifest,
+            output_path,
+            shard_sha256,
+            materialization_source: AudioShardMaterializationSource::ExistingOutput,
+        });
+    }
+    let status = Command::new(input.ffmpeg_path.as_path())
+        .args(ffmpeg_args(
+            plan,
+            &manifest,
+            &input.source_path,
+            &output_path,
+        ))
+        .status()
+        .map_err(|error| {
+            format!(
+                "failed to launch audio splitter {}: {error}",
+                input.ffmpeg_path.display()
+            )
+        })?;
+    if !status.success() {
+        return Err(format!(
+            "audio splitter failed for shard {} with status {status}",
+            manifest.shard_id
+        ));
+    }
     Ok(AudioShardMaterializedItem {
         shard_sha256: file_sha256_hex(output_path.as_path())?,
         manifest,
@@ -109,15 +190,34 @@ fn materialize_one(
 }
 
 #[cfg(feature = "artifact-cache")]
-fn restore_audio_shard_from_artifact_cache(
+fn audio_artifact_blob_cache(
     input: &AudioShardMaterializationInput,
-    manifest: &AudioShardManifestItem,
-    output_path: &std::path::Path,
-) -> Result<Option<String>, String> {
+) -> Result<Option<ArtifactBlobCacheBackend>, String> {
     let Some(cache_root) = input.artifact_cache_dir.as_ref() else {
         return Ok(None);
     };
-    let cache = ContentAddressedFilesystemBlobCache::new(cache_root.clone());
+    let config =
+        ArtifactBlobCacheBackendConfig::from_root_and_env(cache_root).map_err(|error| {
+            format!(
+                "resolve audio shard artifact cache backend at `{}`: {error}",
+                cache_root.display()
+            )
+        })?;
+    config.build().map(Some).map_err(|error| {
+        format!(
+            "build audio shard artifact cache backend `{}` at `{}`: {error}",
+            config.kind().as_str(),
+            config.root().display()
+        )
+    })
+}
+
+#[cfg(feature = "artifact-cache")]
+fn restore_audio_shard_from_artifact_cache(
+    cache: &dyn ArtifactBlobCache,
+    manifest: &AudioShardManifestItem,
+    output_path: &std::path::Path,
+) -> Result<Option<String>, String> {
     let key = audio_shard_artifact_key(manifest)?;
     let Some(read) = cache
         .read(&key)
@@ -136,20 +236,16 @@ fn restore_audio_shard_from_artifact_cache(
 
 #[cfg(feature = "artifact-cache")]
 fn write_audio_shard_to_artifact_cache(
-    input: &AudioShardMaterializationInput,
+    cache: &dyn ArtifactBlobCache,
     manifest: &AudioShardManifestItem,
     output_path: &std::path::Path,
 ) -> Result<(), String> {
-    let Some(cache_root) = input.artifact_cache_dir.as_ref() else {
-        return Ok(());
-    };
     let bytes = fs::read(output_path).map_err(|error| {
         format!(
             "failed to read audio shard {} for artifact cache: {error}",
             output_path.display()
         )
     })?;
-    let cache = ContentAddressedFilesystemBlobCache::new(cache_root.clone());
     let key = audio_shard_artifact_key(manifest)?;
     cache
         .write(&key, ArtifactBlobWrite::new(bytes.as_slice()))

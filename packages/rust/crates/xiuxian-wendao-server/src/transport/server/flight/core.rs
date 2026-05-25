@@ -10,8 +10,8 @@ use crate::transport::server::{
     AutocompleteFlightRouteProvider, CodeAstAnalysisFlightRouteProvider,
     DatasetOntologyMaterializeFlightRouteProvider, DefinitionFlightRouteProvider,
     DocumentExtractFlightRouteProvider, GraphNeighborsFlightRouteProvider,
-    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
-    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
+    MarkdownAnalysisFlightRouteProvider, OntologyCandidateInspectionFlightRouteProvider,
+    RefineDocFlightRouteProvider, RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider,
     RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRouteProvider,
@@ -53,6 +53,8 @@ pub struct WendaoFlightService {
     pub(super) document_extract_provider: Option<Arc<dyn DocumentExtractFlightRouteProvider>>,
     pub(super) dataset_ontology_materialize_provider:
         Option<Arc<dyn DatasetOntologyMaterializeFlightRouteProvider>>,
+    pub(super) ontology_candidate_inspection_provider:
+        Option<Arc<dyn OntologyCandidateInspectionFlightRouteProvider>>,
     pub(super) sql_provider: Option<Arc<dyn SqlFlightRouteProvider>>,
     pub(super) rerank_handler: RerankFlightRouteHandler,
     pub(super) route_payload_cache: Arc<FlightRoutePayloadCache>,
@@ -85,6 +87,7 @@ impl WendaoFlightService {
             refine_doc: refine_doc_provider,
             document_extract: document_extract_provider,
             dataset_ontology_materialize: dataset_ontology_materialize_provider,
+            ontology_candidate_inspection: ontology_candidate_inspection_provider,
             vfs_content: vfs_content_provider,
             vfs_scan: vfs_scan_provider,
             vfs_resolve: vfs_resolve_provider,
@@ -118,6 +121,7 @@ impl WendaoFlightService {
             refine_doc_provider,
             document_extract_provider,
             dataset_ontology_materialize_provider,
+            ontology_candidate_inspection_provider,
             sql_provider,
             rerank_handler: RerankFlightRouteHandler::new_with_weights(
                 rerank_dimension,

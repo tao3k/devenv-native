@@ -368,6 +368,12 @@ def build_report_payload(
             if (path := getattr(args, "rust_audio_artifact_cache_dir", None)) is not None
             else None
         ),
+        "rustAudioTranscriptAdmissionDir": (
+            str(path)
+            if (path := getattr(args, "rust_audio_transcript_admission_dir", None))
+            is not None
+            else None
+        ),
         "rustAudioBaseWorkers": getattr(args, "rust_audio_base_workers", None),
         "rustAudioRecoveryWorkers": getattr(args, "rust_audio_recovery_workers", None),
         "rustAudioSpeechSegmentsJsonl": (

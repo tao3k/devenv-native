@@ -1,11 +1,13 @@
 //! Stage implementations for the audio recovery workflow.
 
+use std::collections::HashMap;
+
 use xiuxian_qianji::{WorkflowStage, WorkflowStageFacts};
 use xiuxian_wendao_attachments::audio::{
     AudioShardInput, AudioShardMaterializedItem, AudioShardPlan, AudioShardWorkerProfile,
     build_audio_shard_input_batch, build_audio_shard_inputs, build_audio_shard_result_batch,
     combine_admitted_and_fresh_audio_transcripts, lookup_audio_transcript_admission,
-    lookup_planned_audio_transcript_admission, materialize_audio_shards,
+    lookup_planned_audio_transcript_admission, materialize_audio_shard_manifests,
     persist_audio_transcript_admission, plan_audio_shards,
 };
 
@@ -65,7 +67,13 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPlan>
             context.base_planned_result_preflight = Some(preflight);
             return Ok(Vec::new());
         }
-        materialize_audio_shards(&input, &context.materialization)
+        let materialized = materialize_audio_shard_manifests(
+            &input,
+            &context.materialization,
+            preflight.miss_manifests.as_slice(),
+        )?;
+        context.base_planned_result_preflight = Some(preflight);
+        Ok(materialized)
     }
 }
 
@@ -110,7 +118,13 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPlan>
             context.recovery_planned_result_preflight = Some(preflight);
             return Ok(Vec::new());
         }
-        materialize_audio_shards(&input, &context.materialization)
+        let materialized = materialize_audio_shard_manifests(
+            &input,
+            &context.materialization,
+            preflight.miss_manifests.as_slice(),
+        )?;
+        context.recovery_planned_result_preflight = Some(preflight);
+        Ok(materialized)
     }
 }
 
@@ -143,7 +157,11 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, Vec<AudioShardMaterialized
         input: Vec<AudioShardMaterializedItem>,
     ) -> Result<Self::Output, String> {
         if let Some(preflight) = context.base_planned_result_preflight.as_ref() {
-            return build_prepared_input_rows(preflight.inputs.as_slice());
+            return build_prepared_inputs_with_planned_hits(
+                input.as_slice(),
+                &context.profile,
+                preflight,
+            );
         }
         build_prepared_inputs(input.as_slice(), &context.profile)
     }
@@ -178,7 +196,11 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, Vec<AudioShardMaterialized
         input: Vec<AudioShardMaterializedItem>,
     ) -> Result<Self::Output, String> {
         if let Some(preflight) = context.recovery_planned_result_preflight.as_ref() {
-            return build_prepared_input_rows(preflight.inputs.as_slice());
+            return build_prepared_inputs_with_planned_hits(
+                input.as_slice(),
+                &context.profile,
+                preflight,
+            );
         }
         build_prepared_inputs(input.as_slice(), &context.profile)
     }
@@ -214,7 +236,14 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPreparedInputs>
         input: AudioShardPreparedInputs,
     ) -> Result<Self::Output, String> {
         if let Some(preflight) = context.base_planned_result_preflight.take() {
-            return planned_preflight_exchange(preflight);
+            return request_with_planned_preflight(
+                &context.client,
+                input,
+                preflight,
+                context.base_worker_budget,
+                &context.request_options,
+            )
+            .await;
         }
         request_with_result_batch(
             &context.client,
@@ -256,7 +285,14 @@ impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPreparedInputs>
         input: AudioShardPreparedInputs,
     ) -> Result<Self::Output, String> {
         if let Some(preflight) = context.recovery_planned_result_preflight.take() {
-            return planned_preflight_exchange(preflight);
+            return request_with_planned_preflight(
+                &context.client,
+                input,
+                preflight,
+                context.recovery_worker_budget,
+                &context.request_options,
+            )
+            .await;
         }
         request_with_result_batch(
             &context.client,
@@ -369,6 +405,21 @@ fn build_prepared_inputs(
     build_prepared_input_rows(inputs.as_slice())
 }
 
+fn build_prepared_inputs_with_planned_hits(
+    materialized_shards: &[AudioShardMaterializedItem],
+    profile: &AudioShardWorkerProfile,
+    preflight: &AudioPlannedTranscriptAdmissionLookup,
+) -> Result<AudioShardPreparedInputs, String> {
+    let mut inputs = preflight.inputs.clone();
+    inputs.extend(build_audio_shard_inputs(materialized_shards, profile));
+    inputs.sort_by(|left, right| {
+        left.reading_order_key
+            .cmp(&right.reading_order_key)
+            .then_with(|| left.shard_element_id.cmp(&right.shard_element_id))
+    });
+    build_prepared_input_rows(inputs.as_slice())
+}
+
 fn build_prepared_input_rows(
     inputs: &[AudioShardInput],
 ) -> Result<AudioShardPreparedInputs, String> {
@@ -390,6 +441,46 @@ fn planned_preflight_exchange(
         response,
         result_batch,
         transcript_admission_stats: preflight.stats,
+    })
+}
+
+async fn request_with_planned_preflight(
+    client: &AudioShardFlightClient,
+    prepared_inputs: AudioShardPreparedInputs,
+    preflight: AudioPlannedTranscriptAdmissionLookup,
+    worker_budget: Option<usize>,
+    request_options: &AudioShardFlightRequestOptions,
+) -> Result<AudioShardRecoveryFlightExchange, String> {
+    if preflight.all_hit {
+        return planned_preflight_exchange(preflight);
+    }
+    let admitted_results = preflight
+        .results
+        .iter()
+        .map(|result| (result.shard_element_id.clone(), result.clone()))
+        .collect::<HashMap<_, _>>();
+    let miss_inputs = prepared_inputs
+        .inputs
+        .iter()
+        .filter(|input| !admitted_results.contains_key(input.shard_element_id.as_str()))
+        .cloned()
+        .collect::<Vec<_>>();
+    let fresh_exchange =
+        request_with_result_batch(client, miss_inputs, worker_budget, request_options).await?;
+    let mut transcript_admission_stats = preflight.stats;
+    transcript_admission_stats.add_assign(&fresh_exchange.transcript_admission_stats);
+    let response = AudioShardFlightResponse {
+        results: combine_admitted_and_fresh_audio_transcripts(
+            prepared_inputs.inputs.as_slice(),
+            &admitted_results,
+            fresh_exchange.response.results.as_slice(),
+        ),
+    };
+    let result_batch = build_audio_shard_result_batch(response.results.as_slice())?;
+    Ok(AudioShardRecoveryFlightExchange {
+        response,
+        result_batch,
+        transcript_admission_stats,
     })
 }
 

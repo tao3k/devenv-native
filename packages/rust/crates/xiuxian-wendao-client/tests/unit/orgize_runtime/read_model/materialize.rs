@@ -14,6 +14,7 @@ fn standalone_orgize_read_model_materializes_default_duckdb_snapshot() {
             "* TODO Agent task :agent:\n",
             "SCHEDULED: <2026-05-17 Sun>\n",
             ":PROPERTIES:\n",
+            ":ID: agent-task\n",
             ":NEXT_ACTION: Verify DuckDB snapshot\n",
             ":END:\n",
             "** Evidence\n",
@@ -22,6 +23,9 @@ fn standalone_orgize_read_model_materializes_default_duckdb_snapshot() {
             "This inherited agent-tag TODO section should not become a task row.\n",
             "* DONE Closed task :agent:\n",
             "CLOSED: [2026-05-16 Sat]\n",
+            ":PROPERTIES:\n",
+            ":ID: closed-task\n",
+            ":END:\n",
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));

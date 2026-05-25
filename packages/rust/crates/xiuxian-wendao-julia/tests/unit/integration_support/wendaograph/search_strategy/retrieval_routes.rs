@@ -2,6 +2,7 @@ use super::{
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
     search_strategy_flow_live_replay_search_root,
 };
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 #[test]
 #[expect(
@@ -20,7 +21,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         "candidateInputCount": 2,
         "candidateInputDiscovery": {
             "receiptSource": "rust-code-intelligence-inventory",
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/search/repos/main",
             "attemptCount": 2,
             "mergedCandidateCount": 2
@@ -149,7 +150,7 @@ fn search_strategy_flow_rust_bridge_adds_planned_retrieval_routes() {
         discovery_contract
             .get("discoveryReceipt")
             .and_then(|receipt| receipt.get("transport")),
-        Some(&serde_json::json!("arrow-flight"))
+        Some(&serde_json::json!(WENDAO_ARROW_FLIGHT_DATA_PLANE))
     );
     assert_eq!(
         discovery_contract

@@ -31,11 +31,21 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature            | Purpose                                                              |
-| ------------------ | -------------------------------------------------------------------- |
-| `archive-audit`    | Enables tar and tar.gz member manifest audits for archive fixtures.  |
-| `pdf-source-range` | Enables `lopdf` source-page manifests without PDFium.                |
-| `pdf-render`       | Adds PDFium-backed region/page raster proofs on top of source range. |
+| Feature                | Purpose                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `archive-audit`        | Enables tar and tar.gz member manifest audits for archive fixtures.      |
+| `artifact-cache`       | Enables db-store `ArtifactBlobCache` reuse for derived attachment bytes. |
+| `foyer-artifact-cache` | Forwards the db-store Foyer backend while keeping the same cache trait.  |
+| `audio-shard-arrow`    | Enables Arrow builders/decoders for audio shard Flight rows.            |
+| `pdf-source-range`     | Enables `lopdf` source-page manifests without PDFium.                    |
+| `pdf-render`           | Adds PDFium-backed region/page raster proofs on top of source range.     |
+
+The `artifact-cache` feature consumes the db-store artifact substrate through
+`ArtifactBlobCache` and the stable `attachment_artifact_key` namespace. Derived
+bytes such as audio chunks, source payloads, PDF rasters, OCR region crops, VLM
+atlases, and Arrow IPC batches may be stored through that contract. Attachments
+still owns parser/materialization facts only; DuckDB/Arrow own structured truth
+and Studio/Gateway own route scheduling and merge decisions.
 
 ## Boundaries
 
@@ -171,11 +181,26 @@ for Studio precision gates. Backend model names remain analyzer configuration,
 not attachment identity.
 When the optional `artifact-cache` feature is enabled, materialization can also
 restore or persist normalized shard media through the db-store
-`ArtifactBlobCache` filesystem baseline. This cache stores artifact bytes only:
-it does not change the audio shard Arrow schemas, backend selection, merge
-rules, or precision gates. Force refresh still bypasses stale request-output
-files, but verified content-addressed shard artifacts may satisfy the
-materialization request without invoking the media splitter again.
+`ArtifactBlobCache` backend factory. The filesystem backend remains the
+baseline; `foyer-artifact-cache` forwards the same interface to the Foyer
+artifact backend candidate when the operator selects it. This cache stores
+artifact bytes only: it does not change the audio shard Arrow schemas, backend
+selection, merge rules, or precision gates. Force refresh still bypasses stale
+request-output files, but verified content-addressed shard artifacts may satisfy the
+materialization request without invoking the media splitter again. Cache keys
+derive from artifact kind, source digest, profile digest, and shard digest;
+raw source paths are never treated as artifact identity.
+Attachments also owns accepted transcript admission for audio shard rows. The
+admission API validates shard identity, backend/task identity, non-empty text,
+and merge coverage before persisting a transcript row for reuse. A planned
+admission index can satisfy warm force-refresh requests before byte
+materialization for accepted rows with the same source, shard profile, worker
+profile, and backend configuration. Partial hits return accepted rows plus miss
+manifests, allowing the caller to materialize only missing shard artifacts while
+preserving original shard ids and reading order. Studio passes route/runtime
+identity into this API and remains the live dispatch adapter; it does not
+implement transcript admission, planned admission keys, or acceptance
+validation.
 When Studio needs a worker budget for audio shard dispatch, attachments projects
 model-neutral shard pressure facts into the `xiuxian-polyglot-orchestrator`
 audio schedule contract instead of letting Python invent a production

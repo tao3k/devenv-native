@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Research Plan: qianji-bpmn-engine Architecture and xiuxian-qianji Integration"
+title: "Research Plan: xiuxian-qianji-bpmn-engine Architecture and xiuxian-qianji Integration"
 category: "research"
 status: "draft"
 authors:
@@ -14,24 +14,24 @@ tags:
   - research
 ---
 
-# Research Plan: qianji-bpmn-engine Architecture and xiuxian-qianji Integration
+# Research Plan: xiuxian-qianji-bpmn-engine Architecture and xiuxian-qianji Integration
 
 ## 1. Purpose
 
 This note opens a research lane for adding a standalone
-`qianji-bpmn-engine` crate that `xiuxian-qianji` will depend on. The current
+`xiuxian-qianji-bpmn-engine` crate that `xiuxian-qianji` will depend on. The current
 slice is planning-only. It exists to pin the external study reference, fix the
 phased reading order, and record the architectural stance before any runtime
 implementation begins.
 
 Companion design note:
-[Design Note: qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md)
+[Design Note: xiuxian-qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md)
 and
-[Design Note: qianji-bpmn-engine Crate Skeleton and Host Bridge](2026-04-18-bpmn-crate-skeleton-and-host-bridge.md)
+[Design Note: xiuxian-qianji-bpmn-engine Crate Skeleton and Host Bridge](2026-04-18-bpmn-crate-skeleton-and-host-bridge.md)
 and
-[Audit Note: qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow](2026-04-18-bpmn-dmn-spiff-parity-audit.md)
+[Audit Note: xiuxian-qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow](2026-04-18-bpmn-dmn-spiff-parity-audit.md)
 and
-[Design Note: qianji-bpmn-engine Frontier Concurrency and Synchronization Semantics](2026-04-19-bpmn-frontier-concurrency-semantics.md)
+[Design Note: xiuxian-qianji-bpmn-engine Frontier Concurrency and Synchronization Semantics](2026-04-19-bpmn-frontier-concurrency-semantics.md)
 
 ## 2. External Study Reference
 
@@ -54,7 +54,7 @@ than absorb a large BPMN subsystem internally.
 
 The working architectural stance for this lane is:
 
-1. create a standalone `qianji-bpmn-engine` crate
+1. create a standalone `xiuxian-qianji-bpmn-engine` crate
 2. keep BPMN parsing, immutable IR, runtime token semantics, and checkpointing
    inside that crate
 3. let `xiuxian-qianji` depend on it through thin adapters into scheduler and
@@ -64,7 +64,7 @@ The working architectural stance for this lane is:
 5. reject a Python script engine dependency even though the external study
    reference uses one
 6. keep the dependency direction one-way:
-   `xiuxian-qianji -> qianji-bpmn-engine`
+   `xiuxian-qianji -> xiuxian-qianji-bpmn-engine`
 7. keep explicit placeholders for future DMN support so BPMN-first slices do
    not hard-code DMN out of the crate
 
@@ -133,11 +133,11 @@ The practical rule is:
 5. reserve telemetry pub/sub for observability, not for checkpoint truth
 
 The more concrete payload shape, key layout, and write policy are tracked in
-[Design Note: qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md).
+[Design Note: xiuxian-qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md).
 
 The intended crate layout, public API entrypoints, and host-bridge ownership are
 tracked in
-[Design Note: qianji-bpmn-engine Crate Skeleton and Host Bridge](2026-04-18-bpmn-crate-skeleton-and-host-bridge.md).
+[Design Note: xiuxian-qianji-bpmn-engine Crate Skeleton and Host Bridge](2026-04-18-bpmn-crate-skeleton-and-host-bridge.md).
 
 ## 6. Phased Reading Plan
 
@@ -182,7 +182,7 @@ Read:
 Questions to answer:
 
 1. How are waiting states, events, subprocesses, and manual tasks handled?
-2. What must `qianji-bpmn-engine` own natively for checkpointing and serializer
+2. What must `xiuxian-qianji-bpmn-engine` own natively for checkpointing and serializer
    migration?
 3. What behavior corpus is strong enough to seed the first executable subset?
 
@@ -202,20 +202,20 @@ Read:
 
 Questions to answer:
 
-1. Which concerns belong in `qianji-bpmn-engine`?
+1. Which concerns belong in `xiuxian-qianji-bpmn-engine`?
 2. Which concerns remain owned by `xiuxian-qianji`, scheduler, telemetry, and
    Flowhub?
 3. What is explicitly out of scope for the first 3 slices?
 
 Completion signal:
-The crate boundary between `qianji-bpmn-engine` and `xiuxian-qianji` is stable
+The crate boundary between `xiuxian-qianji-bpmn-engine` and `xiuxian-qianji` is stable
 enough to implement later.
 
 ## 7. Initial Architectural Working Assumptions
 
 These assumptions are intentionally provisional and remain auditable:
 
-1. BPMN should live in a dedicated `qianji-bpmn-engine` crate, not as a
+1. BPMN should live in a dedicated `xiuxian-qianji-bpmn-engine` crate, not as a
    long-lived internal folder inside `xiuxian-qianji` and not as a thin rewrite
    of Flowhub.
 2. A dedicated BPMN runtime is more coherent than flattening BPMN directly into
@@ -279,7 +279,7 @@ Current status:
 16. that higher-level orchestration slice is now also landed as a bounded
     `xiuxian-qianji::bpmn::runtime` facade covering bundle load, session
     ownership, checkpoint backend selection, and stable host-work-driven
-    advancement without moving BPMN semantics out of `qianji-bpmn-engine`
+    advancement without moving BPMN semantics out of `xiuxian-qianji-bpmn-engine`
 17. the next bounded move should now stay above that facade and target one
     explicit scheduler, CLI, or adapter-owned execution surface rather than
     reopening parser/DMN internals first
@@ -362,7 +362,7 @@ Current status:
     preserves excess buffered join arrivals deterministically, and falls back
     to per-proposal replay when legacy checkpoint state lacks per-edge join
     counts
-41. full `qianji-bpmn-engine` validation now also passes after restructuring
+41. full `xiuxian-qianji-bpmn-engine` validation now also passes after restructuring
     the pre-existing `tests/unit/checkpoint/valkey.rs` harness blocker into a
     folder-first suite, while leaving checkpoint assertion semantics unchanged
 42. the next bounded move should now be selected explicitly between broader

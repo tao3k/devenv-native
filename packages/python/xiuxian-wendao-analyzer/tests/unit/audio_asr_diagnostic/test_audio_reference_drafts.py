@@ -9,6 +9,57 @@ import pytest
 from .support import Path, _load_audio_asr_diagnostic
 
 
+def _materialize_review_table(
+    diagnostic,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    rows: list[dict[str, object]],
+) -> Path:
+    source_path = tmp_path / "forum.mp3"
+    source_path.write_bytes(b"audio")
+    selection_path = tmp_path / "selected.jsonl"
+    clip_dir = tmp_path / "clips"
+
+    def fake_run(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"clip")
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.subprocess.run",
+        fake_run,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: float(rows[0].get("durationSeconds", 8.0)) if rows else 8.0,
+    )
+    diagnostic.write_jsonl(
+        selection_path,
+        [
+            {
+                "source": row.get("source", source_path.name),
+                "sourceId": str(source_path),
+                "chunkIndex": row.get("chunkIndex", 2),
+                "startSeconds": row.get("startSeconds", 12.5),
+                "durationSeconds": row.get("durationSeconds", 8.0),
+                "reviewStatus": row.get("reviewStatus", "review-needed"),
+                "selectionReason": row.get("selectionReason", "timeline-spread"),
+                "referenceStatus": row.get(
+                    "referenceStatus",
+                    diagnostic.REFERENCE_STATUS_CANDIDATE_DRAFT,
+                ),
+                "text": row.get("text", "draft text"),
+            }
+            for row in rows
+        ],
+    )
+    pack = diagnostic.materialize_reference_selection_pack(
+        selection_jsonl=selection_path,
+        clip_dir=clip_dir,
+        ffmpeg_path="ffmpeg",
+    )
+    return Path(pack["reviewTable"])
+
+
 def test_truth_template_rows_do_not_include_transcript_text(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     source = tmp_path / "forum.MP3"
@@ -150,33 +201,47 @@ def test_curated_reference_metadata_is_safe_for_promotion(tmp_path: Path) -> Non
     assert diagnostic.reference_candidate_draft_row_count(reference_path) == 0
 
 
-def test_curated_reference_rows_from_draft_strip_diagnostic_metadata(
+def test_curated_reference_rows_from_org_strip_diagnostic_metadata(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    draft_path = tmp_path / "reference_draft.jsonl"
-    diagnostic.write_jsonl(
-        draft_path,
+    review_table = _materialize_review_table(
+        diagnostic,
+        tmp_path,
+        monkeypatch,
         [
             {
                 "source": "forum.MP3",
-                "sourceId": "/private/forum.MP3",
                 "chunkIndex": 2,
                 "startSeconds": 60.0,
                 "durationSeconds": 30.0,
-                "backend": "local-openai-audio",
-                "model": "qwen3-asr-1.7b-mlx",
                 "reviewStatus": "review-needed",
-                "referenceStatus": "curated",
-                "text": " corrected reference transcript ",
+                "referenceStatus": "candidate-draft",
+                "text": "model draft text",
             }
         ],
     )
+    output_org = tmp_path / "reference_selection_review.org"
+    diagnostic.write_reference_selection_review_org(
+        review_table=review_table,
+        output_org=output_org,
+    )
+    org_text = (
+        output_org.read_text(encoding="utf-8")
+        .replace("** TODO Row 01", "** DONE Row 01")
+        .replace(":REFERENCE_STATUS: candidate-draft", ":REFERENCE_STATUS: curated")
+        .replace(
+            "#+begin_src text :name reference_text\n#+end_src",
+            "#+begin_src text :name reference_text\n corrected reference transcript \n#+end_src",
+        )
+    )
+    output_org.write_text(org_text, encoding="utf-8")
 
-    assert diagnostic.curated_reference_rows_from_draft(draft_path) == [
+    assert diagnostic.curated_reference_rows_from_org(output_org) == [
         {
             "source": "forum.MP3",
-            "sourceId": "/private/forum.MP3",
+            "sourceId": str(tmp_path / "forum.mp3"),
             "chunkIndex": 2,
             "startSeconds": 60.0,
             "durationSeconds": 30.0,
@@ -186,97 +251,72 @@ def test_curated_reference_rows_from_draft_strip_diagnostic_metadata(
     ]
 
 
-def test_curated_reference_rows_from_draft_reject_candidate_draft(
+def test_curated_reference_rows_from_org_rejects_candidate_draft(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    draft_path = tmp_path / "reference_draft.jsonl"
-    diagnostic.write_jsonl(
-        draft_path,
-        [
-            {
-                "source": "forum.MP3",
-                "chunkIndex": 2,
-                "referenceStatus": "candidate-draft",
-                "text": "model draft transcript",
-            }
-        ],
+    review_table = _materialize_review_table(diagnostic, tmp_path, monkeypatch, [{}])
+    output_org = tmp_path / "reference_selection_review.org"
+    diagnostic.write_reference_selection_review_org(
+        review_table=review_table,
+        output_org=output_org,
+    )
+    output_org.write_text(
+        output_org.read_text(encoding="utf-8")
+        .replace("** TODO Row 01", "** DONE Row 01")
+        .replace(
+            "#+begin_src text :name reference_text\n#+end_src",
+            "#+begin_src text :name reference_text\nhuman text\n#+end_src",
+        ),
+        encoding="utf-8",
     )
 
     with pytest.raises(ValueError, match="not curated"):
-        diagnostic.curated_reference_rows_from_draft(draft_path)
+        diagnostic.curated_reference_rows_from_org(output_org)
 
 
-def test_curated_reference_rows_from_draft_reject_empty_text(
+def test_curated_reference_rows_from_org_rejects_empty_text(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    draft_path = tmp_path / "reference_draft.jsonl"
-    diagnostic.write_jsonl(
-        draft_path,
-        [
-            {
-                "source": "forum.MP3",
-                "chunkIndex": 2,
-                "referenceStatus": "curated",
-                "text": " ",
-            }
-        ],
+    review_table = _materialize_review_table(diagnostic, tmp_path, monkeypatch, [{}])
+    output_org = tmp_path / "reference_selection_review.org"
+    diagnostic.write_reference_selection_review_org(
+        review_table=review_table,
+        output_org=output_org,
+    )
+    output_org.write_text(
+        output_org.read_text(encoding="utf-8")
+        .replace("** TODO Row 01", "** DONE Row 01")
+        .replace(":REFERENCE_STATUS: candidate-draft", ":REFERENCE_STATUS: curated"),
+        encoding="utf-8",
     )
 
     with pytest.raises(ValueError, match="empty reference text"):
-        diagnostic.curated_reference_rows_from_draft(draft_path)
+        diagnostic.curated_reference_rows_from_org(output_org)
 
 
-def test_reference_draft_tsv_can_feed_curated_reference_rows(
+def test_curated_reference_rows_from_org_rejects_unfinished_row(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    transcript = tmp_path / "chunk.txt"
-    transcript.write_text("candidate transcript text", encoding="utf-8")
-    row = diagnostic.QualityRow(
-        backend="local-openai-audio",
-        source="/private/forum.MP3",
-        chunk_index=5,
-        start_seconds=150.0,
-        duration_seconds=30.0,
-        status="ok",
-        review_status="review-needed",
-        model="qwen3-asr-1.7b-mlx",
-        transcript_chars=25,
-        chinese_ratio=1.0,
-        inaudible_count=0,
-        inaudible_per_minute=0.0,
-        chars_per_minute=50.0,
-        repeated_ngram_ratio=0.0,
-        reference_cer=None,
-        required_terms_count=0,
-        missing_required_terms="",
-        required_term_recall=None,
-        transcript_path=str(transcript),
-        error="",
+    review_table = _materialize_review_table(
+        diagnostic,
+        tmp_path,
+        monkeypatch,
+        [{}],
     )
-    draft_tsv = tmp_path / "reference_draft.tsv"
-
-    diagnostic.write_reference_draft_tsv(draft_tsv, [row])
-
-    edited_tsv = draft_tsv.read_text(encoding="utf-8").replace(
-        "candidate-draft",
-        "curated",
+    output_org = tmp_path / "reference_selection_review.org"
+    diagnostic.write_reference_selection_review_org(
+        review_table=review_table,
+        output_org=output_org,
     )
-    draft_tsv.write_text(edited_tsv, encoding="utf-8")
 
-    assert diagnostic.curated_reference_rows_from_tsv(draft_tsv) == [
-        {
-            "source": "forum.MP3",
-            "sourceId": "/private/forum.MP3",
-            "chunkIndex": 5,
-            "startSeconds": 150.0,
-            "durationSeconds": 30.0,
-            "referenceStatus": "curated",
-            "text": "candidate transcript text",
-        }
-    ]
+    with pytest.raises(ValueError, match="not marked DONE"):
+        diagnostic.curated_reference_rows_from_org(output_org)
 
 
 def test_select_reference_rows_prioritizes_risky_and_spreads_timeline() -> None:
@@ -346,11 +386,10 @@ def test_select_reference_rows_never_exceeds_limit_for_many_priority_rows() -> N
     assert all(row["selectionReason"] == "short-utterance" for row in selected)
 
 
-def test_select_reference_draft_report_writes_jsonl_and_tsv(tmp_path: Path) -> None:
+def test_select_reference_draft_report_writes_jsonl(tmp_path: Path) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     draft_path = tmp_path / "reference_draft.jsonl"
     selected_jsonl = tmp_path / "selected.jsonl"
-    selected_tsv = tmp_path / "selected.tsv"
     diagnostic.write_jsonl(
         draft_path,
         [
@@ -370,13 +409,12 @@ def test_select_reference_draft_report_writes_jsonl_and_tsv(tmp_path: Path) -> N
         draft_jsonl=draft_path,
         limit=4,
         selected_jsonl=selected_jsonl,
-        selected_tsv=selected_tsv,
     )
 
     assert report["schema"] == "xiuxian_wendao.audio_reference_selection.v1"
     assert report["selectedRows"] == 1
     assert selected_jsonl.exists()
-    assert selected_tsv.exists()
+    assert report["selectedJsonl"] == str(selected_jsonl)
 
 
 def test_select_reference_draft_report_can_use_rechecked_quality(
@@ -443,6 +481,10 @@ def test_materialize_reference_selection_pack_writes_review_clips(
         "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.subprocess.run",
         fake_run,
     )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 8.0,
+    )
     diagnostic.write_jsonl(
         selection_path,
         [
@@ -472,54 +514,26 @@ def test_materialize_reference_selection_pack_writes_review_clips(
     assert commands[0][commands[0].index("-ss") + 1] == "12.500"
     assert commands[0][commands[0].index("-t") + 1] == "8.000"
     assert Path(report["clips"][0]["clipPath"]).exists()
-    assert (clip_dir / "reference_selection_review.tsv").exists()
+    review_table = clip_dir / "reference_selection_review.parquet"
+    assert report["reviewTable"] == str(review_table)
+    assert review_table.exists()
+    validation = diagnostic.validate_reference_selection_review_table(review_table=review_table)
+    assert validation["packReady"] is True
+    assert validation["candidateDraftRows"] == 1
 
 
-def test_validate_reference_selection_pack_reports_pack_and_curated_status(
+def test_validate_reference_selection_review_table_reports_pack_and_curated_status(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    clip = tmp_path / "chunk.wav"
-    clip.write_bytes(b"clip")
-    review_tsv = tmp_path / "reference_selection_review.tsv"
-    review_tsv.write_text(
-        "\t".join(
-            [
-                "clipPath",
-                "source",
-                "chunkIndex",
-                "startSeconds",
-                "durationSeconds",
-                "reviewStatus",
-                "selectionReason",
-                "referenceStatus",
-                "text",
-            ]
-        )
-        + "\n"
-        + "\t".join(
-            [
-                str(clip),
-                "forum.mp3",
-                "2",
-                "12.5",
-                "8.0",
-                "review-needed",
-                "timeline-spread",
-                "candidate-draft",
-                "draft text",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    review_table = _materialize_review_table(diagnostic, tmp_path, monkeypatch, [{}])
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
         lambda _path: 8.1,
     )
 
-    report = diagnostic.validate_reference_selection_pack(review_tsv=review_tsv)
+    report = diagnostic.validate_reference_selection_review_table(review_table=review_table)
 
     assert report["schema"] == ("xiuxian_wendao.audio_reference_selection_pack_validation.v1")
     assert report["packReady"] is True
@@ -528,8 +542,9 @@ def test_validate_reference_selection_pack_reports_pack_and_curated_status(
     assert report["pendingRows"] == [
         {
             "row": 1,
-            "clipPath": str(clip),
+            "clipPath": str(tmp_path / "clips" / "forum__chunk_0002.wav"),
             "source": "forum.mp3",
+            "sourceId": str(tmp_path / "forum.mp3"),
             "chunkIndex": 2,
             "startSeconds": 12.5,
             "durationSeconds": 8.0,
@@ -544,44 +559,105 @@ def test_validate_reference_selection_pack_reports_pack_and_curated_status(
     assert report["issueRows"] == 0
 
 
+def test_reference_selection_review_org_includes_candidate_text(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    review_table = _materialize_review_table(
+        diagnostic,
+        tmp_path,
+        monkeypatch,
+        [{"text": "private draft text"}],
+    )
+    output_org = tmp_path / "reference_selection_review.org"
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 8.0,
+    )
+
+    report = diagnostic.write_reference_selection_review_org(
+        review_table=review_table,
+        output_org=output_org,
+    )
+
+    assert report["schema"] == "xiuxian_wendao.audio_reference_selection_review_org.v1"
+    assert report["rows"] == 1
+    org_text = output_org.read_text(encoding="utf-8")
+    assert "private draft text" in org_text
+    assert "#+begin_src text :name candidate_text\nprivate draft text\n#+end_src" in org_text
+    assert "#+begin_src text :name reference_text\n#+end_src" in org_text
+    assert f":CLIP_PATH: {tmp_path / 'clips' / 'forum__chunk_0002.wav'}" in org_text
+    assert ":REFERENCE_STATUS: candidate-draft" in org_text
+    assert ":TEXT_CHAR_COUNT: 18" in org_text
+
+
+def test_reference_selection_review_org_accepts_review_table(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    source_path = tmp_path / "forum.mp3"
+    source_path.write_bytes(b"audio")
+    selection_path = tmp_path / "selected.jsonl"
+    clip_dir = tmp_path / "clips"
+    output_org = tmp_path / "reference_selection_review.org"
+
+    def fake_run(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"clip")
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.subprocess.run",
+        fake_run,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 8.0,
+    )
+    diagnostic.write_jsonl(
+        selection_path,
+        [
+            {
+                "source": "forum.mp3",
+                "sourceId": str(source_path),
+                "chunkIndex": 2,
+                "startSeconds": 12.5,
+                "durationSeconds": 8.0,
+                "reviewStatus": "review-needed",
+                "selectionReason": "timeline-spread",
+                "referenceStatus": diagnostic.REFERENCE_STATUS_CANDIDATE_DRAFT,
+                "text": "private draft text",
+            }
+        ],
+    )
+    pack = diagnostic.materialize_reference_selection_pack(
+        selection_jsonl=selection_path,
+        clip_dir=clip_dir,
+        ffmpeg_path="ffmpeg",
+    )
+
+    report = diagnostic.write_reference_selection_review_org(
+        review_table=Path(pack["reviewTable"]),
+        output_org=output_org,
+    )
+
+    assert report["reviewTable"] == pack["reviewTable"]
+    org_text = output_org.read_text(encoding="utf-8")
+    assert "private draft text" in org_text
+    assert ":REVIEW_TABLE: " in org_text
+
+
 def test_model_review_reference_selection_pack_is_redacted(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    clip = tmp_path / "chunk.wav"
-    clip.write_bytes(b"clip")
-    review_tsv = tmp_path / "reference_selection_review.tsv"
-    review_tsv.write_text(
-        "\t".join(
-            [
-                "clipPath",
-                "source",
-                "chunkIndex",
-                "startSeconds",
-                "durationSeconds",
-                "reviewStatus",
-                "selectionReason",
-                "referenceStatus",
-                "text",
-            ]
-        )
-        + "\n"
-        + "\t".join(
-            [
-                str(clip),
-                "forum.mp3",
-                "2",
-                "12.5",
-                "8.0",
-                "review-needed",
-                "timeline-spread",
-                "candidate-draft",
-                "candidate text",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
+    review_table = _materialize_review_table(
+        diagnostic,
+        tmp_path,
+        monkeypatch,
+        [{"text": "candidate text"}],
     )
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
@@ -589,7 +665,7 @@ def test_model_review_reference_selection_pack_is_redacted(
     )
 
     report = diagnostic.model_review_reference_selection_pack(
-        review_tsv=review_tsv,
+        review_table=review_table,
         api_key="test-key",
         model="qwen/qwen3-asr-flash-2026-02-10",
         base_url="https://openrouter.ai/api/v1/audio/transcriptions",
@@ -615,51 +691,23 @@ def test_model_review_reference_selection_pack_is_redacted(
     assert "candidate text" not in str(report)
 
 
-def test_validate_reference_selection_pack_flags_missing_clip_and_bad_duration(
+def test_validate_reference_selection_review_table_flags_bad_duration(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    clip = tmp_path / "chunk.wav"
-    clip.write_bytes(b"clip")
-    review_tsv = tmp_path / "reference_selection_review.tsv"
-    review_tsv.write_text(
-        "\t".join(
-            [
-                "clipPath",
-                "source",
-                "chunkIndex",
-                "startSeconds",
-                "durationSeconds",
-                "reviewStatus",
-                "selectionReason",
-                "referenceStatus",
-                "text",
-            ]
-        )
-        + "\n"
-        + "\t".join(
-            [
-                str(clip),
-                "forum.mp3",
-                "2",
-                "12.5",
-                "8.0",
-                "review-needed",
-                "timeline-spread",
-                "curated",
-                "curated text",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
+    review_table = _materialize_review_table(
+        diagnostic,
+        tmp_path,
+        monkeypatch,
+        [{"referenceStatus": "curated", "text": "curated text"}],
     )
     monkeypatch.setattr(
         "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
         lambda _path: 10.0,
     )
 
-    report = diagnostic.validate_reference_selection_pack(review_tsv=review_tsv)
+    report = diagnostic.validate_reference_selection_review_table(review_table=review_table)
 
     assert report["packReady"] is False
     assert report["curatedReady"] is False

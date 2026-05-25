@@ -86,6 +86,7 @@ fn should_frontload_route_scoped_attempts(terms: &[String]) -> bool {
                 "index",
                 "link",
                 "graph",
+                "materialization",
             ],
         )
 }
@@ -104,7 +105,7 @@ fn push_required_evidence_candidate_attempts(
     if has_any_term(terms, &["ownership", "authority", "boundary"]) {
         push_repo_search_attempt(attempts, "ownership boundary", "docs/rfcs");
     }
-    if has_any_term(terms, &["validation", "gate", "path"]) {
+    if has_any_term(terms, &["validation", "gate", "path", "materialization"]) {
         push_repo_search_attempt(attempts, "validation path", "docs/testing");
     }
     if has_all_terms(terms, &["search", "strategy", "flow"])
@@ -117,6 +118,7 @@ fn push_required_evidence_candidate_attempts(
                 "validation",
                 "gate",
                 "path",
+                "materialization",
             ],
         )
     {
@@ -181,7 +183,7 @@ fn push_exact_anchor_candidate_attempts(attempts: &mut Vec<RepoSearchAttempt>, t
         );
         push_repo_search_attempt(attempts, "ownership boundary", "docs/rfcs");
     }
-    if has_any_term(terms, &["validation", "gate", "path"]) {
+    if has_any_term(terms, &["validation", "gate", "path", "materialization"]) {
         push_repo_search_attempt(attempts, "validation path", "docs/90_validation");
         push_repo_search_attempt(
             attempts,

@@ -2,6 +2,8 @@
 
 use std::path::PathBuf;
 
+use xiuxian_db_store::artifact_cache::ARTIFACT_CACHE_ROOT_ENV;
+
 pub(super) const AUDIO_BACKEND_PROFILE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE";
 pub(super) const AUDIO_CHUNK_MS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS";
 pub(super) const AUDIO_CONTEXT_BEFORE_MS_ENV: &str =
@@ -165,13 +167,15 @@ fn optional_path_value(
 }
 
 fn artifact_cache_dir_value(lookup: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
-    optional_path_value(lookup, AUDIO_ARTIFACT_CACHE_DIR_ENV).or_else(|| {
-        lookup("PRJ_CACHE_HOME")
-            .map(|value| value.trim().to_owned())
-            .filter(|value| !value.is_empty())
-            .map(PathBuf::from)
-            .map(|root| root.join("wendao").join("audio-artifacts"))
-    })
+    optional_path_value(lookup, AUDIO_ARTIFACT_CACHE_DIR_ENV)
+        .or_else(|| optional_path_value(lookup, ARTIFACT_CACHE_ROOT_ENV))
+        .or_else(|| {
+            lookup("PRJ_CACHE_HOME")
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty())
+                .map(PathBuf::from)
+                .map(|root| root.join("wendao").join("artifacts"))
+        })
 }
 
 fn audio_transcript_admission_dir_value(
@@ -179,7 +183,7 @@ fn audio_transcript_admission_dir_value(
     artifact_cache_dir: Option<&PathBuf>,
 ) -> Option<PathBuf> {
     optional_path_value(lookup, AUDIO_TRANSCRIPT_ADMISSION_DIR_ENV)
-        .or_else(|| artifact_cache_dir.map(|root| root.join("audio-transcript-results")))
+        .or_else(|| artifact_cache_dir.map(|root| root.join("audio-transcript-admissions")))
 }
 
 fn u64_value(
@@ -220,3 +224,7 @@ fn parse_positive_u64(value: Option<&str>, key: &'static str, default: u64) -> R
     }
     Ok(parsed)
 }
+
+#[cfg(test)]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/config.rs"]
+mod tests;

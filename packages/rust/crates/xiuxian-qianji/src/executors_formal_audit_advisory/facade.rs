@@ -5,11 +5,35 @@ use std::sync::Arc;
 use crate::contract_feedback::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};
 use anyhow::Result;
 use async_trait::async_trait;
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
 use xiuxian_qianhuan::{
     InjectionPolicy, InjectionSnapshot, PersonaRegistry, RoleMixProfile, ThousandFacesOrchestrator,
 };
 
 const DEFAULT_ROLE_ID: &str = "strict_teacher";
+
+/// Prompt-context pack read-through metrics for one advisory role.
+#[cfg(feature = "advisory-prompt-pack-cache")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct QianjiAdvisoryPromptPackArtifactReport {
+    /// Whether the prompt-context pack was served from the shared artifact substrate.
+    pub cache_hit: bool,
+    /// Number of prompt-context pack bytes returned to the advisory planner.
+    pub byte_len: usize,
+}
+
+#[cfg(feature = "advisory-prompt-pack-cache")]
+impl QianjiAdvisoryPromptPackArtifactReport {
+    /// Create prompt-context pack artifact-cache metrics.
+    #[must_use]
+    pub const fn new(cache_hit: bool, byte_len: usize) -> Self {
+        Self {
+            cache_hit,
+            byte_len,
+        }
+    }
+}
 
 /// Planned advisory execution state for one resolved role.
 #[derive(Debug, Clone, PartialEq)]
@@ -22,6 +46,9 @@ pub struct QianjiAdvisoryRolePlan {
     pub snapshot: InjectionSnapshot,
     /// Fully rendered system prompt snapshot prepared for later live execution.
     pub rendered_prompt: String,
+    /// Optional prompt-context pack artifact-cache read-through metrics.
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    pub prompt_context_pack_artifact: Option<QianjiAdvisoryPromptPackArtifactReport>,
 }
 
 /// Planned multi-role advisory execution payload.
@@ -102,6 +129,23 @@ impl QianjiAdvisoryAuditExecutor {
         request: &AdvisoryAuditRequest,
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         self.build_plan_internal(request).await
+    }
+
+    /// Build a typed advisory execution plan while reading prompt-context packs
+    /// through the shared artifact substrate.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when advisory planning fails or when the supplied
+    /// artifact cache cannot read, build, or write a prompt-context pack.
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    pub async fn build_plan_with_prompt_context_pack_cache(
+        &self,
+        request: &AdvisoryAuditRequest,
+        cache: &(dyn ArtifactBlobCache + Send + Sync),
+    ) -> Result<QianjiAdvisoryExecutionPlan> {
+        self.build_plan_internal_with_prompt_context_pack_cache(request, Some(cache))
+            .await
     }
 }
 

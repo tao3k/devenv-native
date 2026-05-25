@@ -19,7 +19,12 @@ fn standalone_orgize_read_model_uses_wendao_toml_path_overrides() {
     .unwrap_or_else(|error| panic!("write wendao.toml: {error}"));
     std::fs::write(
         temp.path().join("agenda.org"),
-        "* TODO Agent task :agent:\n",
+        concat!(
+            "* TODO Agent task :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: agent-task\n",
+            ":END:\n",
+        ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));
 

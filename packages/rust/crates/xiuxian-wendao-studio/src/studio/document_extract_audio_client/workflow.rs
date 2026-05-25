@@ -99,6 +99,14 @@ pub struct AudioShardRecoveryWorkflowExecution {
     pub memory_checkpoints: WorkflowMemoryCheckpointStore,
 }
 
+impl AudioShardRecoveryWorkflowExecution {
+    /// Return aggregate transcript admission counters for the base and recovery passes.
+    #[must_use]
+    pub fn transcript_admission_stats(&self) -> &AudioTranscriptAdmissionStats {
+        &self.transcript_admission_stats
+    }
+}
+
 impl AudioShardFlightClient {
     /// Execute a base audio analyzer pass, plan short-window recovery in Rust,
     /// execute the recovery pass when needed, and merge through the Rust patch

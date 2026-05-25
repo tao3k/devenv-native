@@ -60,6 +60,7 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
         rust_pdf_fast_text_source_range_split="single-page",
         rust_pdf_backend_text_topup="disabled",
         rust_audio_artifact_cache_dir=tmp_path / "audio-artifacts",
+        rust_audio_transcript_admission_dir=tmp_path / "audio-transcript-admissions",
         rust_audio_speech_segments_jsonl=tmp_path / "speech.jsonl",
         rust_audio_speech_merge_gap_ms=500,
         rust_audio_speech_min_window_ms=5_000,
@@ -126,6 +127,9 @@ def test_report_payload_exposes_top_level_precision_speed_summary(
     assert payload["rustPdfOcrSchedulerLaneFairness"] == "disabled"
     assert payload["rustPdfBackendTextTopup"] == "disabled"
     assert payload["rustAudioArtifactCacheDir"] == str(tmp_path / "audio-artifacts")
+    assert payload["rustAudioTranscriptAdmissionDir"] == str(
+        tmp_path / "audio-transcript-admissions"
+    )
     assert payload["rustAudioSpeechSegmentsJsonl"] == str(tmp_path / "speech.jsonl")
     assert payload["rustAudioSpeechMergeGapMs"] == 500
     assert payload["rustAudioSpeechMinWindowMs"] == 5_000

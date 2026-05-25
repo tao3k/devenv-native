@@ -66,6 +66,36 @@ def _artifact_report(report_name: str, latency: float) -> dict[str, object]:
     return {
         "resourcesArrowExists": True,
         "resourcesRowCount": 21,
+        "audioMaterializationArtifactCacheConfigured": True,
+        "audioMaterializationArtifactCacheBackend": "foyer",
+        "audioMaterializationArtifactCacheMemoryBytes": 67_108_864,
+        "audioMaterializationArtifactCacheStorageBytes": 536_870_912,
+        "audioMaterializationShardCount": 3,
+        "audioMaterializationByteCount": 900,
+        "audioMaterializationArtifactCacheHitCount": (
+            3 if report_name == "artifact-registry-reuse.json" else 0
+        ),
+        "audioMaterializationArtifactCacheHitBytes": (
+            900 if report_name == "artifact-registry-reuse.json" else 0
+        ),
+        "audioMaterializationExistingOutputCount": 0,
+        "audioMaterializationExistingOutputBytes": 0,
+        "audioMaterializationMediaSplitterCount": (
+            0 if report_name == "artifact-registry-reuse.json" else 3
+        ),
+        "audioMaterializationMediaSplitterBytes": (
+            0 if report_name == "artifact-registry-reuse.json" else 900
+        ),
+        "audioMaterializationSourceCounts": (
+            {"artifact-cache": 3}
+            if report_name == "artifact-registry-reuse.json"
+            else {"media-splitter": 3}
+        ),
+        "audioMaterializationSourceBytes": (
+            {"artifact-cache": 900}
+            if report_name == "artifact-registry-reuse.json"
+            else {"media-splitter": 900}
+        ),
         "structureArrowExists": True,
         "structureRowCount": 21,
         "structureOcrPageBlocks": 21,

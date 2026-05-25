@@ -102,6 +102,20 @@ def test_run_fixture_probe_can_measure_cache_reuse_probes(
     assert result["artifactRegistryReuseEnabled"] is True
     assert result["artifactRegistryReuseForceMs"] == 9.0
     assert result["artifactRegistryReuseErrorRows"] == 0
+    assert result["forceAudioMaterializationByteCount"] == 900
+    assert result["forceAudioMaterializationArtifactCacheBackendCounts"] == {
+        "foyer": 1,
+    }
+    assert result["forceAudioMaterializationArtifactCacheHitBytes"] == 0
+    assert result["forceAudioMaterializationMediaSplitterBytes"] == 900
+    assert result["artifactRegistryReuseAudioMaterializationByteCount"] == 900
+    assert result[
+        "artifactRegistryReuseAudioMaterializationArtifactCacheBackendCounts"
+    ] == {"foyer": 1}
+    assert result[
+        "artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes"
+    ] == 900
+    assert result["artifactRegistryReuseAudioMaterializationMediaSplitterBytes"] == 0
     assert result["cacheHitP50Ms"] == 4.0
     assert result["metricsRows"] == 21
     assert result["metricsResultChars"] == 2048

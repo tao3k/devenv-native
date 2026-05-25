@@ -28,6 +28,20 @@ project configuration. A host such as `xiuxian-wendao-studio` must attach a
 `DatasetOntologyMaterializeFlightRouteProvider` that materializes already
 admitted read-model batches through the runtime-owned SQL/Arrow substrate.
 
+## Ontology Candidate Inspection Handoff
+
+The transport feature also exposes `/ontology/candidates/inspect` as the
+candidate read-model inspection route. The request is admitted through Flight
+metadata in `x-wendao-ontology-candidate-inspection` and carries the compact
+JSON fields `schemaVersion`, `epistemeRegistryId`, and `runId`.
+
+This crate owns the route constant, request metadata validation, cache-key
+derivation, and `OntologyCandidateInspectionFlightRouteProvider` trait. It does
+not resolve `wendao.toml`, load private Episteme repositories, inspect DuckDB,
+read candidate TSV projections, mutate RDF, or parse raw source files. A host
+such as `xiuxian-wendao-studio` must attach the provider that resolves registry
+configuration and returns Arrow inspection batches.
+
 The default feature set is empty so downstream crates do not accidentally pull
 transport or domain dependencies.
 

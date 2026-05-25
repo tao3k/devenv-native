@@ -16,7 +16,7 @@ use super::{
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::control_service as service;
 use crate::bpmn::session::QianjiBpmnSession;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
+use xiuxian_qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
 
 impl QianjiBpmnWorkflowControlService {
     /// Resolves the checkpoint backend for one bounded workflow run.

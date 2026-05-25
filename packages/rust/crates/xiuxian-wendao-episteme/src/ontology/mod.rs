@@ -1,5 +1,7 @@
 //! Ontology source-contract admission.
 
+#[cfg(feature = "artifact-cache")]
+mod artifact_bundle;
 mod bootstrap_pipeline;
 mod candidate_review;
 mod candidates;
@@ -26,6 +28,26 @@ mod structural_facts_reasoning_ledger_seed;
 mod structural_facts_reasoning_packet;
 mod structural_facts_reasoning_qianji_schedule_plan;
 
+#[cfg(feature = "artifact-cache")]
+pub use artifact_bundle::{
+    EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
+    EpistemeOntologyArtifactBundleRestoreReport, EpistemeOntologyArtifactBundleWriteReport,
+    restore_episteme_ontology_artifact_bundle, write_episteme_ontology_artifact_bundle,
+};
+#[cfg(feature = "artifact-cache")]
+pub use bootstrap_pipeline::{
+    EpistemeOntologyBootstrapArtifactCacheOptions,
+    EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
+    EpistemeOntologyBootstrapArtifactCacheReadThroughReport,
+    EpistemeOntologyBootstrapArtifactCacheReport,
+    EpistemeOntologyBootstrapArtifactCacheRestoreMiss,
+    EpistemeOntologyBootstrapArtifactCacheRestoreReport,
+    EpistemeOntologyBootstrapArtifactCacheStage,
+    admit_episteme_ontology_bootstrap_artifact_cache_options,
+    read_through_episteme_ontology_bootstrap_artifacts,
+    restore_episteme_ontology_bootstrap_pipeline_artifacts,
+    run_episteme_ontology_bootstrap_pipeline_with_artifact_cache,
+};
 pub use bootstrap_pipeline::{
     EpistemeOntologyBootstrapPipelineReport, EpistemeOntologyBootstrapPipelineRequest,
     EpistemeOntologyBootstrapPipelineSafetyFlags, run_episteme_ontology_bootstrap_pipeline,

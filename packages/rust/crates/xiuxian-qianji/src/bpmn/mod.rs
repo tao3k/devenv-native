@@ -21,6 +21,7 @@ mod driver;
 mod error;
 #[path = "../bpmn_runtime_execution.rs"]
 mod execution;
+pub mod flowhub_activity_adapter;
 #[path = "http/mod.rs"]
 mod http_transport;
 mod identity;
@@ -79,6 +80,17 @@ pub use api::{
     DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
     QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
     QianjiBpmnDuckDbDataStoreConfig,
+};
+pub use flowhub_activity_adapter::{
+    FLOWHUB_SERVICE_ACTIVITY_TYPE, FLOWHUB_SERVICE_COMPLETION_METADATA_KEY, FlowhubScenarioIdRef,
+    FlowhubServiceActivityHttpScheduleInput, FlowhubServiceActivityScheduleInput,
+    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+    build_flowhub_service_activity_schedule_record,
+    build_flowhub_service_activity_schedule_record_from_http_pending_work,
+    build_flowhub_service_task_complete_http_request,
+    build_flowhub_service_task_completion_payload,
+    build_flowhub_service_task_contract_activity_result,
+    build_flowhub_service_task_contract_completion_data,
 };
 
 #[cfg(test)]

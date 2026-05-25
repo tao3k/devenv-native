@@ -1,0 +1,29 @@
+---
+source: packages/rust/crates/xiuxian-qianji-bpmn-engine/tests/unit/lint/mod.rs
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-receive-task-double-message-binding.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_task_configuration",
+      "severity": "error",
+      "title": "Message task declares more than one binding source",
+      "summary": "Process 'await_invoice_invalid' task node 'await_invoice_message' uses unsupported configuration 'multiple_task_message_bindings'.",
+      "why_it_failed": "The current engine supports one bounded message-task family plus one bounded host-dispatched script-task family: `receiveTask` waits for exactly one message binding through `messageRef` or one nested `messageEventDefinition`, `sendTask` dispatches exactly one message binding through that same bounded source shape, and `scriptTask` preserves one optional `scriptFormat` plus one optional nested `<bpmn:script>` body for host execution. Correlations, signal/timer task events, and broader collaboration-aware routing remain outside the slice.",
+      "repair_guidance": [
+        "For `receiveTask` or `sendTask`, keep exactly one message binding source: either `messageRef` on the task or one nested `messageEventDefinition`, but not both.",
+        "If the task is executable logic rather than messaging, convert it to one bounded `scriptTask` with optional `scriptFormat` and one optional nested `<bpmn:script>` body instead of overloading `sendTask` or `receiveTask` message bindings.",
+        "Do not add correlation execution, signal/timer task events, or broader collaboration-aware routing to this bounded task slice."
+      ],
+      "llm_fix_prompt": "Repair task node 'await_invoice_message' in process 'await_invoice_invalid' so it fits the bounded task slice: for `receiveTask` or `sendTask`, keep exactly one message binding through task-level `messageRef` or one nested `<bpmn:messageEventDefinition>`, but not both. If the node is executable logic instead of messaging, convert it to one bounded `scriptTask` with optional `scriptFormat` and one optional nested `<bpmn:script>` body. Remove unsupported configuration 'multiple_task_message_bindings', preserve workflow intent, and defer correlations or broader collaboration-aware routing.",
+      "evidence": {
+        "detail": "multiple_task_message_bindings",
+        "node_id": "await_invoice_message",
+        "process_id": "await_invoice_invalid"
+      }
+    }
+  ]
+}

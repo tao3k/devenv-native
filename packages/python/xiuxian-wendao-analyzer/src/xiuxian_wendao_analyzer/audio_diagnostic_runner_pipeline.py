@@ -134,7 +134,7 @@ def run_diagnostic_backends(
     output_dir: Path,
     api_key: str | None,
     prompt: str,
-    result_cache_dir: Path | None,
+    admission_cache_dir: Path | None,
 ) -> list[AsrResult]:
     """Run all selected backends over all materialized chunks."""
 
@@ -154,7 +154,7 @@ def run_diagnostic_backends(
                     output_dir=output_dir,
                     api_key=api_key,
                     prompt=prompt,
-                    result_cache_dir=result_cache_dir,
+                    admission_cache_dir=admission_cache_dir,
                 ): index
                 for index, (chunk, backend) in enumerate(tasks)
             }
@@ -173,7 +173,7 @@ def run_diagnostic_backends(
                     output_dir=output_dir,
                     api_key=api_key,
                     prompt=prompt,
-                    result_cache_dir=result_cache_dir,
+                    admission_cache_dir=admission_cache_dir,
                 )
             )
     return ordered_results
@@ -201,7 +201,7 @@ def _run_backend_for_chunk(
     output_dir: Path,
     api_key: str | None,
     prompt: str,
-    result_cache_dir: Path | None,
+    admission_cache_dir: Path | None,
 ) -> AsrResult:
     return run_backend(
         backend,
@@ -217,5 +217,5 @@ def _run_backend_for_chunk(
         max_tokens=args.max_tokens,
         temperature=args.temperature,
         timeout_seconds=args.timeout_seconds,
-        result_cache_dir=result_cache_dir,
+        admission_cache_dir=admission_cache_dir,
     )

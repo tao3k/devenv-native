@@ -48,7 +48,9 @@ flight-transport = [
   "dep:tokio-util",
   "dep:tonic",
   "dep:tonic-web",
+  "dep:xiuxian-polyglot-orchestrator",
   "dep:xiuxian-wendao-server",
+  "xiuxian-polyglot-orchestrator/wendao-contracts",
   "xiuxian-wendao-runtime/transport",
   "xiuxian-wendao-server/transport",
 ]
@@ -126,6 +128,7 @@ document-extract-pdf-source-range = [
   "local-runtime",
   "dep:num-traits",
   "dep:xiuxian-wendao-attachments",
+  "xiuxian-db-store/artifact-cache",
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
 ]
@@ -142,10 +145,21 @@ document-extract-audio-shards = [
   "xiuxian-wendao-attachments/artifact-cache",
   "xiuxian-wendao-attachments/audio-shard-arrow",
 ]
+foyer-artifact-cache = [
+  "document-extract-audio-shards",
+  "episteme-artifact-cache",
+  "xiuxian-db-store/foyer-artifact-cache",
+  "xiuxian-wendao-attachments/foyer-artifact-cache",
+]
 document-extract-pdf-render = [
   "document-extract-pdf-source-range",
   "xiuxian-wendao/document-extract-pdf-render",
   "xiuxian-wendao-attachments/pdf-render",
+]
+episteme-artifact-cache = [
+  "local-runtime",
+  "xiuxian-db-store/foyer-artifact-cache",
+  "xiuxian-wendao-episteme/artifact-cache",
 ]
 
 [[bench]]
@@ -179,6 +193,7 @@ path = "src/bin/wendao_search_seed_sample.rs"
 required-features = ["cli-bin-support", "julia"]
 
 [dependencies]
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", default-features = false, optional = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }

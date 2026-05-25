@@ -3,10 +3,12 @@
 use xiuxian_wendao_parsers::OrgizeAgentTaskRepeater;
 
 use crate::orgize::{
-    OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView, OrgizeTaskReportArgs,
+    OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView, OrgizeTaskProbeArgs,
+    OrgizeTaskRecoverArgs, OrgizeTaskReportArgs,
 };
 
 use super::model::AgentOrgTaskListRow;
+use super::section_lens::TaskSectionLens;
 
 pub(super) fn filter_task_rows<'a>(
     rows: &'a [AgentOrgTaskListRow],
@@ -93,6 +95,49 @@ pub(super) fn filter_report_rows<'a>(
         .collect()
 }
 
+pub(super) fn filter_recover_rows<'a>(
+    rows: &'a [AgentOrgTaskListRow],
+    args: &OrgizeTaskRecoverArgs,
+) -> Vec<&'a AgentOrgTaskListRow> {
+    let text = args.text.as_ref().map(|text| text.to_lowercase());
+    let tags = args
+        .tags
+        .iter()
+        .map(|tag| normalize_tag_filter(tag))
+        .filter(|tag| !tag.is_empty())
+        .collect::<Vec<_>>();
+    rows.iter()
+        .filter(|row| {
+            (args.include_done || !row.is_done) && (args.include_archived || !row.archived)
+        })
+        .filter(|row| args.include_done || !task_row_is_closure_needed(row))
+        .filter(|row| tags.iter().all(|tag| task_row_has_tag(row, tag)))
+        .filter(|row| {
+            text.as_ref()
+                .is_none_or(|text| task_row_matches_text(row, text))
+        })
+        .collect()
+}
+
+pub(super) fn filter_probe_scope_rows<'a>(
+    rows: &'a [AgentOrgTaskListRow],
+    args: &OrgizeTaskProbeArgs,
+) -> Vec<&'a AgentOrgTaskListRow> {
+    let tags = args
+        .tags
+        .iter()
+        .map(|tag| normalize_tag_filter(tag))
+        .filter(|tag| !tag.is_empty())
+        .collect::<Vec<_>>();
+    rows.iter()
+        .filter(|row| {
+            (args.include_done || !row.is_done) && (args.include_archived || !row.archived)
+        })
+        .filter(|row| args.include_done || !task_row_is_closure_needed(row))
+        .filter(|row| tags.iter().all(|tag| task_row_has_tag(row, tag)))
+        .collect()
+}
+
 pub(super) fn filter_archive_rows<'a>(
     rows: &'a [AgentOrgTaskListRow],
     args: &OrgizeTaskArchiveArgs,
@@ -123,9 +168,26 @@ fn task_row_matches_text(row: &AgentOrgTaskListRow, text: &str) -> bool {
         .iter()
         .chain(row.deadline_repeater.iter())
         .any(|repeater| repeater_matches_text(repeater, text));
-    row.title.to_lowercase().contains(text)
+    row.orgid.to_lowercase().contains(text)
+        || row.title.to_lowercase().contains(text)
+        || row
+            .todo_state
+            .as_deref()
+            .is_some_and(|state| state.to_lowercase().contains(text))
         || row.source_path.to_lowercase().contains(text)
         || row.outline_path.join(" / ").to_lowercase().contains(text)
+        || row
+            .scheduled
+            .as_deref()
+            .is_some_and(|scheduled| scheduled.to_lowercase().contains(text))
+        || row
+            .deadline
+            .as_deref()
+            .is_some_and(|deadline| deadline.to_lowercase().contains(text))
+        || row
+            .closed
+            .as_deref()
+            .is_some_and(|closed| closed.to_lowercase().contains(text))
         || row.tags.iter().any(|tag| tag.to_lowercase().contains(text))
         || row
             .effective_tags
@@ -147,15 +209,22 @@ pub(super) fn task_row_has_tag(row: &AgentOrgTaskListRow, tag: &str) -> bool {
 }
 
 pub(super) fn task_row_is_archive_candidate(row: &AgentOrgTaskListRow) -> bool {
-    row.is_done && !row.archived && !task_row_is_repeating(row)
+    row.is_done
+        && !row.archived
+        && !task_row_is_repeating(row)
+        && title_has_complete_progress_cookie(&row.title)
+        && task_row_has_inactive_closed(row)
+        && task_row_has_reflection_content(row)
 }
 
 pub(super) fn task_row_is_closure_needed(row: &AgentOrgTaskListRow) -> bool {
     row.level == 1
-        && !row.is_done
         && !row.archived
         && !task_row_is_repeating(row)
         && title_has_complete_progress_cookie(&row.title)
+        && (!row.is_done
+            || !task_row_has_inactive_closed(row)
+            || !task_row_has_reflection_content(row))
 }
 
 pub(super) fn task_row_is_repeating(row: &AgentOrgTaskListRow) -> bool {
@@ -192,4 +261,26 @@ fn token_has_complete_ratio_cookie(token: &str) -> bool {
         return false;
     };
     done > 0 && done == total
+}
+
+fn task_row_has_reflection_content(row: &AgentOrgTaskListRow) -> bool {
+    let Ok(source) = std::fs::read_to_string(&row.source_path) else {
+        return false;
+    };
+    let Ok(start) = usize::try_from(row.source_range_start) else {
+        return false;
+    };
+    let Ok(end) = usize::try_from(row.source_range_end) else {
+        return false;
+    };
+    if start > end || end > source.len() {
+        return false;
+    }
+    TaskSectionLens::section_has_reflection_content(&source[start..end])
+}
+
+fn task_row_has_inactive_closed(row: &AgentOrgTaskListRow) -> bool {
+    row.closed
+        .as_deref()
+        .is_some_and(|closed| closed.trim_start().starts_with('['))
 }

@@ -1,6 +1,6 @@
 //! Bpmn adapter error surface for `xiuxian-qianji`.
 
-use qianji_bpmn_engine::{BpmnEngineError, HostBridgeError};
+use xiuxian_qianji_bpmn_engine::{BpmnEngineError, HostBridgeError};
 
 /// Error returned by the `xiuxian-qianji` BPMN adapter layer.
 #[derive(Debug, thiserror::Error, Clone)]

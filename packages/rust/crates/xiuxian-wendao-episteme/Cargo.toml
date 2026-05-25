@@ -7,9 +7,13 @@ authors.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+artifact-cache = ["dep:xiuxian-db-store", "xiuxian-db-store/artifact-cache"]
+
 [dependencies]
 anyhow = { workspace = true }
 arrow = { workspace = true }
+clap = { workspace = true }
 parquet = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -17,10 +21,15 @@ quick-xml = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 toml = { workspace = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "wendao-episteme"
+path = "src/bin/wendao_episteme.rs"
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

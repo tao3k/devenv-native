@@ -1,9 +1,9 @@
-use qianji_bpmn_engine::{BpmnAdvanceOutcome, DmnEvaluationResult, InstanceLifecycle};
 use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 use tempfile::TempDir;
+use xiuxian_qianji_bpmn_engine::{BpmnAdvanceOutcome, DmnEvaluationResult, InstanceLifecycle};
 
 use crate::{
     BpmnOrchestrationError, QianjiBpmnCheckpointStore, QianjiBpmnExecutionRequest,
@@ -161,7 +161,7 @@ async fn execution_scheduler_lease_terminal_run_deletes_and_releases_owner_guard
     );
     let host = QianjiBpmnHostBridge::builder()
         .on_business_rule_task(|request| async move {
-            Ok(qianji_bpmn_engine::BusinessRuleTaskOutcome {
+            Ok(xiuxian_qianji_bpmn_engine::BusinessRuleTaskOutcome {
                 evaluation: DmnEvaluationResult::new(
                     request.evaluation.decision.decision_id.as_ref(),
                     json!({ "approval": "approve" }),

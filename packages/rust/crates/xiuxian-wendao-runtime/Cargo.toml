@@ -46,7 +46,6 @@ tokio = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
-xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }

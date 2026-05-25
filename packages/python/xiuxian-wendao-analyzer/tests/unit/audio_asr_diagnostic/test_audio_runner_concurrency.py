@@ -68,7 +68,7 @@ def test_hosted_audio_request_concurrency_preserves_result_order(
         output_dir=tmp_path / "out",
         api_key="test-key",
         prompt=diagnostic.DEFAULT_PROMPT,
-        result_cache_dir=None,
+        admission_cache_dir=None,
     )
 
     assert [row.chunk_index for row in results] == [0, 1]

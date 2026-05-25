@@ -2,6 +2,7 @@ use super::support::{must_err, must_ok, must_parse_addr};
 use crate::qianji_server_cli::cli::{
     QianjiServerCommand, QianjiServerServeCommand, parse_qianji_server_args, qianji_server_usage,
 };
+use std::path::PathBuf;
 
 #[test]
 fn qianji_server_leaves_default_bind_to_runtime_config() {
@@ -16,6 +17,7 @@ fn qianji_server_leaves_default_bind_to_runtime_config() {
             bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
+            flowhub_root: None,
         })
     );
 }
@@ -33,6 +35,7 @@ fn qianji_server_accepts_custom_bind_address() {
             bind_addr: Some(must_parse_addr("127.0.0.1:0")),
             valkey_url: None,
             require_valkey_ready: None,
+            flowhub_root: None,
         })
     );
 }
@@ -50,6 +53,7 @@ fn qianji_server_accepts_equals_bind_address() {
             bind_addr: Some(must_parse_addr("127.0.0.1:0")),
             valkey_url: None,
             require_valkey_ready: None,
+            flowhub_root: None,
         })
     );
 }
@@ -67,6 +71,7 @@ fn qianji_server_accepts_custom_valkey_url() {
             bind_addr: None,
             valkey_url: Some("redis://127.0.0.1:6380/0".to_string()),
             require_valkey_ready: None,
+            flowhub_root: None,
         })
     );
 }
@@ -84,6 +89,43 @@ fn qianji_server_accepts_equals_valkey_url() {
             bind_addr: None,
             valkey_url: Some("redis://127.0.0.1:6381/0".to_string()),
             require_valkey_ready: None,
+            flowhub_root: None,
+        })
+    );
+}
+
+#[test]
+fn qianji_server_accepts_custom_flowhub_root() {
+    let command = must_ok(
+        parse_qianji_server_args(["--flowhub-root", "qianji-flowhub"]),
+        "custom Flowhub root should parse",
+    );
+
+    assert_eq!(
+        command,
+        QianjiServerCommand::Serve(QianjiServerServeCommand {
+            bind_addr: None,
+            valkey_url: None,
+            require_valkey_ready: None,
+            flowhub_root: Some(PathBuf::from("qianji-flowhub")),
+        })
+    );
+}
+
+#[test]
+fn qianji_server_accepts_equals_flowhub_root() {
+    let command = must_ok(
+        parse_qianji_server_args(["--flowhub-root=/tmp/qianji-flowhub"]),
+        "equals Flowhub root should parse",
+    );
+
+    assert_eq!(
+        command,
+        QianjiServerCommand::Serve(QianjiServerServeCommand {
+            bind_addr: None,
+            valkey_url: None,
+            require_valkey_ready: None,
+            flowhub_root: Some(PathBuf::from("/tmp/qianji-flowhub")),
         })
     );
 }
@@ -101,6 +143,7 @@ fn qianji_server_accepts_require_valkey_ready() {
             bind_addr: None,
             valkey_url: None,
             require_valkey_ready: Some(true),
+            flowhub_root: None,
         })
     );
 }
@@ -118,6 +161,7 @@ fn qianji_server_accepts_no_require_valkey_ready() {
             bind_addr: None,
             valkey_url: None,
             require_valkey_ready: Some(false),
+            flowhub_root: None,
         })
     );
 }
@@ -138,6 +182,10 @@ fn qianji_server_usage_documents_valkey_only_http_checkpoints() {
     assert!(
         usage.contains("HTTP checkpoint defaults are Valkey-only"),
         "usage should document Valkey-only HTTP checkpoints: {usage}"
+    );
+    assert!(
+        usage.contains("--flowhub-root <path>"),
+        "usage should document explicit Flowhub root binding: {usage}"
     );
     assert!(
         !usage.contains(&removed_backend) && !usage.contains(&removed_backend_lower),
@@ -172,6 +220,19 @@ fn qianji_server_rejects_missing_valkey_url() {
 }
 
 #[test]
+fn qianji_server_rejects_missing_flowhub_root() {
+    let error = must_err(
+        parse_qianji_server_args(["--flowhub-root"]),
+        "missing Flowhub root should be rejected",
+    );
+
+    assert!(
+        error.contains("missing value for --flowhub-root"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn qianji_server_rejects_empty_valkey_url() {
     let error = must_err(
         parse_qianji_server_args(["--valkey-url", "  "]),
@@ -180,6 +241,19 @@ fn qianji_server_rejects_empty_valkey_url() {
 
     assert!(
         error.contains("--valkey-url must not be empty"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn qianji_server_rejects_empty_flowhub_root() {
+    let error = must_err(
+        parse_qianji_server_args(["--flowhub-root", "  "]),
+        "empty Flowhub root should be rejected",
+    );
+
+    assert!(
+        error.contains("--flowhub-root must not be empty"),
         "unexpected error: {error}"
     );
 }

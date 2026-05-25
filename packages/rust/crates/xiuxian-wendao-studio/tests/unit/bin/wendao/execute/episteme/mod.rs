@@ -1,5 +1,7 @@
 use std::path::Path;
 
+#[cfg(feature = "episteme-artifact-cache")]
+use super::bootstrap::episteme_bootstrap_artifact_cache_options;
 use super::{
     external::{
         docling_document_analyzer_command_spec, image_ocr_analyzer_command_spec,
@@ -12,6 +14,8 @@ use super::{
 };
 use xiuxian_wendao::episteme::EpistemeRuntimeConfig;
 
+#[cfg(feature = "episteme-artifact-cache")]
+mod bootstrap_artifact_cache;
 mod commands;
 mod prompt_audit_model;
 

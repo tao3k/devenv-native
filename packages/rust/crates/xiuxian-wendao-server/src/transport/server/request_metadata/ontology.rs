@@ -1,10 +1,12 @@
 use tonic::Status;
 use tonic::metadata::MetadataMap;
 
+use crate::transport::OntologyCandidateInspectionFlightRequest;
 use crate::transport::query_contract::{
     DatasetOntologyFlightManifest, WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER,
     WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER, WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER,
-    decode_dataset_ontology_manifest_header,
+    WENDAO_ONTOLOGY_CANDIDATE_INSPECTION_REQUEST_HEADER, decode_dataset_ontology_manifest_header,
+    decode_ontology_candidate_inspection_request_header,
 };
 
 pub(crate) fn validate_dataset_ontology_materialize_request_metadata(
@@ -30,6 +32,20 @@ pub(crate) fn validate_dataset_ontology_materialize_request_metadata(
         )));
     }
     Ok(manifest)
+}
+
+pub(crate) fn validate_ontology_candidate_inspection_request_metadata(
+    metadata: &MetadataMap,
+) -> Result<OntologyCandidateInspectionFlightRequest, Status> {
+    let request_value = required_header(
+        metadata,
+        WENDAO_ONTOLOGY_CANDIDATE_INSPECTION_REQUEST_HEADER,
+    )?;
+    decode_ontology_candidate_inspection_request_header(request_value.as_str()).map_err(|error| {
+        Status::invalid_argument(format!(
+            "invalid ontology candidate inspection request header `{WENDAO_ONTOLOGY_CANDIDATE_INSPECTION_REQUEST_HEADER}`: {error}"
+        ))
+    })
 }
 
 fn required_header(metadata: &MetadataMap, header: &'static str) -> Result<String, Status> {

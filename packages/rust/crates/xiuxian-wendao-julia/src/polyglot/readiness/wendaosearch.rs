@@ -1,17 +1,16 @@
 //! `WendaoSearch` readiness and scheduling projections.
 
 use xiuxian_polyglot_orchestrator::{
-    BenchmarkState, ContractValidationState, JuliaComputeTaskShape, JuliaReadinessEvidence,
-    JuliaSchedulePlan, JuliaThreadPinningDiagnostics, LaneCapability, ManifestReadinessState,
-    WarmupState,
+    BenchmarkState, ContractValidationState, JuliaComputeTaskShape, JuliaProfileSchedulingFacts,
+    JuliaReadinessEvidence, JuliaSchedulePlan, JuliaThreadPinningDiagnostics, LaneCapability,
+    ManifestReadinessState, WarmupState,
 };
 
 use crate::compatibility::link_graph::{
     DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, LinkGraphJuliaRerankRuntimeConfig,
 };
 use crate::polyglot::state::{
-    JuliaProfileSchedulingFacts, WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID,
-    wendaosearch_graph_structural_profile_id,
+    WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID, wendaosearch_graph_structural_profile_id,
 };
 use crate::{GraphStructuralRouteKind, JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION};
 

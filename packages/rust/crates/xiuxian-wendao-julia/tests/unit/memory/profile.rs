@@ -1,6 +1,6 @@
 use super::{
     MEMORY_JULIA_COMPUTE_EPISODIC_RECALL_PROFILE_ID, MEMORY_JULIA_COMPUTE_FAMILY_ID,
-    MemoryJuliaComputeProfile,
+    MemoryJuliaComputeProfile, request_schema_id,
 };
 
 #[test]
@@ -14,10 +14,10 @@ fn parse_memory_julia_compute_profile_recognizes_staged_ids() {
 
 #[test]
 fn memory_julia_compute_profile_contract_exposes_family_metadata() {
-    let contract = MemoryJuliaComputeProfile::MemoryPlanTuning.contract();
-    assert_eq!(contract.family, MEMORY_JULIA_COMPUTE_FAMILY_ID);
-    assert_eq!(contract.capability_id, "memory_plan_tuning");
-    assert_eq!(contract.request_schema_id, "memory.plan_tuning.request.v1");
+    let profile = MemoryJuliaComputeProfile::MemoryPlanTuning;
+    assert_eq!(MEMORY_JULIA_COMPUTE_FAMILY_ID, "memory");
+    assert_eq!(profile.capability_id(), "memory_plan_tuning");
+    assert_eq!(request_schema_id(profile), "memory.plan_tuning.request.v1");
     assert_eq!(
         MemoryJuliaComputeProfile::MemoryCalibration.default_route(),
         "/memory/calibration"

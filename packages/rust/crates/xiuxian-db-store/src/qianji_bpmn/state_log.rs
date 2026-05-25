@@ -6,7 +6,7 @@ use crate::duckdb_crate::arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use qianji_bpmn_engine::BpmnCheckpointEnvelope;
+use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
 use super::store::{timestamp_to_i64, validate_field};
 use super::{
@@ -124,6 +124,7 @@ impl QianjiBpmnDuckDbDataStore {
                 operation: "append_workflow_state_snapshot",
                 message: error.to_string(),
             })?;
+        self.cache_latest_workflow_state_snapshot(checkpoint)?;
         Ok(())
     }
 
@@ -141,7 +142,8 @@ impl QianjiBpmnDuckDbDataStore {
         &self,
         checkpoints: impl IntoIterator<Item = &'a BpmnCheckpointEnvelope>,
     ) -> Result<usize, QianjiBpmnDataStoreError> {
-        let (batch, count) = workflow_state_snapshots_to_batch(checkpoints)?;
+        let checkpoints = checkpoints.into_iter().collect::<Vec<_>>();
+        let (batch, count) = workflow_state_snapshots_to_batch(checkpoints.iter().copied())?;
         if count == 0 {
             return Ok(0);
         }
@@ -149,6 +151,9 @@ impl QianjiBpmnDuckDbDataStore {
             self.append_snapshot_batch(WORKFLOW_STATE_LOG_TABLE, batch)?;
             Ok(count)
         })?;
+        for checkpoint in checkpoints {
+            self.cache_latest_workflow_state_snapshot(checkpoint)?;
+        }
         Ok(count)
     }
 
@@ -242,6 +247,11 @@ impl QianjiBpmnDuckDbDataStore {
     ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
         let instance_id = instance_id.into();
         validate_field("instance_id", instance_id.as_str())?;
+        if let Some(checkpoint) =
+            self.cached_latest_workflow_state_snapshot(instance_id.as_str())?
+        {
+            return Ok(Some(checkpoint));
+        }
         let mut statement = self
             .connection()
             .prepare_cached(LOAD_LATEST_WORKFLOW_STATE_EVENT_SQL)
@@ -262,9 +272,13 @@ impl QianjiBpmnDuckDbDataStore {
             Some(payload_json) => Some(payload_json),
             None => self.load_latest_workflow_state_table_payload(instance_id.as_str())?,
         };
-        payload_json
+        let checkpoint = payload_json
             .map(|payload_json| decode_checkpoint(&payload_json))
-            .transpose()
+            .transpose()?;
+        if let Some(checkpoint) = checkpoint.as_ref() {
+            self.cache_latest_workflow_state_snapshot(checkpoint)?;
+        }
+        Ok(checkpoint)
     }
 
     /// Upserts one latest checkpoint snapshot through the dedicated
@@ -304,6 +318,7 @@ impl QianjiBpmnDuckDbDataStore {
                 operation: "upsert_latest_workflow_state_snapshot",
                 message: error.to_string(),
             })?;
+        self.cache_latest_workflow_state_snapshot(checkpoint)?;
         Ok(())
     }
 
@@ -332,6 +347,7 @@ impl QianjiBpmnDuckDbDataStore {
                 "delete_latest_workflow_state_snapshot",
                 instance_id.as_str(),
             )?;
+            self.remove_cached_latest_workflow_state_snapshot(instance_id.as_str())?;
             Ok(deleted_events || deleted_latest)
         })
     }

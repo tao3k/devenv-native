@@ -1,6 +1,17 @@
 use std::fs;
 
 use tempfile::tempdir;
+#[cfg(feature = "artifact-cache")]
+use xiuxian_db_store::artifact_cache::ContentAddressedFilesystemBlobCache;
+#[cfg(feature = "artifact-cache")]
+use xiuxian_wendao_episteme::{
+    EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
+    EpistemeOntologyBootstrapArtifactCacheOptions,
+    EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
+    admit_episteme_ontology_bootstrap_artifact_cache_options,
+    read_through_episteme_ontology_bootstrap_artifacts, restore_episteme_ontology_artifact_bundle,
+    run_episteme_ontology_bootstrap_pipeline_with_artifact_cache,
+};
 use xiuxian_wendao_episteme::{
     EpistemeOntologyBootstrapPipelineRequest, EpistemeOntologyStructuralFactsValidationMode,
     run_episteme_ontology_bootstrap_pipeline,
@@ -109,6 +120,160 @@ ontology_generation_run_root = "runs/ontology-generation"
     assert!(!report.safety.source_mutation_allowed());
     assert!(!report.safety.rdf_mutation_allowed());
     assert!(!report.safety.ontology_truth());
+
+    Ok(())
+}
+
+#[cfg(feature = "artifact-cache")]
+#[test]
+fn bootstrap_pipeline_artifact_cache_admission_validates_digest_components()
+-> Result<(), Box<dyn std::error::Error>> {
+    let options = admit_episteme_ontology_bootstrap_artifact_cache_options(
+        "source-contract",
+        "bootstrap-v1",
+    )?;
+    assert_eq!(options.source_digest, "source-contract");
+    assert_eq!(options.profile_digest, "bootstrap-v1");
+
+    let Err(error) =
+        admit_episteme_ontology_bootstrap_artifact_cache_options("../source", "bootstrap-v1")
+    else {
+        return Err(std::io::Error::other("unsafe source digest should be rejected").into());
+    };
+    let error = format!("{error:#}");
+    assert!(error.contains("invalid Episteme bootstrap artifact-cache digest component"));
+    assert!(error.contains("source_digest"));
+
+    let Err(error) = admit_episteme_ontology_bootstrap_artifact_cache_options(
+        "source-contract",
+        "\u{79c1}\u{6709}",
+    ) else {
+        return Err(std::io::Error::other("non-ASCII profile digest should be rejected").into());
+    };
+    let error = format!("{error:#}");
+    assert!(error.contains("profile_digest"));
+
+    Ok(())
+}
+
+#[cfg(feature = "artifact-cache")]
+#[test]
+fn bootstrap_pipeline_artifact_cache_writes_stage_bundles() -> Result<(), Box<dyn std::error::Error>>
+{
+    let temp = tempdir()?;
+    let root = temp.path().join("episteme");
+    let corpus_root = temp.path().join("corpus");
+    write_structural_facts_fixture(&root, &corpus_root, "expected")?;
+    fs::write(
+        root.join("episteme.toml"),
+        r#"schema_version = 1
+
+[runtime]
+corpus_root = "../corpus"
+structure_run_root = "runs/structure"
+ontology_generation_run_root = "runs/ontology-generation"
+"#,
+    )?;
+    let cache = ContentAddressedFilesystemBlobCache::new(temp.path().join("cache"));
+    let request = EpistemeOntologyBootstrapPipelineRequest::new(&root, "bootstrap_seed")
+        .with_validation_mode(EpistemeOntologyStructuralFactsValidationMode::FullHash);
+    let options =
+        EpistemeOntologyBootstrapArtifactCacheOptions::new("source-contract", "bootstrap-v1");
+
+    let report =
+        run_episteme_ontology_bootstrap_pipeline_with_artifact_cache(&request, &cache, &options)?;
+
+    assert_eq!(report.pipeline.run_id, "bootstrap_seed");
+    assert_eq!(report.bundles.len(), 4);
+    assert!(report.bundles.iter().all(|bundle| bundle.byte_len > 0));
+    assert!(report.bundles.iter().all(|bundle| !bundle.replaced));
+    assert!(report.bundles.iter().all(|bundle| {
+        bundle.artifact_key.namespace().as_str() == "ontology"
+            && bundle.artifact_key.kind().as_storage_component() == "ontology-reasoning-projection"
+    }));
+
+    let restored = temp.path().join("restored-structural-facts");
+    let identity = EpistemeOntologyArtifactBundleIdentity {
+        kind: EpistemeOntologyArtifactBundleKind::ReasoningProjection,
+        source_digest: "source-contract".to_owned(),
+        profile_digest: "bootstrap-v1".to_owned(),
+        run_digest: "structural-facts-bootstrap_seed_structural_facts".to_owned(),
+    };
+    let restore = restore_episteme_ontology_artifact_bundle(&cache, &identity, &restored)?
+        .ok_or_else(|| std::io::Error::other("structural facts bundle should be cached"))?;
+    assert_eq!(restore.artifact_key, report.bundles[0].artifact_key);
+    assert!(restored.join("structural_facts.json").is_file());
+    assert!(restored.join("structural_facts_rdf_seed.ttl").is_file());
+
+    Ok(())
+}
+
+#[cfg(feature = "artifact-cache")]
+#[test]
+fn bootstrap_pipeline_artifact_cache_readthrough_restores_warm_stage_dirs()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempdir()?;
+    let root = temp.path().join("episteme");
+    let corpus_root = temp.path().join("corpus");
+    write_structural_facts_fixture(&root, &corpus_root, "expected")?;
+    fs::write(
+        root.join("episteme.toml"),
+        r#"schema_version = 1
+
+[runtime]
+corpus_root = "../corpus"
+structure_run_root = "runs/structure"
+ontology_generation_run_root = "runs/ontology-generation"
+"#,
+    )?;
+    let cache = ContentAddressedFilesystemBlobCache::new(temp.path().join("cache"));
+    let request = EpistemeOntologyBootstrapPipelineRequest::new(&root, "bootstrap_seed")
+        .with_validation_mode(EpistemeOntologyStructuralFactsValidationMode::FullHash);
+    let options =
+        EpistemeOntologyBootstrapArtifactCacheOptions::new("source-contract", "bootstrap-v1");
+
+    let cold = read_through_episteme_ontology_bootstrap_artifacts(&request, &cache, &options)?;
+    assert_eq!(
+        cold.outcome,
+        EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome::Generated
+    );
+    assert_eq!(cold.restore.missing.len(), 4);
+    let generated = cold
+        .generated
+        .as_ref()
+        .ok_or_else(|| std::io::Error::other("cold miss should generate"))?;
+    assert_eq!(generated.bundles.len(), 4);
+
+    fs::remove_dir_all(root.join("runs"))?;
+    let warm = read_through_episteme_ontology_bootstrap_artifacts(&request, &cache, &options)?;
+
+    assert_eq!(
+        warm.outcome,
+        EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome::Restored
+    );
+    assert!(warm.generated.is_none());
+    assert!(warm.restore.complete());
+    assert_eq!(warm.restore.restored.len(), 4);
+    assert!(
+        root.join("runs/structure/bootstrap_seed_structural_facts/structural_facts.json")
+            .is_file()
+    );
+    assert!(
+        root.join("runs/ontology-generation/bootstrap_seed_reasoning_packet/reasoning_packet.json")
+            .is_file()
+    );
+    assert!(
+        root.join(
+            "runs/ontology-generation/bootstrap_seed_reasoning_ledger_seed/reasoning_ledger_seed.json"
+        )
+        .is_file()
+    );
+    assert!(
+        root.join(
+            "runs/ontology-generation/bootstrap_seed_reasoning_fill_plan/reasoning_fill_plan.json"
+        )
+        .is_file()
+    );
 
     Ok(())
 }

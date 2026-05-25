@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 
+use orgize::ast::BabelEvalPlanError;
 use thiserror::Error;
 
 /// Errors returned by Orgize-backed Wendao tooling.
@@ -53,4 +54,32 @@ pub enum OrgizeToolError {
         /// Parser diagnostic.
         message: String,
     },
+    /// An agent task heading is missing its required Org section ID.
+    #[error("{path}:{line}: agent task `{title}` is missing required :ID: property")]
+    MissingAgentOrgid {
+        /// Source Org file.
+        path: PathBuf,
+        /// One-based source line.
+        line: usize,
+        /// Heading title.
+        title: String,
+    },
+    /// A named Org Babel eval block cannot be resolved.
+    #[error("{name}: {message}", message = eval_plan_error_message(reason))]
+    EvalPlan {
+        /// Requested `#+NAME:` value.
+        name: String,
+        /// Upstream Orgize eval-plan error.
+        reason: BabelEvalPlanError,
+    },
+}
+
+fn eval_plan_error_message(error: &BabelEvalPlanError) -> String {
+    match error {
+        BabelEvalPlanError::EmptyName => "eval name is empty".to_string(),
+        BabelEvalPlanError::NotFound { name } => format!("eval block `{name}` not found"),
+        BabelEvalPlanError::Ambiguous { name, matches } => {
+            format!("eval block `{name}` is ambiguous ({matches} matches)")
+        }
+    }
 }

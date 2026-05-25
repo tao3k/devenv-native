@@ -14,10 +14,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_identity import (
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_reporting import (
     write_jsonl,
-    write_quality_tsv,
     write_reference_draft_jsonl,
-    write_reference_draft_tsv,
-    write_transcript_review_tsv,
     write_transcript_timeline_jsonl,
     write_transcript_timeline_org,
     write_transcript_timeline_srt,
@@ -42,7 +39,7 @@ def build_diagnostic_report(
     hosted_audio_enabled: bool,
     openai_compatible_audio_enabled: bool,
     api_key: str | None,
-    result_cache_dir: Path | None,
+    admission_cache_dir: Path | None,
     speech_segment_row_count: int,
     explicit_window_row_count: int,
     truth_template_path: Path,
@@ -96,12 +93,12 @@ def build_diagnostic_report(
         ),
         "audioShardManifestSchema": AUDIO_SHARD_MANIFEST_SCHEMA,
         "audioShardProfile": DEFAULT_AUDIO_SHARD_PROFILE,
-        "resultCacheEnabled": result_cache_dir is not None,
-        "resultCacheDir": "" if result_cache_dir is None else str(result_cache_dir),
+        "taskAdmissionCacheEnabled": admission_cache_dir is not None,
+        "taskAdmissionCacheDir": "" if admission_cache_dir is None else str(admission_cache_dir),
         "hostedRequestConcurrency": (
             "auto"
             if getattr(args, "hosted_request_concurrency", None) in {None, "", "auto"}
-            else getattr(args, "hosted_request_concurrency")
+            else args.hosted_request_concurrency
         ),
         "inputPrivacy": args.input_privacy,
         "privateOutputOutsideCacheAllowed": args.allow_private_output_outside_cache,
@@ -118,8 +115,6 @@ def build_diagnostic_report(
         "truthTemplatePath": str(truth_template_path),
         "referenceDraftPath": str(output_dir / "reference_draft.jsonl"),
         "audioShardManifestPath": str(output_dir / "audio_shards.json"),
-        "qualityReviewPath": str(output_dir / "review.tsv"),
-        "transcriptReviewPath": str(output_dir / "transcript_review.tsv"),
         "transcriptTimelineJsonlPath": str(output_dir / "transcript_timeline.jsonl"),
         "transcriptTimelineOrgPath": str(output_dir / "transcript.org"),
         "transcriptTimelineVttPath": str(output_dir / "transcript_timeline.vtt"),
@@ -194,14 +189,11 @@ def write_diagnostic_outputs(
         ),
     )
     write_json(output_dir / "quality.json", [row.__dict__ for row in quality_rows])
-    write_quality_tsv(output_dir / "review.tsv", quality_rows)
-    write_transcript_review_tsv(output_dir / "transcript_review.tsv", quality_rows)
     write_transcript_timeline_jsonl(output_dir / "transcript_timeline.jsonl", quality_rows)
     write_transcript_timeline_org(output_dir / "transcript.org", quality_rows)
     write_transcript_timeline_vtt(output_dir / "transcript_timeline.vtt", quality_rows)
     write_transcript_timeline_srt(output_dir / "transcript_timeline.srt", quality_rows)
     write_reference_draft_jsonl(output_dir / "reference_draft.jsonl", quality_rows)
-    write_reference_draft_tsv(output_dir / "reference_draft.tsv", quality_rows)
     template_rows = truth_template_rows(manifest_chunks)
     write_jsonl(truth_template_path, template_rows)
     if args.truth_template_jsonl is not None:

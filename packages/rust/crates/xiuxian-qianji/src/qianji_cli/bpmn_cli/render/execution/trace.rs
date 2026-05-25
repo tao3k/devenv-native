@@ -67,15 +67,15 @@ fn bpmn_execution_trace_values(
 
 fn node_by_optional_index(
     process: Option<&BpmnProcessSpec>,
-    node_index: Option<qianji_bpmn_engine::BpmnNodeIndex>,
-) -> Option<&qianji_bpmn_engine::BpmnNodeSpec> {
+    node_index: Option<xiuxian_qianji_bpmn_engine::BpmnNodeIndex>,
+) -> Option<&xiuxian_qianji_bpmn_engine::BpmnNodeSpec> {
     let node_index = node_index?;
     process.and_then(|process| node_by_index(process, node_index))
 }
 
 fn node_id_by_index(
-    node: Option<&qianji_bpmn_engine::BpmnNodeSpec>,
-    node_index: Option<qianji_bpmn_engine::BpmnNodeIndex>,
+    node: Option<&xiuxian_qianji_bpmn_engine::BpmnNodeSpec>,
+    node_index: Option<xiuxian_qianji_bpmn_engine::BpmnNodeIndex>,
 ) -> String {
     let Some(node_index) = node_index else {
         return String::new();
@@ -86,7 +86,7 @@ fn node_id_by_index(
 fn flow_endpoint_ids(
     process: Option<&BpmnProcessSpec>,
     edge_index: Option<u32>,
-    fallback_target_node_index: Option<qianji_bpmn_engine::BpmnNodeIndex>,
+    fallback_target_node_index: Option<xiuxian_qianji_bpmn_engine::BpmnNodeIndex>,
 ) -> (String, String) {
     let fallback_target = fallback_target_node_index
         .map(|index| index.to_string())
@@ -106,14 +106,14 @@ fn flow_endpoint_ids(
 
 fn node_by_index(
     process: &BpmnProcessSpec,
-    node_index: qianji_bpmn_engine::BpmnNodeIndex,
-) -> Option<&qianji_bpmn_engine::BpmnNodeSpec> {
+    node_index: xiuxian_qianji_bpmn_engine::BpmnNodeIndex,
+) -> Option<&xiuxian_qianji_bpmn_engine::BpmnNodeSpec> {
     process.nodes.get(node_index as usize)
 }
 
 fn edge_by_index(
     process: &BpmnProcessSpec,
     edge_index: u32,
-) -> Option<&qianji_bpmn_engine::BpmnEdgeSpec> {
+) -> Option<&xiuxian_qianji_bpmn_engine::BpmnEdgeSpec> {
     process.edges.get(edge_index as usize)
 }

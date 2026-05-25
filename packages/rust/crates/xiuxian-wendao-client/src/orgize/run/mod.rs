@@ -2,6 +2,7 @@
 
 mod basic;
 mod dispatch;
+mod eval;
 mod paths;
 mod planning;
 mod sdd;

@@ -1,8 +1,12 @@
 //! Semantic-scope to `SearchStrategyFlow` ontology-registry bridge.
 
 use std::collections::BTreeSet;
+use std::io::Cursor;
+use std::sync::Arc;
 
-use arrow::array::{Array, StringArray};
+use arrow::array::{Array, BooleanArray, StringArray};
+use arrow::datatypes::{DataType, Field, Schema};
+use arrow::ipc::writer::StreamWriter;
 use arrow::record_batch::RecordBatch;
 
 use super::client::SearchStrategyFlowFlightClient;
@@ -10,15 +14,15 @@ use super::config::SearchStrategyFlowFlightMaterializationConfig;
 use super::metadata::{ANALYSIS_SEMANTIC_SCOPE_ROUTE, populate_semantic_scope_headers};
 
 /// Fetch accepted semantic-scope rows and serialize them as ontology registry
-/// TSV rows for the local `WendaoGraph.jl` `SearchStrategyFlow` host.
+/// Arrow IPC rows for the embedded `WendaoGraph.jl` adapter.
 ///
 /// # Errors
 ///
 /// Returns an error when the Flight endpoint cannot be reached or when the
 /// semantic-scope payload cannot be decoded.
-pub(crate) async fn search_strategy_flow_ontology_registry_tsv_from_semantic_scope(
+pub(crate) async fn search_strategy_flow_ontology_registry_arrow_ipc_from_semantic_scope(
     config: &SearchStrategyFlowFlightMaterializationConfig,
-) -> Result<String, String> {
+) -> Result<Vec<u8>, String> {
     let mut client = SearchStrategyFlowFlightClient::connect(config).await?;
     let batches = client
         .collect_route_batches_allow_empty(
@@ -27,11 +31,24 @@ pub(crate) async fn search_strategy_flow_ontology_registry_tsv_from_semantic_sco
             |metadata| populate_semantic_scope_headers(metadata, &[]),
         )
         .await?;
-    Ok(semantic_scope_batches_to_ontology_registry_tsv(&batches))
+    semantic_scope_batches_to_ontology_registry_arrow_ipc(&batches)
 }
 
-pub(super) fn semantic_scope_batches_to_ontology_registry_tsv(batches: &[RecordBatch]) -> String {
-    let mut rows = BTreeSet::<OntologyRegistryTsvRow>::new();
+/// Build Arrow IPC ontology-registry rows from accepted semantic-scope rows.
+///
+/// # Errors
+///
+/// Returns an error when the Arrow IPC stream cannot be encoded.
+pub(crate) fn semantic_scope_batches_to_ontology_registry_arrow_ipc(
+    batches: &[RecordBatch],
+) -> Result<Vec<u8>, String> {
+    ontology_registry_rows_to_arrow_ipc(ontology_registry_rows_from_semantic_scope_batches(batches))
+}
+
+fn ontology_registry_rows_from_semantic_scope_batches(
+    batches: &[RecordBatch],
+) -> BTreeSet<OntologyRegistryRow> {
+    let mut rows = BTreeSet::<OntologyRegistryRow>::new();
     for batch in batches {
         for row_index in 0..batch.num_rows() {
             let Some(object_id) = string_at(batch, "objectId", row_index) else {
@@ -41,7 +58,7 @@ pub(super) fn semantic_scope_batches_to_ontology_registry_tsv(batches: &[RecordB
                 continue;
             }
             let kind = string_at(batch, "kind", row_index);
-            rows.insert(OntologyRegistryTsvRow::new(
+            rows.insert(OntologyRegistryRow::new(
                 resource_family_for_kind(kind.as_deref()),
                 object_id.as_str(),
                 false,
@@ -50,26 +67,26 @@ pub(super) fn semantic_scope_batches_to_ontology_registry_tsv(batches: &[RecordB
                 && !title.trim().is_empty()
                 && title != object_id
             {
-                rows.insert(OntologyRegistryTsvRow::new(
+                rows.insert(OntologyRegistryRow::new(
                     "object_type",
                     title.as_str(),
                     false,
                 ));
             }
             for target in json_string_list_at(batch, "relationTargetsJson", row_index) {
-                rows.insert(OntologyRegistryTsvRow::new(
+                rows.insert(OntologyRegistryRow::new(
                     "link_type",
                     format!("{object_id}.{target}").as_str(),
                     false,
                 ));
-                rows.insert(OntologyRegistryTsvRow::new(
+                rows.insert(OntologyRegistryRow::new(
                     "link_type",
                     target.as_str(),
                     false,
                 ));
             }
             for validation in json_string_list_at(batch, "requiredValidationsJson", row_index) {
-                rows.insert(OntologyRegistryTsvRow::new(
+                rows.insert(OntologyRegistryRow::new(
                     "action_type",
                     validation.as_str(),
                     true,
@@ -77,10 +94,55 @@ pub(super) fn semantic_scope_batches_to_ontology_registry_tsv(batches: &[RecordB
             }
         }
     }
-    rows.into_iter()
-        .map(|row| row.to_tsv())
-        .collect::<Vec<_>>()
-        .join("\n")
+    rows
+}
+
+fn ontology_registry_rows_to_arrow_ipc(
+    rows: BTreeSet<OntologyRegistryRow>,
+) -> Result<Vec<u8>, String> {
+    let rows = rows.into_iter().collect::<Vec<_>>();
+    let schema = Arc::new(Schema::new(vec![
+        Field::new("resource_family", DataType::Utf8, false),
+        Field::new("api_name", DataType::Utf8, false),
+        Field::new("requires_evidence", DataType::Boolean, false),
+    ]));
+    let batch = RecordBatch::try_new(
+        schema.clone(),
+        vec![
+            Arc::new(StringArray::from(
+                rows.iter()
+                    .map(|row| row.resource_family.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(StringArray::from(
+                rows.iter()
+                    .map(|row| row.api_name.as_str())
+                    .collect::<Vec<_>>(),
+            )),
+            Arc::new(BooleanArray::from(
+                rows.iter()
+                    .map(|row| row.requires_evidence)
+                    .collect::<Vec<_>>(),
+            )),
+        ],
+    )
+    .map_err(|error| format!("build SearchStrategyFlow ontology registry Arrow batch: {error}"))?;
+    let mut writer =
+        StreamWriter::try_new(Cursor::new(Vec::new()), schema.as_ref()).map_err(|error| {
+            format!("build SearchStrategyFlow ontology registry IPC writer: {error}")
+        })?;
+    writer.write(&batch).map_err(|error| {
+        format!("write SearchStrategyFlow ontology registry IPC batch: {error}")
+    })?;
+    writer.finish().map_err(|error| {
+        format!("finish SearchStrategyFlow ontology registry IPC stream: {error}")
+    })?;
+    writer
+        .into_inner()
+        .map(Cursor::into_inner)
+        .map_err(|error| {
+            format!("finalize SearchStrategyFlow ontology registry IPC stream: {error}")
+        })
 }
 
 fn resource_family_for_kind(kind: Option<&str>) -> &'static str {
@@ -110,13 +172,13 @@ fn string_at(batch: &RecordBatch, column: &str, row_index: usize) -> Option<Stri
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct OntologyRegistryTsvRow {
+struct OntologyRegistryRow {
     resource_family: String,
     api_name: String,
     requires_evidence: bool,
 }
 
-impl OntologyRegistryTsvRow {
+impl OntologyRegistryRow {
     fn new(resource_family: &str, api_name: &str, requires_evidence: bool) -> Self {
         Self {
             resource_family: resource_family.to_owned(),
@@ -124,23 +186,6 @@ impl OntologyRegistryTsvRow {
             requires_evidence,
         }
     }
-
-    fn to_tsv(&self) -> String {
-        [
-            escape_tsv_field(self.resource_family.as_str()),
-            escape_tsv_field(self.api_name.as_str()),
-            self.requires_evidence.to_string(),
-        ]
-        .join("\t")
-    }
-}
-
-fn escape_tsv_field(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('\t', "\\t")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
 }
 
 #[cfg(test)]

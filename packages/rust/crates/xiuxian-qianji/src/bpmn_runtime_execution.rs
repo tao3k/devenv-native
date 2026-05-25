@@ -9,10 +9,10 @@ use super::error::BpmnOrchestrationError;
 use super::scheduler::QianjiBpmnExecutionScheduler;
 use super::session::QianjiBpmnSession;
 use crate::scheduler_identity::SchedulerAgentIdentity;
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage,
 };
-use std::sync::Arc;
 
 /// Default lease TTL used when the host runtime enables scheduler-owned BPMN
 /// checkpoint lifecycle from `SchedulerAgentIdentity`.

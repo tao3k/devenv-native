@@ -5,49 +5,6 @@ use std::path::PathBuf;
 use xiuxian_wendao_parsers::{OrgizeAgentTaskProperty, OrgizeAgentTaskRepeater};
 
 pub(super) const AGENT_ORG_TASKS_TABLE: &str = "agent_org_tasks";
-pub(super) const AGENT_ORG_TASK_LIST_COLUMNS: &str = r"
-    source_path,
-    source_line,
-    source_range_start,
-    source_range_end,
-    title,
-    todo_state,
-    is_done,
-    archived,
-    tags_json,
-    effective_tags_json,
-    scheduled,
-    scheduled_repeater_json,
-    deadline,
-    deadline_repeater_json,
-    closed,
-    level,
-    outline_path_json,
-    properties_json
-";
-pub(super) const AGENT_ORG_TASK_LIST_QUERY: &str = r"
-SELECT
-    source_path,
-    source_line,
-    source_range_start,
-    source_range_end,
-    title,
-    todo_state,
-    is_done,
-    archived,
-    tags_json,
-    effective_tags_json,
-    scheduled,
-    scheduled_repeater_json,
-    deadline,
-    deadline_repeater_json,
-    closed,
-    level,
-    outline_path_json,
-    properties_json
-FROM agent_org_tasks
-ORDER BY archived ASC, is_done ASC, source_path ASC, source_line ASC
-";
 
 #[derive(Debug, Clone)]
 pub(super) struct ResolvedReadModelSettings {
@@ -87,7 +44,9 @@ pub(super) struct RefreshedAgentOrgReadModel {
 
 #[derive(Debug, Clone)]
 pub(super) struct AgentOrgTaskListRow {
+    pub(super) orgid: String,
     pub(super) source_path: String,
+    pub(super) source_modified_unix_ms: u64,
     pub(super) source_line: u64,
     pub(super) source_range_start: u64,
     pub(super) source_range_end: u64,

@@ -5,7 +5,9 @@ use std::collections::BTreeMap;
 use anyhow::{Context, Result};
 use serde_json::json;
 
-use crate::orgize::{OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs};
+use crate::orgize::{
+    OrgizeOgridShowArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
+};
 use crate::{ClientContext, OutputFormat};
 
 use super::archive::{ArchiveApplyReport, archive_target_for_row};
@@ -74,6 +76,28 @@ pub(super) fn emit_task_list_json(input: &TaskListJsonContext<'_>) -> Result<()>
             .collect::<Vec<_>>(),
     });
     emit_json_report(&report, input.context.output(), "orgize task-list")
+}
+
+pub(super) fn emit_ogrid_show_json(
+    args: &OrgizeOgridShowArgs,
+    snapshot: &TaskQuerySnapshot,
+    row: &AgentOrgTaskListRow,
+    section: &str,
+    context: &ClientContext,
+) -> Result<()> {
+    let report = json!({
+        "command": "orgize ogrid-show",
+        "backend": "duckdb",
+        "table": AGENT_ORG_TASKS_TABLE,
+        "orgid": args.id,
+        "database": &snapshot.settings.database_path,
+        "sources": &snapshot.source_paths,
+        "snapshot": snapshot.snapshot_label,
+        "snapshotRows": snapshot.materialized.as_ref().map(|materialized| materialized.rows),
+        "refreshWarning": &snapshot.refresh_warning,
+        "task": ogrid_show_row_json(row, section, context),
+    });
+    emit_json_report(&report, context.output(), "orgize ogrid-show")
 }
 
 pub(super) fn emit_task_report_json(
@@ -209,12 +233,14 @@ fn task_list_row_json(
 ) -> serde_json::Value {
     json!({
         "index": index,
+        "orgid": row.orgid,
         "title": row.title,
         "state": row.todo_state,
         "isDone": row.is_done,
         "archived": row.archived,
         "tags": row.effective_tags,
         "source": display_source_path(&row.source_path, context),
+        "sourceModifiedUnixMs": row.source_modified_unix_ms,
         "sourceLine": row.source_line,
         "scheduled": row.scheduled,
         "deadline": row.deadline,
@@ -222,6 +248,30 @@ fn task_list_row_json(
         "repeat": task_repeater_labels(row),
         "next": property_value(row, "NEXT_ACTION"),
         "resume": property_value(row, "RESUME_QUERY"),
+    })
+}
+
+fn ogrid_show_row_json(
+    row: &AgentOrgTaskListRow,
+    section: &str,
+    context: &ClientContext,
+) -> serde_json::Value {
+    json!({
+        "orgid": row.orgid,
+        "title": row.title,
+        "state": row.todo_state,
+        "isDone": row.is_done,
+        "archived": row.archived,
+        "tags": row.effective_tags,
+        "source": display_source_path(&row.source_path, context),
+        "sourceModifiedUnixMs": row.source_modified_unix_ms,
+        "sourceLine": row.source_line,
+        "sourceRangeStart": row.source_range_start,
+        "sourceRangeEnd": row.source_range_end,
+        "outline": row.outline_path,
+        "next": property_value(row, "NEXT_ACTION"),
+        "resume": property_value(row, "RESUME_QUERY"),
+        "section": section,
     })
 }
 

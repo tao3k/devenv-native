@@ -23,13 +23,24 @@ pub use planned_search::{
 };
 pub(crate) use search_strategy_flow_evidence::search_strategy_flow_evidence_edge_kinds;
 pub use search_strategy_flow_flight::{
-    SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
+    SearchStrategyFlowFlightMaterializationConfig, SearchStrategyFlowServiceArrowRequest,
+    SearchStrategyFlowServiceFlightBindingOptions, SearchStrategyFlowServiceRequestOptions,
+    SearchStrategyFlowServiceRoundtrip, build_search_strategy_flow_service_arrow_request,
+    build_search_strategy_flow_service_flight_binding,
+    build_search_strategy_flow_service_flight_request_batch,
+    build_search_strategy_flow_service_orchestrator_schedule_plan,
+    decode_search_strategy_flow_frontier_rows, materialize_search_strategy_flow_routes,
+    roundtrip_search_strategy_flow_frontier_with_service,
+    roundtrip_search_strategy_flow_frontier_with_service_request,
+    wendaograph_search_strategy_flow_provider_selector,
+    wendaograph_search_strategy_flow_route_profile_ref,
 };
 pub use service_runtime::JuliaServiceGuard;
 pub(crate) use service_runtime::{
     repo_root, reserve_service_port, wait_for_service_ready_with_attempts,
     wendaosearch_julia_project, wendaosearch_script,
 };
+pub(crate) use wendaograph::SearchStrategyFlowSideTableRequest;
 pub use wendaograph::ontology_read_model::{
     WENDAO_GRAPH_ONTOLOGY_EXTENSION_DOMAIN_PREFIX_COLUMN,
     WENDAO_GRAPH_ONTOLOGY_EXTENSION_PROOF_REQUEST_TABLES,
@@ -69,6 +80,7 @@ pub use wendaograph::ontology_read_model::{
     build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope,
     build_wendaograph_ontology_read_model_quality_request_batches_from_rdf_source_artifacts,
     build_wendaograph_ontology_read_model_quality_request_batches_from_semantic_preview_artifacts,
+    build_wendaograph_ontology_read_model_quality_request_batches_from_structural_facts_artifacts,
     roundtrip_wendaograph_ontology_extension_proof_with_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
     wendaograph_ontology_read_model_quality_provider_selector,
@@ -79,6 +91,10 @@ pub use wendaograph::{
     SearchStrategyFlowPersistentHostStabilizationReason,
     SearchStrategyFlowPersistentHostStabilizationReport,
     SearchStrategyFlowPersistentHostWarmPathStats, SearchStrategyFlowProbeAction,
+};
+pub(crate) use wendaograph::{
+    SearchStrategyFlowServiceExecutionRequest,
+    run_wendaograph_search_strategy_flow_json_with_service_and_flight_materialization,
 };
 pub use wendaograph::{
     WendaoGraphLinkGraphFullStructuralHostProbeReport, WendaoGraphLinkGraphHostProbeReport,
@@ -95,6 +111,7 @@ pub use wendaograph::{
     run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_side_tables,
     search_strategy_flow_probe_action_route,
 };
 pub use wendaograph_gnn::{

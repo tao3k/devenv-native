@@ -185,7 +185,7 @@ fn discovery_authority_seed_follows_query_domain() -> Result<(), Box<dyn std::er
 }
 
 #[test]
-fn serializes_tsv_without_losing_candidate_boundaries() -> Result<(), Box<dyn std::error::Error>> {
+fn arrow_snapshot_preserves_candidate_boundaries() -> Result<(), Box<dyn std::error::Error>> {
     let temp_dir = tempfile::tempdir()?;
     fs::write(
         temp_dir.path().join("doc.md"),
@@ -199,9 +199,13 @@ fn serializes_tsv_without_losing_candidate_boundaries() -> Result<(), Box<dyn st
 
     assert_eq!(batch.source, MARKDOWN_HEADING_CANDIDATE_SOURCE);
     assert_eq!(batch.row_count, 1);
-    assert!(batch.tsv.contains("doc.md"));
-    assert!(batch.tsv.contains("Query\\tUnderstanding"));
-    assert_eq!(batch.tsv.lines().count(), 1);
+    assert!(batch.candidate_input_arrow_snapshot().contains("doc.md"));
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("Query\\tUnderstanding")
+    );
+    assert_eq!(batch.candidate_input_arrow_snapshot().lines().count(), 1);
     let receipt: serde_json::Value = serde_json::from_str(&batch.discovery_receipt_json)?;
     assert_eq!(
         receipt.get("transport"),

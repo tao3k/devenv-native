@@ -8,6 +8,7 @@ members = [
   "packages/rust/crates/xiuxian-ast",
   "packages/rust/crates/xiuxian-edit",
   "packages/rust/crates/xiuxian-event",
+  "packages/rust/crates/xiuxian-graph-core",
   "packages/rust/crates/xiuxian-io",
   "packages/rust/crates/xiuxian-git-repo",
   "packages/rust/crates/xiuxian-wendao-attachments",
@@ -32,16 +33,17 @@ members = [
   "packages/rust/crates/xiuxian-vector",
   "packages/rust/crates/xiuxian-db-store",
   "packages/rust/crates/xiuxian-qianhuan",
-  "packages/rust/crates/qianji-bpmn-engine",
+  "packages/rust/crates/xiuxian-qianji-bpmn-engine",
   "packages/rust/crates/xiuxian-llm",
+  "packages/rust/crates/xiuxian-julia-runtime",
   "packages/rust/crates/xiuxian-polyglot-orchestrator",
   "packages/rust/crates/xiuxian-wendao-client",
   "packages/rust/crates/xiuxian-wendao-julia",
   "packages/rust/crates/xiuxian-window",
   "packages/rust/crates/xiuxian-qianji-control",
-  "packages/rust/crates/qianji-client",
+  "packages/rust/crates/xiuxian-qianji-runtime",
+  "packages/rust/crates/xiuxian-qianji-client",
   "packages/rust/crates/xiuxian-qianji",
-  "packages/rust/crates/xiuxian-memory",
   "packages/rust/crates/xiuxian-zhixing",
   "packages/rust/crates/xiuxian-zhenfa",
 ]
@@ -86,7 +88,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "f9f0d2fce8e09c6d5e3fa8ffd40756566b758483" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "e2a6372a97f19940805a1dc051d2bb2bf39483a8" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"
@@ -109,7 +111,7 @@ xxhash-rust = "0.8"
 tree-sitter = "0.26.5"
 tree-sitter-python = "0.25.0"
 graphql-parser = "0.4"
-merman-core = "0.4"
+merman-core = "0.5.0"
 image = "0.25"
 imageproc = "0.25"
 duckdb = { version = "=1.10502.0", default-features = false, features = ["bundled", "appender-arrow", "parquet"] }

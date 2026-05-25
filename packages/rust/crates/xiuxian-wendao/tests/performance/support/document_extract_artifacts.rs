@@ -48,11 +48,22 @@ pub(crate) struct ArtifactReport {
     pub(crate) audio_transcript_timeline_marker_count: usize,
     pub(crate) audio_transcript_timeline_marked_rows: usize,
     pub(crate) audio_materialization_report_bytes: u64,
+    pub(crate) audio_materialization_artifact_cache_configured: bool,
+    pub(crate) audio_materialization_artifact_cache_backend: Option<String>,
+    pub(crate) audio_materialization_artifact_cache_root: Option<String>,
+    pub(crate) audio_materialization_artifact_cache_memory_bytes: u64,
+    pub(crate) audio_materialization_artifact_cache_storage_bytes: u64,
+    pub(crate) audio_materialization_artifact_cache_config_error: Option<String>,
     pub(crate) audio_materialization_shard_count: usize,
+    pub(crate) audio_materialization_byte_count: u64,
     pub(crate) audio_materialization_artifact_cache_hit_count: usize,
+    pub(crate) audio_materialization_artifact_cache_hit_bytes: u64,
     pub(crate) audio_materialization_existing_output_count: usize,
+    pub(crate) audio_materialization_existing_output_bytes: u64,
     pub(crate) audio_materialization_media_splitter_count: usize,
+    pub(crate) audio_materialization_media_splitter_bytes: u64,
     pub(crate) audio_materialization_source_counts: BTreeMap<String, usize>,
+    pub(crate) audio_materialization_source_bytes: BTreeMap<String, u64>,
     pub(crate) audio_transcript_admission_report_bytes: u64,
     pub(crate) audio_transcript_admission_enabled: bool,
     pub(crate) audio_transcript_admission_hit_count: usize,
@@ -168,11 +179,22 @@ fn inspect_artifact_dir(
         audio_transcript_timeline_marker_count: 0,
         audio_transcript_timeline_marked_rows: 0,
         audio_materialization_report_bytes: 0,
+        audio_materialization_artifact_cache_configured: false,
+        audio_materialization_artifact_cache_backend: None,
+        audio_materialization_artifact_cache_root: None,
+        audio_materialization_artifact_cache_memory_bytes: 0,
+        audio_materialization_artifact_cache_storage_bytes: 0,
+        audio_materialization_artifact_cache_config_error: None,
         audio_materialization_shard_count: 0,
+        audio_materialization_byte_count: 0,
         audio_materialization_artifact_cache_hit_count: 0,
+        audio_materialization_artifact_cache_hit_bytes: 0,
         audio_materialization_existing_output_count: 0,
+        audio_materialization_existing_output_bytes: 0,
         audio_materialization_media_splitter_count: 0,
+        audio_materialization_media_splitter_bytes: 0,
         audio_materialization_source_counts: BTreeMap::new(),
+        audio_materialization_source_bytes: BTreeMap::new(),
         audio_transcript_admission_report_bytes: 0,
         audio_transcript_admission_enabled: false,
         audio_transcript_admission_hit_count: 0,
@@ -424,15 +446,52 @@ fn populate_audio_materialization_report(
     )
     .map_err(|error| format!("decode audio materialization report: {error}"))?;
     report.audio_materialization_report_bytes = file_len(report_path.as_path())?;
+    populate_audio_materialization_artifact_cache(report, &value);
     report.audio_materialization_shard_count = timing_report_usize(&value, "shardCount");
+    report.audio_materialization_byte_count = value_u64(&value, "byteCount");
     report.audio_materialization_artifact_cache_hit_count =
         timing_report_usize(&value, "artifactCacheHitCount");
+    report.audio_materialization_artifact_cache_hit_bytes =
+        value_u64(&value, "artifactCacheHitBytes");
     report.audio_materialization_existing_output_count =
         timing_report_usize(&value, "existingOutputCount");
+    report.audio_materialization_existing_output_bytes = value_u64(&value, "existingOutputBytes");
     report.audio_materialization_media_splitter_count =
         timing_report_usize(&value, "mediaSplitterCount");
+    report.audio_materialization_media_splitter_bytes = value_u64(&value, "mediaSplitterBytes");
     report.audio_materialization_source_counts = value_string_usize_map(&value, "sourceCounts");
+    report.audio_materialization_source_bytes = value_string_u64_map(&value, "sourceBytes");
     Ok(())
+}
+
+fn populate_audio_materialization_artifact_cache(report: &mut ArtifactReport, value: &Value) {
+    let Some(cache) = value.get("artifactCache").and_then(Value::as_object) else {
+        return;
+    };
+    report.audio_materialization_artifact_cache_configured = cache
+        .get("configured")
+        .and_then(Value::as_bool)
+        .unwrap_or_default();
+    report.audio_materialization_artifact_cache_backend = cache
+        .get("backend")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+    report.audio_materialization_artifact_cache_root = cache
+        .get("root")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+    report.audio_materialization_artifact_cache_memory_bytes = cache
+        .get("memoryBytes")
+        .and_then(Value::as_u64)
+        .unwrap_or_default();
+    report.audio_materialization_artifact_cache_storage_bytes = cache
+        .get("storageBytes")
+        .and_then(Value::as_u64)
+        .unwrap_or_default();
+    report.audio_materialization_artifact_cache_config_error = cache
+        .get("configError")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
 }
 
 fn populate_audio_transcript_admission_report(
@@ -635,6 +694,10 @@ fn timing_report_usize(value: &Value, key: &str) -> usize {
         .unwrap_or_default()
 }
 
+fn value_u64(value: &Value, key: &str) -> u64 {
+    value.get(key).and_then(Value::as_u64).unwrap_or_default()
+}
+
 fn value_string_usize_map(value: &Value, key: &str) -> BTreeMap<String, usize> {
     value
         .get(key)
@@ -647,6 +710,21 @@ fn value_string_usize_map(value: &Value, key: &str) -> BTreeMap<String, usize> {
                         .as_u64()
                         .and_then(|count| usize::try_from(count).ok())
                         .map(|count| (entry_key.clone(), count))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn value_string_u64_map(value: &Value, key: &str) -> BTreeMap<String, u64> {
+    value
+        .get(key)
+        .and_then(Value::as_object)
+        .map(|object| {
+            object
+                .iter()
+                .filter_map(|(entry_key, entry_value)| {
+                    entry_value.as_u64().map(|count| (entry_key.clone(), count))
                 })
                 .collect()
         })

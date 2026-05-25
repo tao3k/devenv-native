@@ -6,13 +6,15 @@ mod read_model;
 mod run;
 
 pub use command::{
-    OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
+    OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeEvalCommand, OrgizeFormatArgs, OrgizeLintArgs,
+    OrgizeLintFormatArg, OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs,
+    OrgizeSparseTreeArgs,
 };
 #[cfg(feature = "orgize-agent-read-model")]
 pub use command::{
-    OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskListView,
-    OrgizeTaskReportArgs,
+    OrgizeOgridShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
+    OrgizeTaskListView, OrgizeTaskProbeArgs, OrgizeTaskRecoverArgs, OrgizeTaskReportArgs,
+    OrgizeTaskSddArgs,
 };
 #[cfg(all(feature = "performance", feature = "orgize-agent-read-model"))]
 pub use read_model::perf_support;

@@ -75,7 +75,7 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
     }
 );
 
-/// Model-agnostic audio shard planning and cache identity contracts.
+/// Model-agnostic audio shard planning and admission identity contracts.
 pub mod audio;
 
 #[cfg(feature = "archive-audit")]

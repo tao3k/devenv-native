@@ -32,6 +32,8 @@ pub(crate) enum EpistemeEvidenceCommand {
 pub(crate) enum EpistemeSourceContractCommand {
     /// Write a deterministic extraction run plan without executing extraction.
     PlanExtractionRun(EpistemePlanExtractionRunArgs),
+    /// Run the deterministic ontology bootstrap pipeline.
+    BootstrapPipeline(EpistemeBootstrapPipelineArgs),
     /// Compile deterministic structural facts seed rows from source-contract files.
     WriteStructuralFacts(EpistemeWriteStructuralFactsArgs),
     /// Compile structural facts rows into a deterministic reasoning packet.
@@ -86,6 +88,72 @@ pub(crate) enum EpistemeSourceContractCommand {
 pub(crate) enum EpistemeStructureCommand {
     /// Write an evidence-only Org TOC ledger without executing extraction.
     WriteToc(EpistemeWriteStructureTocArgs),
+}
+
+#[cfg(feature = "episteme-artifact-cache")]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ValueEnum)]
+pub(crate) enum EpistemeBootstrapArtifactCacheModeArg {
+    /// Run the deterministic bootstrap pipeline without artifact-cache use.
+    #[default]
+    Disabled,
+    /// Run the pipeline and write generated stage directories to the artifact cache.
+    WriteThrough,
+    /// Restore all stage directories when cached, otherwise generate and write them.
+    ReadThrough,
+    /// Restore cached stage directories and report missing stage bundles.
+    RestoreOnly,
+}
+
+#[derive(Args, Debug, Clone)]
+pub(crate) struct EpistemeBootstrapPipelineArgs {
+    /// Episteme repository root.
+    #[arg(long, value_name = "DIR", default_value = ".")]
+    pub episteme_root: PathBuf,
+    /// Episteme registry id from `wendao.toml`.
+    #[arg(long, value_name = "ID")]
+    pub episteme_registry_id: Option<String>,
+    /// Corpus root. Defaults to the env var or episteme runtime config.
+    #[arg(long, value_name = "DIR")]
+    pub corpus_root: Option<PathBuf>,
+    /// Structural run root. Defaults to episteme runtime config.
+    #[arg(long, value_name = "DIR")]
+    pub structure_run_root: Option<PathBuf>,
+    /// Ontology-generation run root. Defaults to episteme runtime config.
+    #[arg(long, value_name = "DIR")]
+    pub ontology_generation_run_root: Option<PathBuf>,
+    /// Structural Facts validation policy.
+    #[arg(long, value_enum, default_value_t = EpistemeStructuralFactsValidationModeArg::MetadataOnly)]
+    pub validation_mode: EpistemeStructuralFactsValidationModeArg,
+    /// Safe ASCII pipeline run id.
+    #[arg(long, value_name = "ID")]
+    pub run_id: String,
+    /// Optional source category filter.
+    #[arg(long, value_name = "CATEGORY")]
+    pub category: Option<String>,
+    /// Optional extraction route filter.
+    #[arg(long, value_name = "ROUTE")]
+    pub route: Option<String>,
+    /// Maximum reasoning packet rows.
+    #[arg(long, default_value_t = 256)]
+    pub reasoning_packet_limit: usize,
+    /// Maximum reasoning ledger seed rows.
+    #[arg(long, default_value_t = 512)]
+    pub reasoning_ledger_seed_limit: usize,
+    /// Maximum reasoning fill-plan rows.
+    #[arg(long, default_value_t = 1024)]
+    pub reasoning_fill_plan_limit: usize,
+    /// Artifact cache mode for generated bootstrap run directories.
+    #[cfg(feature = "episteme-artifact-cache")]
+    #[arg(long, value_enum, default_value_t = EpistemeBootstrapArtifactCacheModeArg::Disabled)]
+    pub artifact_cache_mode: EpistemeBootstrapArtifactCacheModeArg,
+    /// Source digest component for artifact-cache identities.
+    #[cfg(feature = "episteme-artifact-cache")]
+    #[arg(long, value_name = "DIGEST")]
+    pub artifact_cache_source_digest: Option<String>,
+    /// Profile digest component for artifact-cache identities.
+    #[cfg(feature = "episteme-artifact-cache")]
+    #[arg(long, value_name = "DIGEST")]
+    pub artifact_cache_profile_digest: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]

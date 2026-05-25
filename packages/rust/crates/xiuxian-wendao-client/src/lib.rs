@@ -42,12 +42,21 @@ pub use lint::{
     SemanticLintWritebackArgs,
 };
 #[cfg(feature = "orgize-agent-read-model")]
+pub use orgize::OrgizeOgridShowArgs;
+#[cfg(feature = "orgize-agent-read-model")]
 pub use orgize::OrgizeReadModelArgs;
+#[cfg(feature = "orgize-agent-read-model")]
+pub use orgize::OrgizeTaskProbeArgs;
+#[cfg(feature = "orgize-agent-read-model")]
+pub use orgize::OrgizeTaskRecoverArgs;
+#[cfg(feature = "orgize-agent-read-model")]
+pub use orgize::OrgizeTaskSddArgs;
 #[cfg(all(feature = "performance", feature = "orgize-agent-read-model"))]
 pub use orgize::perf_support as orgize_perf_support;
 pub use orgize::{
-    OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
+    OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeEvalCommand, OrgizeFormatArgs, OrgizeLintArgs,
+    OrgizeLintFormatArg, OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs,
+    OrgizeSparseTreeArgs,
 };
 pub use output::OutputFormat;
 #[cfg(feature = "semantic-sql")]

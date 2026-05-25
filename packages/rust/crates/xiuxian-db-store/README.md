@@ -9,12 +9,13 @@ runtime code.
 - `engine`: exposes Arrow/DataFusion engine record batches, IPC helpers,
   retrieval result schemas, and Parquet write helpers without compiling
   `xiuxian-vector` or LanceDB.
-- `artifact-cache`: exposes attachment and document extraction artifact cache
-  contracts plus the content-addressed filesystem baseline. This feature does
-  not enable Foyer, Moka, DuckDB, or Valkey by itself.
+- `artifact-cache`: exposes attachment, document extraction, ontology, and
+  agent artifact cache contracts plus the content-addressed filesystem
+  baseline. This feature does not enable Foyer, Moka, DuckDB, or Valkey by
+  itself.
 - `foyer-artifact-cache`: enables the optional Foyer implementation behind
-  `ArtifactBlobCache`. This feature admits Foyer as an L2 artifact byte-cache
-  candidate only; route adoption still requires benchmark evidence.
+  `ArtifactBlobCache`. This feature admits Foyer as the feature-gated
+  artifact byte-cache candidate for repeated agent/model artifact reads.
 - `vector-store`: re-exports the Lance/vector storage surface from
   `xiuxian-vector` for explicit vector-store consumers.
 - `duckdb-types`: exposes generic DuckDB runtime config and SQL helper types
@@ -36,30 +37,56 @@ own search-specific runtime resolution, Flight-facing behavior, event-lake
 schemas, and query routing, but it should consume the generic connection,
 catalog attach, and Arrow appender helper surface from this crate.
 
-Attachment and document extraction artifact cache contracts also belong here
-behind `artifact-cache`. The contract is intentionally split from the truth
-catalog: DuckDB remains responsible for artifact identity, lineage, precision
-status, and read-model projection; Arrow IPC and Parquet remain the payload and
-interchange formats; Valkey remains the cross-process lease and in-flight
-coordination surface. The baseline implementation stores artifact bytes in a
-content-addressed filesystem layout keyed by namespace, artifact kind, source
-digest, profile digest, and shard digest.
+Attachment, document extraction, ontology, and agent evidence artifact cache
+contracts also belong here behind `artifact-cache`. The contract is
+intentionally split from the truth catalog: DuckDB remains responsible for
+manifests, indexes, lineage, precision status, ontology truth, and read-model
+projection; Arrow IPC and Parquet remain the structured payload and interchange
+formats; Valkey remains the cross-process lease and in-flight coordination
+surface. The cache stores large derived payload bytes only, such as audio
+shards, PDF rasters/crops, OCR/VLM atlases, Arrow IPC batch bytes, ontology
+review packets, ontology read-model payloads, parser projections, and
+prompt/evidence packs.
 
-Foyer is a candidate implementation for a future L2 artifact blob cache, not a
-replacement for DuckDB, Arrow, or Valkey. Any Foyer backend must stay behind
-the `ArtifactBlobCache` contract, remain feature-gated, and prove better
-restart reuse, warm-hit latency, or managed eviction than the filesystem
-baseline before route adoption. Moka is not part of the current mainline
-artifact-cache contract because the active bottleneck is large artifact reuse,
-not process-local metadata lookup.
+`ArtifactBlobCache` is the only consumer interface for those bytes. The
+filesystem backend is the baseline implementation and stores artifact bytes in
+a content-addressed layout keyed by namespace, artifact kind, source digest,
+profile digest, and shard digest. The Foyer backend is the mainline
+memory-plus-disk candidate behind `foyer-artifact-cache`; it must stay behind
+the same trait and prove warm-restart reuse, managed eviction, or observability
+benefits before any route makes it the default. Moka is intentionally out of
+scope for this artifact substrate because the active bottleneck is repeated large
+artifact reuse, not process-local metadata lookup.
 
-The `foyer-artifact-cache` feature is therefore a dependency-admission spike,
-not a production routing switch. It provides `FoyerArtifactBlobCache` for
-direct comparison with `ContentAddressedFilesystemBlobCache`, while Studio,
-audio extraction, and PDF/OCR routes must continue to consume the backend only
-through `ArtifactBlobCache`. Restart-reuse promotion remains blocked until the
-Foyer close/flush/reopen lifecycle probe passes under the synchronous
-`ArtifactBlobCache` wrapper.
+Agent and model loops should use the first-class artifact kinds
+`agent-evidence-pack`, `org-projection`, `json-projection`,
+`tabular-projection`, and `prompt-context-pack` for generated context that may
+be reread across prompts, workflow steps, or process restarts. Use
+`agent_artifact_key` to keep the namespace stable and
+`read_through_artifact_bytes` to centralize miss/build/write behavior instead
+of creating route-local read-through cache logic.
+
+Attachment and ontology routes should use the dedicated key helpers instead of
+custom namespaces. Use `attachment_artifact_key` for source payloads, audio
+chunks, PDF rasters, OCR crops, VLM atlases, and Arrow IPC batches. Use
+`ontology_artifact_key` for registry snapshots, candidate packets,
+candidate read models, RDF drafts, promotion review packets, and reasoning
+projections. These helpers only name artifact bytes; they do not move source
+truth, ontology approval, or structured manifests out of the owning crates.
+
+Runtime selection is data/config driven:
+
+- `WENDAO_ARTIFACT_CACHE_BACKEND`: `filesystem` or `foyer`, default
+  `filesystem`.
+- `WENDAO_ARTIFACT_CACHE_ROOT`: artifact root, default
+  `$PRJ_CACHE_HOME/wendao/artifacts` when the project cache root is available.
+- `WENDAO_ARTIFACT_CACHE_MEMORY_BYTES`: Foyer memory-tier capacity in bytes.
+- `WENDAO_ARTIFACT_CACHE_STORAGE_BYTES`: Foyer disk-tier capacity in bytes.
+
+The `foyer-artifact-cache` feature closes the synchronous wrapper lifecycle
+gate for roundtrip, replace, remove, and close/reopen persistence. Callers still
+consume only `ArtifactBlobCache`; Studio, attachments, and future agent parse
+artifact loops must not construct route-local cache backends directly.
 
 DuckLake support is intentionally embedded-first. This crate owns local
 metadata-file and PostgreSQL-catalog attach configuration, extension bootstrap

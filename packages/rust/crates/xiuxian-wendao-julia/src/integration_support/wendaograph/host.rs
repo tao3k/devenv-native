@@ -1,8 +1,8 @@
 //! Host-process entrypoints for local `WendaoGraph.jl` contracts.
 
-use std::env;
 use std::path::PathBuf;
 use std::process::Command;
+use std::{env, fs};
 
 use serde_json::Value;
 use xiuxian_wendao_runtime::transport::{
@@ -20,14 +20,18 @@ use crate::integration_support::search_strategy_flow_candidates::{
     configured_search_strategy_flow_markdown_replay_families_with_limit,
 };
 use crate::integration_support::search_strategy_flow_flight::{
-    SearchStrategyFlowFlightMaterializationConfig, materialize_search_strategy_flow_routes,
+    SearchStrategyFlowArrowIpcFile, SearchStrategyFlowFlightMaterializationConfig,
+    SearchStrategyFlowServiceFlightBindingOptions, SearchStrategyFlowServiceRequestOptions,
+    materialize_search_strategy_flow_routes,
+    roundtrip_search_strategy_flow_frontier_with_service_request,
     search_strategy_flow_candidate_input_batch_from_repo_search,
-    search_strategy_flow_ontology_registry_tsv_from_semantic_scope,
+    search_strategy_flow_ontology_registry_arrow_ipc_from_semantic_scope,
 };
 
 use super::probes::{resolve_existing_path, wendaograph_julia_project};
 use super::scripts::SEARCH_STRATEGY_FLOW_JULIA;
 use super::search_strategy_routes::add_search_strategy_flow_retrieval_routes;
+use super::{SearchStrategyFlowServiceTraceRequest, search_strategy_flow_service_trace_json};
 
 /// Future `SearchStrategyFlow` probe action admitted by the Rust bridge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,6 +162,7 @@ pub(crate) fn run_wendaograph_search_strategy_flow_json_with_candidate_batch(
         candidate_batch,
         "",
         "",
+        "",
     )?;
     enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
 }
@@ -167,13 +172,14 @@ pub(crate) fn run_wendaograph_search_strategy_flow_json_with_candidate_batch_and
     intent: &str,
     search_root: impl Into<PathBuf>,
     candidate_batch: SearchStrategyFlowCandidateInputBatch,
-    branch_judgements_tsv: &str,
+    branch_judgements_arrow_ipc_path: &str,
 ) -> Result<String, String> {
     let trace = run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
         intent,
         search_root,
         candidate_batch,
-        branch_judgements_tsv,
+        "",
+        branch_judgements_arrow_ipc_path,
         "",
     )?;
     enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace)
@@ -241,7 +247,31 @@ pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materializati
     intent: &str,
     search_root: impl Into<PathBuf>,
     config: Option<SearchStrategyFlowFlightMaterializationConfig>,
-    branch_judgements_tsv: &str,
+    branch_judgements_arrow_ipc_path: &str,
+) -> Result<String, String> {
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_side_tables(
+        intent,
+        search_root,
+        config,
+        "",
+        branch_judgements_arrow_ipc_path,
+    )
+    .await
+}
+
+/// Runs local `WendaoGraph.jl` `SearchStrategyFlow` through the Rust owner
+/// bridge with optional query-understanding and Agent branch-judgement rows.
+///
+/// # Errors
+///
+/// Returns an error when the Julia host request fails, route enrichment fails,
+/// or configured Flight materialization cannot decode route evidence.
+pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_side_tables(
+    intent: &str,
+    search_root: impl Into<PathBuf>,
+    config: Option<SearchStrategyFlowFlightMaterializationConfig>,
+    query_understanding_arrow_ipc_path: &str,
+    branch_judgements_arrow_ipc_path: &str,
 ) -> Result<String, String> {
     validate_search_strategy_flow_intent(intent)?;
     let search_root = search_root.into();
@@ -249,23 +279,129 @@ pub async fn run_wendaograph_search_strategy_flow_json_with_flight_materializati
         Some(config) => {
             let candidate_batch =
                 search_strategy_flow_candidate_input_batch_from_repo_search(intent, config).await?;
-            let ontology_registry_tsv =
-                search_strategy_flow_ontology_registry_tsv_from_semantic_scope(config).await?;
+            let ontology_registry_payload =
+                search_strategy_flow_ontology_registry_arrow_ipc_from_semantic_scope(config)
+                    .await?;
+            let ontology_registry_file = SearchStrategyFlowArrowIpcFile::write(
+                "ontology-registry",
+                &ontology_registry_payload,
+            )?;
+            let ontology_registry_arrow_ipc_path =
+                ontology_registry_file.path().to_string_lossy().into_owned();
             run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
                 intent,
                 search_root.as_path(),
                 candidate_batch,
-                branch_judgements_tsv,
-                ontology_registry_tsv.as_str(),
+                query_understanding_arrow_ipc_path,
+                branch_judgements_arrow_ipc_path,
+                ontology_registry_arrow_ipc_path.as_str(),
             )?
         }
-        None => run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(
+        None => run_wendaograph_search_strategy_flow_raw_json_with_side_tables(
             intent,
             search_root.as_path(),
-            branch_judgements_tsv,
+            query_understanding_arrow_ipc_path,
+            branch_judgements_arrow_ipc_path,
         )?,
     };
     match config {
+        Some(config) => {
+            enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+                &trace, &config,
+            )
+            .await
+        }
+        None => enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace),
+    }
+}
+
+/// Request for the production `SearchStrategyFlow` service data plane.
+#[derive(Debug, Clone)]
+pub(crate) struct SearchStrategyFlowServiceExecutionRequest {
+    pub(crate) intent: String,
+    pub(crate) search_root: PathBuf,
+    pub(crate) flight_materialization_config: Option<SearchStrategyFlowFlightMaterializationConfig>,
+    pub(crate) strategy_flow_service_base_url: String,
+    pub(crate) strategy_flow_service_timeout_seconds: u64,
+    pub(crate) query_understanding_arrow_ipc_path: String,
+    pub(crate) branch_judgements_arrow_ipc_path: String,
+}
+
+/// Runs `SearchStrategyFlow` through the Julia Flight service and returns the
+/// benchmark trace used by `pi-wendao`.
+///
+/// # Errors
+///
+/// Returns an error when candidate discovery, side-table loading, service
+/// roundtrip, route enrichment, or Flight materialization fails.
+pub(crate) async fn run_wendaograph_search_strategy_flow_json_with_service_and_flight_materialization(
+    request: SearchStrategyFlowServiceExecutionRequest,
+) -> Result<String, String> {
+    validate_search_strategy_flow_intent(request.intent.as_str())?;
+    let search_root = request.search_root;
+    let query_understanding_payload = read_optional_arrow_ipc_payload(
+        "query-understanding",
+        request.query_understanding_arrow_ipc_path.as_str(),
+    )?;
+    let branch_judgements_payload = read_optional_arrow_ipc_payload(
+        "branch-judgements",
+        request.branch_judgements_arrow_ipc_path.as_str(),
+    )?;
+    let (candidate_batch, ontology_registry_payload) =
+        match request.flight_materialization_config.as_ref() {
+            Some(config) => {
+                let candidate_batch = search_strategy_flow_candidate_input_batch_from_repo_search(
+                    request.intent.as_str(),
+                    config,
+                )
+                .await?;
+                let ontology_registry_payload =
+                    search_strategy_flow_ontology_registry_arrow_ipc_from_semantic_scope(config)
+                        .await?;
+                (candidate_batch, Some(ontology_registry_payload))
+            }
+            None => (
+                search_strategy_flow_candidate_input_batch_from_markdown(
+                    request.intent.as_str(),
+                    search_root.as_path(),
+                )?,
+                None,
+            ),
+        };
+
+    let mut request_options = SearchStrategyFlowServiceRequestOptions::default();
+    if let Some(payload) = query_understanding_payload.clone() {
+        request_options = request_options.with_query_understanding_arrow_ipc_stream(payload);
+    }
+    if let Some(payload) = ontology_registry_payload.clone() {
+        request_options = request_options.with_ontology_registry_arrow_ipc_stream(payload);
+    }
+    if let Some(payload) = branch_judgements_payload {
+        request_options = request_options.with_branch_judgements_arrow_ipc_stream(payload);
+    }
+    let service_options = SearchStrategyFlowServiceFlightBindingOptions::new(
+        request.strategy_flow_service_base_url.as_str(),
+    )
+    .map_err(|error| format!("invalid SearchStrategyFlow service Flight config: {error}"))?
+    .with_timeout_seconds(request.strategy_flow_service_timeout_seconds);
+    let service_roundtrip = roundtrip_search_strategy_flow_frontier_with_service_request(
+        &candidate_batch,
+        request_options,
+        service_options,
+    )
+    .await?;
+    let trace = search_strategy_flow_service_trace_json(&SearchStrategyFlowServiceTraceRequest {
+        intent: request.intent.as_str(),
+        search_root: search_root.as_path(),
+        candidate_batch: &candidate_batch,
+        service_base_url: request.strategy_flow_service_base_url.as_str(),
+        service_flight_route: service_roundtrip.flight_route.as_str(),
+        service_timeout_seconds: request.strategy_flow_service_timeout_seconds,
+        response: &service_roundtrip.response,
+        query_understanding_payload: query_understanding_payload.as_deref(),
+        ontology_registry_payload: ontology_registry_payload.as_deref(),
+    })?;
+    match request.flight_materialization_config {
         Some(config) => {
             enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
                 &trace, &config,
@@ -280,13 +416,14 @@ fn run_wendaograph_search_strategy_flow_raw_json(
     intent: &str,
     search_root: impl Into<PathBuf>,
 ) -> Result<String, String> {
-    run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(intent, search_root, "")
+    run_wendaograph_search_strategy_flow_raw_json_with_side_tables(intent, search_root, "", "")
 }
 
-fn run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(
+fn run_wendaograph_search_strategy_flow_raw_json_with_side_tables(
     intent: &str,
     search_root: impl Into<PathBuf>,
-    branch_judgements_tsv: &str,
+    query_understanding_arrow_ipc_path: &str,
+    branch_judgements_arrow_ipc_path: &str,
 ) -> Result<String, String> {
     validate_search_strategy_flow_intent(intent)?;
     let search_root = search_root.into();
@@ -298,7 +435,8 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_branch_judgements(
         intent,
         search_root.as_path(),
         candidate_batch,
-        branch_judgements_tsv,
+        query_understanding_arrow_ipc_path,
+        branch_judgements_arrow_ipc_path,
         "",
     )
 }
@@ -307,22 +445,20 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
     intent: &str,
     search_root: impl Into<PathBuf>,
     candidate_batch: SearchStrategyFlowCandidateInputBatch,
-    branch_judgements_tsv: &str,
-    ontology_registry_tsv: &str,
+    query_understanding_arrow_ipc_path: &str,
+    branch_judgements_arrow_ipc_path: &str,
+    ontology_registry_arrow_ipc_path: &str,
 ) -> Result<String, String> {
     validate_search_strategy_flow_intent(intent)?;
 
     let julia_project = wendaograph_julia_project()?;
     let search_root =
         resolve_existing_path("WendaoGraph SearchStrategyFlow search root", search_root)?;
-    debug_assert_eq!(
-        candidate_batch.row_count,
-        candidate_batch
-            .tsv
-            .lines()
-            .filter(|line| !line.trim().is_empty())
-            .count()
-    );
+    let candidate_file = SearchStrategyFlowArrowIpcFile::write(
+        "strategy-candidates",
+        &candidate_batch.candidate_input_arrow_ipc_stream,
+    )?;
+    let candidate_arrow_ipc_path = candidate_file.path().to_string_lossy().into_owned();
     let julia_command = env::var("JULIA").unwrap_or_else(|_| "julia".to_owned());
     let output = Command::new(julia_command)
         .arg(format!("--project={}", julia_project.display()))
@@ -331,11 +467,12 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
         .arg(SEARCH_STRATEGY_FLOW_JULIA)
         .arg(intent)
         .arg(search_root)
-        .arg(candidate_batch.tsv)
+        .arg(candidate_arrow_ipc_path)
         .arg(candidate_batch.source)
         .arg(candidate_batch.discovery_receipt_json)
-        .arg(branch_judgements_tsv)
-        .arg(ontology_registry_tsv)
+        .arg(branch_judgements_arrow_ipc_path)
+        .arg(ontology_registry_arrow_ipc_path)
+        .arg(query_understanding_arrow_ipc_path)
         .output()
         .map_err(|error| format!("spawn WendaoGraph SearchStrategyFlow host request: {error}"))?;
 
@@ -353,6 +490,22 @@ fn run_wendaograph_search_strategy_flow_raw_json_with_candidate_batch(
         return Err("WendaoGraph SearchStrategyFlow host request returned empty output".to_owned());
     }
     Ok(trace.to_owned())
+}
+
+fn read_optional_arrow_ipc_payload(label: &str, path: &str) -> Result<Option<Vec<u8>>, String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let payload = fs::read(trimmed).map_err(|error| {
+        format!("read SearchStrategyFlow {label} Arrow IPC file `{trimmed}`: {error}")
+    })?;
+    if payload.is_empty() {
+        return Err(format!(
+            "SearchStrategyFlow {label} Arrow IPC file `{trimmed}` is empty"
+        ));
+    }
+    Ok(Some(payload))
 }
 
 pub(crate) fn validate_search_strategy_flow_intent(intent: &str) -> Result<(), String> {

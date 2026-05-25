@@ -1,10 +1,13 @@
 //! Foyer-backed `ArtifactBlobCache` implementation.
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use foyer::{
     BlockEngineConfig, DeviceBuilder, FsDeviceBuilder, HybridCache, HybridCacheBuilder,
-    HybridCachePolicy,
+    HybridCachePolicy, Load,
 };
 use tokio::runtime::{Builder as TokioRuntimeBuilder, Runtime};
 
@@ -71,11 +74,16 @@ impl FoyerArtifactBlobCacheConfig {
     }
 }
 
-/// Optional Foyer L2 backend for artifact blob bytes.
+/// Optional Foyer backend for artifact blob bytes.
 ///
 /// This type stores bytes only. Artifact truth, precision status, lineage, and
 /// schema acceptance remain owned by the caller's catalog and gates.
 pub struct FoyerArtifactBlobCache {
+    inner: Option<FoyerArtifactBlobCacheInner>,
+    pending_disk_work: AtomicBool,
+}
+
+struct FoyerArtifactBlobCacheInner {
     cache: FoyerBlobCache,
     runtime: Runtime,
 }
@@ -102,44 +110,64 @@ impl FoyerArtifactBlobCache {
             })?;
 
         let cache = build_foyer_cache_on_runtime(&runtime, config)?;
-        Ok(Self { cache, runtime })
+        Ok(Self {
+            inner: Some(FoyerArtifactBlobCacheInner { cache, runtime }),
+            pending_disk_work: AtomicBool::new(false),
+        })
     }
 
-    /// Close the Foyer cache and wait for pending flush/reclaim work.
+    /// Drain pending Foyer disk work before the cache handle is dropped.
     ///
     /// # Errors
     ///
-    /// Returns [`ArtifactCacheError`] when Foyer reports a close failure.
+    /// Returns [`ArtifactCacheError`] if the runtime driver panics while
+    /// waiting for pending disk work.
     pub fn close(&self) -> Result<(), ArtifactCacheError> {
-        run_on_foyer_runtime(&self.runtime, {
-            let cache = self.cache.clone();
+        if !self.pending_disk_work.swap(false, Ordering::AcqRel) {
+            return Ok(());
+        }
+        let inner = self.inner()?;
+        run_on_foyer_runtime(&inner.runtime, {
+            let cache = inner.cache.clone();
             async move {
-                cache.close().await.map_err(|error| {
-                    ArtifactCacheError::backend(
-                        FOYER_BACKEND_NAME,
-                        "closing cache",
-                        error.to_string(),
-                    )
-                })
+                cache.storage().wait().await;
+                Ok(())
             }
+        })
+    }
+
+    fn inner(&self) -> Result<&FoyerArtifactBlobCacheInner, ArtifactCacheError> {
+        self.inner.as_ref().ok_or_else(|| {
+            ArtifactCacheError::backend(FOYER_BACKEND_NAME, "accessing cache", "cache is closed")
         })
     }
 }
 
 impl ArtifactBlobCache for FoyerArtifactBlobCache {
     fn contains(&self, key: &ArtifactKey) -> Result<bool, ArtifactCacheError> {
-        Ok(self.cache.contains(&foyer_storage_key(key)))
+        Ok(self.inner()?.cache.contains(&foyer_storage_key(key)))
     }
 
     fn read(&self, key: &ArtifactKey) -> Result<Option<ArtifactBlobRead>, ArtifactCacheError> {
+        let inner = self.inner()?;
         let cache_key = foyer_storage_key(key);
-        run_on_foyer_runtime(&self.runtime, {
-            let cache = self.cache.clone();
+        if let Some(entry) = inner.cache.memory().get(&cache_key) {
+            return Ok(Some(ArtifactBlobRead::new(entry.value().clone())));
+        }
+        run_on_foyer_runtime(&inner.runtime, {
+            let cache = inner.cache.clone();
             async move {
                 cache
-                    .get(&cache_key)
+                    .storage()
+                    .load(&cache_key)
                     .await
-                    .map(|entry| entry.map(|entry| ArtifactBlobRead::new(entry.value().clone())))
+                    .map(|load| match load {
+                        Load::Entry { value, .. } => Some(ArtifactBlobRead::new(value)),
+                        Load::Piece { piece, .. } => {
+                            Some(ArtifactBlobRead::new(piece.value().clone()))
+                        }
+                        Load::Miss | Load::Throttled => None,
+                    })
                     .map_err(|error| {
                         ArtifactCacheError::backend(
                             FOYER_BACKEND_NAME,
@@ -156,16 +184,39 @@ impl ArtifactBlobCache for FoyerArtifactBlobCache {
         key: &ArtifactKey,
         value: ArtifactBlobWrite<'_>,
     ) -> Result<ArtifactBlobWriteOutcome, ArtifactCacheError> {
-        let replaced = self.read(key)?.is_some();
-        self.cache
+        let replaced = self.contains(key)?;
+        self.inner()?
+            .cache
             .insert(foyer_storage_key(key), value.bytes().to_vec());
+        self.pending_disk_work.store(true, Ordering::Release);
         Ok(ArtifactBlobWriteOutcome::new(value.byte_len(), replaced))
     }
 
     fn remove(&self, key: &ArtifactKey) -> Result<bool, ArtifactCacheError> {
-        let existed = self.read(key)?.is_some();
-        self.cache.remove(&foyer_storage_key(key));
+        let existed = self.contains(key)?;
+        self.inner()?.cache.remove(&foyer_storage_key(key));
+        if existed {
+            self.pending_disk_work.store(true, Ordering::Release);
+            self.close()?;
+        }
         Ok(existed)
+    }
+}
+
+impl Drop for FoyerArtifactBlobCache {
+    fn drop(&mut self) {
+        if let Some(inner) = self.inner.take() {
+            if self.pending_disk_work.swap(false, Ordering::AcqRel) {
+                let _ = run_on_foyer_runtime(&inner.runtime, {
+                    let cache = inner.cache.clone();
+                    async move {
+                        cache.storage().wait().await;
+                        Ok(())
+                    }
+                });
+            }
+            drop_foyer_inner(inner);
+        }
     }
 }
 
@@ -188,6 +239,7 @@ fn build_foyer_cache_on_runtime(
         HybridCacheBuilder::new()
             .with_name("xiuxian-db-store-artifact-cache")
             .with_policy(HybridCachePolicy::WriteOnInsertion)
+            .with_flush_on_close(false)
             .memory(config.memory_capacity_bytes())
             .storage()
             .with_engine_config(BlockEngineConfig::new(device))
@@ -205,15 +257,32 @@ fn build_foyer_cache_on_runtime(
 
 fn run_on_foyer_runtime<T, F>(runtime: &Runtime, future: F) -> Result<T, ArtifactCacheError>
 where
-    T: Send + 'static,
-    F: Future<Output = Result<T, ArtifactCacheError>> + Send + 'static,
+    T: Send,
+    F: Future<Output = Result<T, ArtifactCacheError>> + Send,
 {
-    let handle = runtime.handle().clone();
-    std::thread::spawn(move || handle.block_on(future))
-        .join()
-        .map_err(|_| {
-            ArtifactCacheError::backend(FOYER_BACKEND_NAME, "joining runtime thread", "panic")
-        })?
+    std::thread::scope(|scope| {
+        scope
+            .spawn(|| runtime.block_on(future))
+            .join()
+            .map_err(|_| {
+                ArtifactCacheError::backend(FOYER_BACKEND_NAME, "joining runtime thread", "panic")
+            })?
+    })
+}
+
+fn drop_foyer_inner(inner: FoyerArtifactBlobCacheInner) {
+    if tokio::runtime::Handle::try_current().is_ok() {
+        let _ = std::thread::Builder::new()
+            .name("xiuxian-db-store-foyer-artifact-cache-drop".to_owned())
+            .spawn(move || drop(inner))
+            .and_then(|handle| {
+                handle
+                    .join()
+                    .map_err(|_| std::io::Error::other("foyer cache drop panicked"))
+            });
+    } else {
+        drop(inner);
+    }
 }
 
 fn foyer_storage_key(key: &ArtifactKey) -> String {

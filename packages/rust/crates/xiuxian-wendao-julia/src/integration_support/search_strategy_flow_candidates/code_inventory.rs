@@ -71,12 +71,10 @@ pub(crate) fn search_strategy_flow_code_intelligence_inventory_candidate_input_b
         "attemptCount": 1,
     });
 
-    Ok(
-        search_strategy_flow_candidate_input_batch_with_discovery_receipt(
-            CODE_INTELLIGENCE_CANDIDATE_SOURCE,
-            &candidates,
-            &receipt,
-        ),
+    search_strategy_flow_candidate_input_batch_with_discovery_receipt(
+        CODE_INTELLIGENCE_CANDIDATE_SOURCE,
+        &candidates,
+        &receipt,
     )
 }
 

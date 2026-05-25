@@ -52,7 +52,7 @@ wendao-episteme/ontology/
 
 ## 3. The BPMN Deductive Loop (Implicit Schema Discovery)
 
-For legacy systems lacking explicit schemas, the architecture employs a "Scan-Hypothesize-Validate" loop orchestrated by the `qianji-bpmn-engine`:
+For legacy systems lacking explicit schemas, the architecture employs a "Scan-Hypothesize-Validate" loop orchestrated by the `xiuxian-qianji-bpmn-engine`:
 
 1. **Physical Scanner (Rust)**: Extracts structural facts from files, pages,
    sections, tables, attachments, source spans, links, and cache evidence

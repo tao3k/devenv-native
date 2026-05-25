@@ -118,6 +118,21 @@ keys before later evidence attachment or gate evaluation.
 
 Qianji is a **High-Performance Annotator**. In the milliseconds before a node executes, it calls upon `xiuxian-qianhuan` to transmute raw data into persona-aligned context, ensuring the Agent always wears the correct "Face" for the task.
 
+The formal-audit advisory bridge can opt into `advisory-prompt-pack-cache`.
+When that feature is enabled, callers may supply a
+`xiuxian-db-store::artifact_cache::ArtifactBlobCache` to
+`build_plan_with_prompt_context_pack_cache(...)` or attach it to
+`QianjiLlmAdvisoryAuditExecutor` with
+`with_prompt_context_pack_cache(...)`. Contract-feedback callers that use
+`QianjiLiveContractFeedbackRuntime` can attach the same cache to the runtime
+bundle before running live advisory feedback; concrete feedback routes then
+propagate the injected cache to the live advisory executor without constructing
+route-local cache backends. Qianji still owns only the workflow/advisory plan
+boundary; Qianhuan owns prompt-context pack identity and serialization; db-store
+owns the artifact cache backend. Plans and live findings report per-role
+prompt-context pack cache hits and byte counts without changing the default
+advisory planning path.
+
 ---
 
 ## 3. Declarative Orchestration (The TOML Manifest)
@@ -260,7 +275,7 @@ auto-release the hot-state lease if the durable start write fails; recovery
 should use the lease TTL and `activity-reclaim`.
 `qianji control activity-worker-once --ledger <path> --valkey-url <url>
 --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms>
---executor fixture|openai-compatible-llm
+--executor fixture|openai-compatible-llm|flowhub-service
 --outcome complete|fail --settled-at-ms <ms> [--namespace <ns>]
 [--task-queue <queue>] [--output-ref-json <artifact-ref-json>]
 [--output-hash <hash>]
@@ -325,9 +340,18 @@ evidence, and `rdfMutation=false` contract before completion. The durable
 completion event records only the derived claim-check, while HTTP, malformed
 response, contract, or input materialization failures are recorded as durable
 activity failures.
+The `flowhub-service` executor is the deterministic worker path for BPMN
+service tasks materialized from Flowhub Org+BPMN scenarios. It admits only
+`flowhub.service` tasks on `flowhub.*` queues, requires the replay-derived
+pending-host-work input reference, validates the Flowhub service-task metadata,
+and derives completion metadata from the BPMN `requiredOutputs` contract. It
+does not accept fixture output refs, output artifacts, ad-hoc metadata, or
+failure arguments; retries and failures remain activity lifecycle facts, while
+successful execution records the exact completion data later used by the
+qianji-server BPMN task-completion route.
 `qianji control activity-worker-loop --ledger <path> --valkey-url <url>
 --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n>
---executor fixture|openai-compatible-llm --outcome complete|fail
+--executor fixture|openai-compatible-llm|flowhub-service --outcome complete|fail
 --settled-at-ms <ms>
 [--namespace <ns>] [--task-queue <queue>] [--now-step-ms <ms>]
 [--heartbeat-ttl-ms <ms>] [--settled-step-ms <ms>] [--empty-limit <n>]
@@ -348,6 +372,9 @@ there is no run-scoped activity task to anchor the durable event. With
 task derives a deterministic provider-response artifact path from the activity
 id and attempt number, then reuses the worker-once OpenAI-compatible executor
 so provider failures remain durable activity failures after start.
+With `--executor flowhub-service`, the loop uses the same deterministic
+contract-completion behavior as `activity-worker-once` for each claimed
+Flowhub service task and rejects output artifact or ad-hoc metadata flags.
 `qianji control activity-reclaim --valkey-url <url> --lease-json <json>
 --now-ms <ms> [--namespace <ns>] [--json]` reclaims a claimed hot-state
 activity lease only after it is expired at the supplied observation time and
@@ -519,6 +546,43 @@ parse/load/validate, first-order surface rendering, and structural
 `show --dir <path>` plus `check --dir <path>` and auto-detects whether the
 target is a bounded work surface or a Flowhub root/module, with direct binary
 coverage for rendered output and blocking invalid-check status.
+The `qianji-server` HTTP surface also serves `/flowhub/scenarios` as the
+Gateway-backed Org+BPMN scenario registry. It reuses the
+`xiuxian-qianji-client` source-pair contract and returns the same
+`sourcePairs` JSON fields consumed by pi-wendao's Flowhub scenario provider.
+The server resolves its Flowhub root
+from `--flowhub-root`, then `QIANJI_FLOWHUB_ROOT`, then
+`PRJ_ROOT/qianji-flowhub`, then a local `qianji-flowhub` directory.
+Flowhub BPMN `serviceTask` boundaries can now be converted into the generic
+Qianji control-plane `ActivityTask` schedule contract through
+`build_flowhub_service_activity_schedule_record`, which is owned by
+[`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md). The adapter
+preserves BPMN instance, process, activity, token, source path, and declared
+task-output metadata in the scheduled task and routes work to
+`flowhub.<scenario-id>`. The same runtime crate owns the deterministic
+completion contract helpers that validate required task-output fields and
+derive bounded worker output. `build_flowhub_service_task_completion_payload`
+wraps that runtime-neutral completion contract into the typed BPMN service
+completion payload after a worker has produced output. The pure schedule and
+completion adapters do not execute the service task, append worker lifecycle
+events, mutate hot state, or complete the BPMN task. The companion
+`build_flowhub_service_task_complete_http_request` helper builds the bounded
+HTTP completion request from the same replay-derived `WorkerActivityTask`
+metadata, so worker bridges can post through the existing qianji-server
+`/workflows/{instance_id}/tasks/complete` route instead of mutating BPMN state
+directly. For server-owned execution,
+`run_qianji_server_flowhub_service_worker_completion_loop` now performs the
+bounded loop over the existing authorities: it reads the BPMN checkpoint
+frontier, records the Flowhub service `ActivityTask` in the control ledger,
+mirrors replay-derived work into hot state, claims and executes the
+deterministic `flowhub-service` contract worker, records the durable terminal
+activity event, then completes the BPMN service task through the workflow
+control service through the runtime-owned `QianjiRuntimeWorkflowControlPort`.
+Worker bridges that only have qianji-server HTTP snapshots can still use
+`build_flowhub_service_activity_schedule_record_from_http_pending_work` to turn
+pending service-work DTOs back into the same durable schedule contract.
+The current server proof completes the full linear `agent-coding` service
+chain through the reusable server worker completion loop.
 The same `workdir` surface now also exposes a thin bounded markdown query
 wrapper over Wendao SQL, so library callers can execute exact SQL retrieval
 against `blueprint/` plus `plan/` without changing the `qianji` CLI surface.

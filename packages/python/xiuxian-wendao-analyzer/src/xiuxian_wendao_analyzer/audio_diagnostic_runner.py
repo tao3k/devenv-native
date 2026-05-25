@@ -83,8 +83,8 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         prompt_with_primary_language(args.prompt, primary_language),
         domain_terms,
     )
-    result_cache_dir = (
-        None if args.no_result_cache else (args.result_cache_dir or output_dir / "result_cache")
+    admission_cache_dir = (
+        None if args.no_admission_cache else (args.admission_cache_dir or output_dir / "admissions")
     )
     backends = selected_audio_backends(args.backend)
     hosted_audio_enabled, openai_compatible_audio_enabled = backend_flags(backends)
@@ -100,7 +100,7 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         output_dir=output_dir,
         api_key=api_key,
         prompt=prompt,
-        result_cache_dir=result_cache_dir,
+        admission_cache_dir=admission_cache_dir,
     )
 
     references = load_reference_transcripts(args.reference_jsonl)
@@ -125,7 +125,7 @@ def run_diagnostic(args: argparse.Namespace) -> dict[str, object]:
         hosted_audio_enabled=hosted_audio_enabled,
         openai_compatible_audio_enabled=openai_compatible_audio_enabled,
         api_key=api_key,
-        result_cache_dir=result_cache_dir,
+        admission_cache_dir=admission_cache_dir,
         speech_segment_row_count=speech_segment_row_count,
         explicit_window_row_count=explicit_window_row_count,
         truth_template_path=output_dir / "truth_template.jsonl",

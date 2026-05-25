@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  id="Definitions_standard_loop_service"
+  targetNamespace="https://tao3k.dev/xiuxian-qianji-bpmn-engine">
+  <bpmn:process id="loop_service" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review">
+      <bpmn:standardLoopCharacteristics testBefore="true" loopMaximum="3">
+        <bpmn:loopCondition>not done</bpmn:loopCondition>
+      </bpmn:standardLoopCharacteristics>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

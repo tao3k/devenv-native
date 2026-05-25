@@ -63,6 +63,7 @@ use xiuxian_wendao_sql::candidate_read_model::{
     CandidateReadModelDuckDbInspectionRequest, inspect_candidate_read_model_with_duckdb,
 };
 
+use super::bootstrap::run_episteme_bootstrap_pipeline_command;
 use super::cache::{
     run_episteme_docling_document_cache, run_episteme_image_ocr_cache,
     run_episteme_legacy_office_conversion,
@@ -89,6 +90,9 @@ pub(crate) fn handle(cli: &Cli) -> Result<()> {
         EpistemeCommand::SourceContract { command } => match command {
             EpistemeSourceContractCommand::PlanExtractionRun(args) => {
                 plan_episteme_source_contract(cli, args)
+            }
+            EpistemeSourceContractCommand::BootstrapPipeline(args) => {
+                run_episteme_bootstrap_pipeline_command(cli, args)
             }
             EpistemeSourceContractCommand::WriteStructuralFacts(args) => {
                 write_episteme_structural_facts_command(cli, args)

@@ -4,7 +4,7 @@ use super::execution::QianjiBpmnWorkflowCheckpointBackend;
 use crate::bpmn::identity::{
     QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
 };
-use qianji_bpmn_engine::{
+use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
     BpmnLaneMembershipSpec, BpmnTaskIoSpec, PendingHostWork, PendingHostWorkClaim,
     PendingHostWorkKind,

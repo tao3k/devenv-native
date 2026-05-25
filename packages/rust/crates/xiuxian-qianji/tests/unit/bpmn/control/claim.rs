@@ -14,7 +14,7 @@ use crate::{
     QianjiBpmnCheckpointStore, QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowWorklistItem,
     load_bpmn_package_from_files,
 };
-use qianji_bpmn_engine::{
+use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHumanTaskLifecycleEventKind, BpmnInstanceInit, PendingHostWork,
     PendingHostWorkClaim, advance_instance, create_instance,
 };
@@ -575,7 +575,7 @@ async fn workflow_control_service_preserves_claim_identity_across_checkpoint_rou
 }
 
 fn assert_human_task_event_kinds(
-    instance: &qianji_bpmn_engine::BpmnInstanceState,
+    instance: &xiuxian_qianji_bpmn_engine::BpmnInstanceState,
     expected: &[BpmnHumanTaskLifecycleEventKind],
 ) {
     let actual = instance

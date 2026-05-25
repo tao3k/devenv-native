@@ -247,7 +247,7 @@ fn configured_markdown_replay_family(
         batch: search_strategy_flow_candidate_input_batch(
             MARKDOWN_HEADING_CANDIDATE_SOURCE,
             &candidates,
-        ),
+        )?,
     }))
 }
 

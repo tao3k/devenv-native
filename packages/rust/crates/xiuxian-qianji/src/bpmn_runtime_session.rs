@@ -3,14 +3,14 @@
 use super::backend::QianjiBpmnCheckpointStore;
 use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge,
     BpmnInstanceInit, BpmnInstanceState, BpmnNodeKind, BpmnPackage, InstanceLifecycle,
     NodeRuntimeStatus, PendingHostWork, PendingHostWorkApplyInput, PendingHostWorkKind,
     PendingHostWorkResult, SuspendReason, TokenRecord, advance_instance,
     apply_pending_host_work_result, create_instance,
 };
-use std::sync::Arc;
 
 /// Host-owned BPMN runtime session that keeps one immutable BPMN package and
 /// one mutable instance state together.
@@ -192,7 +192,7 @@ impl QianjiBpmnSession {
     /// Advances the BPMN runtime until the next stable non-host-blocked
     /// outcome.
     ///
-    /// This facade keeps pure BPMN semantics inside `qianji-bpmn-engine` while
+    /// This facade keeps pure BPMN semantics inside `xiuxian-qianji-bpmn-engine` while
     /// allowing the host crate to consume one higher-level runtime entrypoint.
     ///
     /// # Errors
@@ -601,12 +601,12 @@ fn validate_pending_host_work_identity(
         .pending_host_work
         .iter()
         .find(|work| work.token_id == token_id)
-        .ok_or_else(
-            || qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
+        .ok_or_else(|| {
+            xiuxian_qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
                 instance_id: instance.instance_id.to_string().into(),
                 token_id: token_id.into(),
-            },
-        )?;
+            }
+        })?;
 
     let actual_process_id = pending
         .process_id

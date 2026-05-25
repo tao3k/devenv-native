@@ -10,10 +10,11 @@ use super::response_api::{
     QianjiBpmnWorkflowTaskReleaseHttpResponse,
 };
 use super::state::QianjiBpmnWorkflowHttpState;
+use crate::bpmn::control::QianjiBpmnWorkflowResumeRequest;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use qianji_bpmn_engine::BpmnHostBridge;
+use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
 
 pub(super) fn router<H>(state: QianjiBpmnWorkflowHttpState<H>) -> Router
 where
@@ -56,9 +57,11 @@ async fn start_workflow<H>(
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
+    let request = request.into_control_request();
+    let prepared = state.service.prepare_start_workflow(&request)?;
     let report = state
         .service
-        .start_workflow(&request.into_control_request(), &state.host)
+        .start_prepared_workflow_until_host_boundary(prepared, &state.host, false, |_, _| {})
         .await?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
@@ -73,9 +76,11 @@ async fn resume_workflow<H>(
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
+    let request = request.into_resume_request(instance_id);
+    let prepared = state.service.prepare_resume_workflow(&request).await?;
     let report = state
         .service
-        .resume_workflow(&request.into_resume_request(instance_id), &state.host)
+        .resume_prepared_workflow_until_host_boundary(prepared, &state.host, false, |_, _| {})
         .await?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
@@ -107,12 +112,20 @@ async fn complete_workflow_task<H>(
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
+    let request = request.into_task_complete_request(instance_id);
+    let resume_request = QianjiBpmnWorkflowResumeRequest {
+        bpmn_path: request.bpmn_path.clone(),
+        dmn_paths: request.dmn_paths.clone(),
+        instance_id: request.instance_id.clone(),
+        checkpoint_backend: request.checkpoint_backend.clone(),
+    };
+    let prepared = state
+        .service
+        .prepare_resume_workflow(&resume_request)
+        .await?;
     let report = state
         .service
-        .complete_workflow_task(
-            &request.into_task_complete_request(instance_id),
-            &state.host,
-        )
+        .complete_prepared_workflow_task_until_host_boundary(prepared, &request, &state.host)
         .await?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,

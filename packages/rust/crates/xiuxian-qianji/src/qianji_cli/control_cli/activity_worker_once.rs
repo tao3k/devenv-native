@@ -596,6 +596,19 @@ async fn execute_worker_outcome(
         ActivityExecutorKindArg::OpenAiCompatibleLlm => {
             execute_openai_compatible_worker_outcome(task, request).await
         }
+        ActivityExecutorKindArg::FlowhubService => {
+            executor_registry.execute(ActivityExecutionRequest {
+                task: Some(task),
+                executor: request.executor,
+                outcome: request.outcome,
+                output_ref_json: None,
+                output_hash: None,
+                error_code: None,
+                message: None,
+                retryable: None,
+                metadata: None,
+            })
+        }
     }
 }
 
@@ -952,6 +965,9 @@ fn validate_outcome_args(
     if executor == ActivityExecutorKindArg::OpenAiCompatibleLlm {
         return validate_openai_compatible_outcome_args(outcome, args);
     }
+    if executor == ActivityExecutorKindArg::FlowhubService {
+        return validate_flowhub_service_outcome_args(outcome, args);
+    }
     if has_openai_compatible_args(args) {
         return Err(invalid_input(
             "`control activity-worker-once` OpenAI-compatible flags require `--executor openai-compatible-llm`",
@@ -1031,6 +1047,32 @@ fn validate_openai_compatible_outcome_args(
     {
         return Err(invalid_input(
             "missing `--openai-compatible-base-url <url>` for `control activity-worker-once --executor openai-compatible-llm`",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_flowhub_service_outcome_args(
+    outcome: ActivitySettleOutcomeArg,
+    args: &ActivityWorkerOnceArgs,
+) -> io::Result<()> {
+    if outcome != ActivitySettleOutcomeArg::Complete {
+        return Err(invalid_input(
+            "`control activity-worker-once --executor flowhub-service` derives successful completion data; execution failures should be recorded through retry/fail settlement",
+        ));
+    }
+    if args.error_code.is_some() || args.message.is_some() || args.retryable.is_some() {
+        return Err(invalid_input(
+            "`control activity-worker-once --executor flowhub-service` cannot be combined with `--error-code`, `--message`, or `--retryable`",
+        ));
+    }
+    if args.output_ref_json.is_some()
+        || args.output_hash.is_some()
+        || has_output_artifact_args(args)
+        || args.metadata.is_some()
+    {
+        return Err(invalid_input(
+            "`control activity-worker-once --executor flowhub-service` derives completion metadata from the BPMN task contract",
         ));
     }
     Ok(())

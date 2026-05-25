@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Design Note: qianji-bpmn-engine Crate Skeleton and Host Bridge"
+title: "Design Note: xiuxian-qianji-bpmn-engine Crate Skeleton and Host Bridge"
 category: "research"
 status: "draft"
 authors:
@@ -15,11 +15,11 @@ tags:
   - design
 ---
 
-# Design Note: qianji-bpmn-engine Crate Skeleton and Host Bridge
+# Design Note: xiuxian-qianji-bpmn-engine Crate Skeleton and Host Bridge
 
 ## 1. Purpose
 
-This note fixes the intended crate boundary for `qianji-bpmn-engine` before any
+This note fixes the intended crate boundary for `xiuxian-qianji-bpmn-engine` before any
 Rust code is written.
 
 It answers four implementation-shaping questions:
@@ -40,7 +40,7 @@ The first scaffold should favor explicit feature folders over flat files.
 Target layout:
 
 ```text
-packages/rust/crates/qianji-bpmn-engine/
+packages/rust/crates/xiuxian-qianji-bpmn-engine/
   Cargo.toml
   src/
     lib.rs
@@ -290,7 +290,7 @@ The first scaffold slice should be considered done only when:
 
 1. the new crate exists in the workspace
 2. dependency direction is one-way:
-   `xiuxian-qianji -> qianji-bpmn-engine`
+   `xiuxian-qianji -> xiuxian-qianji-bpmn-engine`
 3. public API entrypoints compile
 4. host trait shells compile
 5. no BPMN runtime semantics leak into `xiuxian-qianji`
@@ -344,7 +344,7 @@ contract without starting adapter work.
 
 Current landed DMN status:
 
-1. `qianji-bpmn-engine::dmn` now parses one DMN source into one decision with
+1. `xiuxian-qianji-bpmn-engine::dmn` now parses one DMN source into one decision with
    one decision table
 2. the bounded evaluator now supports `UNIQUE` and `COLLECT` hit policies
 3. supported input matching stays intentionally narrow: wildcard `-` plus
@@ -362,7 +362,7 @@ The crate now also exposes a bounded lint contract aimed at future
 
 Current landed linter status:
 
-1. `qianji-bpmn-engine::lint` now exposes BPMN and DMN lint entrypoints
+1. `xiuxian-qianji-bpmn-engine::lint` now exposes BPMN and DMN lint entrypoints
 2. invalid BPMN and DMN sources are mapped into structured diagnostics instead
    of only raw parser errors
 3. the lint report now includes explicit repair guidance and one
@@ -403,7 +403,7 @@ Current landed status:
    only suspending on `DmnPlaceholder`
 2. the recoverable pending-work state now stores the DMN decision reference so
    a resumed instance can rebuild the same business-rule request deterministically
-3. `qianji-bpmn-engine::host` now exports `BusinessRuleTaskRequest` and
+3. `xiuxian-qianji-bpmn-engine::host` now exports `BusinessRuleTaskRequest` and
    `BusinessRuleTaskOutcome` wrappers around the crate-owned
    `DmnEvaluationRequest` / `DmnEvaluationResult` contract
 4. `apply_pending_host_work_result(...)` now resumes business-rule work
@@ -422,7 +422,7 @@ host adapter remains deferred.
 
 Current landed status:
 
-1. `qianji-bpmn-engine::parser` now exports `BpmnBundleSnapshot` and
+1. `xiuxian-qianji-bpmn-engine::parser` now exports `BpmnBundleSnapshot` and
    `parse_bpmn_bundle(...)`
 2. the bounded bundle contract still requires exactly one BPMN source, but it
    can now carry zero or more DMN source snapshots alongside that BPMN source
@@ -463,7 +463,7 @@ Current landed status:
 
 `xiuxian-qianji` now also owns one bounded host-side runtime/session facade on
 top of the landed bridge, without pulling parser or runtime semantics back out
-of `qianji-bpmn-engine`.
+of `xiuxian-qianji-bpmn-engine`.
 
 Current landed status:
 
@@ -471,9 +471,9 @@ Current landed status:
    `QianjiBpmnSession`, `QianjiBpmnCheckpointStore`, and filesystem bundle-load
    helpers for one host-side orchestration entrypoint
 2. `load_bpmn_package_from_files(...)` now builds one
-   `qianji_bpmn_engine::BpmnBundleSnapshot`, reads bounded BPMN and DMN source
+   `xiuxian_qianji_bpmn_engine::BpmnBundleSnapshot`, reads bounded BPMN and DMN source
    files from disk, and delegates parsing back into
-   `qianji-bpmn-engine::parse_bpmn_bundle(...)`
+   `xiuxian-qianji-bpmn-engine::parse_bpmn_bundle(...)`
 3. `QianjiBpmnSession` now keeps one immutable `Arc<BpmnPackage>` plus one
    mutable `BpmnInstanceState`, supports fresh instance construction, checkpoint
    resume, checkpoint export, and checkpoint persistence through the host-owned
@@ -588,7 +588,7 @@ Current landed status:
    stable and explicit
 3. `QianjiBpmnSession::run_until_stable(...)` now resolves one ready event and
    continues advancement inside the host facade without moving wait-routing
-   semantics out of `qianji-bpmn-engine`
+   semantics out of `xiuxian-qianji-bpmn-engine`
 4. `qianji bpmn run` now accepts `--event-fixture <path>` and maps active BPMN
    wait ids to deterministic `poll_external_event(...)` outcomes without
    exposing internal runtime node indices

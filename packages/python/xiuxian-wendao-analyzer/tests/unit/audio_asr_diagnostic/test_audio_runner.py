@@ -102,8 +102,8 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
         max_tokens=128,
         temperature=0.0,
         timeout_seconds=10,
-        result_cache_dir=None,
-        no_result_cache=False,
+        admission_cache_dir=None,
+        no_admission_cache=False,
         reference_jsonl=None,
         truth_template_jsonl=None,
         max_reference_cer=0.15,
@@ -126,14 +126,11 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
     assert (tmp_path / "out" / "results.json").exists()
     assert (tmp_path / "out" / "audio_shards.json").exists()
     assert (tmp_path / "out" / "quality.json").exists()
-    assert (tmp_path / "out" / "review.tsv").exists()
-    assert (tmp_path / "out" / "transcript_review.tsv").exists()
     assert (tmp_path / "out" / "transcript_timeline.jsonl").exists()
     assert (tmp_path / "out" / "transcript.org").exists()
     assert (tmp_path / "out" / "transcript_timeline.vtt").exists()
     assert (tmp_path / "out" / "transcript_timeline.srt").exists()
     assert (tmp_path / "out" / "reference_draft.jsonl").exists()
-    assert (tmp_path / "out" / "reference_draft.tsv").exists()
     assert (tmp_path / "out" / "truth_template.jsonl").exists()
     manifest = json.loads((tmp_path / "out" / "audio_shards.json").read_text())
     assert manifest["schema"] == "xiuxian_wendao.audio_shards.v1"
@@ -148,16 +145,12 @@ def test_run_diagnostic_writes_summary_and_results(tmp_path: Path, monkeypatch) 
     assert report["hostedAudioEnabled"] is True
     assert report["hostedAudioApiKeyConfigured"] is True
     assert report["truthTemplatePath"] == str(tmp_path / "out" / "truth_template.jsonl")
-    assert report["referenceDraftPath"] == str(
-        tmp_path / "out" / "reference_draft.jsonl"
-    )
+    assert report["referenceDraftPath"] == str(tmp_path / "out" / "reference_draft.jsonl")
     assert report["precisionGatePassed"] is False
     assert report["precisionGateReason"] == "reference-not-configured"
 
 
-def test_run_diagnostic_local_openai_audio_is_not_hosted(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_run_diagnostic_local_openai_audio_is_not_hosted(tmp_path: Path, monkeypatch) -> None:
     diagnostic = _load_audio_asr_diagnostic()
     source_root = tmp_path / "audio"
     source_root.mkdir()
@@ -219,8 +212,8 @@ def test_run_diagnostic_local_openai_audio_is_not_hosted(
         max_tokens=128,
         temperature=0.0,
         timeout_seconds=10,
-        result_cache_dir=None,
-        no_result_cache=False,
+        admission_cache_dir=None,
+        no_admission_cache=False,
         reference_jsonl=None,
         truth_template_jsonl=None,
         max_reference_cer=0.15,

@@ -10,7 +10,7 @@ use crate::bpmn::execution::QianjiBpmnExecutionFacade;
 use crate::bpmn::loader::load_bpmn_package_from_files;
 use crate::bpmn::session::QianjiBpmnSession;
 use crate::telemetry::unix_millis_now;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
+use xiuxian_qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
 
 pub(crate) fn prepare_start_workflow(
     service: &QianjiBpmnWorkflowControlService,

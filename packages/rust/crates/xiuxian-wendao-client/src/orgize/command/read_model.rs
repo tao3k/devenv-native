@@ -22,7 +22,8 @@ pub struct OrgizeTaskListArgs {
     #[arg(long = "view", value_enum)]
     pub view: Option<OrgizeTaskListView>,
 
-    /// Text predicate over task title, source path, outline, tags, properties, and repeaters.
+    /// Text predicate over task title, lifecycle state, source path, outline,
+    /// planning timestamps, tags, properties, and repeaters.
     #[arg(long = "text", value_name = "TEXT")]
     pub text: Option<String>,
 
@@ -43,6 +44,107 @@ pub struct OrgizeTaskListArgs {
     pub limit: usize,
 
     /// Org files or directories to materialize before listing. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
+}
+
+/// CLI arguments for compact remembered-task probes.
+#[derive(Args, Debug)]
+pub struct OrgizeTaskProbeArgs {
+    /// Reuse the existing `DuckDB` snapshot when available instead of refreshing first.
+    #[arg(long = "cached")]
+    pub cached: bool,
+
+    /// Remembered task title, file key, package, lane, or other task-local text.
+    #[arg(long = "text", value_name = "TEXT")]
+    pub text: String,
+
+    /// Require this Org tag. May be repeated.
+    #[arg(long = "tag", value_name = "TAG")]
+    pub tags: Vec<String>,
+
+    /// Include DONE-state tasks.
+    #[arg(long = "include-done")]
+    pub include_done: bool,
+
+    /// Include archived tasks.
+    #[arg(long = "include-archived")]
+    pub include_archived: bool,
+
+    /// Maximum number of compact candidate rows to render.
+    #[arg(long = "limit", default_value_t = 3)]
+    pub limit: usize,
+
+    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
+}
+
+/// CLI arguments for showing one agent Org task subtree by stable Org section ID.
+#[derive(Args, Debug)]
+pub struct OrgizeOgridShowArgs {
+    /// Reuse the existing `DuckDB` snapshot when available instead of refreshing first.
+    #[arg(long = "cached")]
+    pub cached: bool,
+
+    /// Stable Org section ID from the task property drawer.
+    #[arg(long = "id", value_name = "ID")]
+    pub id: String,
+
+    /// Render the full source subtree instead of the compact recovery view.
+    #[arg(long = "full")]
+    pub full: bool,
+
+    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
+}
+
+/// CLI arguments for showing one task's SDD/plan relation graph.
+#[derive(Args, Debug)]
+pub struct OrgizeTaskSddArgs {
+    /// Reuse the existing `DuckDB` snapshot when available instead of refreshing first.
+    #[arg(long = "cached")]
+    pub cached: bool,
+
+    /// Stable Org section ID from the task property drawer.
+    #[arg(long = "id", value_name = "ID")]
+    pub id: String,
+
+    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    #[arg(value_name = "PATH")]
+    pub paths: Vec<PathBuf>,
+}
+
+/// CLI arguments for recent agent Org task recovery candidates.
+#[derive(Args, Debug)]
+pub struct OrgizeTaskRecoverArgs {
+    /// Reuse the existing `DuckDB` snapshot when available instead of refreshing first.
+    #[arg(long = "cached")]
+    pub cached: bool,
+
+    /// Text predicate over orgid, task title, lifecycle state, source path,
+    /// outline, planning timestamps, tags, properties, and repeaters.
+    #[arg(long = "text", value_name = "TEXT")]
+    pub text: Option<String>,
+
+    /// Require this Org tag. May be repeated.
+    #[arg(long = "tag", value_name = "TAG")]
+    pub tags: Vec<String>,
+
+    /// Include DONE-state tasks.
+    #[arg(long = "include-done")]
+    pub include_done: bool,
+
+    /// Include archived tasks.
+    #[arg(long = "include-archived")]
+    pub include_archived: bool,
+
+    /// Maximum number of recent candidate rows to render.
+    #[arg(long = "limit", default_value_t = 5)]
+    pub limit: usize,
+
+    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }
@@ -77,7 +179,8 @@ pub struct OrgizeTaskReportArgs {
     #[arg(long = "view", value_enum)]
     pub view: Option<OrgizeTaskListView>,
 
-    /// Text predicate over task title, source path, outline, tags, properties, and repeaters.
+    /// Text predicate over task title, lifecycle state, source path, outline,
+    /// planning timestamps, tags, properties, and repeaters.
     #[arg(long = "text", value_name = "TEXT")]
     pub text: Option<String>,
 
@@ -109,7 +212,8 @@ pub struct OrgizeTaskArchiveArgs {
     #[arg(long = "apply")]
     pub apply: bool,
 
-    /// Text predicate over task title, source path, outline, tags, properties, and repeaters.
+    /// Text predicate over task title, lifecycle state, source path, outline,
+    /// planning timestamps, tags, properties, and repeaters.
     #[arg(long = "text", value_name = "TEXT")]
     pub text: Option<String>,
 

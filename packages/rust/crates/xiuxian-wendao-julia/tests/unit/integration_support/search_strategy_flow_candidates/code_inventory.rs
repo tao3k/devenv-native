@@ -51,11 +51,31 @@ fn code_intelligence_inventory_batch_uses_surface_source_not_transport_name()
 
     assert_eq!(batch.source, CODE_INTELLIGENCE_CANDIDATE_SOURCE);
     assert_eq!(batch.row_count, audit.total_candidate_count);
-    assert!(batch.tsv.contains("rust-control-plane-source-"));
-    assert!(batch.tsv.contains("link-graph-source-focus-"));
-    assert!(batch.tsv.contains("toml-config-boundary-"));
-    assert!(batch.tsv.contains("benchmark-python-adapter-"));
-    assert!(batch.tsv.contains("git-tracked-inventory"));
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("rust-control-plane-source-")
+    );
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("link-graph-source-focus-")
+    );
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("toml-config-boundary-")
+    );
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("benchmark-python-adapter-")
+    );
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("git-tracked-inventory")
+    );
 
     let receipt: serde_json::Value = serde_json::from_str(&batch.discovery_receipt_json)?;
     assert_eq!(

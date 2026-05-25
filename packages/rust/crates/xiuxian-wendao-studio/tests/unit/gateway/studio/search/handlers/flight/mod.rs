@@ -12,6 +12,7 @@ mod headers;
 mod helpers;
 #[cfg(feature = "julia")]
 mod materialization;
+mod ontology_candidate_inspection;
 mod provider;
 mod vfs;
 

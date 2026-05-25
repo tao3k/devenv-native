@@ -196,6 +196,8 @@ fn assert_studio_attempt_surfaces() {
     let attempts = candidate_discovery_queries(
         "Find the Markdown package docs that define Studio ownership of SearchStrategyFlow Flight materialization.",
     );
+    assert_has_attempt(&attempts, "validation path", "docs/testing");
+    assert_has_attempt(&attempts, "validation path", "docs/90_validation");
     assert_has_attempt(
         &attempts,
         "Studio SearchStrategyFlow Flight materialization ownership",

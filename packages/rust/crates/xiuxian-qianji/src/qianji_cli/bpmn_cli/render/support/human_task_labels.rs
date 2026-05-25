@@ -63,7 +63,7 @@ pub(in crate::qianji_cli::bpmn_cli::render) fn bpmn_human_task_assignment_label(
 
 fn bpmn_human_task_assignment_role_label(
     kind: &str,
-    role: &qianji_bpmn_engine::BpmnHumanTaskResourceRoleSpec,
+    role: &xiuxian_qianji_bpmn_engine::BpmnHumanTaskResourceRoleSpec,
 ) -> String {
     let mut label = kind.to_string();
     if let Some(name) = role.name.as_deref() {

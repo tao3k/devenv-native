@@ -118,6 +118,23 @@ def test_parse_args_accepts_rust_audio_artifact_cache_dir(
     assert args.rust_audio_artifact_cache_dir == cache_dir
 
 
+def test_parse_args_accepts_rust_audio_transcript_admission_dir(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    admission_dir = tmp_path / "audio-transcript-admissions"
+    monkeypatch.setattr(
+        benchmark._args.sys,
+        "argv",
+        ["benchmark", "--rust-audio-transcript-admission-dir", str(admission_dir)],
+    )
+
+    args = benchmark.parse_args()
+
+    assert args.rust_audio_transcript_admission_dir == admission_dir
+
+
 def test_reset_process_log_dir_removes_stale_trace_files(tmp_path: Path) -> None:
     benchmark = _load_benchmark_module()
     process_log_dir = tmp_path / "process-logs"

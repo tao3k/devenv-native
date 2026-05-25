@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use walkdir::{DirEntry, WalkDir};
 
+use super::arrow_service::search_strategy_flow_candidate_inputs_arrow_ipc;
 use super::search_strategy_flow_evidence_edge_kinds;
 use super::types::{
     MARKDOWN_HEADING_CANDIDATE_SOURCE, MAX_CANDIDATES, SearchStrategyFlowCandidateInput,
@@ -63,16 +64,13 @@ pub(crate) fn search_strategy_flow_candidate_input_batch_from_markdown(
         search_root,
         MAX_CANDIDATES,
     )?;
-    Ok(search_strategy_flow_candidate_input_batch(
-        MARKDOWN_HEADING_CANDIDATE_SOURCE,
-        &candidates,
-    ))
+    search_strategy_flow_candidate_input_batch(MARKDOWN_HEADING_CANDIDATE_SOURCE, &candidates)
 }
 
 pub(crate) fn search_strategy_flow_candidate_input_batch(
     source: &'static str,
     candidates: &[SearchStrategyFlowCandidateInput],
-) -> SearchStrategyFlowCandidateInputBatch {
+) -> Result<SearchStrategyFlowCandidateInputBatch, String> {
     search_strategy_flow_candidate_input_batch_with_discovery_receipt(
         source,
         candidates,
@@ -84,13 +82,18 @@ pub(crate) fn search_strategy_flow_candidate_input_batch_with_discovery_receipt(
     source: &'static str,
     candidates: &[SearchStrategyFlowCandidateInput],
     discovery_receipt: &Value,
-) -> SearchStrategyFlowCandidateInputBatch {
-    SearchStrategyFlowCandidateInputBatch {
+) -> Result<SearchStrategyFlowCandidateInputBatch, String> {
+    let candidate_input_arrow_ipc_stream = if candidates.is_empty() {
+        Vec::new()
+    } else {
+        search_strategy_flow_candidate_inputs_arrow_ipc(candidates)?
+    };
+    Ok(SearchStrategyFlowCandidateInputBatch {
         source,
         row_count: candidates.len(),
-        tsv: serialize_candidate_inputs_tsv(candidates),
+        candidate_input_arrow_ipc_stream,
         discovery_receipt_json: discovery_receipt.to_string(),
-    }
+    })
 }
 
 fn default_candidate_discovery_receipt(source: &'static str, row_count: usize) -> Value {
@@ -693,37 +696,4 @@ fn contains_any(haystack: &str, needles: &[&str]) -> f64 {
     } else {
         0.0
     }
-}
-
-fn serialize_candidate_inputs_tsv(candidates: &[SearchStrategyFlowCandidateInput]) -> String {
-    candidates
-        .iter()
-        .map(|candidate| {
-            [
-                escape_tsv_field(&candidate.relative_path),
-                escape_tsv_field(&candidate.heading_anchor),
-                escape_tsv_field(&candidate.title),
-                candidate.line_start.to_string(),
-                candidate.line_end.to_string(),
-                candidate.context_cost.to_string(),
-                candidate.evidence_coverage.to_string(),
-                candidate.graph_score.to_string(),
-                candidate.authority_score.to_string(),
-                candidate.structural_score.to_string(),
-                candidate.uncertainty.to_string(),
-                candidate.blocked.to_string(),
-                escape_tsv_field(&candidate.edge_kinds.join(",")),
-            ]
-            .join("\t")
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn escape_tsv_field(value: &str) -> String {
-    value
-        .replace('\\', "\\\\")
-        .replace('\t', "\\t")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
 }

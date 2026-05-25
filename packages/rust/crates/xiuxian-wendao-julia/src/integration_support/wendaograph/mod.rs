@@ -12,10 +12,12 @@ mod probes;
 #[path = "../wendaograph_scripts.rs"]
 mod scripts;
 mod search_strategy_routes;
+mod service_trace;
 
 #[cfg(test)]
 pub(crate) use crate::integration_support::search_strategy_flow_candidates::{
-    SearchStrategyFlowCandidateInputBatch,
+    SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch,
+    search_strategy_flow_candidate_input_batch,
     search_strategy_flow_registry_authority_candidate_input_batch,
 };
 #[cfg(test)]
@@ -23,6 +25,7 @@ pub(crate) use crate::integration_support::search_strategy_flow_flight::{
     SearchStrategyFlowFlightMaterializationConfig,
     search_strategy_flow_candidate_input_batch_from_repo_search,
 };
+pub(crate) use batch_replay::SearchStrategyFlowSideTableRequest;
 pub use batch_replay::{
     SearchStrategyFlowPersistentBatchHost,
     run_wendaograph_search_strategy_flow_json_batch_with_candidate_batches,
@@ -43,7 +46,12 @@ pub use host::{
     parse_search_strategy_flow_probe_action, run_wendaograph_search_strategy_flow_json,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements,
+    run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_side_tables,
     search_strategy_flow_probe_action_route,
+};
+pub(crate) use host::{
+    SearchStrategyFlowServiceExecutionRequest,
+    run_wendaograph_search_strategy_flow_json_with_service_and_flight_materialization,
 };
 #[cfg(test)]
 pub(crate) use host::{
@@ -89,6 +97,7 @@ pub(crate) use ontology_read_model::{
     build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope,
     build_wendaograph_ontology_read_model_quality_request_batches_from_rdf_source_artifacts,
     build_wendaograph_ontology_read_model_quality_request_batches_from_semantic_preview_artifacts,
+    build_wendaograph_ontology_read_model_quality_request_batches_from_structural_facts_artifacts,
     roundtrip_wendaograph_ontology_extension_proof_with_binding,
     roundtrip_wendaograph_ontology_read_model_quality_with_binding,
     wendaograph_ontology_read_model_quality_provider_selector,
@@ -115,6 +124,9 @@ pub(crate) use probes::{
     parse_page_index_planner_action_probe_report_line, parse_page_index_probe_report_line,
 };
 pub(crate) use probes::{resolve_existing_path, wendaograph_julia_project};
+pub(crate) use service_trace::{
+    SearchStrategyFlowServiceTraceRequest, search_strategy_flow_service_trace_json,
+};
 
 #[cfg(test)]
 #[path = "../../../tests/unit/integration_support/wendaograph/mod.rs"]

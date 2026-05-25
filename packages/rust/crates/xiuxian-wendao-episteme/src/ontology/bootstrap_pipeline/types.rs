@@ -6,6 +6,10 @@ use super::{
     reasoning_fill_plan_stage_run_id, reasoning_ledger_seed_stage_run_id,
     reasoning_packet_stage_run_id, structural_facts_stage_run_id,
 };
+#[cfg(feature = "artifact-cache")]
+use crate::{
+    EpistemeOntologyArtifactBundleRestoreReport, EpistemeOntologyArtifactBundleWriteReport,
+};
 use crate::{
     EpistemeOntologyStructuralFactsReasoningFillPlanReport,
     EpistemeOntologyStructuralFactsReasoningLedgerSeedReport,
@@ -238,6 +242,105 @@ pub struct EpistemeOntologyBootstrapPipelineReport {
     /// Pipeline-level safety flags.
     #[serde(flatten)]
     pub safety: EpistemeOntologyBootstrapPipelineSafetyFlags,
+}
+
+/// Artifact-cache identity controls for bootstrap pipeline run bundles.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct EpistemeOntologyBootstrapArtifactCacheOptions {
+    /// Source contract, registry, or corpus digest component.
+    pub source_digest: String,
+    /// Compiler, validation, or ontology profile digest component.
+    pub profile_digest: String,
+}
+
+#[cfg(feature = "artifact-cache")]
+impl EpistemeOntologyBootstrapArtifactCacheOptions {
+    /// Create artifact-cache options for bootstrap pipeline bundles.
+    #[must_use]
+    pub fn new(source_digest: impl Into<String>, profile_digest: impl Into<String>) -> Self {
+        Self {
+            source_digest: source_digest.into(),
+            profile_digest: profile_digest.into(),
+        }
+    }
+}
+
+/// Report emitted by the artifact-cache bootstrap wrapper.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpistemeOntologyBootstrapArtifactCacheReport {
+    /// Original deterministic pipeline report.
+    pub pipeline: EpistemeOntologyBootstrapPipelineReport,
+    /// Artifact bundle writes produced from generated run directories.
+    pub bundles: Vec<EpistemeOntologyArtifactBundleWriteReport>,
+}
+
+/// Bootstrap stage represented in artifact-cache reports.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpistemeOntologyBootstrapArtifactCacheStage {
+    /// Structural facts stage directory.
+    StructuralFacts,
+    /// Reasoning packet stage directory.
+    ReasoningPacket,
+    /// Reasoning ledger seed stage directory.
+    ReasoningLedgerSeed,
+    /// Reasoning fill-plan stage directory.
+    ReasoningFillPlan,
+}
+
+/// Missing bootstrap stage bundle during artifact-cache restore.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpistemeOntologyBootstrapArtifactCacheRestoreMiss {
+    /// Missing stage.
+    pub stage: EpistemeOntologyBootstrapArtifactCacheStage,
+    /// Stage-qualified run digest used for the artifact key.
+    pub run_digest: String,
+    /// Directory that would receive restored files.
+    pub target_dir: PathBuf,
+}
+
+/// Report emitted after restoring bootstrap stage bundles from artifact cache.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpistemeOntologyBootstrapArtifactCacheRestoreReport {
+    /// Stage bundles restored into deterministic run directories.
+    pub restored: Vec<EpistemeOntologyArtifactBundleRestoreReport>,
+    /// Stage bundles not found in the cache backend.
+    pub missing: Vec<EpistemeOntologyBootstrapArtifactCacheRestoreMiss>,
+}
+
+#[cfg(feature = "artifact-cache")]
+impl EpistemeOntologyBootstrapArtifactCacheRestoreReport {
+    /// Whether every expected bootstrap stage bundle was restored.
+    #[must_use]
+    pub fn complete(&self) -> bool {
+        self.missing.is_empty()
+    }
+}
+
+/// Outcome of a bootstrap artifact read-through attempt.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome {
+    /// Existing artifact bundles restored all stage directories.
+    Restored,
+    /// One or more bundles were missing, so the pipeline regenerated artifacts.
+    Generated,
+}
+
+/// Report emitted by bootstrap artifact read-through.
+#[cfg(feature = "artifact-cache")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpistemeOntologyBootstrapArtifactCacheReadThroughReport {
+    /// Whether the read-through restored or generated artifacts.
+    pub outcome: EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
+    /// Restore attempt performed before generation.
+    pub restore: EpistemeOntologyBootstrapArtifactCacheRestoreReport,
+    /// Generation report when restore was incomplete.
+    pub generated: Option<EpistemeOntologyBootstrapArtifactCacheReport>,
 }
 
 /// Pipeline-level non-execution and non-promotion safety flags.

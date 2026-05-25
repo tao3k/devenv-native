@@ -1,5 +1,6 @@
 //! Candidate surfaces for `WendaoGraph` `SearchStrategyFlow` probes.
 
+mod arrow_service;
 #[cfg(test)]
 #[path = "../../../tests/unit/integration_support/search_strategy_flow_candidates/bridge_report_support.rs"]
 mod bridge_report;
@@ -15,6 +16,11 @@ mod structured_index;
 mod types;
 
 pub(super) use super::search_strategy_flow_evidence_edge_kinds;
+#[cfg(test)]
+pub(crate) use arrow_service::{
+    search_strategy_flow_candidate_inputs_arrow_ipc,
+    search_strategy_flow_candidate_inputs_arrow_record_batch,
+};
 #[cfg(test)]
 pub(crate) use bridge_report::{
     SearchStrategyFlowMaterializedRepoReplayFamily,
@@ -33,6 +39,8 @@ pub(crate) use corpus::{
     configured_search_strategy_flow_markdown_replay_families,
     configured_search_strategy_flow_markdown_replay_families_with_limit,
 };
+#[cfg(test)]
+pub(crate) use discovery::search_strategy_flow_candidate_input_batch;
 #[cfg(test)]
 pub(crate) use discovery::{
     discover_search_strategy_flow_candidate_inputs,

@@ -3,6 +3,8 @@
 mod cli;
 #[path = "facade.rs"]
 mod facade;
+mod flowhub;
+pub(crate) mod flowhub_worker;
 mod health;
 mod run;
 #[cfg(test)]

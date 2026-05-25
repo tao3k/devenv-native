@@ -16,7 +16,7 @@ thiserror = { workspace = true }
 comrak = { workspace = true }
 orgize = { workspace = true }
 blake3 = { workspace = true }
-chrono = { workspace = true, features = ["std"] }
+chrono = { workspace = true, features = ["std", "clock"] }
 uuid = { workspace = true }
 walkdir = { workspace = true }
 xiuxian-ast = { path = "../xiuxian-ast" }

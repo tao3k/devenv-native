@@ -17,6 +17,11 @@ duckdb = [
 llm = ["dep:xiuxian-llm"]
 performance = []
 valkey = ["xiuxian-qianji-control/valkey"]
+advisory-prompt-pack-cache = [
+  "qianji-full",
+  "xiuxian-db-store/artifact-cache",
+  "xiuxian-qianhuan/artifact-cache",
+]
 qianji-full = [
   "duckdb",
   "llm",
@@ -81,7 +86,8 @@ xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan", optional = true }
-qianji-bpmn-engine = { path = "../qianji-bpmn-engine" }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
+xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
@@ -90,6 +96,7 @@ xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
+xiuxian-qianji-runtime = { path = "../xiuxian-qianji-runtime" }
 
 [dev-dependencies]
 criterion = { workspace = true }

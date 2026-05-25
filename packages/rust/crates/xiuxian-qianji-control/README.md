@@ -34,7 +34,7 @@ shape.
 ## Boundary
 
 This crate must stay independent from workflow implementations. It does not
-depend on `xiuxian-qianji`, `qianji-bpmn-engine`, `xiuxian-wendao`,
+depend on `xiuxian-qianji`, `xiuxian-qianji-bpmn-engine`, `xiuxian-wendao`,
 `xiuxian-llm`, or `xiuxian-qianhuan`.
 
 The intended split is:
@@ -42,6 +42,9 @@ The intended split is:
 - DuckDB: durable append-only control ledger and replayable run views inside
   one writable process boundary
 - Valkey: hot queues, leases, heartbeats, rate limits, and live progress
+- [`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md):
+  dependency-safe adapters that convert workflow host boundaries into control
+  activity tasks
 - Qianji workflow/BPMN/Flowhub: domain execution semantics
 - Agent workers: leased executors that attach evidence and observations
 

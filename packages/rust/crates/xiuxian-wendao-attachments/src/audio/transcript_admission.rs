@@ -11,9 +11,9 @@ use super::{
     AudioShardWorkerProfile, merge_audio_shard_results,
 };
 
-const AUDIO_TRANSCRIPT_ADMISSION_SCHEMA: &str = "xiuxian_wendao.audio_transcript_result_cache.v1";
+const AUDIO_TRANSCRIPT_ADMISSION_SCHEMA: &str = "xiuxian_wendao.audio_transcript_admission.v1";
 const AUDIO_PLANNED_TRANSCRIPT_ADMISSION_SCHEMA: &str =
-    "xiuxian_wendao.audio_planned_transcript_result_cache.v1";
+    "xiuxian_wendao.audio_planned_transcript_admission.v1";
 
 /// Runtime counters for one audio transcript admission lookup/persist pass.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,12 +38,13 @@ pub struct AudioTranscriptAdmissionStats {
     /// Planned shard admission records that existed but failed validation.
     #[serde(default)]
     pub planned_stale_count: usize,
-    /// Accepted analyzer rows persisted to the planned result index.
+    /// Accepted analyzer rows persisted to the planned admission index.
     #[serde(default)]
     pub planned_stored_count: usize,
 }
 
 impl AudioTranscriptAdmissionStats {
+    /// Merge another admission-stat sample into this aggregate.
     pub fn add_assign(&mut self, other: &Self) {
         self.enabled |= other.enabled;
         self.hit_count += other.hit_count;
@@ -57,18 +58,29 @@ impl AudioTranscriptAdmissionStats {
     }
 }
 
+/// Accepted transcript admission lookup output for materialized shard rows.
 #[derive(Debug, Clone)]
 pub struct AudioTranscriptAdmissionLookup {
+    /// Accepted result rows keyed by shard element id.
     pub admitted_results: HashMap<String, AudioShardResult>,
+    /// Materialized shard inputs that still require analyzer execution.
     pub miss_inputs: Vec<AudioShardInput>,
+    /// Runtime counters produced by the lookup pass.
     pub stats: AudioTranscriptAdmissionStats,
 }
 
+/// Planned transcript admission lookup output before byte materialization.
 #[derive(Debug, Clone)]
 pub struct AudioPlannedTranscriptAdmissionLookup {
+    /// Whether every planned shard was satisfied by accepted transcript admission.
     pub all_hit: bool,
+    /// Planned-hit input rows reconstructed from accepted transcript admission.
     pub inputs: Vec<AudioShardInput>,
+    /// Planned-hit result rows reconstructed from accepted transcript admission.
     pub results: Vec<AudioShardResult>,
+    /// Planned shard manifests that still need byte materialization and analyzer execution.
+    pub miss_manifests: Vec<AudioShardManifestItem>,
+    /// Runtime counters produced by the planned lookup pass.
     pub stats: AudioTranscriptAdmissionStats,
 }
 
@@ -178,6 +190,7 @@ pub fn lookup_planned_audio_transcript_admission(
             all_hit: false,
             inputs: Vec::new(),
             results: Vec::new(),
+            miss_manifests: manifests.to_vec(),
             stats: AudioTranscriptAdmissionStats::default(),
         });
     };
@@ -204,27 +217,30 @@ pub fn lookup_planned_audio_transcript_admission(
         .iter()
         .filter(|row| matches!(row, AudioPlannedTranscriptAdmissionLookupRow::Stale))
         .count();
-    let all_hit = !manifests.is_empty() && hit_count == manifests.len();
-    let (inputs, results) = if all_hit {
-        rows.into_iter()
-            .filter_map(|row| match row {
-                AudioPlannedTranscriptAdmissionLookupRow::Hit(input, result) => {
-                    Some((input, result))
-                }
-                AudioPlannedTranscriptAdmissionLookupRow::Miss
-                | AudioPlannedTranscriptAdmissionLookupRow::Stale => None,
-            })
-            .unzip()
-    } else {
-        (Vec::new(), Vec::new())
-    };
+    let mut inputs = Vec::new();
+    let mut results = Vec::new();
+    let mut miss_manifests = Vec::new();
+    for (manifest, row) in manifests.iter().zip(rows) {
+        match row {
+            AudioPlannedTranscriptAdmissionLookupRow::Hit(input, result) => {
+                inputs.push(input);
+                results.push(result);
+            }
+            AudioPlannedTranscriptAdmissionLookupRow::Miss
+            | AudioPlannedTranscriptAdmissionLookupRow::Stale => {
+                miss_manifests.push(manifest.clone());
+            }
+        }
+    }
+    let all_hit = !manifests.is_empty() && miss_manifests.is_empty();
     Ok(AudioPlannedTranscriptAdmissionLookup {
         all_hit,
         inputs,
         results,
+        miss_manifests,
         stats: AudioTranscriptAdmissionStats {
             enabled: true,
-            hit_count: if all_hit { hit_count } else { 0 },
+            hit_count,
             planned_hit_count: hit_count,
             planned_miss_count: miss_count,
             planned_stale_count: stale_count,
@@ -632,6 +648,11 @@ fn manifest_shard_profile(manifest: &AudioShardManifestItem) -> &str {
     manifest.cache_key.split(':').next().unwrap_or("")
 }
 
+/// Build the accepted transcript admission identity key for a materialized shard.
+///
+/// # Errors
+///
+/// Returns an error if the admission identity cannot be serialized.
 pub fn audio_transcript_admission_key(
     input: &AudioShardInput,
     request_options: &AudioTranscriptAdmissionOptions,
@@ -726,6 +747,8 @@ fn audio_planned_transcript_admission_key(
     Ok(format!("{:x}", sha2::Sha256::digest(payload.as_slice())))
 }
 
+/// Return the sharded transcript admission record path for a cache key.
+#[must_use]
 pub fn audio_transcript_admission_path(cache_dir: &Path, cache_key: &str) -> PathBuf {
     let prefix = cache_key.get(..2).unwrap_or("00");
     cache_dir.join(prefix).join(format!("{cache_key}.json"))

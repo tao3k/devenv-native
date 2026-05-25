@@ -2,7 +2,6 @@
 
 mod readiness;
 mod state;
-mod wendaograph_algorithms;
 
 pub use crate::JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION;
 pub use readiness::{
@@ -30,22 +29,23 @@ pub use readiness::{
     with_julia_thread_pinning_diagnostics,
 };
 pub use state::{
-    JuliaProfileSchedulingFacts, WENDAO_GRAPH_GNN_REASONING_HOST_ENTRYPOINT,
-    WENDAO_GRAPH_GNN_REASONING_PROFILE_ID, WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION,
-    WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID, WENDAO_GRAPH_PAGE_INDEX_REASONING_HOST_ENTRYPOINT,
+    WENDAO_GRAPH_GNN_REASONING_HOST_ENTRYPOINT, WENDAO_GRAPH_GNN_REASONING_PROFILE_ID,
+    WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION, WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+    WENDAO_GRAPH_PAGE_INDEX_REASONING_HOST_ENTRYPOINT,
     WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID, WENDAOSEARCH_CONSTRAINT_FILTER_PROFILE_ID,
     WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID, WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID,
-    WendaoGraphRelationshipSearchEvidence, julia_graph_compute_profile_refs,
-    julia_graph_compute_snapshot, memory_julia_compute_manifest_row_ref,
-    memory_julia_compute_profile_ref, memory_julia_compute_profile_refs,
-    wendao_graph_gnn_reasoning_profile_ref, wendao_graph_link_evidence_profile_ref,
-    wendao_graph_page_index_reasoning_profile_ref, wendaosearch_graph_structural_profile_ref,
-    wendaosearch_graph_structural_profile_refs, wendaosearch_legacy_rerank_profile_ref,
+    julia_graph_compute_profile_refs, julia_graph_compute_snapshot,
+    memory_julia_compute_manifest_row_ref, memory_julia_compute_profile_ref,
+    memory_julia_compute_profile_refs, wendao_graph_gnn_reasoning_profile_ref,
+    wendao_graph_link_evidence_profile_ref, wendao_graph_page_index_reasoning_profile_ref,
+    wendaosearch_graph_structural_profile_ref, wendaosearch_graph_structural_profile_refs,
+    wendaosearch_legacy_rerank_profile_ref,
 };
-pub use wendaograph_algorithms::{
-    WendaoGraphAlgorithmId, WendaoGraphAlgorithmRef, WendaoGraphAlgorithmRefInput,
-    WendaoGraphAlgorithmWorkload, WendaoGraphProfileId, wendaograph_algorithm_ref,
-    wendaograph_algorithm_refs, wendaograph_algorithm_refs_for_profile,
+pub use xiuxian_polyglot_orchestrator::{
+    JuliaProfileSchedulingFacts, WendaoGraphAlgorithmComplexity, WendaoGraphAlgorithmId,
+    WendaoGraphAlgorithmWorkload, WendaoGraphProfileId, WendaoGraphRelationshipSearchEvidence,
+    WendaoGraphScheduledAlgorithmRef, WendaoGraphScheduledAlgorithmRef as WendaoGraphAlgorithmRef,
+    wendaograph_algorithm_ref, wendaograph_algorithm_refs, wendaograph_algorithm_refs_for_profile,
     wendaograph_algorithm_task_shape, wendaograph_frontier_algorithm_ref,
     wendaograph_frontier_task_shape, wendaograph_gnn_algorithm_refs,
     wendaograph_link_graph_algorithm_refs, wendaograph_page_index_algorithm_refs,

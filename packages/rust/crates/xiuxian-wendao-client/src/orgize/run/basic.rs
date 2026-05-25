@@ -43,6 +43,7 @@ pub(super) fn run_lint(args: &OrgizeLintArgs, context: &ClientContext) -> Result
         priority_highest: args.priority_highest.clone(),
         priority_lowest: args.priority_lowest.clone(),
         priority_default: args.priority_default.clone(),
+        fix: args.fix,
     })?;
     print!("{}", report.render(output_format));
     Ok(if report.is_clean() {

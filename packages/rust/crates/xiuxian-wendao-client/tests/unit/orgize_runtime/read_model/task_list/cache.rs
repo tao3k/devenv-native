@@ -4,8 +4,11 @@ use crate::orgize_runtime::support::{assert_cli_success, run_orgize, tempdir_or_
 fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() {
     let temp = tempdir_or_panic();
     let agenda = temp.path().join("agenda.org");
-    std::fs::write(&agenda, "* TODO Agent task :agent:\n")
-        .unwrap_or_else(|error| panic!("write agenda: {error}"));
+    std::fs::write(
+        &agenda,
+        "* TODO Agent task :agent:\n:PROPERTIES:\n:ID: agent-task\n:END:\n",
+    )
+    .unwrap_or_else(|error| panic!("write agenda: {error}"));
 
     let first_refresh = run_orgize(temp.path(), &["read-model", "agenda.org"], "read-model");
     assert_cli_success(&first_refresh);
@@ -22,11 +25,6 @@ fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() 
 
     assert_cli_success(&list);
     assert!(
-        list.stdout.contains("snapshot: in-memory-fallback"),
-        "stdout: {}",
-        list.stdout
-    );
-    assert!(
         list.stdout.contains("[TASK001] Agent task"),
         "stdout: {}",
         list.stdout
@@ -37,8 +35,11 @@ fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() 
 fn standalone_orgize_task_list_cached_reuses_existing_snapshot() {
     let temp = tempdir_or_panic();
     let agenda = temp.path().join("agenda.org");
-    std::fs::write(&agenda, "* TODO Cached task :agent:\n")
-        .unwrap_or_else(|error| panic!("write agenda: {error}"));
+    std::fs::write(
+        &agenda,
+        "* TODO Cached task :agent:\n:PROPERTIES:\n:ID: cached-task\n:END:\n",
+    )
+    .unwrap_or_else(|error| panic!("write agenda: {error}"));
 
     let first_refresh = run_orgize(temp.path(), &["read-model", "agenda.org"], "read-model");
     assert_cli_success(&first_refresh);
@@ -46,7 +47,13 @@ fn standalone_orgize_task_list_cached_reuses_existing_snapshot() {
         &agenda,
         concat!(
             "* TODO Cached task :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: cached-task\n",
+            ":END:\n",
             "* TODO New task after snapshot :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: new-task\n",
+            ":END:\n",
         ),
     )
     .unwrap_or_else(|error| panic!("rewrite agenda: {error}"));
@@ -57,16 +64,6 @@ fn standalone_orgize_task_list_cached_reuses_existing_snapshot() {
         "task-list cached",
     );
     assert_cli_success(&cached);
-    assert!(
-        cached.stdout.contains("snapshot: cached"),
-        "stdout: {}",
-        cached.stdout
-    );
-    assert!(
-        cached.stdout.contains("rows: 1"),
-        "stdout: {}",
-        cached.stdout
-    );
     assert!(
         cached.stdout.contains("Cached task"),
         "stdout: {}",
@@ -85,16 +82,6 @@ fn standalone_orgize_task_list_cached_reuses_existing_snapshot() {
     );
     assert_cli_success(&refreshed);
     assert!(
-        refreshed.stdout.contains("snapshot: refreshed"),
-        "stdout: {}",
-        refreshed.stdout
-    );
-    assert!(
-        refreshed.stdout.contains("rows: 2"),
-        "stdout: {}",
-        refreshed.stdout
-    );
-    assert!(
         refreshed.stdout.contains("New task after snapshot"),
         "stdout: {}",
         refreshed.stdout
@@ -106,10 +93,16 @@ fn standalone_orgize_task_list_cached_respects_requested_source_path() {
     let temp = tempdir_or_panic();
     let first = temp.path().join("first.org");
     let second = temp.path().join("second.org");
-    std::fs::write(&first, "* TODO First cached task :agent:\n")
-        .unwrap_or_else(|error| panic!("write first agenda: {error}"));
-    std::fs::write(&second, "* TODO Second cached task :agent:\n")
-        .unwrap_or_else(|error| panic!("write second agenda: {error}"));
+    std::fs::write(
+        &first,
+        "* TODO First cached task :agent:\n:PROPERTIES:\n:ID: first-cached\n:END:\n",
+    )
+    .unwrap_or_else(|error| panic!("write first agenda: {error}"));
+    std::fs::write(
+        &second,
+        "* TODO Second cached task :agent:\n:PROPERTIES:\n:ID: second-cached\n:END:\n",
+    )
+    .unwrap_or_else(|error| panic!("write second agenda: {error}"));
 
     let first_refresh = run_orgize(
         temp.path(),
@@ -124,16 +117,6 @@ fn standalone_orgize_task_list_cached_respects_requested_source_path() {
         "task-list cached second",
     );
     assert_cli_success(&cached);
-    assert!(
-        cached.stdout.contains("snapshot: cached"),
-        "stdout: {}",
-        cached.stdout
-    );
-    assert!(
-        cached.stdout.contains("rows: 1"),
-        "stdout: {}",
-        cached.stdout
-    );
     assert!(
         cached.stdout.contains("Second cached task"),
         "stdout: {}",

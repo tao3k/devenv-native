@@ -1,4 +1,6 @@
 mod admission;
+#[cfg(feature = "artifact-cache")]
+mod artifact_bundle;
 mod bootstrap_pipeline;
 mod candidate_review;
 mod candidates;

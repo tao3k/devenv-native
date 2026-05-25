@@ -13,15 +13,16 @@ use crate::contract_feedback::{
 use anyhow::{Context, Result};
 use serde_json::{Map, Value};
 
-#[cfg(feature = "llm")]
-use crate::executors::{QianjiAdvisoryAuditExecutor, QianjiLlmAdvisoryAuditExecutor};
 use crate::sovereign::ContractFeedbackKnowledgeSink;
 
 use super::pipeline::{
     QianjiContractFeedbackRun, QianjiPersistedContractFeedbackRun, persist_contract_feedback_run,
 };
 #[cfg(feature = "llm")]
-use super::pipeline::{QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime};
+use super::pipeline::{
+    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
+    build_live_contract_feedback_executor,
+};
 
 const REST_DOCS_SUITE_ID: &str = "qianji-rest-docs-contract-feedback";
 const REST_DOCS_PACK_ID: &str = "rest_docs";
@@ -666,13 +667,7 @@ pub async fn run_rest_docs_contract_feedback_with_live_advisory(
     runtime: QianjiLiveContractFeedbackRuntime,
     options: QianjiLiveContractFeedbackOptions,
 ) -> Result<QianjiContractFeedbackRun> {
-    let planner = QianjiAdvisoryAuditExecutor::new(runtime.orchestrator, runtime.registry);
-    let mut live_executor =
-        QianjiLlmAdvisoryAuditExecutor::new(planner, runtime.client, options.model)
-            .with_temperature(options.temperature);
-    if let Some(threshold) = options.cognitive_early_halt_threshold {
-        live_executor = live_executor.with_cognitive_supervision(threshold);
-    }
+    let live_executor = build_live_contract_feedback_executor(runtime, options);
 
     run_rest_docs_contract_feedback(openapi_path, collection_context, config, &live_executor).await
 }

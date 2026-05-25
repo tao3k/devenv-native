@@ -3,6 +3,7 @@ use super::{
     search_strategy_flow_candidate_input_batch_from_repo_search,
     spawn_fake_search_strategy_flow_candidate_discovery_service,
 };
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 #[tokio::test]
 async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_source_config_rows() {
@@ -20,13 +21,13 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
 
     assert_eq!(batch.source, "wendao-gateway-retrieval");
     assert_eq!(batch.row_count, 3);
-    assert_eq!(batch.tsv.lines().count(), 3);
+    assert_eq!(batch.candidate_input_arrow_snapshot().lines().count(), 3);
     let discovery_receipt: serde_json::Value =
         serde_json::from_str(batch.discovery_receipt_json.as_str())
             .unwrap_or_else(|error| panic!("parse fake Flight discovery receipt: {error}"));
     assert_eq!(
         discovery_receipt.get("transport"),
-        Some(&serde_json::json!("arrow-flight"))
+        Some(&serde_json::json!(WENDAO_ARROW_FLIGHT_DATA_PLANE))
     );
     assert_eq!(
         discovery_receipt.get("retrievalOwner"),
@@ -69,17 +70,21 @@ async fn search_strategy_flow_flight_candidate_discovery_decodes_non_markdown_so
         "parser-priority:local-override",
         "parser-priority:general-baseline",
         "repo-search",
-        "arrow-flight",
+        WENDAO_ARROW_FLIGHT_DATA_PLANE,
     ] {
         assert!(
-            batch.tsv.contains(expected_fragment),
+            batch
+                .candidate_input_arrow_snapshot()
+                .contains(expected_fragment),
             "candidate batch should contain `{expected_fragment}`:\n{}",
-            batch.tsv
+            batch.candidate_input_arrow_snapshot()
         );
     }
     assert!(
-        !batch.tsv.contains(".data/WendaoGraph.jl"),
+        !batch
+            .candidate_input_arrow_snapshot()
+            .contains(".data/WendaoGraph.jl"),
         "Flight candidate discovery must not promote transient nested-repo paths:\n{}",
-        batch.tsv
+        batch.candidate_input_arrow_snapshot()
     );
 }

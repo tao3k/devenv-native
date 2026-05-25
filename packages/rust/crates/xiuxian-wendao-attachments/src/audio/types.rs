@@ -252,12 +252,12 @@ pub struct AudioShardMaterializedItem {
     pub materialization_source: AudioShardMaterializationSource,
 }
 
-/// Raw DTO boundary and stringly state boundary for audio result cache inputs.
+/// Raw DTO boundary and stringly state boundary for audio task admission inputs.
 ///
-/// Backend/task identity for caching downstream audio processing results.
+/// Backend/task identity for admitting reusable downstream audio task outputs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AudioResultCacheInput {
+pub struct AudioTaskAdmissionInput {
     /// Cache key from the normalized audio shard manifest.
     pub shard_cache_key: String,
     /// Logical task profile, such as transcription, diarization, or summarization.

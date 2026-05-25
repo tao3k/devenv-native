@@ -8,7 +8,7 @@ pub(super) fn initialize_agent_org_tasks_table(
             r"
 DROP TABLE IF EXISTS agent_org_tasks;
 CREATE TABLE agent_org_tasks (
-    task_id VARCHAR PRIMARY KEY,
+    orgid VARCHAR PRIMARY KEY,
     source_path VARCHAR NOT NULL,
     source_line UBIGINT NOT NULL,
     source_column UBIGINT NOT NULL,

@@ -1,11 +1,9 @@
 //! Shared readiness helpers for Julia profile projections.
 
 use xiuxian_polyglot_orchestrator::{
-    BenchmarkState, ContractValidationState, JuliaComputeTaskShape, JuliaReadinessEvidence,
-    JuliaSchedulePlan, JuliaSchedulingInput, LaneCapability,
+    BenchmarkState, ContractValidationState, JuliaComputeTaskShape, JuliaProfileSchedulingFacts,
+    JuliaReadinessEvidence, JuliaSchedulePlan, JuliaSchedulingInput, LaneCapability,
 };
-
-use crate::polyglot::state::JuliaProfileSchedulingFacts;
 
 pub(super) fn julia_static_contract_readiness_evidence(
     profile: JuliaStaticContractReadinessProfile,
@@ -52,10 +50,6 @@ pub(super) struct JuliaReadinessWindow {
     pub(super) max_in_flight: Option<u32>,
     pub(super) active_in_flight: u32,
     pub(super) queue_depth: u32,
-}
-
-pub(super) fn max_in_flight_as_u32(max_in_flight_requests: u64) -> u32 {
-    u32::try_from(max_in_flight_requests).unwrap_or(u32::MAX)
 }
 
 pub(super) fn saturating_usize_to_u32(value: usize) -> u32 {

@@ -3,6 +3,7 @@
 mod agenda;
 mod agent_tasks;
 mod error;
+mod eval;
 mod format;
 mod io;
 mod lint;
@@ -15,6 +16,9 @@ pub use agent_tasks::{
     OrgizeAgentTaskRepeater, OrgizeAgentTaskRow, collect_agent_task_rows,
 };
 pub use error::OrgizeToolError;
+pub use eval::{
+    OrgizeEvalPatchRequest, OrgizeEvalPlanRequest, render_eval_patch, render_eval_plan,
+};
 pub use format::{OrgizeFormatReport, OrgizeFormatRequest, format_org_files};
 pub use lint::{
     OrgizeLintFileReport, OrgizeLintOutputFormat, OrgizeLintRequest, OrgizeLintRunReport,

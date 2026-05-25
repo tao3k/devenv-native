@@ -158,7 +158,7 @@ fn parse_check_workdir_command_requires_dir_flag() {
 }
 
 #[test]
-fn parse_materialize_command_points_to_qianji_client_flowhub_init() {
+fn parse_materialize_command_points_to_xiuxian_qianji_client_flowhub_init() {
     let error = parse_dir_command(&to_args(&[
         "qianji",
         "materialize",

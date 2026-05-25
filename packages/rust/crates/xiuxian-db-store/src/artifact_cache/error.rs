@@ -63,7 +63,6 @@ impl ArtifactCacheError {
         }
     }
 
-    #[cfg(feature = "foyer-artifact-cache")]
     pub(crate) fn backend(
         backend: &'static str,
         action: &'static str,

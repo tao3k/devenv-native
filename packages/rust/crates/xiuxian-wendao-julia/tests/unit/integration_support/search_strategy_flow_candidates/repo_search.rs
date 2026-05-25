@@ -1,6 +1,7 @@
 use super::{
     SearchStrategyFlowRepoSearchHit, search_strategy_flow_candidate_input_from_repo_search_hit,
 };
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 #[test]
 fn builds_repo_search_candidate_with_flight_source_edges() {
@@ -20,7 +21,11 @@ fn builds_repo_search_candidate_with_flight_source_edges() {
     assert_eq!(candidate.line_end, 14);
     assert_eq!(candidate.context_cost, 40);
     assert!(candidate.evidence_coverage > 0.8);
-    assert!(candidate.edge_kinds.contains(&"arrow-flight".to_owned()));
+    assert!(
+        candidate
+            .edge_kinds
+            .contains(&WENDAO_ARROW_FLIGHT_DATA_PLANE.to_owned())
+    );
     assert!(candidate.edge_kinds.contains(&"repo-search".to_owned()));
     assert!(
         candidate
@@ -148,7 +153,11 @@ fn repo_search_candidates_cover_flight_index_source_and_config_families() {
         );
 
         assert_eq!(candidate.relative_path, path);
-        assert!(candidate.edge_kinds.contains(&"arrow-flight".to_owned()));
+        assert!(
+            candidate
+                .edge_kinds
+                .contains(&WENDAO_ARROW_FLIGHT_DATA_PLANE.to_owned())
+        );
         assert!(candidate.edge_kinds.contains(&"repo-search".to_owned()));
         for expected_edge in expected_edges {
             assert!(

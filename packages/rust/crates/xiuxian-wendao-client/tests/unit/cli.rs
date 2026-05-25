@@ -5,7 +5,8 @@ mod semantic;
 use clap::Parser;
 use std::path::PathBuf;
 use xiuxian_wendao_client::{
-    ClientCli, ClientCommand, GetCommand, LintCommand, OrgizeCommand, OrgizeSddCommand,
+    ClientCli, ClientCommand, GetCommand, LintCommand, OrgizeCommand, OrgizeEvalCommand,
+    OrgizeSddCommand,
 };
 
 #[test]
@@ -127,6 +128,67 @@ fn parses_orgize_sparse_tree_command() {
 }
 
 #[test]
+fn parses_orgize_eval_plan_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "orgize",
+        "eval",
+        "plan",
+        "--json",
+        "verify",
+        ".cache/agent/org/task.org",
+    ]);
+    let ClientCommand::Orgize { command } = cli.command else {
+        panic!("expected orgize command");
+    };
+    match command {
+        OrgizeCommand::Eval {
+            command: OrgizeEvalCommand::Plan(args),
+        } => {
+            assert!(args.json);
+            assert_eq!(args.name, "verify");
+            assert_eq!(args.path, PathBuf::from(".cache/agent/org/task.org"));
+        }
+        _ => panic!("expected orgize eval plan command"),
+    }
+}
+
+#[test]
+fn parses_orgize_eval_patch_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "orgize",
+        "eval",
+        "patch",
+        "--write",
+        "--stdout-file",
+        ".cache/agent/evidence/result.txt",
+        "--exit-code",
+        "0",
+        "verify",
+        ".cache/agent/org/task.org",
+    ]);
+    let ClientCommand::Orgize { command } = cli.command else {
+        panic!("expected orgize command");
+    };
+    match command {
+        OrgizeCommand::Eval {
+            command: OrgizeEvalCommand::Patch(args),
+        } => {
+            assert!(args.write);
+            assert_eq!(
+                args.stdout_file,
+                Some(PathBuf::from(".cache/agent/evidence/result.txt"))
+            );
+            assert_eq!(args.exit_code, Some(0));
+            assert_eq!(args.name, "verify");
+            assert_eq!(args.path, PathBuf::from(".cache/agent/org/task.org"));
+        }
+        _ => panic!("expected orgize eval patch command"),
+    }
+}
+
+#[test]
 fn parses_orgize_sdd_status_json_command() {
     let cli = ClientCli::parse_from([
         "wendao",
@@ -229,6 +291,115 @@ fn parses_orgize_task_list_command() {
             assert_eq!(args.paths, vec![PathBuf::from(".cache/agent/org")]);
         }
         _ => panic!("expected orgize task-list command"),
+    }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn parses_orgize_task_probe_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "orgize",
+        "task-probe",
+        "--cached",
+        "--text",
+        "Audio OpenRouter",
+        "--limit",
+        "2",
+        ".cache/agent/org",
+    ]);
+    let ClientCommand::Orgize { command } = cli.command else {
+        panic!("expected orgize command");
+    };
+    match command {
+        OrgizeCommand::TaskProbe(args) => {
+            assert!(args.cached);
+            assert_eq!(args.text, "Audio OpenRouter");
+            assert_eq!(args.limit, 2);
+            assert_eq!(args.paths, vec![PathBuf::from(".cache/agent/org")]);
+        }
+        _ => panic!("expected orgize task-probe command"),
+    }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn parses_orgize_ogrid_show_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "orgize",
+        "ogrid-show",
+        "--cached",
+        "--id",
+        "target-task",
+        ".cache/agent/org",
+    ]);
+    let ClientCommand::Orgize { command } = cli.command else {
+        panic!("expected orgize command");
+    };
+    match command {
+        OrgizeCommand::OgridShow(args) => {
+            assert!(args.cached);
+            assert_eq!(args.id, "target-task");
+            assert_eq!(args.paths, vec![PathBuf::from(".cache/agent/org")]);
+        }
+        _ => panic!("expected orgize ogrid-show command"),
+    }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn parses_orgize_task_sdd_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "orgize",
+        "task-sdd",
+        "--cached",
+        "--id",
+        "target-task",
+        ".cache/agent/org",
+    ]);
+    let ClientCommand::Orgize { command } = cli.command else {
+        panic!("expected orgize command");
+    };
+    match command {
+        OrgizeCommand::TaskSdd(args) => {
+            assert!(args.cached);
+            assert_eq!(args.id, "target-task");
+            assert_eq!(args.paths, vec![PathBuf::from(".cache/agent/org")]);
+        }
+        _ => panic!("expected orgize task-sdd command"),
+    }
+}
+
+#[cfg(feature = "orgize-agent-read-model")]
+#[test]
+fn parses_orgize_task_recover_command() {
+    let cli = ClientCli::parse_from([
+        "wendao",
+        "orgize",
+        "task-recover",
+        "--cached",
+        "--text",
+        "flowhub",
+        "--tag",
+        "agent",
+        "--limit",
+        "5",
+        ".cache/agent/org",
+    ]);
+    let ClientCommand::Orgize { command } = cli.command else {
+        panic!("expected orgize command");
+    };
+    match command {
+        OrgizeCommand::TaskRecover(args) => {
+            assert!(args.cached);
+            assert_eq!(args.text.as_deref(), Some("flowhub"));
+            assert_eq!(args.tags, vec!["agent".to_string()]);
+            assert_eq!(args.limit, 5);
+            assert_eq!(args.paths, vec![PathBuf::from(".cache/agent/org")]);
+        }
+        _ => panic!("expected orgize task-recover command"),
     }
 }
 

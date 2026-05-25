@@ -15,14 +15,6 @@ use axum::{
     body::{Body, to_bytes},
     http::{Method, Request, StatusCode, header::CONTENT_TYPE},
 };
-use qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec,
-    BpmnHumanTaskFormSpec, BpmnHumanTaskLifecycleEventKind, BpmnHumanTaskResourceRoleSpec,
-    BpmnInstanceInit, BpmnLaneMembershipSpec, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
-    BpmnProcessSpec, PendingHostWorkClaim, PendingHostWorkKind, PendingHumanTaskClaimInput,
-    PendingHumanTaskClaimRequest, ProcessKey, advance_instance, claim_pending_human_task,
-    create_instance,
-};
 use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::{
@@ -32,6 +24,14 @@ use std::{
 };
 use tempfile::TempDir;
 use tower::util::ServiceExt;
+use xiuxian_qianji_bpmn_engine::{
+    BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec,
+    BpmnHumanTaskFormSpec, BpmnHumanTaskLifecycleEventKind, BpmnHumanTaskResourceRoleSpec,
+    BpmnInstanceInit, BpmnLaneMembershipSpec, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
+    BpmnProcessSpec, PendingHostWorkClaim, PendingHostWorkKind, PendingHumanTaskClaimInput,
+    PendingHumanTaskClaimRequest, ProcessKey, advance_instance, claim_pending_human_task,
+    create_instance,
+};
 
 use super::{unique_instance_id, valkey_support::TestValkey};
 
@@ -336,7 +336,7 @@ async fn bpmn_workflow_http_preserves_claim_identity_across_checkpoint_roundtrip
 }
 
 fn assert_human_task_event_kinds(
-    events: &[qianji_bpmn_engine::BpmnHumanTaskLifecycleEvent],
+    events: &[xiuxian_qianji_bpmn_engine::BpmnHumanTaskLifecycleEvent],
     expected: &[BpmnHumanTaskLifecycleEventKind],
 ) {
     let actual = events

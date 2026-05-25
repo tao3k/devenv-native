@@ -98,12 +98,10 @@ pub(crate) fn search_strategy_flow_registry_authority_candidate_input_batch(
         "attemptCount": audit.visited_config_count,
         "mergedCandidateCount": candidates.len(),
     });
-    Ok(
-        search_strategy_flow_candidate_input_batch_with_discovery_receipt(
-            REGISTRY_METADATA_CANDIDATE_SOURCE,
-            &candidates,
-            &receipt,
-        ),
+    search_strategy_flow_candidate_input_batch_with_discovery_receipt(
+        REGISTRY_METADATA_CANDIDATE_SOURCE,
+        &candidates,
+        &receipt,
     )
 }
 

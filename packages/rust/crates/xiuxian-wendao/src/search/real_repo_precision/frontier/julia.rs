@@ -9,12 +9,9 @@ use std::collections::BTreeMap;
 use crate::search::real_repo_precision::frontier::score::saturating_usize_to_u32;
 #[cfg(feature = "julia")]
 use xiuxian_polyglot_orchestrator::{
-    BenchmarkState, JuliaRuntimeStats, JuliaScheduleAction, JuliaSchedulePlan, JuliaScheduleReason,
-    LaneCapability, WarmupState,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::polyglot::{
-    JuliaProfileSchedulingFacts, WendaoGraphAlgorithmWorkload, wendaograph_frontier_algorithm_ref,
+    BenchmarkState, JuliaProfileSchedulingFacts, JuliaRuntimeStats, JuliaScheduleAction,
+    JuliaSchedulePlan, JuliaScheduleReason, LaneCapability, WarmupState,
+    WendaoGraphAlgorithmWorkload, wendaograph_frontier_algorithm_ref,
     wendaograph_frontier_schedule_plan,
 };
 

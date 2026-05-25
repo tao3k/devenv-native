@@ -1,4 +1,9 @@
-use qianji_bpmn_engine::{
+use serde_json::json;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use tokio::sync::Barrier;
+use tokio::time::{Duration, timeout};
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnGatewayKind,
     BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BpmnScriptTaskSpec,
     BpmnTaskIoSpec, BpmnTaskOutputBinding, BusinessRuleTaskOutcome, DmnDecisionRef,
@@ -6,11 +11,6 @@ use qianji_bpmn_engine::{
     PendingHostWorkRequest, ProcessKey, ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome,
     UserTaskRequest, advance_instance, create_instance,
 };
-use serde_json::json;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use tokio::sync::Barrier;
-use tokio::time::{Duration, timeout};
 
 use crate::{
     BpmnAdapterError, QianjiBpmnHostBridge, dispatch_pending_host_work_request,
@@ -419,7 +419,10 @@ fn node_with_outputs(node: BpmnNodeSpec, outputs: &[&str]) -> BpmnNodeSpec {
     node.with_task_io(task_io)
 }
 
-fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceState) {
+fn waiting_instance() -> (
+    Arc<BpmnPackage>,
+    xiuxian_qianji_bpmn_engine::BpmnInstanceState,
+) {
     let package = Arc::new(BpmnPackage::new(
         "pkg_wait",
         vec![waiting_process("wait_boundary")],
@@ -436,26 +439,28 @@ fn waiting_instance() -> (Arc<BpmnPackage>, qianji_bpmn_engine::BpmnInstanceStat
     instance.updated_at_ms = 55;
     instance
         .active_tokens
-        .push(qianji_bpmn_engine::TokenRecord {
+        .push(xiuxian_qianji_bpmn_engine::TokenRecord {
             token_id: 1,
             node_index: 1,
             incoming_edge_index: None,
             inclusive_join_hint: None,
         });
-    instance.node_states[0].status = qianji_bpmn_engine::NodeRuntimeStatus::Completed;
-    instance.node_states[1].status = qianji_bpmn_engine::NodeRuntimeStatus::Executing;
-    instance.waits.push(qianji_bpmn_engine::WaitRegistration {
-        process_id: Some("wait_boundary".to_string()),
-        node_index: 1,
-        blocking_node_index: None,
-        kind: qianji_bpmn_engine::WaitKind::ExternalEvent,
-        event_kind: Some(BpmnEventKind::Message),
-        event_reference: Some("invoice_received".to_string()),
-        event_name: Some("InvoiceReceived".to_string()),
-        timer: None,
-        condition_expression: None,
-        deduplication_key: Some("invoice:42".to_string()),
-    });
+    instance.node_states[0].status = xiuxian_qianji_bpmn_engine::NodeRuntimeStatus::Completed;
+    instance.node_states[1].status = xiuxian_qianji_bpmn_engine::NodeRuntimeStatus::Executing;
+    instance
+        .waits
+        .push(xiuxian_qianji_bpmn_engine::WaitRegistration {
+            process_id: Some("wait_boundary".to_string()),
+            node_index: 1,
+            blocking_node_index: None,
+            kind: xiuxian_qianji_bpmn_engine::WaitKind::ExternalEvent,
+            event_kind: Some(BpmnEventKind::Message),
+            event_reference: Some("invoice_received".to_string()),
+            event_name: Some("InvoiceReceived".to_string()),
+            timer: None,
+            condition_expression: None,
+            deduplication_key: Some("invoice:42".to_string()),
+        });
 
     (package, instance)
 }

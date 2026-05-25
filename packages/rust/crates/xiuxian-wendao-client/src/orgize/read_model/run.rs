@@ -1,6 +1,6 @@
 //! CLI command flows for Orgize read-model commands.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use xiuxian_wendao_parsers::{
@@ -8,33 +8,38 @@ use xiuxian_wendao_parsers::{
 };
 
 use crate::orgize::{
-    OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs, OrgizeTaskReportArgs,
+    OrgizeOgridShowArgs, OrgizeReadModelArgs, OrgizeTaskArchiveArgs, OrgizeTaskListArgs,
+    OrgizeTaskProbeArgs, OrgizeTaskRecoverArgs, OrgizeTaskReportArgs, OrgizeTaskSddArgs,
 };
 use crate::{ClientContext, CommandOutcome, OutputFormat};
 
 use super::archive::{ArchiveApplyReport, apply_archive_plan};
 use super::filter::{
-    filter_archive_rows, filter_report_rows, filter_task_rows, task_row_has_tag,
-    task_row_is_archive_candidate, task_row_is_closure_needed, task_row_is_repeating,
+    filter_archive_rows, filter_probe_scope_rows, filter_recover_rows, filter_report_rows,
+    filter_task_rows, task_row_has_tag, task_row_is_archive_candidate, task_row_is_closure_needed,
+    task_row_is_repeating,
 };
 use super::json::{
-    ArchiveApplyJsonContext, TaskListJsonContext, TaskReportCounts, emit_task_archive_apply_json,
-    emit_task_archive_plan_json, emit_task_list_json, emit_task_report_json,
+    ArchiveApplyJsonContext, TaskListJsonContext, TaskReportCounts, emit_ogrid_show_json,
+    emit_task_archive_apply_json, emit_task_archive_plan_json, emit_task_list_json,
+    emit_task_report_json,
 };
+use super::memory::{ProbeRecallScope, rank_probe_rows};
 use super::model::{
     AGENT_ORG_TASKS_TABLE, AgentOrgReadModelMaterializationReport, ResolvedReadModelSettings,
     TaskQuerySnapshot,
 };
 use super::render::{
-    render_archive_plan_row, render_archive_target_summary, render_report_section,
-    render_tag_counts, render_task_list_row,
+    render_archive_plan_row, render_archive_target_summary, render_ogrid_show_row,
+    render_probe_candidate_row, render_recovery_candidate_row, render_report_section,
+    render_tag_counts, render_task_list_row, render_task_sdd_graph,
 };
 use super::row_view::{display_source_path, task_list_view_label};
 use super::settings::{resolve_read_model_settings, resolve_source_paths};
 use super::store::{
     open_read_model_connection, open_read_model_read_only_connection,
-    query_active_agent_org_task_row_window, query_agent_org_task_rows,
-    refresh_agent_org_read_model,
+    query_active_agent_org_task_row_window, query_agent_org_task_rows_by_orgid,
+    query_agent_org_task_rows_matching, refresh_agent_org_read_model,
 };
 
 pub(crate) fn run_read_model(
@@ -63,7 +68,13 @@ pub(crate) fn run_task_list(
         return Ok(outcome);
     }
 
-    let snapshot = open_task_query_snapshot(&args.paths, context, args.cached)?;
+    let snapshot = open_task_query_snapshot_matching(
+        &args.paths,
+        context,
+        args.cached,
+        args.text.as_deref(),
+        &args.tags,
+    )?;
     let filtered = filter_task_rows(&snapshot.rows, args);
     let limit = args.limit;
     let shown = filtered.iter().take(limit).copied().collect::<Vec<_>>();
@@ -89,20 +100,122 @@ pub(crate) fn run_task_list(
         return Ok(CommandOutcome::success());
     }
 
-    println!("orgize agent task-list");
-    println!("backend: duckdb");
     if let Some(view) = args.view {
         println!("view: {}", task_list_view_label(view));
     }
-    render_snapshot_header(&snapshot);
-    println!("table: {AGENT_ORG_TASKS_TABLE}");
-    println!("rows: {}", filtered.len());
-    println!("showing: {}", shown.len());
     println!("active: {active}");
     println!("done: {done}");
     println!("archived: {archived}");
     for (index, row) in shown.iter().enumerate() {
         render_task_list_row(index + 1, row, context);
+    }
+    Ok(CommandOutcome::success())
+}
+
+pub(crate) fn run_ogrid_show(
+    args: &OrgizeOgridShowArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let snapshot = open_ogrid_show_snapshot(&args.paths, context, args.cached, &args.id)?;
+    ensure_unique_ogrid_show_row(&snapshot.rows, &args.id)?;
+    let row = snapshot
+        .rows
+        .first()
+        .with_context(|| format!("no agent Org task found for orgid `{}`", args.id))?;
+    let source = std::fs::read_to_string(&row.source_path)
+        .with_context(|| format!("failed to read Org task source `{}`", row.source_path))?;
+    let section = match source_section(row, &source) {
+        Ok(section) => section,
+        Err(error) if args.cached && is_source_range_error(&error) => {
+            let snapshot = open_ogrid_show_snapshot(&args.paths, context, false, &args.id)?;
+            ensure_unique_ogrid_show_row(&snapshot.rows, &args.id)?;
+            let row = snapshot
+                .rows
+                .first()
+                .with_context(|| format!("no agent Org task found for orgid `{}`", args.id))?;
+            let source = std::fs::read_to_string(&row.source_path)
+                .with_context(|| format!("failed to read Org task source `{}`", row.source_path))?;
+            let section = source_section(row, &source)?;
+            if context.output() != OutputFormat::Text {
+                emit_ogrid_show_json(args, &snapshot, row, &section, context)?;
+                return Ok(CommandOutcome::success());
+            }
+            render_ogrid_show_row(row, &section, context, args.full);
+            return Ok(CommandOutcome::success());
+        }
+        Err(error) => return Err(error),
+    };
+
+    if context.output() != OutputFormat::Text {
+        emit_ogrid_show_json(args, &snapshot, row, &section, context)?;
+        return Ok(CommandOutcome::success());
+    }
+
+    render_ogrid_show_row(row, &section, context, args.full);
+    Ok(CommandOutcome::success())
+}
+
+pub(crate) fn run_task_probe(
+    args: &OrgizeTaskProbeArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let snapshot =
+        open_task_query_snapshot_matching(&args.paths, context, args.cached, None, &args.tags)?;
+    let filtered = filter_probe_scope_rows(&snapshot.rows, args);
+    let shown = rank_probe_rows(
+        filtered,
+        args.text.as_str(),
+        args.limit,
+        ProbeRecallScope::new(args.include_done, args.include_archived),
+    );
+
+    for (index, row) in shown.iter().enumerate() {
+        render_probe_candidate_row(index + 1, row, context);
+    }
+    Ok(CommandOutcome::success())
+}
+
+pub(crate) fn run_task_sdd(
+    args: &OrgizeTaskSddArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let snapshot = open_ogrid_show_snapshot(&args.paths, context, args.cached, &args.id)?;
+    ensure_unique_ogrid_show_row(&snapshot.rows, &args.id)?;
+    let row = snapshot
+        .rows
+        .first()
+        .with_context(|| format!("no agent Org task found for orgid `{}`", args.id))?;
+    render_task_sdd_graph(row, context);
+    Ok(CommandOutcome::success())
+}
+
+pub(crate) fn run_task_recover(
+    args: &OrgizeTaskRecoverArgs,
+    context: &ClientContext,
+) -> Result<CommandOutcome> {
+    let snapshot = open_task_query_snapshot_matching(
+        &args.paths,
+        context,
+        args.cached,
+        args.text.as_deref(),
+        &args.tags,
+    )?;
+    let mut candidates = filter_recover_rows(&snapshot.rows, args);
+    candidates.sort_by(|left, right| {
+        right
+            .source_modified_unix_ms
+            .cmp(&left.source_modified_unix_ms)
+            .then_with(|| left.source_path.cmp(&right.source_path))
+            .then_with(|| left.source_line.cmp(&right.source_line))
+    });
+    let shown = candidates
+        .iter()
+        .take(args.limit)
+        .copied()
+        .collect::<Vec<_>>();
+
+    for (index, row) in shown.iter().enumerate() {
+        render_recovery_candidate_row(index + 1, row, context);
     }
     Ok(CommandOutcome::success())
 }
@@ -147,15 +260,9 @@ fn try_run_cached_active_task_list_fast_path(
         return Ok(Some(CommandOutcome::success()));
     }
 
-    println!("orgize agent task-list");
-    println!("backend: duckdb");
     if let Some(view) = args.view {
         println!("view: {}", task_list_view_label(view));
     }
-    render_snapshot_header(&snapshot);
-    println!("table: {AGENT_ORG_TASKS_TABLE}");
-    println!("rows: {active}");
-    println!("showing: {}", shown.len());
     println!("active: {active}");
     println!("done: 0");
     println!("archived: 0");
@@ -234,17 +341,12 @@ pub(crate) fn run_task_report(
         return Ok(CommandOutcome::success());
     }
 
-    println!("orgize agent task-report");
-    println!("backend: duckdb");
     if let Some(view) = args.view {
         println!("view: {}", task_list_view_label(view));
     }
     if args.summary_only {
         println!("summary-only: true");
     }
-    render_snapshot_header(&snapshot);
-    println!("table: {AGENT_ORG_TASKS_TABLE}");
-    println!("rows: {}", filtered.len());
     println!("active: {}", active_rows.len());
     println!("done: {}", done_rows.len());
     println!("archived: {}", archived_rows.len());
@@ -377,11 +479,7 @@ fn render_task_archive_text(
     selection: &TaskArchiveSelection<'_>,
     context: &ClientContext,
 ) -> Result<()> {
-    println!("orgize agent task-archive");
-    println!("backend: duckdb");
     println!("mode: {}", if args.apply { "apply" } else { "plan" });
-    render_snapshot_header(snapshot);
-    println!("table: {AGENT_ORG_TASKS_TABLE}");
     if let Some(target) = args.target.as_deref() {
         println!("target-filter: {target}");
     }
@@ -461,32 +559,142 @@ fn open_task_query_snapshot(
     context: &ClientContext,
     cached: bool,
 ) -> Result<TaskQuerySnapshot> {
-    if cached && let Some(snapshot) = open_cached_task_query_snapshot(paths, context)? {
-        return Ok(snapshot);
+    open_task_query_snapshot_matching(paths, context, cached, None, &[])
+}
+
+fn open_task_query_snapshot_matching(
+    paths: &[PathBuf],
+    context: &ClientContext,
+    cached: bool,
+    text: Option<&str>,
+    tags: &[String],
+) -> Result<TaskQuerySnapshot> {
+    if cached {
+        match open_cached_task_query_snapshot_matching(paths, context, text, tags) {
+            Ok(Some(snapshot)) => return Ok(snapshot),
+            Ok(None) => {}
+            Err(error) if is_duckdb_schema_mismatch_error(&error) => {}
+            Err(error) => return Err(error),
+        }
     }
 
-    match open_fresh_task_query_snapshot(paths, context) {
+    match open_fresh_task_query_snapshot_matching(paths, context, text, tags) {
         Ok(snapshot) => Ok(snapshot),
         Err(error) if is_duckdb_lock_error(&error) => {
-            open_read_only_snapshot_after_refresh_lock(paths, context, error_chain_message(&error))
+            open_read_only_snapshot_after_refresh_lock_matching(
+                paths,
+                context,
+                error_chain_message(&error),
+                text,
+                tags,
+            )
         }
         Err(error) => Err(error),
     }
 }
 
-fn open_cached_task_query_snapshot(
+fn open_ogrid_show_snapshot(
     paths: &[PathBuf],
     context: &ClientContext,
+    cached: bool,
+    orgid: &str,
+) -> Result<TaskQuerySnapshot> {
+    if cached {
+        match open_cached_ogrid_show_snapshot(paths, context, orgid) {
+            Ok(Some(snapshot)) => return Ok(snapshot),
+            Ok(None) => {}
+            Err(error) if is_duckdb_schema_mismatch_error(&error) => {}
+            Err(error) => return Err(error),
+        }
+    }
+
+    match open_fresh_ogrid_show_snapshot(paths, context, orgid) {
+        Ok(snapshot) => Ok(snapshot),
+        Err(error) if is_duckdb_lock_error(&error) => {
+            open_read_only_ogrid_show_snapshot_after_refresh_lock(
+                paths,
+                context,
+                orgid,
+                error_chain_message(&error),
+            )
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn open_cached_ogrid_show_snapshot(
+    paths: &[PathBuf],
+    context: &ClientContext,
+    orgid: &str,
 ) -> Result<Option<TaskQuerySnapshot>> {
     let settings = resolve_read_model_settings(context)?;
     let Some(connection) = open_read_model_read_only_connection(&settings)? else {
         return Ok(None);
     };
     let source_paths = resolve_source_paths(paths, context, settings.cache_home.as_path());
-    let rows = filter_snapshot_rows_by_source_paths(
-        query_agent_org_task_rows(&connection)?,
-        &source_paths,
-    );
+    let rows = query_agent_org_task_rows_by_orgid(&connection, &source_paths, orgid)?;
+    Ok(Some(TaskQuerySnapshot {
+        settings,
+        source_paths,
+        materialized: None,
+        snapshot_label: "cached",
+        refresh_warning: None,
+        rows,
+    }))
+}
+
+fn open_fresh_ogrid_show_snapshot(
+    paths: &[PathBuf],
+    context: &ClientContext,
+    orgid: &str,
+) -> Result<TaskQuerySnapshot> {
+    let refreshed = refresh_agent_org_read_model(paths, context)?;
+    let connection = open_snapshot_connection(&refreshed.settings)?;
+    let rows = query_agent_org_task_rows_by_orgid(&connection, &refreshed.source_paths, orgid)?;
+    Ok(TaskQuerySnapshot {
+        settings: refreshed.settings,
+        source_paths: refreshed.source_paths,
+        materialized: Some(refreshed.materialized),
+        snapshot_label: "refreshed",
+        refresh_warning: None,
+        rows,
+    })
+}
+
+fn open_read_only_ogrid_show_snapshot_after_refresh_lock(
+    paths: &[PathBuf],
+    context: &ClientContext,
+    orgid: &str,
+    refresh_error: String,
+) -> Result<TaskQuerySnapshot> {
+    let settings = resolve_read_model_settings(context)?;
+    let source_paths = resolve_source_paths(paths, context, settings.cache_home.as_path());
+    let Some(connection) = open_read_model_read_only_connection(&settings)? else {
+        anyhow::bail!("{refresh_error}");
+    };
+    let rows = query_agent_org_task_rows_by_orgid(&connection, &source_paths, orgid)?;
+    Ok(TaskQuerySnapshot {
+        settings,
+        source_paths,
+        materialized: None,
+        snapshot_label: "read-only-fallback",
+        refresh_warning: Some(refresh_error),
+        rows,
+    })
+}
+
+fn open_cached_task_query_snapshot_matching(
+    paths: &[PathBuf],
+    context: &ClientContext,
+    text: Option<&str>,
+    tags: &[String],
+) -> Result<Option<TaskQuerySnapshot>> {
+    let settings = resolve_read_model_settings(context)?;
+    let Some(connection) = open_read_model_read_only_connection(&settings)? else {
+        return Ok(None);
+    };
+    let source_paths = resolve_source_paths(paths, context, settings.cache_home.as_path());
+    let rows = query_agent_org_task_rows_matching(&connection, &source_paths, text, tags)?;
     Ok(Some(TaskQuerySnapshot {
         settings,
         source_paths,
@@ -501,9 +709,19 @@ fn open_fresh_task_query_snapshot(
     paths: &[PathBuf],
     context: &ClientContext,
 ) -> Result<TaskQuerySnapshot> {
+    open_fresh_task_query_snapshot_matching(paths, context, None, &[])
+}
+
+fn open_fresh_task_query_snapshot_matching(
+    paths: &[PathBuf],
+    context: &ClientContext,
+    text: Option<&str>,
+    tags: &[String],
+) -> Result<TaskQuerySnapshot> {
     let refreshed = refresh_agent_org_read_model(paths, context)?;
     let connection = open_snapshot_connection(&refreshed.settings)?;
-    let rows = query_agent_org_task_rows(&connection)?;
+    let rows =
+        query_agent_org_task_rows_matching(&connection, &refreshed.source_paths, text, tags)?;
     Ok(TaskQuerySnapshot {
         settings: refreshed.settings,
         source_paths: refreshed.source_paths,
@@ -514,10 +732,12 @@ fn open_fresh_task_query_snapshot(
     })
 }
 
-fn open_read_only_snapshot_after_refresh_lock(
+fn open_read_only_snapshot_after_refresh_lock_matching(
     paths: &[PathBuf],
     context: &ClientContext,
     refresh_error: String,
+    text: Option<&str>,
+    tags: &[String],
 ) -> Result<TaskQuerySnapshot> {
     let settings = resolve_read_model_settings(context)?;
     let source_paths = resolve_source_paths(paths, context, settings.cache_home.as_path());
@@ -525,10 +745,7 @@ fn open_read_only_snapshot_after_refresh_lock(
         .ok()
         .flatten()
     {
-        let rows = filter_snapshot_rows_by_source_paths(
-            query_agent_org_task_rows(&connection)?,
-            &source_paths,
-        );
+        let rows = query_agent_org_task_rows_matching(&connection, &source_paths, text, tags)?;
         return Ok(TaskQuerySnapshot {
             settings,
             source_paths,
@@ -560,28 +777,6 @@ fn open_read_only_snapshot_after_refresh_lock(
     })
 }
 
-fn filter_snapshot_rows_by_source_paths(
-    rows: Vec<super::model::AgentOrgTaskListRow>,
-    source_paths: &[PathBuf],
-) -> Vec<super::model::AgentOrgTaskListRow> {
-    rows.into_iter()
-        .filter(|row| {
-            source_paths
-                .iter()
-                .any(|source_path| row_matches_source_path(row.source_path.as_str(), source_path))
-        })
-        .collect()
-}
-
-fn row_matches_source_path(row_source_path: &str, source_path: &Path) -> bool {
-    let row_source_path = Path::new(row_source_path);
-    if source_path.is_dir() {
-        row_source_path.starts_with(source_path)
-    } else {
-        row_source_path == source_path
-    }
-}
-
 fn open_snapshot_connection(
     settings: &ResolvedReadModelSettings,
 ) -> Result<xiuxian_db_store::duckdb_crate::Connection> {
@@ -591,17 +786,30 @@ fn open_snapshot_connection(
     }
 }
 
-fn render_snapshot_header(snapshot: &TaskQuerySnapshot) {
-    println!("database: {}", snapshot.settings.database_path.display());
-    println!("sources: {}", snapshot.source_paths.len());
-    println!("snapshot: {}", snapshot.snapshot_label);
-    if let Some(reason) = &snapshot.refresh_warning {
-        println!("refresh-warning: {}", compact_refresh_warning(reason));
-    } else if snapshot.snapshot_label == "refreshed"
-        && let Some(materialized) = &snapshot.materialized
-    {
-        println!("snapshot-rows: {}", materialized.rows);
-    }
+fn ensure_unique_ogrid_show_row(
+    rows: &[super::model::AgentOrgTaskListRow],
+    orgid: &str,
+) -> Result<()> {
+    anyhow::ensure!(
+        rows.len() <= 1,
+        "multiple agent Org tasks found for orgid `{orgid}`; run orgize lint to repair duplicate section IDs"
+    );
+    Ok(())
+}
+
+fn source_section(row: &super::model::AgentOrgTaskListRow, source: &str) -> Result<String> {
+    let start = usize::try_from(row.source_range_start)
+        .with_context(|| "Org task source range start overflowed usize")?;
+    let end = usize::try_from(row.source_range_end)
+        .with_context(|| "Org task source range end overflowed usize")?;
+    anyhow::ensure!(
+        start <= end && end <= source.len(),
+        "Org task source range {}..{} is outside source length {}",
+        row.source_range_start,
+        row.source_range_end,
+        source.len()
+    );
+    Ok(source[start..end].trim_end().to_string())
 }
 
 fn is_duckdb_lock_error(error: &anyhow::Error) -> bool {
@@ -613,16 +821,28 @@ fn is_duckdb_lock_error(error: &anyhow::Error) -> bool {
     })
 }
 
+fn is_duckdb_schema_mismatch_error(error: &anyhow::Error) -> bool {
+    error.chain().any(|cause| {
+        let message = cause.to_string();
+        message.contains("Referenced column")
+            || message.contains("not found in FROM clause")
+            || message.contains("Table")
+            || message.contains("does not exist")
+    })
+}
+
+fn is_source_range_error(error: &anyhow::Error) -> bool {
+    error
+        .chain()
+        .any(|cause| cause.to_string().contains("is outside source length"))
+}
+
 fn error_chain_message(error: &anyhow::Error) -> String {
     error
         .chain()
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(": ")
-}
-
-fn compact_refresh_warning(reason: &str) -> String {
-    reason.lines().next().unwrap_or(reason).to_string()
 }
 
 fn materialization_report_from_agent_rows(
@@ -641,7 +861,9 @@ fn materialization_report_from_agent_rows(
 
 fn agent_task_row_to_list_row(row: OrgizeAgentTaskRow) -> super::model::AgentOrgTaskListRow {
     super::model::AgentOrgTaskListRow {
+        orgid: row.orgid,
         source_path: row.source_path,
+        source_modified_unix_ms: row.source_modified_unix_ms,
         source_line: row.source_line,
         source_range_start: row.source_range_start,
         source_range_end: row.source_range_end,

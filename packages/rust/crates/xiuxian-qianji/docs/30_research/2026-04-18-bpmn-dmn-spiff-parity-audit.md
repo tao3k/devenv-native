@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Audit Note: qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow"
+title: "Audit Note: xiuxian-qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow"
 category: "research"
 status: "draft"
 authors:
@@ -14,17 +14,17 @@ tags:
   - audit
 ---
 
-# Audit Note: qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow
+# Audit Note: xiuxian-qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow
 
 ## 1. Purpose
 
 This note records a source-grounded audit of the current
-`qianji-bpmn-engine` crate against the imported `SpiffWorkflow` reference
+`xiuxian-qianji-bpmn-engine` crate against the imported `SpiffWorkflow` reference
 implementation.
 
 It answers one narrow question:
 
-Does the current `qianji-bpmn-engine` align with the BPMN and DMN syntax surface
+Does the current `xiuxian-qianji-bpmn-engine` align with the BPMN and DMN syntax surface
 that `SpiffWorkflow` currently parses and executes?
 
 The answer is no.
@@ -40,12 +40,12 @@ More precisely:
    `SpiffWorkflow` itself is not a full OMG DMN implementation.
 
 Companion planning note:
-[Research Plan: qianji-bpmn-engine Architecture and xiuxian-qianji Integration](2026-04-18-bpmn-engine-research-plan.md)
+[Research Plan: xiuxian-qianji-bpmn-engine Architecture and xiuxian-qianji Integration](2026-04-18-bpmn-engine-research-plan.md)
 
 Companion design notes:
-[Design Note: qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md)
+[Design Note: xiuxian-qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md)
 and
-[Design Note: qianji-bpmn-engine Crate Skeleton and Host Bridge](2026-04-18-bpmn-crate-skeleton-and-host-bridge.md)
+[Design Note: xiuxian-qianji-bpmn-engine Crate Skeleton and Host Bridge](2026-04-18-bpmn-crate-skeleton-and-host-bridge.md)
 
 ## 2. Evidence Baseline
 
@@ -53,7 +53,7 @@ and
 
 The current crate documents itself as a bounded subset:
 
-1. `packages/rust/crates/qianji-bpmn-engine/src/lib.rs` now states that bounded
+1. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/lib.rs` now states that bounded
    `parallelGateway` split/join semantics and deterministic
    `exclusiveGateway` routing with simple boolean-path or numeric-comparison
    outgoing `sequenceFlow` `conditionExpression` values plus one optional
@@ -126,7 +126,7 @@ The current crate documents itself as a bounded subset:
    orchestration, broader
    multi-BPMN import/dependency handling, and broader FEEL or script-backed
    temporal behavior remain deferred.
-2. `packages/rust/crates/qianji-bpmn-engine/src/parser/import.rs` now accepts
+2. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/parser/import.rs` now accepts
    `parallelGateway`, `exclusiveGateway`, `intermediateCatchEvent`, one
    bounded `receiveTask`/`sendTask` message-task family, one bounded
    interrupting timer/message/signal `boundaryEvent` family including one
@@ -153,7 +153,7 @@ The current crate documents itself as a bounded subset:
    `intermediateThrowEvent` subset that either uses explicit `activityRef`
    targeting or omits `activityRef` for default reverse replay inside that
    same transaction shell.
-3. `packages/rust/crates/qianji-bpmn-engine/src/runtime/lifecycle.rs` now
+3. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/runtime/lifecycle.rs` now
    supports bounded multi-token routing for parallel split/join, bounded
    exclusive condition-driven routing using simple boolean-path or
    numeric-comparison outgoing `sequenceFlow` `conditionExpression` values
@@ -215,19 +215,19 @@ The current crate documents itself as a bounded subset:
    boundary on one transaction owner, broader transaction error propagation,
    broader multi-BPMN import/dependency handling, and broader FEEL or
    script-backed gateway condition semantics.
-4. `packages/rust/crates/qianji-bpmn-engine/src/parser/package.rs` now exposes
+4. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/parser/package.rs` now exposes
    one bounded parser-owned `BpmnBundleSnapshot` contract plus
    `parse_bpmn_bundle(...)`, allowing one BPMN source plus optional DMN
    sources to populate the package registry deterministically.
-5. `packages/rust/crates/qianji-bpmn-engine/src/dmn/parse.rs` accepts one
+5. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/dmn/parse.rs` accepts one
    decision and one decision table only.
-6. `packages/rust/crates/qianji-bpmn-engine/src/dmn/evaluate.rs` supports
+6. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/dmn/evaluate.rs` supports
    `UNIQUE` and `COLLECT` only, with wildcard matching, literal equality,
    numeric unary comparisons, bounded numeric ranges, ISO date comparisons and
    ranges, ISO local datetime comparisons and ranges, and bounded ISO time
    comparisons and ranges.
-7. `packages/rust/crates/qianji-bpmn-engine/src/lint/bpmn.rs` and
-   `packages/rust/crates/qianji-bpmn-engine/src/lint/dmn.rs` explicitly guide
+7. `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/lint/bpmn.rs` and
+   `packages/rust/crates/xiuxian-qianji-bpmn-engine/src/lint/dmn.rs` explicitly guide
    callers toward this bounded subset, including LLM-friendly repair prompts
    for invalid bounded `receiveTask`/`sendTask` message bindings.
 
@@ -326,7 +326,7 @@ full DMN standard coverage.
 
 The audit-proven statement is narrower:
 
-1. `qianji-bpmn-engine` currently implements a deliberately bounded DMN
+1. `xiuxian-qianji-bpmn-engine` currently implements a deliberately bounded DMN
    contract.
 2. `SpiffWorkflow` implements a materially richer DMN parse and evaluation
    surface than that bounded contract, even after the local numeric,
@@ -402,7 +402,7 @@ coverage.
 
 The strongest precise statement supported by source evidence is:
 
-1. `qianji-bpmn-engine` currently matches a bounded BPMN subset that now
+1. `xiuxian-qianji-bpmn-engine` currently matches a bounded BPMN subset that now
    includes linear flow plus deterministic `parallelGateway` and
    `exclusiveGateway` support, one bounded exclusive `eventBasedGateway`
    race, together with bounded intermediate message/signal/timer waits, one
@@ -421,7 +421,7 @@ The strongest precise statement supported by source evidence is:
    definition, plus one parser-owned bundle snapshot path that can register
    bounded DMN definitions into that package, but still covers only a small
    part of `SpiffWorkflow`.
-2. `qianji-bpmn-engine` currently matches only the bounded core of
+2. `xiuxian-qianji-bpmn-engine` currently matches only the bounded core of
    `SpiffWorkflow` DMN support: one decision table with `UNIQUE` or `COLLECT`,
    plus wildcard/literal matching, numeric unary comparisons, bounded numeric
    ranges, ISO date literals, ISO date comparisons, bounded ISO date ranges,

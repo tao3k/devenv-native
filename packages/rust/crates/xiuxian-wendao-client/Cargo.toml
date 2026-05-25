@@ -10,7 +10,13 @@ default-run = "wendao-client"
 
 [features]
 default = ["orgize-agent-read-model"]
-orgize-agent-read-model = ["dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
+orgize-agent-read-model = [
+  "dep:xiuxian-db-store",
+  "dep:xiuxian-graph-core",
+  "dep:xiuxian-memory-engine",
+  "xiuxian-db-store/duckdb",
+  "xiuxian-graph-core/mermaid",
+]
 performance = []
 semantic-sql = ["dep:tokio", "dep:xiuxian-wendao-sql"]
 
@@ -32,7 +38,9 @@ walkdir = { workspace = true }
 rayon = { workspace = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
+xiuxian-graph-core = { path = "../xiuxian-graph-core", default-features = false, optional = true }
 xiuxian-logging = { path = "../xiuxian-logging" }
+xiuxian-memory-engine = { path = "../xiuxian-memory-engine", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 

@@ -1,6 +1,14 @@
 # xiuxian-wendao-julia
 
-`xiuxian-wendao-julia` is the Julia-owned Repo Intelligence plugin crate for `xiuxian-wendao`.
+`xiuxian-wendao-julia` is a removal-track Wendao-specific Julia bridge crate
+for existing `xiuxian-wendao` consumers. Long-term Julia runtime facts now
+belong in [`xiuxian-julia-runtime`](../xiuxian-julia-runtime/README.md), with
+Wendao integration exposed behind that crate's `wendao` feature. Memory profile
+identities, cross-language catalog projection, scheduling facts, and
+relationship-search evidence now belong in
+[`xiuxian-polyglot-orchestrator`](../xiuxian-polyglot-orchestrator/README.md);
+this crate consumes those contracts while it is being removed from the core
+bridge boundary.
 
 The Modelica repo-intelligence lane now lives here too. There is no separate
 `xiuxian-wendao-modelica` Rust crate to maintain; both Julia and Modelica
@@ -90,7 +98,24 @@ needs a feature-gated second plugin bundle for these languages.
   accepts host, port, flow id, and Flight admission parameters only. This crate
   remains the Rust bridge client and validation surface for Studio-backed Flight
   materialization; it does not own Gateway route registration or load
-  `wendao.toml` in the live client boundary.
+  `wendao.toml` in the live client boundary. The Rust bridge now builds
+  `strategy_candidates` Arrow IPC from candidate discovery rows, admits the
+  SearchStrategyFlow service binding through `xiuxian-polyglot-orchestrator`,
+  sends the request through the shared runtime Arrow Flight client, and decodes
+  the WendaoGraph.jl response bundle. The production service response carries
+  `strategy_candidates`, `strategy_transitions`, `strategy_frontier`, and
+  `strategy_planner_actions` payloads as Arrow IPC streams; the current Rust
+  roundtrip helper still exposes decoded frontier rows while keeping the full
+  bundle contract visible for the benchmark trace cutover.
+- The `wendaograph_search_strategy_flow` binary can now call the WendaoGraph
+  SearchStrategyFlow service with `--strategy-flow-service-base-url <url>`.
+  This endpoint is separate from `--flight-base-url`: the service URL is for
+  Julia algorithm compute, while the Flight materialization URL remains the
+  Studio/Gateway retrieval endpoint. The service mode emits a benchmark-ready
+  trace with `strategyFlowDataPlane=arrow-flight` and service metadata, then
+  enriches or executes retrieval routes through the existing Rust
+  materialization path. `--serve-stdio` remains a development JSONL control
+  session and is intentionally rejected with `--strategy-flow-service-base-url`.
 - WendaoGraph ontology read-model quality Flight binding is now admitted
   through `xiuxian-polyglot-orchestrator` before runtime transport negotiation.
   The bridge exposes a Julia route/profile reference and builds a
@@ -125,6 +150,11 @@ needs a feature-gated second plugin bundle for these languages.
   one-hop compact graph budget and keeps route receipts as proof that the
   relation path is reachable while avoiding two-hop neighborhood fanout in live
   replay traces.
+- SearchStrategyFlow Flight materialization fanout is admitted through
+  `xiuxian-polyglot-orchestrator` before any route wave is executed. Dispatch
+  and queue plans both use the orchestrator's recommended max-in-flight value as
+  the wave cap, so queued Julia compute is throttled by the shared scheduler
+  rather than bypassing it with direct unbounded Rust fanout.
 - SearchStrategyFlow Flight receipts now include additive `elapsedMs` timing for
   candidate discovery attempts and each executed materialization route. Candidate
   discovery stops after the required attempt floor once the narrowed batch has
@@ -135,8 +165,8 @@ needs a feature-gated second plugin bundle for these languages.
   execution overhead.
 - The persistent SearchStrategyFlow batch host is now a formal
   integration-support surface. It keeps one Julia process warm across
-  submissions while Rust still owns candidate discovery, TSV construction,
-  route enrichment, and materialization receipts.
+  submissions while Rust still owns candidate discovery, candidate replay
+  payload construction, route enrichment, and materialization receipts.
   `SearchStrategyFlowPersistentBatchHost::submit_with_flight_materialization`
   is the warm-host entry point for real Flight-backed replay, and
   `stabilize_with_flight_materialization` turns prewarm plus warm-submit
@@ -150,10 +180,21 @@ needs a feature-gated second plugin bundle for these languages.
   before adding lower-level transport changes.
 - SearchStrategyFlow now accepts Agent-produced branch judgement rows without
   moving graph truth into the LLM. `pi-wendao` validates candidate-scoped
-  `branch_judgements`, serializes them as bridge TSV, and the Rust bridge
-  passes them into WendaoGraph frontier selection. WendaoGraph still owns
-  required-evidence coverage, blocked-branch pruning, context budgets, and the
-  final selected frontier.
+  `branch_judgements`, writes them as Arrow IPC for the Rust bridge, and the
+  bridge passes an Arrow IPC file path into WendaoGraph frontier selection.
+  WendaoGraph still owns required-evidence coverage, blocked-branch pruning,
+  context budgets, and the final selected frontier. The public bridge does not
+  expose a branch-judgement delimited-text flag; `--branch-judgements-arrow-ipc`
+  is the CLI control hook for local bridge runs until callers move fully onto
+  the SearchStrategyFlow Arrow Flight service bundle.
+- SearchStrategyFlow query-understanding rows can now enter the local bridge
+  as Arrow IPC through `--query-understanding-arrow-ipc` or the
+  `queryUnderstandingArrowIpcPath` JSONL session control field. This keeps the
+  repeat-pass `pi-wendao` trace aligned with the first Julia graph-derived
+  query-understanding table without creating a text ABI. The embedded local
+  host reads side-table and candidate-input Arrow IPC files directly. The
+  service request-bundle path carries `query_understanding` as Arrow IPC
+  payload bytes through Arrow Flight.
 - The `wendaograph_search_strategy_flow` binary now exposes the same release
   gate through `--persistent-warm-samples <count>` for real Flight-backed
   profiling. Default trace output is unchanged; the flag switches the binary to
@@ -170,22 +211,37 @@ needs a feature-gated second plugin bundle for these languages.
   object with `requestId` and `intent`; each output line records `ok`,
   `elapsedMs`, and either the regular trace JSON or an error. This keeps the
   production route authority unchanged while giving Gateway and `pi-wendao`
-  integration work a concrete non-spawning session contract. The first
+  integration work a concrete non-spawning session contract. This session is a
+  control channel only: Arrow payloads must stay on the Arrow Flight routes
+  owned by `xiuxian-wendao-runtime`/Studio and must not be wrapped into JSON or
+  base64 fields. Reports should mark this as `jsonl-stdio-control`; only
+  `arrow-flight`/`arrow-record-batch` may carry table data. The first
   root-backed two-request proof measured the warmup request at `20557.705 ms`
   and the second request at `83.391 ms`, with required evidence still covered.
-- The JSONL local-session request may also include `ontologyRegistryTsv`.
-  This is an internal bridge field for Gateway-supplied accepted ontology
-  registry or read-model rows. It lets WendaoGraph derive ontology-backed
+- The JSONL local-session request may also include `branchJudgementsArrowIpcPath`
+  for local bridge runs. The field is a filesystem control pointer to Arrow IPC
+  bytes, not an embedded table payload; production table movement stays on
+  Arrow Flight.
+- The JSONL local-session request may also include
+  `queryUnderstandingArrowIpcPath` for local bridge runs. The field is a
+  filesystem control pointer to Arrow IPC query-understanding rows and is used
+  only to keep repeat-pass frontier selection deterministic while the service
+  boundary moves fully to Arrow Flight request bundles.
+- The JSONL local-session request may also include
+  `ontologyRegistryArrowIpcPath` for local bridge runs. The field points to
+  Arrow IPC ontology-registry rows and lets WendaoGraph derive ontology-backed
   query-understanding anchors while Rust/Gateway keeps ownership of registry
-  compilation, source configuration, and admission policy. No user-facing CLI
-  flag is added for this field.
+  compilation, source configuration, and admission policy.
 - When the bridge runs with a SearchStrategyFlow Flight materialization
-  configuration and no explicit `ontologyRegistryTsv` is supplied, it asks the
-  Studio `/analysis/semantic-scope` Arrow Flight route for accepted semantic
-  scope rows and projects those rows into the same internal registry TSV. This
-  keeps Gateway/Studio as the source-admission owner while `WendaoGraph.jl`
-  only consumes accepted object, link, and validation names as graph-search
-  route hints.
+  configuration and no explicit ontology-registry Arrow IPC path is supplied,
+  it asks the Studio `/analysis/semantic-scope` Arrow Flight route for accepted
+  semantic scope rows and projects those rows into a temporary Arrow IPC file
+  for the embedded local host. This is a local control-path shim, not an
+  extension format. The
+  Arrow service request-bundle path carries registry rows as Arrow IPC payloads
+  and keeps Gateway/Studio as the source-admission owner while
+  `WendaoGraph.jl` only consumes accepted object, link, and validation names as
+  graph-search route hints.
 - The ontology read-model quality bridge now exposes
   `build_wendaograph_ontology_read_model_quality_arrow_request(...)` for
   callers that already hold accepted semantic read-model `RecordBatch` tables.
@@ -212,6 +268,13 @@ needs a feature-gated second plugin bundle for these languages.
   it starts the WendaoGraph ontology quality runner and sends the same request
   through the runtime Flight client. The bridge does not read `registry.json`
   or promote Julia diagnostics into runtime authority.
+- Semantic preview and applied-RDF source artifact readers now follow the same
+  Arrow-first boundary. They read generated `semantic_objects.parquet` /
+  `semantic_relations.parquet` or `rdf_source_semantic_objects.parquet` /
+  `rdf_source_semantic_relations.parquet`, plus generated projection-state
+  JSON, and rebuild the existing `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` request batches. They do not provide legacy
+  delimited-text aliases, fallbacks, or compatibility readers.
 - The ontology read-model quality bridge also accepts the Gateway
   dataset-ontology materialization envelope through
   `build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(...)`.
@@ -228,8 +291,8 @@ needs a feature-gated second plugin bundle for these languages.
   hashing, and read-model seed materialization in the Wendao Rust backend, and
   uses this crate only for the existing WendaoGraph Arrow request packaging.
   Julia still consumes compiled `semantic_objects`, `semantic_relations`, and
-  `semantic_projection_state` batches; it does not parse private TSV files,
-  RDF files, raw corpus files, or `wendao.toml`. The live private LTC
+  `semantic_projection_state` batches; it does not parse private source
+  artifacts, RDF files, raw corpus files, or `wendao.toml`. The live private LTC
   diagnostic is owned by the `xiuxian-wendao` test surface because it
   materializes the private seed before calling this bridge; this crate remains
   the reusable Arrow request and Flight binding owner. Repeated live benchmark
@@ -237,6 +300,19 @@ needs a feature-gated second plugin bundle for these languages.
   the current private LTC seed; cold-path optimization belongs in upstream
   source-contract materialization and service lifecycle policy, not in Julia
   parsing of private source files.
+- The bridge now also accepts Episteme structural-facts read-model artifacts
+  through
+  `build_wendaograph_ontology_read_model_quality_request_batches_from_structural_facts_artifacts(...)`.
+  That adapter is Parquet/Arrow-first: it reads generated
+  `structural_facts_read_model_objects.parquet` and
+  `structural_facts_read_model_relations.parquet`, plus the generated
+  projection-state JSON, then rebuilds the existing `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state` request batches. It
+  reads only those generated Parquet/JSON structural-facts artifacts. It does
+  not read raw private corpus files, RDF source files, `episteme.toml`, or
+  `wendao.toml`. Structural-facts rows remain
+  pre-truth: attempted `ontology_truth=true` rows and unknown relation
+  endpoints are rejected before WendaoGraph quality scoring.
 - The bridge also exposes an explicit ontology extension proof request builder
   for callers that already hold compiled parent object/link registry
   `RecordBatch` tables. `build_wendaograph_ontology_extension_proof_arrow_request(...)`
@@ -508,7 +584,7 @@ needs a feature-gated second plugin bundle for these languages.
   no-endpoint smoke path and is not a TypeScript or `pi-wendao` responsibility.
   The same trace includes `candidateInputDiscovery` and folds that receipt into
   `candidateDiscoveryContract.discoveryReceipt` without changing the
-  candidate TSV ABI.
+  candidate Arrow IPC contract.
 - the algorithm catalog now also exposes a relationship-search subset for
   HNSW semantic fanout, MOC-style community grouping, PPR-like relatedness,
   graph search ranking, and large object-graph traversal. These entries map to

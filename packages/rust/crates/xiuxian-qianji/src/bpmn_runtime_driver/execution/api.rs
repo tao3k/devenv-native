@@ -5,11 +5,11 @@ use super::{
 use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::ownership::QianjiBpmnSchedulerLeaseConfig;
 use crate::bpmn::session::QianjiBpmnSession;
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnEngineError, BpmnExecutionTraceEvent,
     BpmnHostBridge, BpmnInstanceInit,
 };
-use std::sync::Arc;
 
 impl QianjiBpmnExecutionDriver {
     /// Runs the BPMN session until the next stable outcome.

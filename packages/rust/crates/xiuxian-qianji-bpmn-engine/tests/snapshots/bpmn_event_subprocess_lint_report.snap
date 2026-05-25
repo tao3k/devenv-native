@@ -1,0 +1,30 @@
+---
+source: packages/rust/crates/xiuxian-qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-compensation-event-subprocess.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_subprocess_configuration",
+      "severity": "error",
+      "title": "Unsupported event subprocess shape",
+      "summary": "Process 'main_process' subprocess node 'comp_handler' uses an event subprocess shape outside the bounded executable slice.",
+      "why_it_failed": "The current engine supports one interrupting event subprocess per scope when its start event uses exactly one message, signal, timer, or bounded conditional event definition. Non-interrupting event subprocesses, compensation event subprocesses, parent sequence-flow routing through the event-subprocess owner, and multiple event subprocesses in one scope remain deferred.",
+      "repair_guidance": [
+        "Keep exactly one `subProcess triggeredByEvent=\"true\"` in the scope, with no incoming or outgoing parent sequence flows on the event-subprocess owner.",
+        "Use exactly one interrupting nested `startEvent` with a message, signal, timer, or bounded conditional event definition, followed by a bounded child body and at least one nested `endEvent`.",
+        "Do not rely on non-interrupting or compensation event subprocesses in this slice."
+      ],
+      "llm_fix_prompt": "Repair subprocess node 'comp_handler' in process 'main_process' so the event subprocess fits the bounded interrupting slice: one `triggeredByEvent=\"true\"` owner, no parent sequence-flow routing through that owner, one interrupting nested start event with message, signal, timer, or bounded conditional trigger metadata, and a bounded child body ending in at least one `endEvent`. Preserve workflow intent, but remove unsupported configuration 'event_subprocess_compensation_deferred'.",
+      "evidence": {
+        "detail": "event_subprocess_compensation_deferred",
+        "node_id": "comp_handler",
+        "process_id": "main_process"
+      }
+    }
+  ]
+}

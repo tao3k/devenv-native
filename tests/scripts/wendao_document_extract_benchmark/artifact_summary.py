@@ -39,25 +39,66 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
         "audioMaterializationReportExists": any(
             bool(report.get("audioMaterializationReportBytes")) for report in reports
         ),
+        "audioMaterializationArtifactCacheConfigured": any(
+            bool(report.get("audioMaterializationArtifactCacheConfigured"))
+            for report in reports
+        ),
+        "audioMaterializationArtifactCacheBackendCounts": _string_report_counts(
+            reports,
+            "audioMaterializationArtifactCacheBackend",
+        ),
+        "audioMaterializationArtifactCacheMemoryBytes": _max_int_report_value(
+            reports,
+            "audioMaterializationArtifactCacheMemoryBytes",
+        ),
+        "audioMaterializationArtifactCacheStorageBytes": _max_int_report_value(
+            reports,
+            "audioMaterializationArtifactCacheStorageBytes",
+        ),
+        "audioMaterializationArtifactCacheConfigErrorCount": sum(
+            1
+            for report in reports
+            if report.get("audioMaterializationArtifactCacheConfigError")
+        ),
         "audioMaterializationShardCount": _sum_int_report_values(
             reports,
             "audioMaterializationShardCount",
+        ),
+        "audioMaterializationByteCount": _sum_int_report_values(
+            reports,
+            "audioMaterializationByteCount",
         ),
         "audioMaterializationArtifactCacheHitCount": _sum_int_report_values(
             reports,
             "audioMaterializationArtifactCacheHitCount",
         ),
+        "audioMaterializationArtifactCacheHitBytes": _sum_int_report_values(
+            reports,
+            "audioMaterializationArtifactCacheHitBytes",
+        ),
         "audioMaterializationExistingOutputCount": _sum_int_report_values(
             reports,
             "audioMaterializationExistingOutputCount",
+        ),
+        "audioMaterializationExistingOutputBytes": _sum_int_report_values(
+            reports,
+            "audioMaterializationExistingOutputBytes",
         ),
         "audioMaterializationMediaSplitterCount": _sum_int_report_values(
             reports,
             "audioMaterializationMediaSplitterCount",
         ),
+        "audioMaterializationMediaSplitterBytes": _sum_int_report_values(
+            reports,
+            "audioMaterializationMediaSplitterBytes",
+        ),
         "audioMaterializationSourceCounts": _aggregate_int_report_maps(
             reports,
             "audioMaterializationSourceCounts",
+        ),
+        "audioMaterializationSourceBytes": _aggregate_int_report_maps(
+            reports,
+            "audioMaterializationSourceBytes",
         ),
         "audioTranscriptAdmissionReportExists": any(
             bool(report.get("audioTranscriptAdmissionReportBytes")) for report in reports
@@ -362,6 +403,15 @@ def _aggregate_int_report_maps(
             if isinstance(item_key, str) and isinstance(item_value, int):
                 totals[item_key] = totals.get(item_key, 0) + item_value
     return dict(sorted(totals.items()))
+
+
+def _string_report_counts(reports: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for report in reports:
+        value = report.get(key)
+        if isinstance(value, str) and value:
+            counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _document_timing_arrow_exists(report: dict[str, Any]) -> bool:

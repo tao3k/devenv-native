@@ -115,7 +115,7 @@ direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py <recording-dir
 Production chunk planning belongs on the Rust side in
 `xiuxian-wendao-attachments::audio`: it derives logical chunk offsets, optional
 context windows, normalized media windows, shard cache keys, and downstream
-task/backend result cache keys before Python sees a backend request. The same
+task/backend admission keys before Python sees a backend request. The same
 Rust boundary can materialize normalized shard media in parallel with local
 `ffmpeg`, so Gateway/Studio can avoid Python-owned chunking on the hot path.
 The Python diagnostic mirrors that contract only for package tests and local
@@ -125,16 +125,16 @@ and explicit local OpenAI-compatible candidates on the same chunks. OpenRouter
 runs require the standard
 `OPENROUTER_API_KEY` environment variable. The script writes JSON summaries and
 transcript files under the selected output directory. It also writes
-`quality.json` and `review.tsv` with proxy precision signals such as empty
-outputs, Chinese character ratio, inaudible-marker density, characters per
-minute, and optional character error rate when a reference JSONL transcript is
+`quality.json` with proxy precision signals such as empty outputs, Chinese
+character ratio, inaudible-marker density, characters per minute, and optional
+character error rate when a reference JSONL transcript is
 provided. Diagnostic inputs default to `--input-privacy private-local`, which
 requires output under `.cache/agent/evidence`; use
 `--allow-private-output-outside-cache` only for local scratch directories that
 will not be committed. Use `--domain-terms-file` to append a private glossary
 to hosted prompts, and `--required-terms-file` with
 `--min-required-term-recall` to mark critical term loss in `quality.json` and
-`review.tsv`. The shard manifest uses `xiuxian_wendao.audio_shards.v1` and
+review outputs. The shard manifest uses `xiuxian_wendao.audio_shards.v1` and
 `audio-shards-v1`; those names are model-neutral so local and hosted backends
 can change without changing chunk/cache identity.
 
@@ -212,28 +212,37 @@ error rate, critical number/entity preservation, shard coverage, duplicate
 span checks, and backend latency separate from Rust shard materialization and
 merge time. Private recordings may be used for local diagnostics only; any
 committed truth fixtures must be separately approved, redacted, or synthesized.
-The diagnostic writes `truth_template.jsonl`, `reference_draft.jsonl`, and
-`reference_draft.tsv`. The truth template stays blank. The reference draft is
-prefilled from candidate transcripts and is marked
+The diagnostic writes `truth_template.jsonl`, `reference_draft.jsonl`, and a
+columnar review table for selected clips. The truth template stays blank. The
+reference draft is prefilled from candidate transcripts and is marked
 `referenceStatus: candidate-draft`, so it is rejected by the precision gate
-until reviewed. After correcting the draft text, convert it into a
-promotion-safe reference file. Every row must be explicitly marked
-`referenceStatus: curated` before conversion; the converter rejects
-`candidate-draft` rows so model-generated drafts cannot become truth by
-accident:
+until reviewed.
+
+For selected private review clips, the Parquet review table is the canonical
+machine data plane and the Org checklist is the human proofreading surface.
+Every reviewed row must be marked `DONE`, must carry
+`:REFERENCE_STATUS: curated`, and must place the human transcript in that row's
+`reference_text` block before conversion. Each Org row also includes the model
+candidate transcript in a separate read-only `candidate_text` block so the
+reviewer can correct it in place. The converter ignores `candidate_text` and
+rejects unfinished or candidate-draft rows, so model-generated drafts cannot
+become truth by accident:
 
 ```bash
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
-  --curate-reference-draft <edited-reference-draft.jsonl> \
+  --curate-reference-org <edited-reference-selection-review.org> \
   --curated-reference-jsonl <curated-reference.jsonl>
 ```
 
-or:
+Generate the Org checklist so a human reviewer can work through clip paths,
+timeline windows, model candidate text, and the empty human reference block in
+one task surface:
 
 ```bash
 direnv exec . uv run python tests/scripts/audio_asr_diagnostic.py \
-  --curate-reference-tsv <edited-reference-draft.tsv> \
-  --curated-reference-jsonl <curated-reference.jsonl>
+  --validate-reference-selection-review-table <reference-selection-review.parquet> \
+  --reference-selection-review-org <reference-selection-review.org> \
+  --reference-selection-validation-report-json <validation-report.json>
 ```
 
 Then pass `<curated-reference.jsonl>` back through `--reference-jsonl` for CER

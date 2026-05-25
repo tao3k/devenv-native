@@ -29,11 +29,13 @@ shared type or runtime helper.
 
 When the `julia` feature is enabled, `xiuxian-wendao` now exposes one thin
 memory-family bridge at `xiuxian_wendao::memory::julia`, while
-`xiuxian-wendao-julia` continues to own the actual Julia-specific memory ABI
-surface behind it. The product crate does not keep a second host-local profile
-implementation layer, but it can now resolve the current
-`memory.julia_compute` runtime and generic capability bindings through that
-thin bridge.
+`xiuxian-julia-runtime` owns inert Julia profile identities,
+`xiuxian-polyglot-orchestrator` owns cross-language profile refs and schedule
+projection, and `xiuxian-wendao-julia` continues to own the actual
+Julia-specific memory ABI surface behind it. The product crate does not keep a
+second host-local profile implementation layer, but it can now resolve the
+current `memory.julia_compute` runtime and generic capability bindings through
+that thin bridge.
 
 The same feature boundary now covers Modelica repo-intelligence too:
 `plugins = ["modelica"]` still selects the Modelica analyzer at runtime, but
@@ -95,18 +97,24 @@ longer needs a second Rust-local Julia or Modelica code-AST execution path.
 The memory-family Julia lane follows the same ownership rule as the RFC:
 
 1. `WendaoMemory.jl` owns high-performance memory compute only
-2. `xiuxian-wendao-julia` owns the Julia-specific ABI surface: typed rows,
+2. `xiuxian-julia-runtime` owns inert memory-family Julia profile identities,
+   default route facts, and schema identifiers
+3. `xiuxian-polyglot-orchestrator` owns memory-family profile references,
+   Julia admission, and schedule-plan projection from owner-supplied facts
+4. `xiuxian-wendao-julia` owns the Julia-specific ABI surface: typed rows,
    request/response batches, manifest projection, schema validation, decoding,
    route defaults, and plugin-owned host-adapter helpers over Rust memory
    read models or evidence
-3. `xiuxian-wendao` exposes only a thin host-facing bridge and delegates the
+5. `xiuxian-wendao` exposes only a thin host-facing bridge and delegates the
    actual Julia memory ABI work into `xiuxian-wendao-julia`
-4. `xiuxian-memory-engine` and the Rust host remain authoritative for memory
+6. `xiuxian-memory-engine` and the Rust host remain authoritative for memory
    state, lifecycle, fallback, audit, and final mutation decisions
 
-That means new memory-family profile semantics, schema fragments, manifest
-logic, decoder logic, or Julia-specific validation rules should land in
-`xiuxian-wendao-julia`, not in `xiuxian-wendao`.
+That means new memory-family profile identities belong in
+`xiuxian-julia-runtime`, cross-language scheduling contracts belong in
+`xiuxian-polyglot-orchestrator`, and Julia-specific manifest logic, decoder
+logic, or validation rules should land in `xiuxian-wendao-julia`, not in
+`xiuxian-wendao`.
 
 The product crate's side of that boundary is now explicit:
 `xiuxian_wendao::memory::julia` is the host-facing seam for

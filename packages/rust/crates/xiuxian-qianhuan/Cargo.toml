@@ -9,6 +9,7 @@ publish = false
 
 [features]
 default = []
+artifact-cache = ["dep:blake3", "dep:xiuxian-db-store"]
 zhenfa-router = [
   "dep:axum",
   "dep:xiuxian-zhenfa",
@@ -19,6 +20,7 @@ zhenfa-router = [
 
 [dependencies]
 async-trait = { workspace = true }
+blake3 = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 toml = { workspace = true }
 tera = { workspace = true }
@@ -36,6 +38,7 @@ redis = { workspace = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["artifact-cache"], optional = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

@@ -1,4 +1,6 @@
 use super::{Cli, Command, EpistemeCommand, EpistemeSourceContractCommand, Parser};
+#[cfg(feature = "episteme-artifact-cache")]
+use crate::bin_support::wendao::types::EpistemeBootstrapArtifactCacheModeArg;
 use crate::bin_support::wendao::types::EpistemeStructuralFactsValidationModeArg;
 
 #[test]
@@ -56,6 +58,127 @@ fn parses_episteme_source_contract_plan_extraction_run_selection_run_id_command(
         Some(std::path::PathBuf::from(
             "source-contract/runs/evidence-selection"
         ))
+    );
+}
+
+#[test]
+fn parses_episteme_source_contract_bootstrap_pipeline_command() {
+    let cli = Cli::parse_from([
+        "wendao",
+        "episteme",
+        "source-contract",
+        "bootstrap-pipeline",
+        "--episteme-root",
+        "source-contract",
+        "--episteme-registry-id",
+        "configured-source",
+        "--corpus-root",
+        "corpus-root",
+        "--structure-run-root",
+        "source-contract/runs/structure",
+        "--ontology-generation-run-root",
+        "source-contract/runs/ontology-generation",
+        "--run-id",
+        "bootstrap_seed",
+        "--validation-mode",
+        "full-hash",
+        "--category",
+        "policy",
+        "--route",
+        "document_text_evidence",
+        "--reasoning-packet-limit",
+        "16",
+        "--reasoning-ledger-seed-limit",
+        "32",
+        "--reasoning-fill-plan-limit",
+        "64",
+    ]);
+
+    let Command::Episteme { command } = cli.command else {
+        panic!("expected episteme command");
+    };
+    let EpistemeCommand::SourceContract { command } = command else {
+        panic!("expected episteme source-contract command");
+    };
+    let EpistemeSourceContractCommand::BootstrapPipeline(args) = command else {
+        panic!("expected bootstrap-pipeline command");
+    };
+
+    assert_eq!(
+        args.episteme_root,
+        std::path::PathBuf::from("source-contract")
+    );
+    assert_eq!(
+        args.episteme_registry_id.as_deref(),
+        Some("configured-source")
+    );
+    assert_eq!(
+        args.corpus_root,
+        Some(std::path::PathBuf::from("corpus-root"))
+    );
+    assert_eq!(
+        args.structure_run_root,
+        Some(std::path::PathBuf::from("source-contract/runs/structure"))
+    );
+    assert_eq!(
+        args.ontology_generation_run_root,
+        Some(std::path::PathBuf::from(
+            "source-contract/runs/ontology-generation"
+        ))
+    );
+    assert_eq!(args.run_id, "bootstrap_seed");
+    assert_eq!(
+        args.validation_mode,
+        EpistemeStructuralFactsValidationModeArg::FullHash
+    );
+    assert_eq!(args.category.as_deref(), Some("policy"));
+    assert_eq!(args.route.as_deref(), Some("document_text_evidence"));
+    assert_eq!(args.reasoning_packet_limit, 16);
+    assert_eq!(args.reasoning_ledger_seed_limit, 32);
+    assert_eq!(args.reasoning_fill_plan_limit, 64);
+}
+
+#[cfg(feature = "episteme-artifact-cache")]
+#[test]
+fn parses_episteme_source_contract_bootstrap_pipeline_artifact_cache_command() {
+    let cli = Cli::parse_from([
+        "wendao",
+        "episteme",
+        "source-contract",
+        "bootstrap-pipeline",
+        "--episteme-root",
+        "source-contract",
+        "--run-id",
+        "bootstrap_seed",
+        "--artifact-cache-mode",
+        "read-through",
+        "--artifact-cache-source-digest",
+        "source-contract-v1",
+        "--artifact-cache-profile-digest",
+        "bootstrap-v1",
+    ]);
+
+    let Command::Episteme { command } = cli.command else {
+        panic!("expected episteme command");
+    };
+    let EpistemeCommand::SourceContract { command } = command else {
+        panic!("expected episteme source-contract command");
+    };
+    let EpistemeSourceContractCommand::BootstrapPipeline(args) = command else {
+        panic!("expected bootstrap-pipeline command");
+    };
+
+    assert_eq!(
+        args.artifact_cache_mode,
+        EpistemeBootstrapArtifactCacheModeArg::ReadThrough
+    );
+    assert_eq!(
+        args.artifact_cache_source_digest.as_deref(),
+        Some("source-contract-v1")
+    );
+    assert_eq!(
+        args.artifact_cache_profile_digest.as_deref(),
+        Some("bootstrap-v1")
     );
 }
 

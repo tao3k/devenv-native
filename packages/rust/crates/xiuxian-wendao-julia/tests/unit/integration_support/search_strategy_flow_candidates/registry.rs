@@ -80,17 +80,29 @@ plugins = ["julia"]
     assert_eq!(batch.row_count, 2);
     assert!(
         batch
-            .tsv
-            .contains("wendao.toml\tregistry-authority-source-authority-package-owner-main")
+            .candidate_input_arrow_snapshot()
+            .contains("wendao.toml|registry-authority-source-authority-package-owner-main")
     );
     assert!(
         batch
-            .tsv
+            .candidate_input_arrow_snapshot()
             .contains("registry-authority-source-authority-package-owner-graphsignals-jl")
     );
-    assert!(batch.tsv.contains("source-authority"));
-    assert!(batch.tsv.contains("package-owner"));
-    assert!(batch.tsv.contains("plugin:julia"));
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("source-authority")
+    );
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("package-owner")
+    );
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("plugin:julia")
+    );
 
     let receipt: serde_json::Value = serde_json::from_str(&batch.discovery_receipt_json)?;
     assert_eq!(
@@ -121,7 +133,7 @@ fn registry_authority_batch_covers_real_root_wendao_toml_surface()
     assert_eq!(batch.row_count, 181);
     assert_eq!(
         batch
-            .tsv
+            .candidate_input_arrow_snapshot()
             .lines()
             .filter(|line| !line.trim().is_empty())
             .count(),
@@ -129,12 +141,12 @@ fn registry_authority_batch_covers_real_root_wendao_toml_surface()
     );
     assert!(
         batch
-            .tsv
+            .candidate_input_arrow_snapshot()
             .contains("registry-authority-source-authority-package-owner-main")
     );
     assert!(
         batch
-            .tsv
+            .candidate_input_arrow_snapshot()
             .contains("registry-authority-source-authority-package-owner-lance")
     );
     Ok(())

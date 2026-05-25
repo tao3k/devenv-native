@@ -24,7 +24,7 @@ async fn run_until_stable_auto_resolves_business_rule_host_work() {
     );
     let host = QianjiBpmnHostBridge::builder()
         .on_business_rule_task(|request| async move {
-            Ok(qianji_bpmn_engine::BusinessRuleTaskOutcome {
+            Ok(xiuxian_qianji_bpmn_engine::BusinessRuleTaskOutcome {
                 evaluation: DmnEvaluationResult::new(
                     request.evaluation.decision.decision_id.as_ref(),
                     json!({ "approved": false, "path": "manual_review" }),

@@ -89,6 +89,22 @@ Use this when a consumer crate needs:
 - checked-in template files that can be wired through `include_str!` while the
   rendering bootstrap stays in `xiuxian-qianhuan`.
 
+## Prompt Context Artifact Packs
+
+The optional `artifact-cache` feature lets native consumers store repeated
+prompt-context pack bytes through `xiuxian-db-store`'s `ArtifactBlobCache`.
+Qianhuan remains the prompt-context owner, while db-store remains the only
+artifact substrate owner.
+
+Use `read_through_injection_snapshot_pack(...)` when a runtime already has an
+`InjectionSnapshot` and wants deterministic read-through behavior for the
+LLM-ready context pack. The artifact kind is `prompt-context-pack`, the
+namespace is fixed to `agent`, and the key is derived from session scope,
+policy/role profile, and retained block content rather than raw filesystem
+paths. Snapshot ids and turn ids are intentionally excluded from the pack key
+and payload so identical context content can hit the artifact substrate across
+turns.
+
 ## Example
 
 ```rust

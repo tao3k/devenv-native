@@ -11,7 +11,6 @@ from xiuxian_wendao_analyzer.audio_diagnostic_reference_inputs import (
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_report_writers import (
     write_jsonl,
-    write_text,
 )
 
 if TYPE_CHECKING:
@@ -46,30 +45,3 @@ def write_reference_draft_jsonl(path: Path, rows: Sequence[QualityRow]) -> None:
     """Write editable reference JSONL rows for manual transcript correction."""
 
     write_jsonl(path, reference_draft_rows(rows))
-
-
-def write_reference_draft_tsv(path: Path, rows: Sequence[QualityRow]) -> None:
-    """Write editable reference TSV rows for manual transcript correction."""
-
-    header = [
-        "source",
-        "sourceId",
-        "chunkIndex",
-        "startSeconds",
-        "durationSeconds",
-        "referenceStatus",
-        "text",
-    ]
-    lines = ["\t".join(header)]
-    for row in reference_draft_rows(rows):
-        values = [
-            str(row["source"]),
-            str(row["sourceId"]),
-            str(row["chunkIndex"]),
-            str(row["startSeconds"]),
-            str(row["durationSeconds"]),
-            str(row["referenceStatus"]),
-            str(row["text"]).replace("\t", " ").replace("\r", " ").replace("\n", "\\n"),
-        ]
-        lines.append("\t".join(values))
-    write_text(path, "\n".join(lines) + "\n")

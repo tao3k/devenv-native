@@ -6351,9 +6351,9 @@ dependencies = [
 
 [[package]]
 name = "merman-core"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72fc438439ca428b449486f8eaf9ce2f8ab76cea159181d0b1b454e1192e4649"
+checksum = "4b01d208b439db8e9a09d45cd6b790503b190f3be5b65e2f348703645f21e308"
 dependencies = [
  "chrono",
  "euclid",
@@ -6827,7 +6827,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=f9f0d2fce8e09c6d5e3fa8ffd40756566b758483#f9f0d2fce8e09c6d5e3fa8ffd40756566b758483"
+source = "git+https://github.com/tao3k/orgize?rev=e2a6372a97f19940805a1dc051d2bb2bf39483a8#e2a6372a97f19940805a1dc051d2bb2bf39483a8"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -6836,6 +6836,7 @@ dependencies = [
  "nom 8.0.0",
  "rowan",
  "rust-lang-project-harness",
+ "serde_json",
 ]
 
 [[package]]
@@ -7553,39 +7554,6 @@ dependencies = [
  "pyo3-build-config",
  "quote",
  "syn 2.0.117",
-]
-
-[[package]]
-name = "qianji-bpmn-engine"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "insta",
- "md5",
- "quick-xml",
- "rayon",
- "redis",
- "rust-lang-project-harness",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
-name = "qianji-client"
-version = "0.1.1"
-dependencies = [
- "qianji-bpmn-engine",
- "rust-lang-project-harness",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.18",
- "xiuxian-wendao-parsers",
 ]
 
 [[package]]
@@ -11254,13 +11222,14 @@ dependencies = [
  "duckdb",
  "foyer",
  "parquet",
- "qianji-bpmn-engine",
  "rust-lang-project-harness",
  "serde",
  "serde_json",
+ "tar",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "xiuxian-qianji-bpmn-engine",
  "xiuxian-vector",
 ]
 
@@ -11309,6 +11278,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "xiuxian-graph-core"
+version = "0.1.1"
+dependencies = [
+ "merman-core",
+ "petgraph 0.7.1",
+ "rust-lang-project-harness",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "xiuxian-io"
 version = "0.1.1"
 dependencies = [
@@ -11324,6 +11303,15 @@ dependencies = [
  "tokio",
  "xiuxian-event",
  "xiuxian-tokenizer",
+]
+
+[[package]]
+name = "xiuxian-julia-runtime"
+version = "0.1.1"
+dependencies = [
+ "rust-lang-project-harness",
+ "xiuxian-wendao-core",
+ "xiuxian-wendao-runtime",
 ]
 
 [[package]]
@@ -11391,14 +11379,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "xiuxian-memory"
-version = "0.1.1"
-dependencies = [
- "rust-lang-project-harness",
- "serde",
-]
-
-[[package]]
 name = "xiuxian-memory-engine"
 version = "0.1.1"
 dependencies = [
@@ -11426,6 +11406,8 @@ dependencies = [
  "rust-lang-project-harness",
  "serde",
  "serde_json",
+ "xiuxian-julia-runtime",
+ "xiuxian-wendao-runtime",
 ]
 
 [[package]]
@@ -11435,6 +11417,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
+ "blake3",
  "globset",
  "log",
  "redis",
@@ -11449,6 +11432,7 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "walkdir",
+ "xiuxian-db-store",
  "xiuxian-io",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
@@ -11473,7 +11457,6 @@ dependencies = [
  "md5",
  "merman-core",
  "petgraph 0.7.1",
- "qianji-bpmn-engine",
  "quick-xml",
  "rand 0.8.6",
  "redis",
@@ -11498,7 +11481,10 @@ dependencies = [
  "xiuxian-logging",
  "xiuxian-macros",
  "xiuxian-qianhuan",
+ "xiuxian-qianji-bpmn-engine",
+ "xiuxian-qianji-client",
  "xiuxian-qianji-control",
+ "xiuxian-qianji-runtime",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
@@ -11506,6 +11492,41 @@ dependencies = [
  "xiuxian-wendao-sql",
  "xiuxian-window",
  "xiuxian-zhenfa",
+]
+
+[[package]]
+name = "xiuxian-qianji-bpmn-engine"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "insta",
+ "md5",
+ "quick-xml",
+ "rayon",
+ "redis",
+ "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+]
+
+[[package]]
+name = "xiuxian-qianji-client"
+version = "0.1.1"
+dependencies = [
+ "chrono",
+ "rust-lang-project-harness",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.18",
+ "xiuxian-qianji-bpmn-engine",
+ "xiuxian-wendao-parsers",
 ]
 
 [[package]]
@@ -11521,6 +11542,18 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+]
+
+[[package]]
+name = "xiuxian-qianji-runtime"
+version = "0.1.1"
+dependencies = [
+ "async-trait",
+ "rust-lang-project-harness",
+ "serde_json",
+ "tokio",
+ "xiuxian-qianji-bpmn-engine",
+ "xiuxian-qianji-control",
 ]
 
 [[package]]
@@ -11654,6 +11687,7 @@ dependencies = [
  "xiuxian-db-store",
  "xiuxian-git-repo",
  "xiuxian-io",
+ "xiuxian-julia-runtime",
  "xiuxian-llm",
  "xiuxian-logging",
  "xiuxian-macros",
@@ -11728,7 +11762,9 @@ dependencies = [
  "walkdir",
  "xiuxian-config-core",
  "xiuxian-db-store",
+ "xiuxian-graph-core",
  "xiuxian-logging",
+ "xiuxian-memory-engine",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-sql",
 ]
@@ -11755,6 +11791,7 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "arrow",
+ "clap",
  "parquet",
  "quick-xml",
  "rust-lang-project-harness",
@@ -11764,6 +11801,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "toml 0.8.23",
+ "xiuxian-db-store",
  "xiuxian-qianji-control",
  "xiuxian-wendao-parsers",
 ]
@@ -11774,12 +11812,14 @@ version = "0.1.1"
 dependencies = [
  "arrow",
  "arrow-flight",
+ "arrow-ipc",
  "async-trait",
  "blake3",
  "chrono",
  "futures",
  "insta",
  "inventory",
+ "parquet",
  "regex",
  "rust-lang-project-harness",
  "serde",
@@ -11793,6 +11833,7 @@ dependencies = [
  "tonic",
  "walkdir",
  "xiuxian-code-intelligence",
+ "xiuxian-julia-runtime",
  "xiuxian-memory-engine",
  "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",
@@ -11846,7 +11887,6 @@ dependencies = [
  "tonic",
  "xiuxian-config-core",
  "xiuxian-db-store",
- "xiuxian-polyglot-orchestrator",
  "xiuxian-wendao-core",
  "xiuxian-wendao-parsers",
 ]
@@ -11941,6 +11981,7 @@ dependencies = [
  "xiuxian-git-repo",
  "xiuxian-io",
  "xiuxian-logging",
+ "xiuxian-polyglot-orchestrator",
  "xiuxian-qianji",
  "xiuxian-wendao",
  "xiuxian-wendao-attachments",

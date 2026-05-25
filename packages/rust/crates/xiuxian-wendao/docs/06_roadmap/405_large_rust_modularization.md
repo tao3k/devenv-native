@@ -171,7 +171,7 @@ Priority override:
 
 ## Local Constraints
 
-- The governing execution-plan policy lives at `.agent/PLANS.md`.
+- The governing execution-plan policy lives at `.agent/PLANS.org`.
 - The workspace now contains the semantic-addressing blueprint again.
 - The refactor should therefore follow that blueprint together with the
   current code topology and stable public API paths, while the exact

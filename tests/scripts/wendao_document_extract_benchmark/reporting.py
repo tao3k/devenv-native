@@ -98,16 +98,46 @@ def summarize_results(
         "totalForceAudioMaterializationShardCount": sum(
             result.get("forceAudioMaterializationShardCount", 0) for result in results
         ),
+        "totalForceAudioMaterializationByteCount": sum(
+            result.get("forceAudioMaterializationByteCount", 0) for result in results
+        ),
+        "forceAudioMaterializationArtifactCacheBackendCounts": _combine_int_counts(
+            result.get("forceAudioMaterializationArtifactCacheBackendCounts", {})
+            for result in results
+        ),
         "totalForceAudioMaterializationArtifactCacheHitCount": sum(
             result.get("forceAudioMaterializationArtifactCacheHitCount", 0)
+            for result in results
+        ),
+        "totalForceAudioMaterializationArtifactCacheHitBytes": sum(
+            result.get("forceAudioMaterializationArtifactCacheHitBytes", 0)
             for result in results
         ),
         "totalForceAudioMaterializationMediaSplitterCount": sum(
             result.get("forceAudioMaterializationMediaSplitterCount", 0)
             for result in results
         ),
+        "totalForceAudioMaterializationMediaSplitterBytes": sum(
+            result.get("forceAudioMaterializationMediaSplitterBytes", 0)
+            for result in results
+        ),
+        "totalForceAudioMaterializationArtifactCacheConfigErrors": sum(
+            result.get("forceAudioMaterializationArtifactCacheConfigErrorCount", 0)
+            for result in results
+        ),
         "totalArtifactReuseAudioMaterializationShardCount": sum(
             result.get("artifactRegistryReuseAudioMaterializationShardCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationByteCount": sum(
+            result.get("artifactRegistryReuseAudioMaterializationByteCount", 0)
+            for result in results
+        ),
+        "artifactReuseAudioMaterializationArtifactCacheBackendCounts": _combine_int_counts(
+            result.get(
+                "artifactRegistryReuseAudioMaterializationArtifactCacheBackendCounts",
+                {},
+            )
             for result in results
         ),
         "totalArtifactReuseAudioMaterializationArtifactCacheHitCount": sum(
@@ -117,8 +147,26 @@ def summarize_results(
             )
             for result in results
         ),
+        "totalArtifactReuseAudioMaterializationArtifactCacheHitBytes": sum(
+            result.get(
+                "artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes",
+                0,
+            )
+            for result in results
+        ),
         "totalArtifactReuseAudioMaterializationMediaSplitterCount": sum(
             result.get("artifactRegistryReuseAudioMaterializationMediaSplitterCount", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationMediaSplitterBytes": sum(
+            result.get("artifactRegistryReuseAudioMaterializationMediaSplitterBytes", 0)
+            for result in results
+        ),
+        "totalArtifactReuseAudioMaterializationArtifactCacheConfigErrors": sum(
+            result.get(
+                "artifactRegistryReuseAudioMaterializationArtifactCacheConfigErrorCount",
+                0,
+            )
             for result in results
         ),
         "totalForceAudioTranscriptAdmissionHitCount": sum(
@@ -571,6 +619,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust audio channels: `{payload.get('rustAudioChannels')}`",
         f"- Rust audio format: `{payload.get('rustAudioFormat')}`",
         f"- Rust audio artifact cache dir: `{payload.get('rustAudioArtifactCacheDir')}`",
+        "- Rust audio transcript admission dir: "
+        f"`{payload.get('rustAudioTranscriptAdmissionDir')}`",
         f"- Rust audio base workers: `{payload.get('rustAudioBaseWorkers')}`",
         f"- Rust audio recovery workers: `{payload.get('rustAudioRecoveryWorkers')}`",
         f"- Rust audio speech segments JSONL: `{payload.get('rustAudioSpeechSegmentsJsonl')}`",
@@ -662,16 +712,35 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"{payload['summary'].get('totalAudioTranscriptReferenceDraftChars')}`",
         "- Audio materialization cache: "
         f"`forceShards={payload['summary'].get('totalForceAudioMaterializationShardCount')}, "
+        f"forceBytes={payload['summary'].get('totalForceAudioMaterializationByteCount')}, "
+        "forceBackends="
+        f"{_format_counts(payload['summary'].get('forceAudioMaterializationArtifactCacheBackendCounts'))}, "
         "forceArtifactHits="
         f"{payload['summary'].get('totalForceAudioMaterializationArtifactCacheHitCount')}, "
+        "forceArtifactHitBytes="
+        f"{payload['summary'].get('totalForceAudioMaterializationArtifactCacheHitBytes')}, "
         "forceMediaSplitter="
         f"{payload['summary'].get('totalForceAudioMaterializationMediaSplitterCount')}, "
+        "forceMediaSplitterBytes="
+        f"{payload['summary'].get('totalForceAudioMaterializationMediaSplitterBytes')}, "
+        "forceConfigErrors="
+        f"{payload['summary'].get('totalForceAudioMaterializationArtifactCacheConfigErrors')}, "
         "reuseShards="
         f"{payload['summary'].get('totalArtifactReuseAudioMaterializationShardCount')}, "
+        "reuseBytes="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationByteCount')}, "
+        "reuseBackends="
+        f"{_format_counts(payload['summary'].get('artifactReuseAudioMaterializationArtifactCacheBackendCounts'))}, "
         "reuseArtifactHits="
         f"{payload['summary'].get('totalArtifactReuseAudioMaterializationArtifactCacheHitCount')}, "
+        "reuseArtifactHitBytes="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationArtifactCacheHitBytes')}, "
         "reuseMediaSplitter="
-        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationMediaSplitterCount')}`",
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationMediaSplitterCount')}, "
+        "reuseMediaSplitterBytes="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationMediaSplitterBytes')}, "
+        "reuseConfigErrors="
+        f"{payload['summary'].get('totalArtifactReuseAudioMaterializationArtifactCacheConfigErrors')}`",
         "- Audio transcript admission: "
         f"`forceHits={payload['summary'].get('totalForceAudioTranscriptAdmissionHitCount')}, "
         f"forceMisses={payload['summary'].get('totalForceAudioTranscriptAdmissionMissCount')}, "

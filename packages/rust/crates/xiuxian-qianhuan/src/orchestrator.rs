@@ -12,13 +12,13 @@ const MIN_CONTEXT_CONFIDENCE: f64 = 0.65;
 
 /// Logical layers used to compose an injection snapshot.
 pub enum InjectionLayer {
-    /// L0: immutable safety and governance rules.
+    /// Genesis layer: immutable safety and governance rules.
     Genesis,
-    /// L1: persona tone and reasoning style steering.
+    /// Persona layer: tone and reasoning style steering.
     Persona,
-    /// L2: transformed narrative/knowledge blocks.
+    /// Narrative layer: transformed narrative and knowledge blocks.
     Narrative,
-    /// L3: recency/working-memory context.
+    /// Working layer: recency and working-memory context.
     Working,
 }
 

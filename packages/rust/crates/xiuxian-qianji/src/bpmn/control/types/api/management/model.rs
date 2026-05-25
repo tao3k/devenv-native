@@ -6,7 +6,7 @@ use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::identity::{
     QianjiBpmnPackageId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
 };
-use qianji_bpmn_engine::{BpmnInstanceState, PendingHostWork};
+use xiuxian_qianji_bpmn_engine::{BpmnInstanceState, PendingHostWork};
 
 /// Typed request for loading one checkpoint-backed BPMN workflow status.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,7 +107,7 @@ pub struct QianjiBpmnWorkflowInstanceSummary {
     /// BPMN package identifier.
     pub package_id: QianjiBpmnPackageId,
     /// Durable instance lifecycle.
-    pub lifecycle: qianji_bpmn_engine::InstanceLifecycle,
+    pub lifecycle: xiuxian_qianji_bpmn_engine::InstanceLifecycle,
     /// Monotonic checkpoint sequence loaded from the persisted envelope.
     pub checkpoint_sequence: u64,
     /// Engine state sequence inside the checkpoint payload.
@@ -123,7 +123,9 @@ pub struct QianjiBpmnWorkflowInstanceSummary {
 }
 
 impl QianjiBpmnWorkflowInstanceSummary {
-    pub(crate) fn from_checkpoint(checkpoint: qianji_bpmn_engine::BpmnCheckpointEnvelope) -> Self {
+    pub(crate) fn from_checkpoint(
+        checkpoint: xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope,
+    ) -> Self {
         Self {
             instance_id: checkpoint.state.instance_id.as_ref().into(),
             process_id: checkpoint.state.process.process_id.as_ref().into(),

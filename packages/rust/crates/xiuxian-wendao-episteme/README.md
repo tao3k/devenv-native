@@ -69,6 +69,16 @@ compiler boundary; Rust owns admission and read-model readiness.
 The crate does not invoke Python helpers, write ontology sources, promote RDF
 truth, or change Flight/OpenAPI/Arrow contracts.
 
+Large generated ontology payloads should use the shared db-store artifact
+substrate when they need restart-reusable byte storage. Registry snapshots,
+candidate review packets, candidate read models, RDF drafts, promotion review
+packets, structural reasoning projections, and schedule-plan payloads can use
+the optional `artifact-cache` feature, which exposes Episteme-owned bundle
+helpers over the db-store `ontology_artifact_key` namespace and
+`ArtifactBlobCache`. The artifact cache stores derived bytes only; ontology
+truth, promotion status, manifest admission, and read-model validation remain
+owned by Episteme and its DuckDB/Arrow consumers.
+
 The private ontology candidate materializer is also Rust-owned in this crate.
 It selects the active source contract, reads source rows, mapping-ledger terms,
 and cache-local extraction outputs, then writes review-required
@@ -165,6 +175,34 @@ the reasoning fill plan without reading private source text, calling an LLM,
 executing Qianji, mutating RDF, or declaring ontology truth. Studio, Gateway,
 and later Flight surfaces should call this Episteme API instead of rebuilding
 the sequence in their own command handlers.
+When the optional `artifact-cache` feature is enabled, callers can run the
+bootstrap pipeline through
+`run_episteme_ontology_bootstrap_pipeline_with_artifact_cache` to write the
+four generated stage run directories into a runtime-supplied
+`ArtifactBlobCache`. The wrapper does not construct a cache backend and does
+not change the default bootstrap command behavior. The companion
+`read_through_episteme_ontology_bootstrap_artifacts` API first restores the
+four deterministic stage directories from the same substrate and only
+regenerates when one or more stage bundles are missing.
+Callers should build cache options through
+`admit_episteme_ontology_bootstrap_artifact_cache_options`, which validates
+source/profile digest components with the same ontology artifact-key rules used
+by the bundle writer. The artifact-cache wrappers also validate supplied
+options before running the deterministic pipeline, so unsafe cache identities
+cannot trigger unnecessary generation work.
+The crate also exposes a thin `wendao-episteme` operator binary over the same
+API. The first command is
+`wendao-episteme ontology bootstrap-pipeline`, which accepts an Episteme root
+and run id, resolves runtime defaults from `episteme.toml`, and prints the
+existing bootstrap report as JSON. This keeps local/private Episteme operation
+inside the Episteme package while still allowing Studio or Gateway to call the
+same Rust API when they orchestrate a larger workflow.
+With the `artifact-cache` feature enabled, the same command accepts explicit
+artifact-cache modes: `write-through`, `read-through`, and `restore-only`.
+These modes require caller-provided source/profile digest components and use
+the shared db-store artifact-cache backend resolver. The operator does not
+derive cache identity from paths, validates digest components before resolving
+the backend, and does not construct a route-local backend.
 
 The Qianji reasoning schedule-plan compiler is the next non-mutating handoff.
 It reads `reasoning_fill_plan.json` and writes `qianji_schedule_plan.org`,
@@ -175,6 +213,13 @@ task queue, input claim-check reference, and idempotency key. The compiler does
 not append Qianji control ledger events, enqueue hot-state work, execute
 workers, call an LLM, read source text, mutate source files, write RDF, or mark
 any row as ontology truth.
+The same compiler is now reachable from the crate-owned operator binary through
+`wendao-episteme ontology qianji-schedule-plan`. The command consumes the
+reasoning fill-plan JSON, infers the ontology-generation run root from that path
+when `--run-root` is not supplied, and prints the existing schedule-plan report
+as JSON. The command remains an admission-artifact compiler only: it does not
+run Qianji or a provider. OpenAI-compatible prompt-audit metadata is emitted
+only when explicitly requested.
 Callers may restrict schedule generation by target ledger field group or
 evidence target intent before the limit is applied. This keeps live proofs and
 operator batches aligned with the deterministic structure target instead of

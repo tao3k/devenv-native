@@ -7,29 +7,71 @@ import json
 from .support import Path, _load_audio_asr_diagnostic
 
 
-def test_curate_reference_draft_cli_mode_writes_curated_jsonl(
+def test_curate_reference_org_cli_mode_writes_curated_jsonl(
     tmp_path: Path,
+    monkeypatch,
     capsys,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    draft_path = tmp_path / "reference_draft.jsonl"
+    source_path = tmp_path / "forum.mp3"
+    source_path.write_bytes(b"audio")
+    selection_path = tmp_path / "selected.jsonl"
+    clip_dir = tmp_path / "clips"
+    review_org = tmp_path / "reference_selection_review.org"
     output_path = tmp_path / "reference_curated.jsonl"
+
+    def fake_run(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"clip")
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.subprocess.run",
+        fake_run,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 30.0,
+    )
     diagnostic.write_jsonl(
-        draft_path,
+        selection_path,
         [
             {
                 "source": "forum.MP3",
+                "sourceId": str(source_path),
                 "chunkIndex": 2,
+                "startSeconds": 60.0,
+                "durationSeconds": 30.0,
+                "reviewStatus": "review-needed",
+                "selectionReason": "timeline-spread",
                 "referenceStatus": "curated",
                 "text": "curated transcript",
             }
         ],
     )
+    pack = diagnostic.materialize_reference_selection_pack(
+        selection_jsonl=selection_path,
+        clip_dir=clip_dir,
+        ffmpeg_path="ffmpeg",
+    )
+    diagnostic.write_reference_selection_review_org(
+        review_table=Path(pack["reviewTable"]),
+        output_org=review_org,
+    )
+    review_org.write_text(
+        review_org.read_text(encoding="utf-8")
+        .replace("** TODO Row 01", "** DONE Row 01")
+        .replace(":REFERENCE_STATUS: curated", ":REFERENCE_STATUS: curated")
+        .replace(
+            "#+begin_src text :name reference_text\n#+end_src",
+            "#+begin_src text :name reference_text\ncurated transcript\n#+end_src",
+        ),
+        encoding="utf-8",
+    )
 
     exit_code = diagnostic.main(
         [
-            "--curate-reference-draft",
-            str(draft_path),
+            "--curate-reference-org",
+            str(review_org),
             "--curated-reference-jsonl",
             str(output_path),
         ]
@@ -39,67 +81,72 @@ def test_curate_reference_draft_cli_mode_writes_curated_jsonl(
     assert diagnostic.load_reference_transcripts(output_path) == {
         ("forum.MP3", 2): "curated transcript"
     }
-    assert diagnostic.reference_candidate_draft_row_count(output_path) == 0
     assert json.loads(capsys.readouterr().out)["rows"] == 1
 
 
-def test_curate_reference_tsv_cli_mode_writes_curated_jsonl(
+def test_curate_reference_org_cli_rejects_candidate_draft(
     tmp_path: Path,
-    capsys,
+    monkeypatch,
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
-    draft_path = tmp_path / "reference_draft.tsv"
+    source_path = tmp_path / "forum.mp3"
+    source_path.write_bytes(b"audio")
+    selection_path = tmp_path / "selected.jsonl"
+    clip_dir = tmp_path / "clips"
+    review_org = tmp_path / "reference_selection_review.org"
     output_path = tmp_path / "reference_curated.jsonl"
-    draft_path.write_text(
-        "\t".join(
-            [
-                "source",
-                "chunkIndex",
-                "startSeconds",
-                "durationSeconds",
-                "referenceStatus",
-                "text",
-            ]
-        )
-        + "\n"
-        + "\t".join(["forum.MP3", "2", "60.0", "30.0", "curated", "curated text"])
-        + "\n",
+
+    def fake_run(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"clip")
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.subprocess.run",
+        fake_run,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 30.0,
+    )
+    diagnostic.write_jsonl(
+        selection_path,
+        [
+            {
+                "source": "forum.MP3",
+                "sourceId": str(source_path),
+                "chunkIndex": 2,
+                "startSeconds": 60.0,
+                "durationSeconds": 30.0,
+                "reviewStatus": "review-needed",
+                "selectionReason": "timeline-spread",
+                "referenceStatus": diagnostic.REFERENCE_STATUS_CANDIDATE_DRAFT,
+                "text": "model draft",
+            }
+        ],
+    )
+    pack = diagnostic.materialize_reference_selection_pack(
+        selection_jsonl=selection_path,
+        clip_dir=clip_dir,
+        ffmpeg_path="ffmpeg",
+    )
+    diagnostic.write_reference_selection_review_org(
+        review_table=Path(pack["reviewTable"]),
+        output_org=review_org,
+    )
+    review_org.write_text(
+        review_org.read_text(encoding="utf-8")
+        .replace("** TODO Row 01", "** DONE Row 01")
+        .replace(
+            "#+begin_src text :name reference_text\n#+end_src",
+            "#+begin_src text :name reference_text\nhuman text\n#+end_src",
+        ),
         encoding="utf-8",
     )
 
     exit_code = diagnostic.main(
         [
-            "--curate-reference-tsv",
-            str(draft_path),
-            "--curated-reference-jsonl",
-            str(output_path),
-        ]
-    )
-
-    assert exit_code == 0
-    assert diagnostic.load_reference_transcripts(output_path) == {("forum.MP3", 2): "curated text"}
-    assert diagnostic.reference_candidate_draft_row_count(output_path) == 0
-    assert json.loads(capsys.readouterr().out)["rows"] == 1
-
-
-def test_curate_reference_tsv_cli_rejects_candidate_draft(
-    tmp_path: Path,
-) -> None:
-    diagnostic = _load_audio_asr_diagnostic()
-    draft_path = tmp_path / "reference_draft.tsv"
-    output_path = tmp_path / "reference_curated.jsonl"
-    draft_path.write_text(
-        "\t".join(["source", "chunkIndex", "referenceStatus", "text"])
-        + "\n"
-        + "\t".join(["forum.MP3", "2", "candidate-draft", "model draft"])
-        + "\n",
-        encoding="utf-8",
-    )
-
-    exit_code = diagnostic.main(
-        [
-            "--curate-reference-tsv",
-            str(draft_path),
+            "--curate-reference-org",
+            str(review_org),
             "--curated-reference-jsonl",
             str(output_path),
         ]
@@ -107,6 +154,75 @@ def test_curate_reference_tsv_cli_rejects_candidate_draft(
 
     assert exit_code == 1
     assert not output_path.exists()
+
+
+def test_validate_reference_selection_review_table_cli_writes_review_org(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    source_path = tmp_path / "forum.mp3"
+    source_path.write_bytes(b"audio")
+    selection_path = tmp_path / "selected.jsonl"
+    clip_dir = tmp_path / "clips"
+    review_org = tmp_path / "reference_selection_review.org"
+    validation_json = tmp_path / "validation.json"
+
+    def fake_run(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"clip")
+        return type("Result", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.subprocess.run",
+        fake_run,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.audio_diagnostic_reference_pack.audio_duration_seconds",
+        lambda _path: 30.0,
+    )
+    diagnostic.write_jsonl(
+        selection_path,
+        [
+            {
+                "source": "forum.mp3",
+                "sourceId": str(source_path),
+                "chunkIndex": 0,
+                "startSeconds": 0.0,
+                "durationSeconds": 30.0,
+                "reviewStatus": "review-needed",
+                "selectionReason": "timeline-spread",
+                "referenceStatus": diagnostic.REFERENCE_STATUS_CANDIDATE_DRAFT,
+                "text": "private candidate text",
+            }
+        ],
+    )
+    pack = diagnostic.materialize_reference_selection_pack(
+        selection_jsonl=selection_path,
+        clip_dir=clip_dir,
+        ffmpeg_path="ffmpeg",
+    )
+
+    exit_code = diagnostic.main(
+        [
+            "--validate-reference-selection-review-table",
+            pack["reviewTable"],
+            "--reference-selection-review-org",
+            str(review_org),
+            "--reference-selection-validation-report-json",
+            str(validation_json),
+        ]
+    )
+
+    assert exit_code == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["reviewOrg"]["schema"] == "xiuxian_wendao.audio_reference_selection_review_org.v1"
+    assert report["candidateDraftRows"] == 1
+    org_text = review_org.read_text(encoding="utf-8")
+    assert "private candidate text" in org_text
+    assert "#+begin_src text :name candidate_text\nprivate candidate text\n#+end_src" in org_text
+    assert "#+begin_src text :name reference_text\n#+end_src" in org_text
+    assert json.loads(validation_json.read_text(encoding="utf-8"))["reviewOrg"]["rows"] == 1
 
 
 def test_validate_reference_jsonl_reports_ready_against_manifest(

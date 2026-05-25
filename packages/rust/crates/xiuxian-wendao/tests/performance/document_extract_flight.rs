@@ -13,7 +13,9 @@ use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
 use tonic::transport::{Channel, Endpoint};
 use xiuxian_wendao_runtime::transport::{
-    ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
+    ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+    WENDAO_AUDIO_HOSTED_MODEL_HEADER, WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+    WENDAO_AUDIO_WORKER_HEADER, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER, WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER,
@@ -34,6 +36,10 @@ struct PerfConfig {
     force_first: bool,
     mode: String,
     wait_ms: u64,
+    audio_worker: Option<String>,
+    audio_hosted_provider: Option<String>,
+    audio_hosted_base_url: Option<String>,
+    audio_hosted_model: Option<String>,
     structure_baseline_root: Option<PathBuf>,
     report_path: Option<PathBuf>,
 }
@@ -190,6 +196,10 @@ fn perf_config_from_env() -> Result<PerfConfig, String> {
             .ok()
             .and_then(|value| value.parse::<u64>().ok())
             .unwrap_or_default(),
+        audio_worker: non_empty_env("WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_WORKER"),
+        audio_hosted_provider: non_empty_env("WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_PROVIDER"),
+        audio_hosted_base_url: non_empty_env("WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_BASE_URL"),
+        audio_hosted_model: non_empty_env("WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_MODEL"),
         structure_baseline_root: std::env::var(
             "WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT",
         )
@@ -266,6 +276,26 @@ async fn request_document_extract(
     client
         .add_header(WENDAO_DOCUMENT_EXTRACT_WAIT_MS_HEADER, wait_ms.as_str())
         .map_err(|error| error.to_string())?;
+    add_optional_header(
+        &mut client,
+        WENDAO_AUDIO_WORKER_HEADER,
+        config.audio_worker.as_deref(),
+    )?;
+    add_optional_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+        config.audio_hosted_provider.as_deref(),
+    )?;
+    add_optional_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+        config.audio_hosted_base_url.as_deref(),
+    )?;
+    add_optional_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_MODEL_HEADER,
+        config.audio_hosted_model.as_deref(),
+    )?;
 
     let descriptor = FlightDescriptor::new_path(
         ANALYSIS_DOCUMENT_EXTRACT_ROUTE
@@ -290,6 +320,26 @@ async fn request_document_extract(
         .try_collect()
         .await
         .map_err(|error| format!("document extract stream collect failed: {error}"))
+}
+
+fn non_empty_env(key: &str) -> Option<String> {
+    std::env::var(key)
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+}
+
+fn add_optional_header(
+    client: &mut FlightClient,
+    name: &'static str,
+    value: Option<&str>,
+) -> Result<(), String> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(());
+    };
+    client
+        .add_header(name, value)
+        .map_err(|error| error.to_string())
 }
 
 fn add_source_path_headers(client: &mut FlightClient, source_path: &str) -> Result<(), String> {

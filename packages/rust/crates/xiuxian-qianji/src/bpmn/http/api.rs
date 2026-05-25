@@ -5,7 +5,7 @@
 
 use super::routes;
 use axum::Router;
-use qianji_bpmn_engine::BpmnHostBridge;
+use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
 
 pub use super::error_api::QianjiBpmnWorkflowHttpErrorBody;
 pub use super::request_api::{

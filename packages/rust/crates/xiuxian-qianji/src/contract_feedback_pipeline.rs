@@ -11,6 +11,8 @@ use crate::contract_feedback::{
 };
 use anyhow::Result;
 use serde_json::{Value, json};
+#[cfg(all(feature = "llm", feature = "advisory-prompt-pack-cache"))]
+use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
 #[cfg(feature = "llm")]
 use xiuxian_llm::llm::LlmClient;
 #[cfg(feature = "llm")]
@@ -427,6 +429,9 @@ pub struct QianjiLiveContractFeedbackRuntime {
     pub registry: Arc<PersonaRegistry>,
     /// LLM client used for live advisory execution.
     pub client: Arc<dyn LlmClient>,
+    /// Optional prompt-context artifact cache owned by the embedding runtime.
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    pub prompt_context_pack_cache: Option<Arc<dyn ArtifactBlobCache + Send + Sync>>,
 }
 
 #[cfg(feature = "llm")]
@@ -442,8 +447,42 @@ impl QianjiLiveContractFeedbackRuntime {
             orchestrator,
             registry,
             client,
+            #[cfg(feature = "advisory-prompt-pack-cache")]
+            prompt_context_pack_cache: None,
         }
     }
+
+    /// Attach the runtime-owned artifact cache used for prompt-context packs.
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    #[must_use]
+    pub fn with_prompt_context_pack_cache(
+        mut self,
+        cache: Arc<dyn ArtifactBlobCache + Send + Sync>,
+    ) -> Self {
+        self.prompt_context_pack_cache = Some(cache);
+        self
+    }
+}
+
+#[cfg(feature = "llm")]
+pub(crate) fn build_live_contract_feedback_executor(
+    runtime: QianjiLiveContractFeedbackRuntime,
+    options: QianjiLiveContractFeedbackOptions,
+) -> QianjiLlmAdvisoryAuditExecutor {
+    let planner = QianjiAdvisoryAuditExecutor::new(runtime.orchestrator, runtime.registry);
+    let mut live_executor =
+        QianjiLlmAdvisoryAuditExecutor::new(planner, runtime.client, options.model)
+            .with_temperature(options.temperature);
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    {
+        if let Some(cache) = runtime.prompt_context_pack_cache {
+            live_executor = live_executor.with_prompt_context_pack_cache(cache);
+        }
+    }
+    if let Some(threshold) = options.cognitive_early_halt_threshold {
+        live_executor = live_executor.with_cognitive_supervision(threshold);
+    }
+    live_executor
 }
 
 /// Execute one contract suite through the live `Qianji + Qianhuan + LLM` advisory lane and export
@@ -491,16 +530,8 @@ pub async fn run_and_persist_contract_feedback_flow_with_live_advisory(
     options: QianjiLiveContractFeedbackOptions,
     sink: &dyn ContractFeedbackKnowledgeSink,
 ) -> Result<QianjiPersistedContractFeedbackRun> {
-    let run = run_contract_feedback_flow_with_live_advisory(
-        suite,
-        ctx,
-        config,
-        runtime.orchestrator,
-        runtime.registry,
-        runtime.client,
-        options,
-    )
-    .await?;
+    let live_executor = build_live_contract_feedback_executor(runtime, options);
+    let run = run_contract_feedback_flow(suite, ctx, config, &live_executor).await?;
 
     persist_contract_feedback_run(run, sink).await
 }

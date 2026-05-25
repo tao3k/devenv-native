@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Design Note: qianji-bpmn-engine Frontier Concurrency and Synchronization Semantics"
+title: "Design Note: xiuxian-qianji-bpmn-engine Frontier Concurrency and Synchronization Semantics"
 category: "research"
 status: "draft"
 authors:
@@ -15,11 +15,11 @@ tags:
   - omg
 ---
 
-# Design Note: qianji-bpmn-engine Frontier Concurrency and Synchronization Semantics
+# Design Note: xiuxian-qianji-bpmn-engine Frontier Concurrency and Synchronization Semantics
 
 ## 1. Purpose
 
-This note narrows the next bounded `qianji-bpmn-engine` slice to one question:
+This note narrows the next bounded `xiuxian-qianji-bpmn-engine` slice to one question:
 
 How should the engine align its runtime model with OMG BPMN concurrency and
 synchronization semantics when a single workflow instance has multiple runnable
@@ -35,11 +35,11 @@ for a better in-instance frontier model under the existing single-writer
 ownership contract.
 
 Companion notes:
-[Research Plan: qianji-bpmn-engine Architecture and xiuxian-qianji Integration](2026-04-18-bpmn-engine-research-plan.md)
+[Research Plan: xiuxian-qianji-bpmn-engine Architecture and xiuxian-qianji Integration](2026-04-18-bpmn-engine-research-plan.md)
 and
-[Design Note: qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md)
+[Design Note: xiuxian-qianji-bpmn-engine Runtime State and Valkey Checkpoint Model](2026-04-18-bpmn-runtime-state-and-valkey-checkpoint-design.md)
 and
-[Audit Note: qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow](2026-04-18-bpmn-dmn-spiff-parity-audit.md)
+[Audit Note: xiuxian-qianji-bpmn-engine BPMN and DMN Parity Against SpiffWorkflow](2026-04-18-bpmn-dmn-spiff-parity-audit.md)
 
 Primary normative source:
 [OMG BPMN 2.0.2 Specification](https://www.omg.org/spec/BPMN/2.0.2/PDF)
@@ -53,7 +53,7 @@ OMG BPMN 2.0.2 Clause 13.4.1 defines the parallel gateway as both:
 1. a branching point that spawns concurrent branches
 2. a merge point that synchronizes concurrent branches
 
-For `qianji-bpmn-engine`, the important operational consequences are:
+For `xiuxian-qianji-bpmn-engine`, the important operational consequences are:
 
 1. a parallel split is not just graph fan-out; it creates multiple active
    concurrent branches
@@ -272,7 +272,7 @@ The next bounded follow-up after the landed token-lookup slice should be:
 The correct architectural reading is:
 
 1. BPMN requires multiple active nodes inside one workflow instance
-2. `qianji-bpmn-engine` therefore needs a frontier-aware runtime model
+2. `xiuxian-qianji-bpmn-engine` therefore needs a frontier-aware runtime model
 3. the model now includes one bounded conflict-aware merge for same-node
    parallel joins on top of the earlier snapshot/planner/proposal/batch seams
 4. this does not justify multiple checkpoint writers

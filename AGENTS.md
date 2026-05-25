@@ -111,7 +111,7 @@ text.
 
 When no dedicated `PRJ_*` variable exists for a repository surface, derive the
 path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
-`$PRJ_ROOT/.agent/PLANS.md`, `$PRJ_ROOT/.agent/sdd/_architecture_template.org`,
+`$PRJ_ROOT/.agent/PLANS.org`, `$PRJ_ROOT/.agent/sdd/_architecture_template.org`,
 `$PRJ_CACHE_HOME/agent/sdd/<slug>.org`,
 `$PRJ_CACHE_HOME/agent/org/agenda.org`, and
 `$PRJ_ROOT/packages/<scope>/<package>/docs/`.
@@ -176,24 +176,33 @@ path from `$PRJ_ROOT` instead of using a bare repo-relative literal. Examples:
 
 When writing complex features or significant refactors, use an Org-native SDD
 architecture description as the durable design, rationale, and audit contract.
-Use an ExecPlan (as described in `$PRJ_ROOT/.agent/PLANS.md`) only when the
+Use an ExecPlan (as described in `$PRJ_ROOT/.agent/PLANS.org`) only when the
 slice needs detailed execution logs beyond the SDD.
 
 Org is the authoritative active task-management surface for agents. Use native
 Org syntax for implementation state:
 
-1. `TODO`, `NEXT`, `WAITING`, `DONE`, and `CANCELLED` lifecycle keywords.
-2. `SCHEDULED`, `DEADLINE`, and `CLOSED` planning timestamps when timing
+1. `TODO`, `DOING`, `NEXT`, `WAITING`, `DONE`, and `CANCELLED` lifecycle keywords.
+2. Active timestamps such as `<YYYY-MM-DD Day>` may be placed in task headings
+   when the timestamp is part of the visible recovery anchor; inactive
+   timestamps such as `[YYYY-MM-DD Day]` are for archived or historical
+   evidence.
+3. `SCHEDULED`, `DEADLINE`, and `CLOSED` planning timestamps when timing
    matters.
-3. `:PROPERTIES:` drawers for machine-readable links to the governing
-   SDD, ExecPlan, stable RFC/doc references, package scope,
-   evidence paths, and current slice.
+4. `:PROPERTIES:` drawers for machine-readable links to the governing
+   SDD, stable RFC/doc references, package scope, evidence paths, and current
+   slice. When a separate ExecPlan exists, the ExecPlan file links back to the
+   active Org task.
 
 The default active ledger is `$PRJ_CACHE_HOME/agent/org/agenda.org`. Larger
 lanes MAY use `$PRJ_CACHE_HOME/agent/org/<slug>.org` when the main agenda links
 or includes the lane file.
 Do not create GTD or DAILY tracking files. Use native Org timestamps and
 task-local recovery queries instead.
+Create new planned work as `TODO`. When an agent starts implementing that
+specific task, change the heading keyword to `DOING`. After validation and
+evidence are recorded, complete the `Closure Questions` table, change it to
+`DONE`, and add `CLOSED`.
 
 ## Org-native SDD Adherence
 
@@ -231,8 +240,9 @@ when the slice needs a detailed execution log beyond the SDD.
 - **Lifecycle Rule**: Active SDD files stay under `$PRJ_CACHE_HOME/agent/sdd/`.
   SDD status moves through `draft`, `review`, `accepted`, and `superseded`.
   Archive an SDD only when the design is superseded or retired. When an
-  implementation task is complete, mark the Org task `DONE`, record `CLOSED`,
-  and record validation evidence. If an ExecPlan exists, move it to
+  implementation task is complete, record validation evidence, complete the
+  Org task `Closure Questions` table, mark the Org task `DONE`, and record
+  `CLOSED`. If an ExecPlan exists, move it to
   `$PRJ_CACHE_HOME/agent/execplans/archives/`.
 - **Canonical Documentation Boundary**: Persistent documentation may describe the governing SDD or ExecPlan conceptually, but it MUST NOT link directly to hidden tracking paths. Use stable RFC or package-doc references in canonical docs and keep the exact hidden-path reference in the active tracking record.
 
@@ -250,8 +260,9 @@ Protocol**:
 2.  **Org Task Synchronization**: Create or update the active Org task record
     under `$PRJ_CACHE_HOME/agent/org/`. The Org heading owns current task
     lifecycle state, timing markers, and task-local metadata. Use property
-    drawer fields such as `SDD`, `EXECPLAN`, `STABLE_REF`,
-    `PACKAGE`, `SLICE`, `STATUS`, and `EVIDENCE` when they apply.
+    drawer fields such as `SDD`, `STABLE_REF`, `PACKAGE`, `SLICE`, and
+    `EVIDENCE` when they apply. Do not mirror lifecycle state in a `STATUS`
+    property; use the Org heading keyword instead.
 3.  **ExecPlan Creation When Needed**: Create a formal ExecPlan
     (`$PRJ_CACHE_HOME/agent/execplans/<slug>.org`) only when the SDD is
     not detailed enough for execution. The ExecPlan must explicitly reference
@@ -264,61 +275,73 @@ Protocol**:
     `$PRJ_ROOT/packages/<scope>/<package>/README.md`) so package-level
     documentation tracks real implementation status.
 5.  **Implementation**: Execute implementation and validation steps as defined in the plan.
-    When the slice reaches `[DONE]` and validation is complete, update the SDD evidence or audit notes if the design contract changed. Archive the completed ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/archives/` if one exists. Mark the Org task `DONE`, add `CLOSED`, and either keep it as a lane index or move it to the Org archive file for the year.
+    When the slice reaches `[DONE]` and validation is complete, update the SDD evidence or audit notes if the design contract changed. Archive the completed ExecPlan under `$PRJ_CACHE_HOME/agent/execplans/archives/` if one exists. Complete the Org task `Closure Questions` table with non-empty `Value` cells for every row that has a `Question`, mark the Org task `DONE`, add `CLOSED`, and either keep it as a lane index or move it to the configured archive target.
 
 ## Org Recovery and Archive Protocol
 
 At the start of a resumed Codex turn, recover active work from Org before
-depending on chat history:
+depending on chat history. Use the lowest-token query that matches the
+agent's memory state:
 
-`direnv exec . wendao-client orgize task-list --cached $PRJ_CACHE_HOME/agent/org`.
+- If the agent remembers a title, lane, package, file key, or recent phrase,
+  probe compact candidates first:
+  `wendao-client orgize task-probe --cached --text '<remembered text>' $PRJ_CACHE_HOME/agent/org`.
+- If the agent already knows the Org section `:ID:`, inspect only the local
+  checklist recovery view:
+  `wendao-client orgize ogrid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org`.
+- If the agent has no useful memory, list the five most recently modified
+  active candidates:
+  `wendao-client orgize task-recover --cached $PRJ_CACHE_HOME/agent/org`.
 
 Use an authoritative refresh after editing Org files, after a failed cached
 lookup, or when the cache may be stale:
 
-`direnv exec . wendao-client orgize task-list $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize read-model $PRJ_CACHE_HOME/agent/org`.
 
 For SDD-oriented recovery, use:
 
-`direnv exec . wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
+`wendao-client orgize sdd status $PRJ_CACHE_HOME/agent/sdd`.
 
 For calendar-oriented recovery, use:
 
-`direnv exec . wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org`.
 
-For one lane or package, use:
+For richer row metadata after a compact probe, use:
 
-`direnv exec . wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org`.
 
 When a slice is completed, record evidence in the Org heading, update the
 paired SDD and ExecPlan outcome when present, and keep active queries
 clean by relying on `--exclude-done` or moving the task to
-`$PRJ_CACHE_HOME/agent/org/archives/YYYY.org`. Completed achievements that
+`$PRJ_CACHE_HOME/agent/org/archives/<source-task-file>.org`. Completed achievements that
 should remain queryable should carry an `achievement` tag and can be reviewed
 with:
 
-`direnv exec . wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize task-list --cached --view achievement $PRJ_CACHE_HOME/agent/org`.
 
-Use sparse-tree only when the full source subtree context is needed:
+Use sparse-tree only when full source subtree context is explicitly needed:
 
-`direnv exec . wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
+`wendao-client orgize sparse-tree --match '+agent' --exclude-done $PRJ_CACHE_HOME/agent/org`.
 
 ## Orgize Validation
 
 Agent tracking files use native Org syntax so they can be linted and queried
-through the installed Wendao client from the project environment. Install or
-refresh the client with `direnv exec . just install-wendao-client`. The stable
-project entrypoint is `wendao-client`.
+through the installed Wendao client. Install or refresh the client with
+`cargo install --path $PRJ_ROOT/packages/rust/crates/xiuxian-wendao-client`.
+The stable project entrypoint is `wendao-client`; do not wrap normal
+`wendao-client orgize ...` recovery commands in `direnv exec . cargo run`.
 When an agent changes files under `$PRJ_CACHE_HOME/agent/org/`,
 `$PRJ_CACHE_HOME/agent/sdd/`, or `$PRJ_CACHE_HOME/agent/execplans/`, it
 SHOULD run the relevant orgize-backed lint or query command before marking the
 tracking change complete. For syntax validation, use:
-`direnv exec . wendao-client orgize lint --format compact <path>`.
+`wendao-client orgize lint --format compact <path>`.
 For SDD status recovery, use:
-`direnv exec . wendao-client orgize sdd status <path>`.
+`wendao-client orgize sdd status <path>`.
 For task schedule lookup, use:
-`direnv exec . wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
+`wendao-client orgize agent-planning --date YYYY-MM-DD <path>`.
 For fast task recovery from an existing DuckDB snapshot, use:
-`direnv exec . wendao-client orgize task-list --cached <path>`.
+`wendao-client orgize task-probe --cached --text '<remembered text>' <path>`.
+For no-memory fallback recovery, use:
+`wendao-client orgize task-recover --cached <path>`.
 For task-local sparse-tree lookup, use:
-`direnv exec . wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.
+`wendao-client orgize sparse-tree --match '+agent' --exclude-done <path>`.

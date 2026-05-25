@@ -18,6 +18,8 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
     }
 );
 
+#[cfg(feature = "artifact-cache")]
+mod artifacts;
 /// Synapse-Audit calibration primitives for adversarial alignment checks.
 pub mod calibration;
 mod config;
@@ -41,6 +43,12 @@ mod xml;
 /// Native zhenfa router adapters for qianhuan manifestation workflows.
 pub mod zhenfa_router;
 
+#[cfg(feature = "artifact-cache")]
+pub use artifacts::{
+    PromptContextPackIdentity, PromptContextPackReadThrough, prompt_context_pack_bytes,
+    prompt_context_pack_key, read_through_injection_snapshot_pack,
+    read_through_prompt_context_pack,
+};
 pub use config::InjectionWindowConfig;
 pub use contracts::{
     InjectionMode, InjectionOrderStrategy, InjectionPolicy, InjectionSessionId, InjectionSnapshot,

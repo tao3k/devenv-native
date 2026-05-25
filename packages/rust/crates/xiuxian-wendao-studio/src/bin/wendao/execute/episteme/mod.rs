@@ -1,5 +1,6 @@
 //! Episteme command execution handlers.
 
+mod bootstrap;
 mod cache;
 mod external;
 mod handler;

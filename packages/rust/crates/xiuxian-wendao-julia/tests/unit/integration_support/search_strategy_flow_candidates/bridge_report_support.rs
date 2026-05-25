@@ -92,7 +92,7 @@ fn materialized_replay_family(
         batch: search_strategy_flow_candidate_input_batch(
             MATERIALIZED_REPO_MARKDOWN_CANDIDATE_SOURCE,
             &candidates,
-        ),
+        )?,
     }))
 }
 

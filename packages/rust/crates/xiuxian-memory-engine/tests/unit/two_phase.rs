@@ -64,7 +64,7 @@ fn test_two_phase_search() {
 
     let results = search.search(TwoPhaseSearchRequest {
         episodes: &episodes,
-        intent: "debug network",
+        intent: "network timeout",
         k1: None,
         k2: None,
         lambda: Some(0.3),
@@ -89,6 +89,7 @@ fn test_semantic_only() {
     });
 
     assert!(!results.is_empty());
+    assert_eq!(results[0].0.id.as_str(), "ep-0", "results: {results:?}");
 }
 
 #[test]

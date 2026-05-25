@@ -13,7 +13,9 @@ use async_trait::async_trait;
 use futures::Stream;
 use tonic::Status;
 
-use super::ontology::DatasetOntologyMaterializeFlightRouteProvider;
+use super::ontology::{
+    DatasetOntologyMaterializeFlightRouteProvider, OntologyCandidateInspectionFlightRouteProvider,
+};
 use crate::transport::query_contract::{
     DocumentExtractFlightRequest, RERANK_RESPONSE_DOC_ID_COLUMN,
     RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
@@ -107,6 +109,9 @@ pub struct WendaoFlightRouteProviders {
     /// Optional dataset ontology materialization provider.
     pub dataset_ontology_materialize:
         Option<Arc<dyn DatasetOntologyMaterializeFlightRouteProvider>>,
+    /// Optional ontology candidate inspection provider.
+    pub ontology_candidate_inspection:
+        Option<Arc<dyn OntologyCandidateInspectionFlightRouteProvider>>,
     /// Optional SQL provider.
     pub sql: Option<Arc<dyn SqlFlightRouteProvider>>,
 }
@@ -140,6 +145,7 @@ impl WendaoFlightRouteProviders {
             topology_3d: None,
             document_extract: None,
             dataset_ontology_materialize: None,
+            ontology_candidate_inspection: None,
             sql: None,
         }
     }

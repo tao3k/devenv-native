@@ -2,6 +2,8 @@
 
 pub(crate) const SEARCH_STRATEGY_FLOW_JULIA: &str = r#"
 using WendaoGraph
+using Tables
+using WendaoArrow
 
 batch_mode = !isempty(ARGS) && ARGS[1] == "__WENDAO_SEARCH_STRATEGY_FLOW_BATCH__"
 persistent_batch_mode = !isempty(ARGS) && ARGS[1] == "__WENDAO_SEARCH_STRATEGY_FLOW_BATCH_STDIN__"
@@ -14,11 +16,12 @@ elseif persistent_batch_mode
 else
     intent = ARGS[1]
     search_root = ARGS[2]
-    candidate_input_tsv = length(ARGS) >= 3 ? ARGS[3] : ""
+    candidate_input_arrow_ipc_path = length(ARGS) >= 3 ? ARGS[3] : ""
     candidate_input_source_hint = length(ARGS) >= 4 ? ARGS[4] : ""
     candidate_input_discovery_json = length(ARGS) >= 5 ? ARGS[5] : "null"
-    branch_judgements_tsv = length(ARGS) >= 6 ? ARGS[6] : ""
-    ontology_registry_tsv = length(ARGS) >= 7 ? ARGS[7] : ""
+    branch_judgements_arrow_ipc_path = length(ARGS) >= 6 ? ARGS[6] : ""
+    ontology_registry_arrow_ipc_path = length(ARGS) >= 7 ? ARGS[7] : ""
+    query_understanding_arrow_ipc_path = length(ARGS) >= 8 ? ARGS[8] : ""
 end
 
 function json_escape(value)
@@ -58,6 +61,28 @@ function json_raw_or_null(value)
     (startswith(stripped, "{") || startswith(stripped, "[")) && return stripped
     stripped == "null" && return "null"
     "null"
+end
+
+const WENDAO_SEARCH_STRATEGY_FLOW_ARROW_ROWS_CACHE = Dict{Tuple{String,String}, Any}()
+
+function decode_arrow_rows_from_path(path, subject; cacheable=false)
+    normalized = strip(String(path))
+    isempty(normalized) && return NamedTuple[]
+    cache_key = (String(subject), normalized)
+    if cacheable && haskey(WENDAO_SEARCH_STRATEGY_FLOW_ARROW_ROWS_CACHE, cache_key)
+        return WENDAO_SEARCH_STRATEGY_FLOW_ARROW_ROWS_CACHE[cache_key]
+    end
+    payload = read(normalized)
+    isempty(payload) && return NamedTuple[]
+    try
+        rows = collect(Tables.rows(WendaoArrow.Arrow.Table(IOBuffer(payload))))
+        if cacheable
+            WENDAO_SEARCH_STRATEGY_FLOW_ARROW_ROWS_CACHE[cache_key] = rows
+        end
+        rows
+    catch error
+        throw(ArgumentError("SearchStrategyFlow $(subject) Arrow IPC decode failed: $(error)"))
+    end
 end
 
 function split_candidate_id(candidate_id)
@@ -119,116 +144,6 @@ function doc_context_cost(candidate_id)
     max(1, ceil(Int, sizeof(text) / 20))
 end
 
-function unescape_candidate_field(value)
-    buffer = IOBuffer()
-    escaped = false
-    for char in value
-        if escaped
-            if char == 't'
-                print(buffer, '\t')
-            elseif char == 'n'
-                print(buffer, '\n')
-            elseif char == 'r'
-                print(buffer, '\r')
-            elseif char == '\\'
-                print(buffer, '\\')
-            else
-                print(buffer, char)
-            end
-            escaped = false
-        elseif char == '\\'
-            escaped = true
-        else
-            print(buffer, char)
-        end
-    end
-    escaped && print(buffer, '\\')
-    String(take!(buffer))
-end
-
-function parse_candidate_bool(value)
-    normalized = lowercase(strip(value))
-    normalized == "true" && return true
-    normalized == "false" && return false
-    error("invalid SearchStrategyFlow candidate bool: $value")
-end
-
-function parse_branch_judgements(payload)
-    rows = NamedTuple[]
-    isempty(strip(payload)) && return rows
-
-    for (line_number, line) in enumerate(split(payload, '\n'; keepempty=false))
-        fields = split(line, '\t'; keepempty=true)
-        length(fields) == 8 || error("branch judgement TSV row $line_number expected 8 fields, got $(length(fields))")
-        push!(
-            rows,
-            (
-                flow_id = unescape_candidate_field(fields[1]),
-                candidate_id = unescape_candidate_field(fields[2]),
-                branch_role = unescape_candidate_field(fields[3]),
-                judgement_score = parse(Float64, fields[4]),
-                confidence = parse(Float64, fields[5]),
-                decision = unescape_candidate_field(fields[6]),
-                blocked = parse_candidate_bool(fields[7]),
-                reason = unescape_candidate_field(fields[8]),
-            ),
-        )
-    end
-    rows
-end
-
-function parse_ontology_registry(payload)
-    rows = NamedTuple[]
-    isempty(strip(payload)) && return rows
-
-    for (line_number, line) in enumerate(split(payload, '\n'; keepempty=false))
-        fields = split(line, '\t'; keepempty=true)
-        length(fields) == 3 || error("ontology registry TSV row $line_number expected 3 fields, got $(length(fields))")
-        decoded = unescape_candidate_field.(fields)
-        push!(
-            rows,
-            (
-                resource_family = decoded[1],
-                api_name = decoded[2],
-                requires_evidence = parse_candidate_bool(decoded[3]),
-            ),
-        )
-    end
-    rows
-end
-
-function parse_candidate_inputs(payload)
-    rows = NamedTuple[]
-    isempty(strip(payload)) && return rows
-
-    for (line_number, line) in enumerate(split(payload, '\n'; keepempty=false))
-        fields = split(line, '\t'; keepempty=true)
-        length(fields) == 13 || error("candidate input TSV row $line_number expected 13 fields, got $(length(fields))")
-        decoded = unescape_candidate_field.(fields)
-        edge_kinds = isempty(decoded[13]) ? String[] : String.(split(decoded[13], ','; keepempty=false))
-        push!(
-            rows,
-            (
-                relative_path = decoded[1],
-                heading_anchor = decoded[2],
-                title = decoded[3],
-                line_start = parse(Int, decoded[4]),
-                line_end = parse(Int, decoded[5]),
-                context_cost = parse(Int, decoded[6]),
-                evidence_coverage = parse(Float64, decoded[7]),
-                graph_score = parse(Float64, decoded[8]),
-                authority_score = parse(Float64, decoded[9]),
-                structural_score = parse(Float64, decoded[10]),
-                uncertainty = parse(Float64, decoded[11]),
-                blocked = parse_candidate_bool(decoded[12]),
-                edge_kinds = edge_kinds,
-            ),
-        )
-    end
-
-    rows
-end
-
 function doc_candidate(relative_path, heading_anchor; evidence_coverage, graph_score, authority_score, structural_score, uncertainty, blocked=false, edge_kinds=("anchor", "linkography", "authority"), context_cost_override=nothing)
     candidate_id = "$(relative_path)#$(heading_anchor)"
     context_cost_value = context_cost_override === nothing ? doc_context_cost(candidate_id) : context_cost_override
@@ -245,21 +160,6 @@ function doc_candidate(relative_path, heading_anchor; evidence_coverage, graph_s
         context_cost = context_cost_value,
         uncertainty = uncertainty,
         blocked = blocked,
-    )
-end
-
-function doc_candidate_from_input(input)
-    doc_candidate(
-        input.relative_path,
-        input.heading_anchor;
-        evidence_coverage = input.evidence_coverage,
-        graph_score = input.graph_score,
-        authority_score = input.authority_score,
-        structural_score = input.structural_score,
-        uncertainty = input.uncertainty,
-        blocked = input.blocked,
-        edge_kinds = input.edge_kinds,
-        context_cost_override = input.context_cost,
     )
 end
 
@@ -392,15 +292,16 @@ function stage_receipt_json(row)
     ))
 end
 
-function search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint, candidate_input_discovery_json, branch_judgements_tsv, ontology_registry_tsv)
+function search_strategy_flow_json(intent, candidate_input_arrow_ipc_path, candidate_input_source_hint, candidate_input_discovery_json, branch_judgements_arrow_ipc_path, ontology_registry_arrow_ipc_path, query_understanding_arrow_ipc_path)
 flow_id = "pi-wendao-search-strategy-flow"
-ontology_registry = parse_ontology_registry(ontology_registry_tsv)
-query_understanding = query_understanding_evidence_rows(
-    intent;
-    flow_id = flow_id,
-    intent_id = "cli-intent-1",
-    ontology_registry = ontology_registry,
-)
+ontology_registry = decode_arrow_rows_from_path(ontology_registry_arrow_ipc_path, "ontology_registry"; cacheable=true)
+query_understanding_input = decode_arrow_rows_from_path(query_understanding_arrow_ipc_path, "query_understanding"; cacheable=true)
+query_understanding = isempty(query_understanding_input) ? query_understanding_evidence_rows(
+        intent;
+        flow_id = flow_id,
+        intent_id = "cli-intent-1",
+        ontology_registry = ontology_registry,
+    ) : query_understanding_input
 strategy_budget = (
     source = isempty(query_understanding) ? "default" : "query_understanding",
     loop_budget = isempty(query_understanding) ? 1 : maximum(row.recommended_loop_budget for row in query_understanding),
@@ -412,10 +313,10 @@ normalized_intent = lowercase(intent)
 strategy_weight = occursin("strategy", normalized_intent) || occursin("search", normalized_intent) || occursin("flow", normalized_intent) ? 0.04 : 0.0
 page_index_weight = occursin("page", normalized_intent) || occursin("index", normalized_intent) ? 0.03 : 0.0
 
-candidate_inputs = parse_candidate_inputs(candidate_input_tsv)
+candidate_inputs = decode_arrow_rows_from_path(candidate_input_arrow_ipc_path, "strategy_candidates")
 candidate_input_source = isempty(candidate_inputs) ? "fixed-proof-fallback" : (isempty(candidate_input_source_hint) ? "rust-markdown-headings" : candidate_input_source_hint)
 candidate_input_discovery = json_raw_or_null(candidate_input_discovery_json)
-candidates = isempty(candidate_inputs) ? fixed_proof_candidates(strategy_weight, page_index_weight) : doc_candidate_from_input.(candidate_inputs)
+candidates = isempty(candidate_inputs) ? fixed_proof_candidates(strategy_weight, page_index_weight) : candidate_inputs
 
 rows = strategy_flow_candidate_rows(
     candidates;
@@ -427,7 +328,7 @@ rows = strategy_flow_candidate_rows(
     query_understanding = query_understanding,
 )
 transitions = strategy_flow_transition_rows(rows; flow_id = flow_id)
-branch_judgements = parse_branch_judgements(branch_judgements_tsv)
+branch_judgements = decode_arrow_rows_from_path(branch_judgements_arrow_ipc_path, "branch_judgements"; cacheable=true)
 frontier = strategy_flow_frontier_rows(
     rows;
     flow_id = flow_id,
@@ -551,7 +452,7 @@ end
 
 if batch_mode
     batch_count = parse(Int, ARGS[3])
-    expected_arg_count = 3 + batch_count * 6
+    expected_arg_count = 3 + batch_count * 7
     length(ARGS) == expected_arg_count || error("SearchStrategyFlow batch mode expected $expected_arg_count args, got $(length(ARGS))")
 
     function search_strategy_flow_batch_json_lines(batch_count)
@@ -559,13 +460,14 @@ if batch_mode
         arg_index = 4
         for _ in 1:batch_count
             batch_intent = ARGS[arg_index]
-            batch_candidate_input_tsv = ARGS[arg_index + 1]
+            batch_candidate_input_arrow_ipc_path = ARGS[arg_index + 1]
             batch_candidate_input_source_hint = ARGS[arg_index + 2]
             batch_candidate_input_discovery_json = ARGS[arg_index + 3]
-            batch_branch_judgements_tsv = ARGS[arg_index + 4]
-            batch_ontology_registry_tsv = ARGS[arg_index + 5]
-            push!(traces, search_strategy_flow_json(batch_intent, batch_candidate_input_tsv, batch_candidate_input_source_hint, batch_candidate_input_discovery_json, batch_branch_judgements_tsv, batch_ontology_registry_tsv))
-            arg_index += 6
+            batch_branch_judgements_arrow_ipc_path = ARGS[arg_index + 4]
+            batch_ontology_registry_arrow_ipc_path = ARGS[arg_index + 5]
+            batch_query_understanding_arrow_ipc_path = ARGS[arg_index + 6]
+            push!(traces, search_strategy_flow_json(batch_intent, batch_candidate_input_arrow_ipc_path, batch_candidate_input_source_hint, batch_candidate_input_discovery_json, batch_branch_judgements_arrow_ipc_path, batch_ontology_registry_arrow_ipc_path, batch_query_understanding_arrow_ipc_path))
+            arg_index += 7
         end
         join(traces, "\n")
     end
@@ -591,32 +493,34 @@ elseif persistent_batch_mode
         local request_batches = NamedTuple[]
         for _ in 1:batch_count
             batch_intent = read_search_strategy_flow_payload()
-            batch_candidate_input_tsv = read_search_strategy_flow_payload()
+            batch_candidate_input_arrow_ipc_path = read_search_strategy_flow_payload()
             batch_candidate_input_source_hint = read_search_strategy_flow_payload()
             batch_candidate_input_discovery_json = read_search_strategy_flow_payload()
-            batch_branch_judgements_tsv = read_search_strategy_flow_payload()
-            batch_ontology_registry_tsv = read_search_strategy_flow_payload()
+            batch_branch_judgements_arrow_ipc_path = read_search_strategy_flow_payload()
+            batch_ontology_registry_arrow_ipc_path = read_search_strategy_flow_payload()
+            batch_query_understanding_arrow_ipc_path = read_search_strategy_flow_payload()
             push!(
                 request_batches,
                 (
                     intent = batch_intent,
-                    candidate_input_tsv = batch_candidate_input_tsv,
+                    candidate_input_arrow_ipc_path = batch_candidate_input_arrow_ipc_path,
                     candidate_input_source_hint = batch_candidate_input_source_hint,
                     candidate_input_discovery_json = batch_candidate_input_discovery_json,
-                    branch_judgements_tsv = batch_branch_judgements_tsv,
-                    ontology_registry_tsv = batch_ontology_registry_tsv,
+                    branch_judgements_arrow_ipc_path = batch_branch_judgements_arrow_ipc_path,
+                    ontology_registry_arrow_ipc_path = batch_ontology_registry_arrow_ipc_path,
+                    query_understanding_arrow_ipc_path = batch_query_understanding_arrow_ipc_path,
                 ),
             )
         end
         traces = [
-            search_strategy_flow_json(batch.intent, batch.candidate_input_tsv, batch.candidate_input_source_hint, batch.candidate_input_discovery_json, batch.branch_judgements_tsv, batch.ontology_registry_tsv)
+            search_strategy_flow_json(batch.intent, batch.candidate_input_arrow_ipc_path, batch.candidate_input_source_hint, batch.candidate_input_discovery_json, batch.branch_judgements_arrow_ipc_path, batch.ontology_registry_arrow_ipc_path, batch.query_understanding_arrow_ipc_path)
             for batch in request_batches
         ]
         println(join(traces, "\n"))
         flush(stdout)
     end
 else
-    println(search_strategy_flow_json(intent, candidate_input_tsv, candidate_input_source_hint, candidate_input_discovery_json, branch_judgements_tsv, ontology_registry_tsv))
+    println(search_strategy_flow_json(intent, candidate_input_arrow_ipc_path, candidate_input_source_hint, candidate_input_discovery_json, branch_judgements_arrow_ipc_path, ontology_registry_arrow_ipc_path, query_understanding_arrow_ipc_path))
 end
 "#;
 

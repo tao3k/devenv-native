@@ -658,6 +658,9 @@ fn validate_outcome_args(
     if executor == ActivityExecutorKindArg::OpenAiCompatibleLlm {
         return validate_openai_compatible_outcome_args(outcome, args);
     }
+    if executor == ActivityExecutorKindArg::FlowhubService {
+        return validate_flowhub_service_outcome_args(outcome, args);
+    }
     if has_openai_compatible_args(args) {
         return Err(invalid_input(
             "`control activity-worker-loop` OpenAI-compatible flags require `--executor openai-compatible-llm`",
@@ -728,6 +731,32 @@ fn validate_openai_compatible_outcome_args(
     {
         return Err(invalid_input(
             "missing `--openai-compatible-base-url <url>` for `control activity-worker-loop --executor openai-compatible-llm`",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_flowhub_service_outcome_args(
+    outcome: ActivitySettleOutcomeArg,
+    args: &ActivityWorkerLoopArgs,
+) -> io::Result<()> {
+    if outcome != ActivitySettleOutcomeArg::Complete {
+        return Err(invalid_input(
+            "`control activity-worker-loop --executor flowhub-service` derives successful completion data; execution failures should be recorded through retry/fail settlement",
+        ));
+    }
+    if args.error_code.is_some() || args.message.is_some() || args.retryable.is_some() {
+        return Err(invalid_input(
+            "`control activity-worker-loop --executor flowhub-service` cannot be combined with `--error-code`, `--message`, or `--retryable`",
+        ));
+    }
+    if args.output_hash.is_some()
+        || args.output_artifact_dir.is_some()
+        || args.output_artifact_kind.is_some()
+        || args.metadata.is_some()
+    {
+        return Err(invalid_input(
+            "`control activity-worker-loop --executor flowhub-service` derives completion metadata from the BPMN task contract",
         ));
     }
     Ok(())

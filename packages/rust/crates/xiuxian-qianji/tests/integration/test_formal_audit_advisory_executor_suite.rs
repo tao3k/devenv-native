@@ -6,6 +6,8 @@ use std::sync::Arc;
 #[path = "support/workspace.rs"]
 mod workspace;
 use serde_json::json;
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::ContentAddressedFilesystemBlobCache;
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::contract_feedback::{
     AdvisoryAuditExecutor, AdvisoryAuditRequest, ArtifactKind, CollectedArtifact,
@@ -70,6 +72,59 @@ fn advisory_request() -> AdvisoryAuditRequest {
             labels,
         },
         requested_roles: vec!["strict_teacher".to_string(), "artisan-engineer".to_string()],
+    }
+}
+
+#[cfg(feature = "advisory-prompt-pack-cache")]
+#[tokio::test]
+async fn advisory_executor_reports_prompt_context_pack_artifact_hits() {
+    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
+        "Safety Rules".to_string(),
+        None,
+    ));
+    let registry = Arc::new(PersonaRegistry::with_builtins());
+    let executor = QianjiAdvisoryAuditExecutor::new(orchestrator, registry);
+    let cache_root = tempfile::tempdir().expect("cache tempdir should be created");
+    let cache = ContentAddressedFilesystemBlobCache::new(cache_root.path());
+    let request = advisory_request();
+
+    let first_plan = must_ok(
+        executor
+            .build_plan_with_prompt_context_pack_cache(&request, &cache)
+            .await,
+        "first advisory plan should populate prompt-context pack cache",
+    );
+    let first_reports = first_plan
+        .roles
+        .iter()
+        .map(|role| role.prompt_context_pack_artifact)
+        .collect::<Vec<_>>();
+
+    assert_eq!(first_reports.len(), 2);
+    for report in &first_reports {
+        let report = report.expect("prompt-context pack metrics should be present");
+        assert!(!report.cache_hit);
+        assert!(report.byte_len > 0);
+    }
+
+    let second_plan = must_ok(
+        executor
+            .build_plan_with_prompt_context_pack_cache(&request, &cache)
+            .await,
+        "second advisory plan should read prompt-context packs from cache",
+    );
+    let second_reports = second_plan
+        .roles
+        .iter()
+        .map(|role| role.prompt_context_pack_artifact)
+        .collect::<Vec<_>>();
+
+    assert_eq!(second_reports.len(), first_reports.len());
+    for (first, second) in first_reports.iter().zip(second_reports.iter()) {
+        let first = first.expect("first metrics should be present");
+        let second = second.expect("second metrics should be present");
+        assert!(second.cache_hit);
+        assert_eq!(second.byte_len, first.byte_len);
     }
 }
 

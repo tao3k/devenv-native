@@ -1,4 +1,4 @@
-use super::{candidate, should_stop_candidate_discovery};
+use super::{CandidateDiscoveryRequiredEvidence, candidate, should_stop_candidate_discovery};
 
 #[test]
 fn candidate_discovery_early_stop_waits_for_attempt_floor_and_source_budget() {
@@ -20,12 +20,20 @@ fn candidate_discovery_early_stop_waits_for_attempt_floor_and_source_budget() {
         })
         .collect::<Vec<_>>();
 
-    assert!(!should_stop_candidate_discovery(23, &candidates));
-    assert!(should_stop_candidate_discovery(24, &candidates));
+    assert!(!should_stop_candidate_discovery(
+        23,
+        &candidates,
+        CandidateDiscoveryRequiredEvidence::all(),
+    ));
+    assert!(should_stop_candidate_discovery(
+        24,
+        &candidates,
+        CandidateDiscoveryRequiredEvidence::all(),
+    ));
 }
 
 #[test]
-fn candidate_discovery_early_stop_accepts_required_evidence_after_scoped_attempts() {
+fn candidate_discovery_early_stop_accepts_intent_required_evidence_after_scoped_attempts() {
     let mut candidates = vec![
         candidate(
             "packages/rust/crates/xiuxian-wendao-julia/README.md",
@@ -47,12 +55,13 @@ fn candidate_discovery_early_stop_accepts_required_evidence_after_scoped_attempt
         )
     }));
 
-    assert!(!should_stop_candidate_discovery(11, &candidates));
-    assert!(should_stop_candidate_discovery(12, &candidates));
+    let required = CandidateDiscoveryRequiredEvidence::all();
+    assert!(!should_stop_candidate_discovery(5, &candidates, required));
+    assert!(should_stop_candidate_discovery(6, &candidates, required));
 }
 
 #[test]
-fn candidate_discovery_required_evidence_stop_keeps_missing_relation_open() {
+fn candidate_discovery_required_evidence_stop_keeps_intent_missing_relation_open() {
     let candidates = vec![
         candidate(
             "packages/rust/crates/xiuxian-wendao-julia/README.md",
@@ -60,9 +69,32 @@ fn candidate_discovery_required_evidence_stop_keeps_missing_relation_open() {
             0.91,
         ),
         candidate("docs/testing/README.md", "Default validation path", 0.88),
+        candidate(
+            "docs/search-strategy-flow-support-a.md",
+            "SearchStrategyFlow supporting evidence",
+            0.80,
+        ),
+        candidate(
+            "docs/search-strategy-flow-support-b.md",
+            "SearchStrategyFlow supporting evidence",
+            0.79,
+        ),
     ];
 
-    assert!(!should_stop_candidate_discovery(12, &candidates));
+    assert!(!should_stop_candidate_discovery(
+        6,
+        &candidates,
+        CandidateDiscoveryRequiredEvidence::all(),
+    ));
+    assert!(should_stop_candidate_discovery(
+        6,
+        &candidates,
+        CandidateDiscoveryRequiredEvidence {
+            ownership_boundary: true,
+            validation_path: true,
+            relation_path: false,
+        },
+    ));
 }
 
 #[test]
@@ -77,7 +109,11 @@ fn candidate_discovery_max_candidate_stop_keeps_missing_relation_open() {
         })
         .collect::<Vec<_>>();
 
-    assert!(!should_stop_candidate_discovery(24, &candidates));
+    assert!(!should_stop_candidate_discovery(
+        24,
+        &candidates,
+        CandidateDiscoveryRequiredEvidence::all(),
+    ));
 }
 
 #[test]
@@ -96,5 +132,34 @@ fn candidate_discovery_early_stop_counts_unique_source_paths() {
         })
         .collect::<Vec<_>>();
 
-    assert!(!should_stop_candidate_discovery(24, &candidates));
+    assert!(!should_stop_candidate_discovery(
+        24,
+        &candidates,
+        CandidateDiscoveryRequiredEvidence::all(),
+    ));
+}
+
+#[test]
+fn candidate_discovery_early_stop_recognizes_governance_authority_scope() {
+    let candidates = vec![
+        candidate("AGENTS.md", "Modularity debt warning cleanup", 0.95),
+        candidate("docs/standards/AUDITOR_CODEX.md", "Hyper Modularity", 0.93),
+        candidate("docs/support-a.md", "Governance support", 0.80),
+        candidate("docs/support-b.md", "Warning support", 0.80),
+    ];
+    let required = CandidateDiscoveryRequiredEvidence::from_intent(
+        "Find Markdown governance rules for modularity debt and warning cleanup",
+    );
+
+    assert!(should_stop_candidate_discovery(6, &candidates, required));
+}
+
+#[test]
+fn materialization_intent_requires_validation_path_evidence() {
+    let required = CandidateDiscoveryRequiredEvidence::from_intent(
+        "Find the Markdown package docs that define Studio ownership of SearchStrategyFlow Flight materialization.",
+    );
+
+    assert!(required.ownership_boundary);
+    assert!(required.validation_path);
 }

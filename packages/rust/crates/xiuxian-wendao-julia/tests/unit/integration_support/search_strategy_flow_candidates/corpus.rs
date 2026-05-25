@@ -182,11 +182,18 @@ fn configured_markdown_replay_families_cover_real_wendao_toml_surface()
         assert!(family.heading_count >= family.markdown_file_count);
         assert_eq!(family.batch.source, "rust-markdown-headings");
         assert!((1..=12).contains(&family.batch.row_count));
-        assert_eq!(family.batch.row_count, family.batch.tsv.lines().count());
+        assert_eq!(
+            family.batch.row_count,
+            family
+                .batch
+                .candidate_input_arrow_snapshot()
+                .lines()
+                .count()
+        );
         assert!(
             family
                 .batch
-                .tsv
+                .candidate_input_arrow_snapshot()
                 .lines()
                 .all(|line| line.starts_with(include_dir)),
             "candidate paths must stay repository-relative for {include_dir}"
@@ -215,7 +222,14 @@ fn configured_markdown_replay_families_support_scaled_candidate_limits()
         assert!(family.markdown_file_count > 0);
         assert!(family.heading_count >= family.markdown_file_count);
         assert_eq!(family.batch.source, "rust-markdown-headings");
-        assert_eq!(family.batch.row_count, family.batch.tsv.lines().count());
+        assert_eq!(
+            family.batch.row_count,
+            family
+                .batch
+                .candidate_input_arrow_snapshot()
+                .lines()
+                .count()
+        );
         assert_eq!(
             family.batch.row_count,
             family.heading_count.min(limit),
@@ -243,7 +257,12 @@ fn assert_replay_family(
     assert_eq!(family.markdown_file_count, 1);
     assert_eq!(family.batch.source, "rust-markdown-headings");
     assert!(family.batch.row_count > 0);
-    assert!(family.batch.tsv.contains(expected_path));
+    assert!(
+        family
+            .batch
+            .candidate_input_arrow_snapshot()
+            .contains(expected_path)
+    );
 }
 
 fn replay_family<'a>(

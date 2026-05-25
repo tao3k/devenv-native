@@ -4,19 +4,22 @@ use crate::integration_support::search_strategy_flow_candidates::{
 pub(super) use crate::integration_support::search_strategy_flow_flight::query::RepoSearchAttempt;
 
 use super::{
-    CandidateDiscoveryRankingMode, apply_exact_markdown_attempt_score_floor,
-    calibrate_candidate_discovery_scores, candidate_discovery_attempt_receipt,
-    candidate_discovery_priority, candidate_discovery_receipt,
+    CandidateDiscoveryRankingMode, CandidateDiscoveryRequiredEvidence,
+    apply_exact_markdown_attempt_score_floor, calibrate_candidate_discovery_scores,
+    candidate_discovery_attempt_receipt, candidate_discovery_priority, candidate_discovery_receipt,
     candidate_from_exact_markdown_attempt, candidate_matches_relation_path_evidence,
-    merge_candidate_discovery_result, rank_candidate_discovery_results,
-    rank_candidate_discovery_results_for_intent, ranking_mode_for_intent,
-    retain_unique_candidate_sources, should_stop_candidate_discovery,
+    candidate_matches_validation_path_evidence, merge_candidate_discovery_result,
+    rank_candidate_discovery_results, rank_candidate_discovery_results_for_intent,
+    ranking_mode_for_intent, retain_required_evidence_frontier, retain_unique_candidate_sources,
+    should_stop_candidate_discovery,
 };
 
 mod early_stop;
+mod exact_seed;
 mod merge;
 mod ranking;
 mod receipt;
+mod required_frontier;
 
 fn candidate(
     relative_path: &'static str,

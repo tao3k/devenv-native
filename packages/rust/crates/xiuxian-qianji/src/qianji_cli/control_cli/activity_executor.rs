@@ -41,6 +41,12 @@ const OPENAI_COMPATIBLE_LLM_TASK_QUEUES: &[&str] = &[
     "llm.local",
     "episteme.ontology.reasoning",
 ];
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+const FLOWHUB_SERVICE_ACTIVITY_TYPES: &[&str] = &["flowhub.service"];
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+const FLOWHUB_SERVICE_TASK_QUEUES: &[&str] = &["flowhub.*"];
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+const FLOWHUB_SERVICE_TASK_QUEUE_PREFIX: &str = "flowhub.";
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 const LLM_ACTIVITY_REQUEST_AUDIT_METADATA_KEY: &str = "qianji_llm_activity_request";
@@ -53,6 +59,7 @@ pub(crate) enum ActivityExecutorKindArg {
     Fixture,
     #[serde(rename = "openai_compatible_llm")]
     OpenAiCompatibleLlm,
+    FlowhubService,
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
@@ -96,6 +103,7 @@ pub(crate) enum ActivityExecutorAdapterKind {
     Fixture,
     #[serde(rename = "openai_compatible_llm")]
     OpenAiCompatibleLlm,
+    FlowhubService,
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
@@ -130,6 +138,7 @@ impl ActivityExecutorRegistry {
             ActivityExecutorKindArg::OpenAiCompatibleLlm => Err(invalid_input(
                 "activity executor `openai-compatible-llm` is an admission gate only in this slice",
             )),
+            ActivityExecutorKindArg::FlowhubService => execute_flowhub_service(request),
         }
     }
 
@@ -150,6 +159,7 @@ impl ActivityExecutorRegistry {
             ActivityExecutorKindArg::OpenAiCompatibleLlm => {
                 cfg!(any(feature = "qianji-full", test))
             }
+            ActivityExecutorKindArg::FlowhubService => true,
         }
     }
 
@@ -166,6 +176,9 @@ impl ActivityExecutorRegistry {
             )),
             ActivityExecutorKindArg::OpenAiCompatibleLlm => {
                 Ok(ActivityExecutorContract::openai_compatible_llm())
+            }
+            ActivityExecutorKindArg::FlowhubService => {
+                Ok(ActivityExecutorContract::flowhub_service())
             }
         }
     }
@@ -216,6 +229,17 @@ impl ActivityExecutorContract {
         }
     }
 
+    const fn flowhub_service() -> Self {
+        Self {
+            executor: ActivityExecutorKindArg::FlowhubService,
+            adapter: ActivityExecutorAdapterKind::FlowhubService,
+            allowed_activity_types: FLOWHUB_SERVICE_ACTIVITY_TYPES,
+            allowed_task_queues: FLOWHUB_SERVICE_TASK_QUEUES,
+            requires_input_ref: true,
+            requires_request_audit: false,
+        }
+    }
+
     fn validate(self, task: &xiuxian_qianji_control::WorkerActivityTask) -> io::Result<()> {
         validate_allowed_route(
             "activity_type",
@@ -229,6 +253,9 @@ impl ActivityExecutorContract {
             self.allowed_task_queues,
             self.executor,
         )?;
+        if self.executor == ActivityExecutorKindArg::FlowhubService {
+            validate_flowhub_service_task(task)?;
+        }
         if self.requires_input_ref && task.input_ref.is_none() {
             return Err(invalid_input(format!(
                 "activity executor `{}` requires task input_ref",
@@ -249,12 +276,27 @@ fn validate_allowed_route(
     allowed: &[&str],
     executor: ActivityExecutorKindArg,
 ) -> io::Result<()> {
+    if executor == ActivityExecutorKindArg::FlowhubService
+        && field == "task_queue"
+        && value.starts_with(FLOWHUB_SERVICE_TASK_QUEUE_PREFIX)
+    {
+        return Ok(());
+    }
     if allowed.contains(&value) {
         return Ok(());
     }
     Err(invalid_input(format!(
         "activity executor `{executor:?}` does not allow {field} `{value}`"
     )))
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+fn validate_flowhub_service_task(
+    task: &xiuxian_qianji_control::WorkerActivityTask,
+) -> io::Result<()> {
+    crate::build_flowhub_service_task_contract_completion_data(task)
+        .map(|_| ())
+        .map_err(|error| invalid_input(format!("{error}")))
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
@@ -320,6 +362,7 @@ const fn executor_label(executor: ActivityExecutorKindArg) -> &'static str {
     match executor {
         ActivityExecutorKindArg::Fixture => "fixture",
         ActivityExecutorKindArg::OpenAiCompatibleLlm => "openai-compatible-llm",
+        ActivityExecutorKindArg::FlowhubService => "flowhub-service",
     }
 }
 
@@ -352,6 +395,25 @@ fn execute_fixture(request: ActivityExecutionRequest<'_>) -> io::Result<Activity
             })
         }
     }
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+fn execute_flowhub_service(
+    request: ActivityExecutionRequest<'_>,
+) -> io::Result<ActivityExecutorOutcome> {
+    if request.outcome != ActivitySettleOutcomeArg::Complete {
+        return Err(invalid_input(
+            "activity executor `flowhub-service` derives successful completion data; use retry policy or a failed activity record for execution failures",
+        ));
+    }
+    let Some(task) = request.task else {
+        return Err(invalid_input(
+            "activity executor requires a claimed worker activity task",
+        ));
+    };
+    let result = crate::build_flowhub_service_task_contract_activity_result(task)
+        .map_err(|error| invalid_input(format!("{error}")))?;
+    Ok(ActivityExecutorOutcome::Complete { result })
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
@@ -400,8 +462,9 @@ pub(crate) fn parse_executor(value: &str) -> io::Result<ActivityExecutorKindArg>
         "openai-compatible-llm" | "openai_compatible_llm" => {
             Ok(ActivityExecutorKindArg::OpenAiCompatibleLlm)
         }
+        "flowhub-service" | "flowhub_service" => Ok(ActivityExecutorKindArg::FlowhubService),
         other => Err(invalid_input(format!(
-            "invalid `--executor` for `control activity-worker-once`; expected `fixture` or `openai-compatible-llm`, got `{other}`"
+            "invalid `--executor` for `control activity-worker-once`; expected `fixture`, `openai-compatible-llm`, or `flowhub-service`, got `{other}`"
         ))),
     }
 }

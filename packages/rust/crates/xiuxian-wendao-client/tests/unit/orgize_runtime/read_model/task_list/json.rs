@@ -11,12 +11,19 @@ fn standalone_orgize_task_list_json_outputs_limited_recovery_rows() {
         concat!(
             "* TODO First active task :agent:\n",
             ":PROPERTIES:\n",
+            ":ID: first-active\n",
             ":NEXT_ACTION: Continue first\n",
             ":RESUME_QUERY: wendao-client orgize task-list --text 'First active'\n",
             ":END:\n",
             "* TODO Second active task :agent:performance:\n",
             "SCHEDULED: <2026-05-18 Mon ++1d>\n",
+            ":PROPERTIES:\n",
+            ":ID: second-active\n",
+            ":END:\n",
             "* TODO Third active task :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: third-active\n",
+            ":END:\n",
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));
@@ -51,6 +58,7 @@ fn standalone_orgize_task_list_json_outputs_limited_recovery_rows() {
     assert_eq!(parsed["showing"], 2);
     assert_eq!(parsed["active"], 3);
     assert_eq!(parsed["tasks"].as_array().map_or(0, Vec::len), 2);
+    assert_eq!(parsed["tasks"][0]["orgid"], "first-active");
     assert_eq!(parsed["tasks"][0]["title"], "First active task");
     assert_eq!(parsed["tasks"][0]["next"], "Continue first");
     assert_eq!(

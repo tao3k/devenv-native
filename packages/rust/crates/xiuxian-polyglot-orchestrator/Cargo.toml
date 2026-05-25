@@ -7,8 +7,15 @@ authors.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+default = []
+julia-runtime = ["dep:xiuxian-julia-runtime", "xiuxian-julia-runtime/wendao"]
+wendao-contracts = ["dep:xiuxian-wendao-runtime"]
+
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
+xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", default-features = false, optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

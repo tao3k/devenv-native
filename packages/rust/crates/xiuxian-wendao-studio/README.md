@@ -75,6 +75,21 @@ The HTTP gateway/client features remain opt-in through `zhenfa-router` or
 `cli-bin-support`, so Studio's local runtime does not inherit Zhenfa HTTP
 composition by accident.
 
+## Document Extraction Artifact Cache
+
+Studio consumes the shared L2 artifact cache interface from
+[`xiuxian-db-store`](../xiuxian-db-store/README.md) for PDF OCR shard result
+bytes. The OCR scheduler stores successful shard result Arrow IPC batches under
+the `ArtifactBlobCache` contract, using the source digest, profile digest, and
+shard digest as cache identity. This keeps the cache owner in `xiuxian-db-store`
+while Studio remains responsible for scheduling, row-order restoration, and
+precision validation.
+
+Full document extraction artifact directories are still mirrored by the hybrid
+route because resource-path rewriting depends on directory context. Moving that
+directory mirror behind the L2 byte-cache contract requires a separate manifest
+or archive encoding slice; it must not bypass resource-order or precision gates.
+
 ## SearchStrategyFlow Flight Materialization
 
 Studio owns the native Arrow Flight materialization layer for
@@ -117,6 +132,22 @@ the first batch is the compact materialization report, followed by
 read-model rows encoded with their source table name and row JSON payload. This
 keeps the Flight stream schema stable while preserving the compiled ontology
 read-model facts for downstream graph/proof consumers.
+
+## Ontology Candidate Inspection Flight
+
+Studio owns the Gateway host provider for `/ontology/candidates/inspect`. The
+route contract and metadata admission live in `xiuxian-wendao-server`; Studio
+resolves the `epistemeRegistryId` from `wendao.toml`, loads the selected
+Episteme repository config, locates the requested ontology-generation `runId`,
+and delegates candidate Parquet inspection to `xiuxian-wendao-sql`.
+
+The provider returns a compact Arrow summary batch with DuckDB inspection
+counts and pass/fail status, while `FlightInfo.app_metadata` carries the
+bounded JSON inspection report for traceability. The route does not add a REST
+surface, read candidate TSV files, call Python DuckDB, mutate RDF, or promote
+raw candidates into ontology truth. It exists so pi-wendao, Julia, and other
+runtime callers can stay on the Arrow/Flight data plane when checking whether a
+candidate read model is ready for downstream proof.
 
 ## Episteme Source Contract Admission
 
@@ -686,24 +717,25 @@ adaptive pressure observations, queue wait observation, and the
 including source-range auto worker sizing from owner-supplied system facts.
 Studio consumes that plan through the attachment polyglot bridge while keeping
 live dispatch local to this crate.
-For audio shard execution, Studio owns the live Flight dispatch and merge gate
-over the analyzer `/analysis/audio-shards` route. Attachments supplies the
-model-neutral shard plans and Arrow rows; analyzer workers supply Docling or
-hosted transcript rows. Studio keeps backend selection as data/configuration,
-uses the attachment polyglot bridge to select `x-wendao-audio-workers` when it
-needs to bound analyzer parallelism, and merges results by `readingOrderKey`
-while surfacing failed, skipped, missing, or duplicate shard coverage to the
-precision gate.
+For audio shard execution, Studio owns live Flight dispatch over the analyzer
+`/analysis/audio-shards` route. Attachments supplies the model-neutral shard
+plans, Arrow rows, transcript admission, and merge/precision gates; analyzer
+workers supply Docling or hosted transcript rows. Studio keeps backend selection
+as data/configuration, uses the attachment polyglot bridge to select
+`x-wendao-audio-workers` when it needs to bound analyzer parallelism, and
+invokes the attachment-owned merge helpers while surfacing failed, skipped,
+missing, or duplicate shard coverage to the route precision gate.
 The audio route also owns the runtime feedback controller for that worker
 budget. Workflow transport failures, incomplete shard coverage, and precision
 gate failures reduce the next Rust-selected budget; consecutive healthy
 workflows can increase it up to the host cap. This keeps production audio
-admission in Studio/polyglot instead of analyzer-side Python heuristics.
-Studio can start from attachment-owned speech-segment timing facts, build the
-Rust speech-window plan, materialize normalized shards, and submit the stable
-audio shard input rows over Flight. Python/analyzer remains the model invocation
-and result normalization boundary, not the owner of shard timing or cache
-identity.
+dispatch pressure in Studio/polyglot instead of analyzer-side Python
+heuristics.
+Studio can start from attachment-owned speech-segment timing facts, ask
+attachments to build the Rust speech-window plan, materialize normalized shards,
+and submit the stable audio shard input rows over Flight. Python/analyzer
+remains the model invocation and result normalization boundary, not the owner of
+shard timing or transcript admission identity.
 The same optional speech timing facts can now constrain recovery planning:
 `execute_recovery_split` accepts model-neutral speech windows, clips them to
 selected failed parent shards, and skips the second Flight pass when no speech
@@ -744,31 +776,36 @@ checkpoints for audio shard input and result Arrow batches. Those checkpoints
 keep same-process `RecordBatch` buffers available for retry or precision
 rechecks, while the wire contract, analyzer boundary, and durable checkpoint
 ownership stay unchanged.
-The Gateway document-extract route now has an explicit opt-in
-`audio-shards` mode. In this mode Studio probes the source duration, builds a
-full-timeline Rust audio shard plan, admits accepted planned transcript results
-when the Rust-owned cache proves the shard and backend identity, materializes
-normalized shard files for misses, calls analyzer `/analysis/audio-shards` only
-for uncached rows, runs the recovery workflow, and returns the existing
-`audio-transcript` `text/plain` document resource row plus a parallel
-`audio-transcript-ledger` `text/org` evidence resource row only when shard
-coverage is complete. The Org ledger uses standard `attachment:` links when
-materialized shard files exist, so downstream Org tooling can export Markdown
-or HTML without changing the audio Arrow shard schemas. The mode is
-model-neutral: backend identity comes from configuration, while concrete local
-or hosted model invocation remains inside the analyzer worker registry.
+The Gateway document-extract route now has an explicit opt-in `audio-shards`
+mode. In this mode Studio probes the source duration, asks attachments to build
+a full-timeline Rust audio shard plan, invokes attachment-owned planned
+transcript admission before byte materialization, materializes normalized shard
+files for misses, calls analyzer `/analysis/audio-shards` only for non-admitted
+rows, runs the recovery workflow, and returns the existing `audio-transcript`
+`text/plain` document resource row plus a parallel `audio-transcript-ledger`
+`text/org` evidence resource row only when shard coverage is complete. The Org
+ledger uses standard `attachment:` links when materialized shard files exist, so
+downstream Org tooling can export Markdown or HTML without changing the audio
+Arrow shard schemas. The mode is model-neutral: backend identity comes from
+configuration, while concrete local or hosted model invocation remains inside
+the analyzer worker registry.
 Audio shard materialization also enables the db-store `ArtifactBlobCache`
-filesystem baseline in the `document-extract-audio-shards` feature. Studio
-uses `WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR` when provided, or
-`$PRJ_CACHE_HOME/wendao/audio-artifacts` when the project cache root is
-available, to restore repeated normalized shard bytes before invoking `ffmpeg`.
-The cache is byte reuse only and does not affect analyzer request schemas,
-worker selection, transcript merge rules, or precision gates.
-Studio also maintains a transcript result cache and a planned-result preflight
-index for accepted rows. The planned index can satisfy all planned shard rows
-before byte materialization on warm force refresh, while any missing, stale,
-failed, or partial planned result falls back to the existing materialization and
-analyzer route.
+interface in the `document-extract-audio-shards` feature. Studio passes the
+resolved artifact root into attachments, and attachments builds the configured
+db-store backend. `WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR` remains a
+route-specific override; otherwise Studio uses `WENDAO_ARTIFACT_CACHE_ROOT`,
+then `$PRJ_CACHE_HOME/wendao/artifacts` when the project cache root is
+available. `WENDAO_ARTIFACT_CACHE_BACKEND=filesystem|foyer` selects the
+backend, and the Foyer capacity variables are forwarded through the shared
+db-store config. The cache is byte reuse only and does not affect analyzer
+request schemas, worker selection, transcript merge rules, or precision gates.
+Attachments also owns accepted transcript admission and a planned admission
+index for accepted rows. Studio supplies route/runtime identity and calls that
+API before materialization. The planned admission index can satisfy warm rows
+before byte materialization on force refresh. Mixed warm/cold runs materialize
+only planned miss manifests and send only those rows to analyzer Flight, while
+stale or failed planned admissions continue through the existing materialization
+and analyzer route.
 The document-extract benchmark harness can now exercise this same route with
 `--flight-mode audio-shards`. Local provider and Gateway benchmark starts add
 the `document-extract-audio-shards` feature automatically for this mode and

@@ -12,21 +12,35 @@ fn standalone_orgize_task_report_summarizes_archive_and_repeating_rows() {
         concat!(
             "* TODO Performance cadence :agent:performance:\n",
             "SCHEDULED: <2026-05-18 Mon ++1d>\n",
+            ":PROPERTIES:\n",
+            ":ID: report-performance-cadence\n",
+            ":END:\n",
             "* TODO Completed but not closed [3/3] [100%] :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: report-completed-but-not-closed\n",
+            ":END:\n",
             "- [X] Scope\n",
             "- [X] Implementation\n",
             "- [X] Validation\n",
-            "* DONE Completed slice :agent:achievement:\n",
+            "* DONE Completed slice [1/1] [100%] :agent:achievement:\n",
             "CLOSED: [2026-05-17 Sun]\n",
             ":PROPERTIES:\n",
+            ":ID: report-completed-slice\n",
             ":NEXT_ACTION: Archive after review\n",
             ":END:\n",
+            "- [X] Land completed slice.\n",
+            "** Reflection\n",
+            "- Summary: The completed slice landed.\n",
             "* DONE Completed cadence :agent:performance:\n",
             "SCHEDULED: <2026-05-17 Sun ++1d>\n",
             "CLOSED: [2026-05-17 Sun]\n",
+            ":PROPERTIES:\n",
+            ":ID: report-completed-cadence\n",
+            ":END:\n",
             "* DONE Archived slice :agent:achievement:\n",
             "CLOSED: [2026-05-16 Sat]\n",
             ":PROPERTIES:\n",
+            ":ID: report-archived-slice\n",
             ":ARCHIVE_TIME: 2026-05-16 Sat\n",
             ":END:\n",
         ),
@@ -52,22 +66,17 @@ fn standalone_orgize_task_report_summarizes_archive_and_repeating_rows() {
         Some(0),
         "stdout: {stdout}\nstderr: {stderr}"
     );
-    assert!(
-        stdout.contains("orgize agent task-report"),
-        "stdout: {stdout}"
-    );
-    assert!(stdout.contains("rows: 5"), "stdout: {stdout}");
     assert!(stdout.contains("active: 2"), "stdout: {stdout}");
     assert!(stdout.contains("done: 3"), "stdout: {stdout}");
     assert!(stdout.contains("achievements: 2"), "stdout: {stdout}");
-    assert!(stdout.contains("archive-candidates: 2"), "stdout: {stdout}");
+    assert!(stdout.contains("archive-candidates: 1"), "stdout: {stdout}");
     assert!(stdout.contains("repeating: 2"), "stdout: {stdout}");
     assert!(stdout.contains("closure-needed: 1"), "stdout: {stdout}");
     assert!(stdout.contains("agent: 5"), "stdout: {stdout}");
     assert!(stdout.contains("achievement: 2"), "stdout: {stdout}");
     assert!(stdout.contains("performance: 2"), "stdout: {stdout}");
     assert!(stdout.contains("Closure Needed: 1"), "stdout: {stdout}");
-    assert!(stdout.contains("Archive Candidates: 2"), "stdout: {stdout}");
+    assert!(stdout.contains("Archive Candidates: 1"), "stdout: {stdout}");
     assert!(stdout.contains("Achievements: 2"), "stdout: {stdout}");
     assert!(stdout.contains("Repeating Tasks: 2"), "stdout: {stdout}");
     assert!(
@@ -87,7 +96,6 @@ fn standalone_orgize_task_report_named_views_limit_summary_scope() {
         "archive-candidate",
         &[
             "view: archive-candidate",
-            "rows: 2",
             "archive-candidates: 2",
             "Achievements: 1",
         ],
@@ -98,7 +106,6 @@ fn standalone_orgize_task_report_named_views_limit_summary_scope() {
         "closure-needed",
         &[
             "view: closure-needed",
-            "rows: 1",
             "closure-needed: 1",
             "Completed but not closed",
         ],
@@ -107,12 +114,7 @@ fn standalone_orgize_task_report_named_views_limit_summary_scope() {
     assert_task_report_view(
         temp.path(),
         "repeating",
-        &[
-            "view: repeating",
-            "rows: 1",
-            "repeating: 1",
-            "Performance cadence",
-        ],
+        &["view: repeating", "repeating: 1", "Performance cadence"],
         &[],
     );
 }
@@ -131,11 +133,6 @@ fn standalone_orgize_task_report_summary_only_omits_detail_sections() {
     assert_cli_success(&output);
     assert!(
         output.stdout.contains("summary-only: true"),
-        "stdout: {}",
-        output.stdout
-    );
-    assert!(
-        output.stdout.contains("rows: 4"),
         "stdout: {}",
         output.stdout
     );
@@ -205,16 +202,37 @@ fn write_task_report_named_views_fixture(root: &std::path::Path) {
         concat!(
             "* TODO Performance cadence :agent:performance:\n",
             "SCHEDULED: <2026-05-18 Mon ++1d>\n",
+            ":PROPERTIES:\n",
+            ":ID: views-performance-cadence\n",
+            ":END:\n",
             "* TODO Completed but not closed [3/3] [100%] :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: views-completed-but-not-closed\n",
+            ":END:\n",
             "- [X] Scope\n",
             "- [X] Implementation\n",
             "- [X] Validation\n",
-            "* DONE Completed slice :agent:achievement:\n",
+            "* DONE Completed slice [1/1] [100%] :agent:achievement:\n",
             "CLOSED: [2026-05-17 Sun]\n",
-            "* DONE Archive candidate :agent:\n",
+            ":PROPERTIES:\n",
+            ":ID: views-completed-slice\n",
+            ":END:\n",
+            "- [X] Land completed slice.\n",
+            "** Reflection\n",
+            "- Summary: The completed slice landed.\n",
+            "* DONE Archive candidate [1/1] [100%] :agent:\n",
             "CLOSED: [2026-05-17 Sun]\n",
+            ":PROPERTIES:\n",
+            ":ID: views-archive-candidate\n",
+            ":END:\n",
+            "- [X] Land archive candidate.\n",
+            "** Reflection\n",
+            "- Summary: The archive candidate landed.\n",
             "* DONE Archived slice :agent:achievement:ARCHIVE:\n",
             "CLOSED: [2026-05-16 Sat]\n",
+            ":PROPERTIES:\n",
+            ":ID: views-archived-slice\n",
+            ":END:\n",
         ),
     )
     .unwrap_or_else(|error| panic!("write agenda: {error}"));

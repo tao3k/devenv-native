@@ -82,7 +82,7 @@ fn replace_agent_org_task_rows(
             .with_context(|| "failed to serialize Org task deadline repeater")?;
         appender
             .append_row(xiuxian_db_store::duckdb_crate::params![
-                row.task_id.as_str(),
+                row.orgid.as_str(),
                 row.source_path.as_str(),
                 row.source_line,
                 row.source_column,

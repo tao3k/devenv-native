@@ -37,6 +37,39 @@ fn audio_worker_budget_accepts_auto_or_positive_integer() -> Result<(), String> 
 }
 
 #[test]
+fn audio_artifact_cache_uses_shared_l2_root_with_route_override() -> Result<(), String> {
+    let config = document_extract_audio_config(&|key| match key {
+        "PRJ_CACHE_HOME" => Some("/tmp/project-cache".to_owned()),
+        _ => None,
+    })?;
+    assert_eq!(
+        config.artifact_cache_dir.as_deref(),
+        Some(Path::new("/tmp/project-cache/wendao/artifacts"))
+    );
+
+    let shared_root = document_extract_audio_config(&|key| match key {
+        "WENDAO_ARTIFACT_CACHE_ROOT" => Some("/tmp/shared-artifacts".to_owned()),
+        "PRJ_CACHE_HOME" => Some("/tmp/project-cache".to_owned()),
+        _ => None,
+    })?;
+    assert_eq!(
+        shared_root.artifact_cache_dir.as_deref(),
+        Some(Path::new("/tmp/shared-artifacts"))
+    );
+
+    let route_override = document_extract_audio_config(&|key| match key {
+        "WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR" => Some("/tmp/audio-route".to_owned()),
+        "WENDAO_ARTIFACT_CACHE_ROOT" => Some("/tmp/shared-artifacts".to_owned()),
+        _ => None,
+    })?;
+    assert_eq!(
+        route_override.artifact_cache_dir.as_deref(),
+        Some(Path::new("/tmp/audio-route"))
+    );
+    Ok(())
+}
+
+#[test]
 fn parses_ffprobe_duration_as_ceil_milliseconds() -> Result<(), String> {
     assert_eq!(parse_ffprobe_duration_ms("1.2341")?, 1235);
     assert!(parse_ffprobe_duration_ms("0").is_err());

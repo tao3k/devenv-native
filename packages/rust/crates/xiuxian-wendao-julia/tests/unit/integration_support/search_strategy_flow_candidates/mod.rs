@@ -13,15 +13,19 @@ pub(crate) use super::{
     search_strategy_flow_candidate_discovery_contract_json,
     search_strategy_flow_candidate_input_batch_from_markdown,
     search_strategy_flow_candidate_input_from_repo_search_hit,
+    search_strategy_flow_candidate_inputs_arrow_ipc,
+    search_strategy_flow_candidate_inputs_arrow_record_batch,
     search_strategy_flow_code_intelligence_inventory_candidate_input_batch,
     search_strategy_flow_registry_authority_candidate_input_batch,
     search_strategy_flow_total_structured_candidate_index_contract,
 };
 pub(crate) use super::{REGISTRY_METADATA_CANDIDATE_SOURCE, RUST_DUCKDB_STRUCTURED_INDEX_BACKEND};
 pub(crate) use super::{
-    SearchStrategyFlowConfiguredMarkdownCorpusRow, SearchStrategyFlowConfiguredMarkdownReplayFamily,
+    SearchStrategyFlowCandidateInput, SearchStrategyFlowConfiguredMarkdownCorpusRow,
+    SearchStrategyFlowConfiguredMarkdownReplayFamily,
 };
 
+mod arrow_service;
 mod code_inventory;
 mod corpus;
 mod discovery;

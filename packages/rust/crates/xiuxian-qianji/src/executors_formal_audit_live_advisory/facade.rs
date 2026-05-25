@@ -8,6 +8,8 @@ use crate::contract_feedback::{AdvisoryAuditExecutor, AdvisoryAuditRequest, Role
 use anyhow::Result;
 use async_trait::async_trait;
 use futures::StreamExt;
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
 use xiuxian_llm::llm::{ChatRequest, LlmClient};
 use xiuxian_zhenfa::{ZhenfaPipeline, ZhenfaPipelineOptions};
 
@@ -33,6 +35,9 @@ pub struct QianjiLlmAdvisoryAuditExecutor {
     pub enable_cognitive_supervision: bool,
     /// Coherence threshold used when cognitive supervision is enabled.
     pub cognitive_early_halt_threshold: f32,
+    /// Optional prompt-context pack artifact cache supplied by the runtime.
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    pub prompt_context_pack_cache: Option<Arc<dyn ArtifactBlobCache + Send + Sync>>,
 }
 
 impl QianjiLlmAdvisoryAuditExecutor {
@@ -50,6 +55,8 @@ impl QianjiLlmAdvisoryAuditExecutor {
             temperature: DEFAULT_TEMPERATURE,
             enable_cognitive_supervision: false,
             cognitive_early_halt_threshold: 0.3,
+            #[cfg(feature = "advisory-prompt-pack-cache")]
+            prompt_context_pack_cache: None,
         }
     }
 
@@ -66,6 +73,33 @@ impl QianjiLlmAdvisoryAuditExecutor {
         self.enable_cognitive_supervision = true;
         self.cognitive_early_halt_threshold = early_halt_threshold;
         self
+    }
+
+    /// Attach the runtime-owned artifact cache used for prompt-context packs.
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    #[must_use]
+    pub fn with_prompt_context_pack_cache(
+        mut self,
+        cache: Arc<dyn ArtifactBlobCache + Send + Sync>,
+    ) -> Self {
+        self.prompt_context_pack_cache = Some(cache);
+        self
+    }
+
+    async fn build_advisory_plan(
+        &self,
+        request: &AdvisoryAuditRequest,
+    ) -> Result<QianjiAdvisoryExecutionPlan> {
+        #[cfg(feature = "advisory-prompt-pack-cache")]
+        {
+            if let Some(cache) = self.prompt_context_pack_cache.as_deref() {
+                return self
+                    .planner
+                    .build_plan_with_prompt_context_pack_cache(request, cache)
+                    .await;
+            }
+        }
+        self.planner.build_plan(request).await
     }
 
     async fn execute_role_critique(
@@ -138,7 +172,7 @@ impl QianjiLlmAdvisoryAuditExecutor {
 #[async_trait]
 impl AdvisoryAuditExecutor for QianjiLlmAdvisoryAuditExecutor {
     async fn run(&self, request: AdvisoryAuditRequest) -> Result<Vec<RoleAuditFinding>> {
-        let plan: QianjiAdvisoryExecutionPlan = self.planner.build_plan(&request).await?;
+        let plan: QianjiAdvisoryExecutionPlan = self.build_advisory_plan(&request).await?;
         let mut findings = QianjiAdvisoryAuditExecutor::findings_from_plan(&request, &plan);
 
         for (finding, role_plan) in findings.iter_mut().zip(&plan.roles) {

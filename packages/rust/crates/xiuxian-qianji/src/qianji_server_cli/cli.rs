@@ -1,5 +1,6 @@
 use anyhow::{anyhow, bail};
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum QianjiServerCommand {
@@ -12,6 +13,7 @@ pub(crate) struct QianjiServerServeCommand {
     pub(crate) bind_addr: Option<SocketAddr>,
     pub(crate) valkey_url: Option<String>,
     pub(crate) require_valkey_ready: Option<bool>,
+    pub(crate) flowhub_root: Option<PathBuf>,
 }
 
 pub(crate) fn parse_qianji_server_args<I, S>(args: I) -> anyhow::Result<QianjiServerCommand>
@@ -22,6 +24,7 @@ where
     let mut bind_addr = None;
     let mut valkey_url = None;
     let mut require_valkey_ready = None;
+    let mut flowhub_root = None;
     let mut args = args.into_iter().map(Into::into);
 
     while let Some(arg) = args.next() {
@@ -58,6 +61,22 @@ where
             continue;
         }
 
+        if arg == "--flowhub-root" {
+            let value = args.next().ok_or_else(|| {
+                anyhow!(
+                    "missing value for --flowhub-root\n\n{}",
+                    qianji_server_usage()
+                )
+            })?;
+            flowhub_root = Some(parse_flowhub_root(&value)?);
+            continue;
+        }
+
+        if let Some(value) = arg.strip_prefix("--flowhub-root=") {
+            flowhub_root = Some(parse_flowhub_root(value)?);
+            continue;
+        }
+
         if arg == "--require-valkey-ready" {
             require_valkey_ready = Some(true);
             continue;
@@ -78,11 +97,12 @@ where
         bind_addr,
         valkey_url,
         require_valkey_ready,
+        flowhub_root,
     }))
 }
 
 pub(crate) fn qianji_server_usage() -> &'static str {
-    "Usage: qianji-server [--bind <addr>] [--valkey-url <url>] [--require-valkey-ready|--no-require-valkey-ready]\n\nStarts the Qianji BPMN HTTP service. When --bind is omitted, [server].bind_addr from qianji.toml is used. HTTP checkpoint defaults are Valkey-only."
+    "Usage: qianji-server [--bind <addr>] [--valkey-url <url>] [--flowhub-root <path>] [--require-valkey-ready|--no-require-valkey-ready]\n\nStarts the Qianji BPMN HTTP service. When --bind is omitted, [server].bind_addr from qianji.toml is used. HTTP checkpoint defaults are Valkey-only."
 }
 
 fn parse_bind_addr(value: &str) -> anyhow::Result<SocketAddr> {
@@ -97,4 +117,12 @@ fn parse_valkey_url(value: &str) -> anyhow::Result<String> {
         bail!("--valkey-url must not be empty");
     }
     Ok(value.to_string())
+}
+
+fn parse_flowhub_root(value: &str) -> anyhow::Result<PathBuf> {
+    let value = value.trim();
+    if value.is_empty() {
+        bail!("--flowhub-root must not be empty");
+    }
+    Ok(PathBuf::from(value))
 }

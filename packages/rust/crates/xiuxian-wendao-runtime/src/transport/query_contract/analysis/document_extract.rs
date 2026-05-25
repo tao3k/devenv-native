@@ -35,6 +35,14 @@ pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extra
 pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
 /// Internal audio worker budget header for Python audio shard requests.
 pub const WENDAO_AUDIO_WORKERS_HEADER: &str = "x-wendao-audio-workers";
+/// Canonical analyzer audio worker selector header.
+pub const WENDAO_AUDIO_WORKER_HEADER: &str = "x-wendao-audio-worker";
+/// Canonical hosted audio provider header.
+pub const WENDAO_AUDIO_HOSTED_PROVIDER_HEADER: &str = "x-wendao-audio-hosted-provider";
+/// Canonical hosted audio base URL header.
+pub const WENDAO_AUDIO_HOSTED_BASE_URL_HEADER: &str = "x-wendao-audio-hosted-base-url";
+/// Canonical hosted audio model header.
+pub const WENDAO_AUDIO_HOSTED_MODEL_HEADER: &str = "x-wendao-audio-hosted-model";
 
 /// Full Docling document extraction profile.
 pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";

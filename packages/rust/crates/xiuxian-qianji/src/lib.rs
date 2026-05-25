@@ -9,7 +9,7 @@ pub mod app;
 /// High-level laboratory API for end-to-end workflow execution.
 #[cfg(feature = "qianji-full")]
 pub mod bootcamp;
-/// Thin BPMN host adapter helpers backed by `qianji-bpmn-engine`.
+/// Thin BPMN host adapter helpers backed by `xiuxian-qianji-bpmn-engine`.
 pub mod bpmn;
 /// Distributed consensus management for multi-agent synchronization.
 #[cfg(feature = "qianji-full")]
@@ -91,7 +91,9 @@ pub use bootcamp::{
 };
 pub use bpmn::{
     BpmnAdapterError, BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,
-    DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,
+    DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, FLOWHUB_SERVICE_ACTIVITY_TYPE,
+    FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput,
+    FlowhubServiceActivityScheduleInput, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,
     QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
     QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest, QianjiBpmnExecutionScheduler,
     QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder, QianjiBpmnLeaseOwnerToken,
@@ -123,7 +125,13 @@ pub use bpmn::{
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
     QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
     QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
-    QianjiBpmnWorkflowWorklistRoutingFilter, dispatch_pending_host_work_request,
+    QianjiBpmnWorkflowWorklistRoutingFilter, QianjiRuntimeBpmnInstanceIdRef,
+    QianjiRuntimeInstantMs, build_flowhub_service_activity_schedule_record,
+    build_flowhub_service_activity_schedule_record_from_http_pending_work,
+    build_flowhub_service_task_complete_http_request,
+    build_flowhub_service_task_completion_payload,
+    build_flowhub_service_task_contract_activity_result,
+    build_flowhub_service_task_contract_completion_data, dispatch_pending_host_work_request,
     dispatch_pending_host_work_requests, load_bpmn_package_from_files,
     load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
     resolve_pending_host_work, resolve_waiting_external_event,
@@ -188,6 +196,11 @@ pub use llm_client::QianjiLlmClient;
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
 #[cfg(feature = "qianji-full")]
 pub use qianji_cli::{QianjiCliError, run_qianji_cli};
+pub use qianji_server_cli::flowhub_worker::{
+    QianjiServerFlowhubServiceWorkerLoopOutput, QianjiServerFlowhubServiceWorkerLoopRequest,
+    QianjiServerFlowhubServiceWorkerStepOutput,
+    run_qianji_server_flowhub_service_worker_completion_loop,
+};
 pub use qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli};
 #[cfg(feature = "qianji-full")]
 pub use safety::QianjiSafetyGuard;

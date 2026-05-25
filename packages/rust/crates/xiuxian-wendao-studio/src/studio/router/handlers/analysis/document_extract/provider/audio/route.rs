@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
+use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
 use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchGateOptions, AudioRiskParentSelectionOptions,
     AudioShardMaterializationSource, AudioShardMaterializedItem, AudioShardWorkerProfile,
@@ -154,6 +155,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         )?;
         write_audio_materialization_report(
             output.as_path(),
+            &config,
             &execution.base_materialized_shards,
             &execution.recovery_materialized_shards,
         )?;
@@ -286,12 +288,17 @@ fn write_audio_cache_manifest(
 
 fn write_audio_materialization_report(
     output_dir: &Path,
+    config: &AudioDocumentExtractConfig,
     base_shards: &[AudioShardMaterializedItem],
     recovery_shards: &[AudioShardMaterializedItem],
 ) -> Result<(), String> {
     let report_path = output_dir.join(AUDIO_MATERIALIZATION_REPORT_NAME);
-    let source_counts =
-        audio_materialization_source_counts(base_shards.iter().chain(recovery_shards.iter()));
+    let shards = base_shards
+        .iter()
+        .chain(recovery_shards.iter())
+        .collect::<Vec<_>>();
+    let source_counts = audio_materialization_source_counts(shards.iter().copied());
+    let source_bytes = audio_materialization_source_bytes(shards.iter().copied())?;
     let artifact_cache_hit_count = source_counts
         .get("artifact-cache")
         .copied()
@@ -304,15 +311,35 @@ fn write_audio_materialization_report(
         .get("media-splitter")
         .copied()
         .unwrap_or_default();
+    let artifact_cache_hit_bytes = source_bytes
+        .get("artifact-cache")
+        .copied()
+        .unwrap_or_default();
+    let existing_output_bytes = source_bytes
+        .get("existing-output")
+        .copied()
+        .unwrap_or_default();
+    let media_splitter_bytes = source_bytes
+        .get("media-splitter")
+        .copied()
+        .unwrap_or_default();
     let payload = serde_json::json!({
         "schema": AUDIO_MATERIALIZATION_REPORT_SCHEMA,
+        "artifactCache": audio_artifact_cache_report(config),
         "baseShardCount": base_shards.len(),
         "recoveryShardCount": recovery_shards.len(),
         "shardCount": base_shards.len() + recovery_shards.len(),
         "sourceCounts": source_counts,
+        "sourceBytes": source_bytes,
+        "byteCount": artifact_cache_hit_bytes
+            .saturating_add(existing_output_bytes)
+            .saturating_add(media_splitter_bytes),
         "artifactCacheHitCount": artifact_cache_hit_count,
+        "artifactCacheHitBytes": artifact_cache_hit_bytes,
         "existingOutputCount": existing_output_count,
+        "existingOutputBytes": existing_output_bytes,
         "mediaSplitterCount": media_splitter_count,
+        "mediaSplitterBytes": media_splitter_bytes,
     });
     let bytes = serde_json::to_vec_pretty(&payload)
         .map_err(|error| format!("serialize audio materialization report: {error}"))?;
@@ -322,6 +349,28 @@ fn write_audio_materialization_report(
             report_path.display()
         )
     })
+}
+
+fn audio_artifact_cache_report(config: &AudioDocumentExtractConfig) -> serde_json::Value {
+    let Some(root) = config.artifact_cache_dir.as_ref() else {
+        return serde_json::json!({
+            "configured": false,
+        });
+    };
+    match ArtifactBlobCacheBackendConfig::from_root_and_env(root) {
+        Ok(cache_config) => serde_json::json!({
+            "configured": true,
+            "backend": cache_config.kind().as_str(),
+            "root": cache_config.root().to_string_lossy(),
+            "memoryBytes": cache_config.memory_capacity_bytes(),
+            "storageBytes": cache_config.storage_capacity_bytes(),
+        }),
+        Err(error) => serde_json::json!({
+            "configured": true,
+            "root": root.to_string_lossy(),
+            "configError": error.to_string(),
+        }),
+    }
 }
 
 fn write_audio_transcript_admission_report(
@@ -365,6 +414,28 @@ fn audio_materialization_source_counts<'a>(
     counts
 }
 
+fn audio_materialization_source_bytes<'a>(
+    shards: impl Iterator<Item = &'a AudioShardMaterializedItem>,
+) -> Result<BTreeMap<&'static str, u64>, String> {
+    let mut bytes = BTreeMap::new();
+    for shard in shards {
+        let len = std::fs::metadata(shard.output_path.as_path())
+            .map_err(|error| {
+                format!(
+                    "stat audio materialized shard `{}`: {error}",
+                    shard.output_path.display()
+                )
+            })?
+            .len();
+        *bytes
+            .entry(audio_materialization_source_key(
+                shard.materialization_source,
+            ))
+            .or_insert(0) += len;
+    }
+    Ok(bytes)
+}
+
 fn audio_materialization_source_key(source: AudioShardMaterializationSource) -> &'static str {
     match source {
         AudioShardMaterializationSource::ExistingOutput => "existing-output",
@@ -380,3 +451,7 @@ fn document_extract_audio_output_dir(source: &Path, output_dir: &str) -> PathBuf
         PathBuf::from(output_dir)
     }
 }
+
+#[cfg(test)]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/route_materialization_report.rs"]
+mod tests;

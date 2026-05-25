@@ -1,0 +1,26 @@
+[package]
+name = "xiuxian-julia-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Julia runtime contracts and feature-scoped Wendao adapters"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = []
+wendao = [
+    "dep:xiuxian-wendao-core",
+    "dep:xiuxian-wendao-runtime",
+    "xiuxian-wendao-runtime/transport",
+]
+
+[dependencies]
+xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+
+[lints]
+workspace = true

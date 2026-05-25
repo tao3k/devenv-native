@@ -2,13 +2,20 @@
 
 #[cfg(feature = "artifact-cache")]
 use xiuxian_db_store::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobRead, ArtifactBlobWrite, ArtifactKey, ArtifactKeyComponent,
-    ArtifactKeyParts, ArtifactKind, ContentAddressedFilesystemBlobCache,
+    ARTIFACT_CACHE_BACKEND_ENV, ARTIFACT_CACHE_MEMORY_BYTES_ENV, ARTIFACT_CACHE_ROOT_ENV,
+    ARTIFACT_CACHE_STORAGE_BYTES_ENV, AgentArtifactKeyParts, ArtifactBlobCache,
+    ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobWrite, ArtifactCacheBackendKind,
+    ArtifactKey, ArtifactKeyComponent, ArtifactKeyParts, ArtifactKind, AttachmentArtifactKeyParts,
+    ContentAddressedFilesystemBlobCache, OntologyArtifactKeyParts, agent_artifact_key,
+    attachment_artifact_key, ontology_artifact_key, pack_artifact_directory,
+    read_through_artifact_bytes, unpack_artifact_directory,
 };
 #[cfg(feature = "foyer-artifact-cache")]
-use xiuxian_db_store::artifact_cache::{FoyerArtifactBlobCache, FoyerArtifactBlobCacheConfig};
+use xiuxian_db_store::artifact_cache::{
+    ArtifactBlobCacheBackend, FoyerArtifactBlobCache, FoyerArtifactBlobCacheConfig,
+};
 #[cfg(feature = "artifact-cache")]
-#[path = "unit/artifact_cache.rs"]
+#[path = "unit/artifact_cache/mod.rs"]
 mod artifact_cache;
 #[cfg(feature = "foyer-artifact-cache")]
 #[path = "unit/foyer_artifact_cache.rs"]

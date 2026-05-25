@@ -2,6 +2,7 @@ use crate::qianji_test_valkey_support as valkey_support;
 
 mod adapter;
 mod control;
+mod flowhub_activity_adapter;
 mod http;
 mod runtime;
 mod runtime_identity;

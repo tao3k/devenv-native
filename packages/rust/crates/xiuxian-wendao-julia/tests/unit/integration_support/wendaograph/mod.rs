@@ -1,6 +1,7 @@
 use super::{
-    SearchStrategyFlowCandidateInputBatch, SearchStrategyFlowFlightMaterializationConfig,
-    SearchStrategyFlowPersistentBatchHost, SearchStrategyFlowPersistentHostStabilizationLimits,
+    SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch,
+    SearchStrategyFlowFlightMaterializationConfig, SearchStrategyFlowPersistentBatchHost,
+    SearchStrategyFlowPersistentHostStabilizationLimits,
     SearchStrategyFlowPersistentHostStabilizationReason,
     SearchStrategyFlowPersistentHostStabilizationReport,
     SearchStrategyFlowPersistentHostWarmPathStats, WENDAOGRAPH_PACKAGE_DIR_ENV,
@@ -21,10 +22,14 @@ use super::{
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
+    search_strategy_flow_candidate_input_batch,
     search_strategy_flow_candidate_input_batch_from_repo_search,
     search_strategy_flow_probe_action_route,
     search_strategy_flow_registry_authority_candidate_input_batch,
 };
+use std::fs;
+use std::path::{Path, PathBuf};
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 const RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST_ENV: &str =
     "RUN_WENDAOGRAPH_PAGE_INDEX_HOST_PROBE_TEST";
@@ -40,3 +45,54 @@ mod ontology_read_model;
 mod relationship_search;
 mod reports;
 mod search_strategy;
+
+#[test]
+fn wendaograph_bridge_source_and_tests_use_runtime_arrow_data_plane_constant() {
+    let mut offenders = Vec::new();
+    for source_root in [
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/integration_support"),
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/unit"),
+    ] {
+        collect_arrow_flight_literal_offenders(&source_root, &mut offenders);
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "WendaoGraph bridge source and tests must import the runtime data-plane token instead of spelling {WENDAO_ARROW_FLIGHT_DATA_PLANE:?}: {offenders:?}"
+    );
+}
+
+fn collect_arrow_flight_literal_offenders(path: &Path, offenders: &mut Vec<PathBuf>) {
+    let metadata = match fs::metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) => panic!("failed to inspect {}: {error}", path.display()),
+    };
+    if metadata.is_dir() {
+        let entries = match fs::read_dir(path) {
+            Ok(entries) => entries,
+            Err(error) => panic!("failed to read {}: {error}", path.display()),
+        };
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(error) => panic!(
+                    "failed to read directory entry in {}: {error}",
+                    path.display()
+                ),
+            };
+            collect_arrow_flight_literal_offenders(&entry.path(), offenders);
+        }
+        return;
+    }
+    if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+        return;
+    }
+    let source = match fs::read_to_string(path) {
+        Ok(source) => source,
+        Err(error) => panic!("failed to read {}: {error}", path.display()),
+    };
+    let token_literal = format!("\"{WENDAO_ARROW_FLIGHT_DATA_PLANE}\"");
+    if source.contains(token_literal.as_str()) {
+        offenders.push(path.to_path_buf());
+    }
+}

@@ -31,6 +31,7 @@ fn assert_live_bridge_source_is_gateway_config_free(relative_path: &str) {
 fn search_strategy_flow_rust_bridge_keeps_gateway_config_out_of_live_client_boundary() {
     for relative_path in [
         "src/integration_support/search_strategy_flow_flight/candidate_source.rs",
+        "src/integration_support/search_strategy_flow_flight/admission.rs",
         "src/integration_support/search_strategy_flow_flight/client.rs",
         "src/integration_support/search_strategy_flow_flight/config.rs",
         "src/integration_support/search_strategy_flow_flight/materialization.rs",
@@ -84,6 +85,46 @@ fn search_strategy_flow_gateway_config_reads_stay_in_offline_audit_only() {
         "src/integration_support/search_strategy_flow_candidates/code_inventory.rs",
     );
     assert!(offline_audit_source.contains("OFFLINE_AUDIT_ROOT_WENDAO_CONFIG_PATH"));
+}
+
+#[test]
+fn search_strategy_flow_service_trace_uses_candidate_route_buckets_for_required_evidence() {
+    assert_eq!(
+        super::super::super::service_trace::frontier_route_bucket(
+            "AGENTS.md#158-debt-closure-at-discovery-when-a-warning-lint-failure-modularity",
+        ),
+        "authority"
+    );
+    assert_eq!(
+        super::super::super::service_trace::frontier_route_bucket(
+            "docs/standards/AUDITOR_CODEX.md#document",
+        ),
+        "authority"
+    );
+    assert_eq!(
+        super::super::super::service_trace::frontier_route_bucket(
+            "docs/testing/README.md#default-validation-path",
+        ),
+        "validation"
+    );
+    assert_eq!(
+        super::super::super::service_trace::frontier_route_bucket(
+            "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md#document",
+        ),
+        "validation"
+    );
+    assert_eq!(
+        super::super::super::service_trace::frontier_route_bucket(
+            "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md#2-2-existing-julia-compute-boundary",
+        ),
+        "authority"
+    );
+    assert_eq!(
+        super::super::super::service_trace::frontier_route_bucket(
+            "docs/10_graph_compute/10.01_link_graph_compute.md#relation-context",
+        ),
+        "link_graph"
+    );
 }
 
 fn display_relative(path: &Path) -> String {

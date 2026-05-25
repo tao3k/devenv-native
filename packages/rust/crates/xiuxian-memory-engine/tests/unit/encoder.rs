@@ -49,3 +49,20 @@ fn test_encoding_normalized() {
     let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
     assert!((norm - 1.0).abs() < 0.001);
 }
+
+#[test]
+fn token_overlap_scores_above_unrelated_intents() {
+    let encoder = IntentEncoder::new(128);
+
+    let query = encoder.encode("memory engine signal fusion");
+    let near = encoder.encode("org memory engine signal fusion");
+    let far = encoder.encode("audio openrouter reference gate");
+
+    let near_score = encoder.cosine_similarity(&query, &near);
+    let far_score = encoder.cosine_similarity(&query, &far);
+
+    assert!(
+        near_score > far_score,
+        "near score {near_score} should beat unrelated score {far_score}"
+    );
+}

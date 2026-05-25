@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use serde_json::{Value, json};
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 use crate::integration_support::search_strategy_flow_candidates::{
     CODE_INTELLIGENCE_CANDIDATE_SOURCE, MARKDOWN_HEADING_CANDIDATE_SOURCE,
@@ -282,7 +283,7 @@ fn search_strategy_flow_retrieval_route(
         "materializationOwner": "studio-rust",
         "materializationStatus": "planned",
         "receiptSource": "rust-bridge",
-        "primaryTransport": "arrow-flight",
+        "primaryTransport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
         "sourcePath": section.source_path,
         "directFileReadAllowed": false,
         "executeBeforeAnswer": true,
@@ -340,7 +341,7 @@ fn search_strategy_flow_flight_steps(section: &MarkdownSectionCandidate<'_>) -> 
     vec![
         json!({
             "step": "flight_search_page",
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/search/repos/main",
             "metadataTemplates": [
                 "x-wendao-repo-search-repo=<repo>",
@@ -354,7 +355,7 @@ fn search_strategy_flow_flight_steps(section: &MarkdownSectionCandidate<'_>) -> 
         }),
         json!({
             "step": "flight_resolve_page_index_tree",
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/analysis/repo-projected-page-index-tree",
             "metadataTemplates": page_index_metadata,
             "note": "Select the concrete page-index node from the returned tree; do not treat the Markdown anchor as the node id.",
@@ -363,7 +364,7 @@ fn search_strategy_flow_flight_steps(section: &MarkdownSectionCandidate<'_>) -> 
         }),
         json!({
             "step": "flight_open_retrieval_context",
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/analysis/repo-projected-retrieval-context",
             "metadataTemplates": [
                 "x-wendao-repo-projected-retrieval-context-repo=<repo>",
@@ -377,7 +378,7 @@ fn search_strategy_flow_flight_steps(section: &MarkdownSectionCandidate<'_>) -> 
         }),
         json!({
             "step": "flight_expand_graph_context",
-            "transport": "arrow-flight",
+            "transport": WENDAO_ARROW_FLIGHT_DATA_PLANE,
             "route": "/graph/neighbors",
             "metadataTemplates": [
                 "x-wendao-graph-node-id=<resolved-graph-node-id>",

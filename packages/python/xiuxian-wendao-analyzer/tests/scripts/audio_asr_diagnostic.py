@@ -74,8 +74,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_quality import (
 from xiuxian_wendao_analyzer.audio_diagnostic_quality_inputs import (
     REFERENCE_STATUS_CANDIDATE_DRAFT,
     REFERENCE_STATUS_CURATED,
-    curated_reference_rows_from_draft,
-    curated_reference_rows_from_tsv,
+    curated_reference_rows_from_org,
     load_reference_transcripts,
     load_term_list,
     normalize_primary_language,
@@ -99,7 +98,8 @@ from xiuxian_wendao_analyzer.audio_diagnostic_recovery_patch import (
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_pack import (
     materialize_reference_selection_pack,
     model_review_reference_selection_pack,
-    validate_reference_selection_pack,
+    validate_reference_selection_review_table,
+    write_reference_selection_review_org,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_selection import (
     select_reference_draft_report,
@@ -109,10 +109,7 @@ from xiuxian_wendao_analyzer.audio_diagnostic_reporting import (
     reference_draft_rows,
     timeline_review_rows,
     write_jsonl,
-    write_quality_tsv,
     write_reference_draft_jsonl,
-    write_reference_draft_tsv,
-    write_transcript_review_tsv,
     write_transcript_timeline_jsonl,
     write_transcript_timeline_org,
     write_transcript_timeline_srt,
@@ -121,11 +118,11 @@ from xiuxian_wendao_analyzer.audio_diagnostic_reporting import (
 from xiuxian_wendao_analyzer.audio_diagnostic_results import (
     OPENAI_COMPATIBLE_AUDIO_BACKENDS,
     AsrResult,
-    audio_result_cache_key,
+    audio_task_admission_key,
     backend_config_hash,
     summarize_results,
+    write_admitted_transcript,
     write_json,
-    write_result_cache,
 )
 from xiuxian_wendao_analyzer.audio_diagnostic_risk_recovery import (
     AudioRiskRecoveryOptions,
@@ -179,9 +176,9 @@ __all__ = [
     "AudioRiskRecoveryOptions",
     "QualityRow",
     "SpeechSegment",
-    "audio_result_cache_key",
     "audio_shard_cache_key",
     "audio_shard_manifest",
+    "audio_task_admission_key",
     "backend_config_hash",
     "build_audio_shard_manifest_item",
     "build_openrouter_payload",
@@ -192,8 +189,7 @@ __all__ = [
     "chunk_start_offsets",
     "chunk_windows",
     "compare_audio_candidate_summaries",
-    "curated_reference_rows_from_draft",
-    "curated_reference_rows_from_tsv",
+    "curated_reference_rows_from_org",
     "discover_audio_sources",
     "ensure_ffmpeg_on_path",
     "explicit_audio_windows",
@@ -226,11 +222,9 @@ __all__ = [
     "truth_template_rows",
     "validate_private_output_dir",
     "validate_reference_jsonl",
-    "validate_reference_selection_pack",
+    "write_admitted_transcript",
     "write_json",
     "write_reference_draft_jsonl",
-    "write_reference_draft_tsv",
-    "write_result_cache",
     "write_transcript_timeline_org",
 ]
 
@@ -268,7 +262,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 limit=args.reference_selection_limit,
                 quality_json=args.reference_selection_quality_json,
                 selected_jsonl=args.reference_selection_jsonl,
-                selected_tsv=args.reference_selection_tsv,
             )
             if args.reference_selection_report_json is not None:
                 write_json(args.reference_selection_report_json, report)
@@ -334,15 +327,20 @@ def main(argv: Sequence[str] | None = None) -> int:
                 write_json(args.reference_selection_pack_report_json, report)
             print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
             return 0
-        if args.validate_reference_selection_review_tsv is not None:
-            report = validate_reference_selection_pack(
-                review_tsv=args.validate_reference_selection_review_tsv,
+        if args.validate_reference_selection_review_table is not None:
+            report = validate_reference_selection_review_table(
+                review_table=args.validate_reference_selection_review_table,
             )
+            if args.reference_selection_review_org is not None:
+                report["reviewOrg"] = write_reference_selection_review_org(
+                    review_table=args.validate_reference_selection_review_table,
+                    output_org=args.reference_selection_review_org,
+                )
             if args.reference_selection_validation_report_json is not None:
                 write_json(args.reference_selection_validation_report_json, report)
             print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
             return 0
-        if args.model_review_reference_selection_review_tsv is not None:
+        if args.model_review_reference_selection_review_table is not None:
             api_key = resolve_openrouter_api_key(
                 os.environ,
                 env_file=args.env_file,
@@ -350,10 +348,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             if not api_key:
                 parser.error(
                     "OPENROUTER_API_KEY is required with "
-                    "--model-review-reference-selection-review-tsv"
+                    "--model-review-reference-selection-review-table"
                 )
             report = model_review_reference_selection_pack(
-                review_tsv=args.model_review_reference_selection_review_tsv,
+                review_table=args.model_review_reference_selection_review_table,
                 api_key=api_key,
                 model=args.openrouter_model,
                 base_url=args.openrouter_base_url,
@@ -391,21 +389,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 write_json(args.speech_window_plan_report_json, report)
             print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
             return 0
-        curate_inputs = [
-            value
-            for value in (args.curate_reference_draft, args.curate_reference_tsv)
-            if value is not None
-        ]
+        curate_inputs = [value for value in (args.curate_reference_org,) if value is not None]
         if curate_inputs:
-            if len(curate_inputs) > 1:
-                parser.error("use only one of --curate-reference-draft or --curate-reference-tsv")
             if args.curated_reference_jsonl is None:
                 parser.error("--curated-reference-jsonl is required with reference curation")
-            rows = (
-                curated_reference_rows_from_draft(args.curate_reference_draft)
-                if args.curate_reference_draft is not None
-                else curated_reference_rows_from_tsv(args.curate_reference_tsv)
-            )
+            rows = curated_reference_rows_from_org(args.curate_reference_org)
             write_jsonl(args.curated_reference_jsonl, rows)
             print(
                 json.dumps(

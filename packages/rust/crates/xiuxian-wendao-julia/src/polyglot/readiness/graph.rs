@@ -1,10 +1,17 @@
 //! `WendaoGraph` readiness and scheduling projections.
 
 use xiuxian_polyglot_orchestrator::{
-    BenchmarkState, JuliaAcceleratorDiagnostics, JuliaComputeTaskShape, JuliaReadinessEvidence,
-    JuliaRuntimeStats, JuliaSchedulePlan, LaneCapability, WarmupState,
+    BenchmarkState, JuliaAcceleratorDiagnostics, JuliaComputeTaskShape,
+    JuliaProfileSchedulingFacts, JuliaReadinessEvidence, JuliaRuntimeStats, JuliaSchedulePlan,
+    LaneCapability, WarmupState, WendaoGraphAlgorithmId, WendaoGraphAlgorithmWorkload,
+    WendaoGraphRelationshipSearchEvidence, wendaograph_algorithm_ref,
+    wendaograph_frontier_algorithm_ref, wendaograph_relationship_search_algorithm_refs,
 };
 
+use super::evidence_support::{
+    JuliaReadinessWindow, JuliaStaticContractReadinessProfile, julia_schedule_plan_from_readiness,
+    julia_static_contract_readiness_evidence, latency_ms_as_u32, saturating_usize_to_u32,
+};
 use crate::WENDAO_GRAPH_EVIDENCE_SCHEMA_VERSION;
 use crate::integration_support::{
     WendaoGraphGnnHostProbeReport, WendaoGraphLinkGraphFullStructuralHostProbeReport,
@@ -12,18 +19,8 @@ use crate::integration_support::{
     WendaoGraphPageIndexPlannerActionHostProbeReport,
 };
 use crate::polyglot::state::{
-    JuliaProfileSchedulingFacts, WENDAO_GRAPH_GNN_REASONING_PROFILE_ID,
-    WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION, WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
-    WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID, WendaoGraphRelationshipSearchEvidence,
-};
-use crate::polyglot::wendaograph_algorithms::{
-    WendaoGraphAlgorithmId, WendaoGraphAlgorithmWorkload, wendaograph_algorithm_ref,
-    wendaograph_frontier_algorithm_ref, wendaograph_relationship_search_algorithm_refs,
-};
-
-use super::evidence_support::{
-    JuliaReadinessWindow, JuliaStaticContractReadinessProfile, julia_schedule_plan_from_readiness,
-    julia_static_contract_readiness_evidence, latency_ms_as_u32, saturating_usize_to_u32,
+    WENDAO_GRAPH_GNN_REASONING_PROFILE_ID, WENDAO_GRAPH_GNN_REASONING_SCHEMA_VERSION,
+    WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID, WENDAO_GRAPH_PAGE_INDEX_REASONING_PROFILE_ID,
 };
 
 /// Readiness facts shared by the `WendaoGraph.jl` graph profiles.

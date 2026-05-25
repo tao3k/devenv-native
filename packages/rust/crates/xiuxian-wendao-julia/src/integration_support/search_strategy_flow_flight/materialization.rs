@@ -10,6 +10,7 @@ use xiuxian_wendao_runtime::transport::{
     GRAPH_NEIGHBORS_ROUTE, REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE,
 };
 
+use super::admission::route_materialization_wave_size;
 use super::client::SearchStrategyFlowFlightClient;
 use super::config::SearchStrategyFlowFlightMaterializationConfig;
 use super::constants::{GRAPH_HOPS, GRAPH_LIMIT, RELATED_CONTEXT_LIMIT, REPO_SEARCH_LIMIT};
@@ -26,7 +27,9 @@ use super::rows::{
     decoded_payload_receipt, first_page_index_repo_search_row, first_string, route_string,
     row_count, timed_route_receipt,
 };
-use crate::integration_support::search_strategy_flow_candidates::CODE_INTELLIGENCE_CANDIDATE_SOURCE;
+use crate::integration_support::search_strategy_flow_candidates::{
+    CODE_INTELLIGENCE_CANDIDATE_SOURCE, WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE,
+};
 
 #[derive(Debug)]
 struct SearchStrategyFlowRouteReceipt {
@@ -134,14 +137,19 @@ pub async fn materialize_search_strategy_flow_routes(
     }
 
     let planned_routes = routes.clone();
-    let receipts = try_join_all(planned_routes.into_iter().map(|route| {
-        let config = config.clone();
-        async move {
-            let mut client = SearchStrategyFlowFlightClient::connect(&config).await?;
-            materialize_route(&mut client, &config, &route).await
-        }
-    }))
-    .await?;
+    let wave_size = route_materialization_wave_size(planned_routes.len(), config)?;
+    let mut receipts = Vec::with_capacity(planned_routes.len());
+    for route_wave in planned_routes.chunks(wave_size) {
+        let wave_receipts = try_join_all(route_wave.iter().cloned().map(|route| {
+            let config = config.clone();
+            async move {
+                let mut client = SearchStrategyFlowFlightClient::connect(&config).await?;
+                materialize_route(&mut client, &config, &route).await
+            }
+        }))
+        .await?;
+        receipts.extend(wave_receipts);
+    }
     for (route, receipt) in routes.iter_mut().zip(receipts) {
         apply_route_receipt(route, receipt)?;
     }
@@ -692,9 +700,11 @@ fn should_skip_page_index_for_structured_code_relation(
 }
 
 fn should_use_structured_source_path_for_repo_search(route: &Value, source_path: &str) -> bool {
-    route.get("candidateInputSource").and_then(Value::as_str)
-        == Some(CODE_INTELLIGENCE_CANDIDATE_SOURCE)
-        && source_path_has_markdown_extension(source_path)
+    let candidate_source = route.get("candidateInputSource").and_then(Value::as_str);
+    matches!(
+        candidate_source,
+        Some(CODE_INTELLIGENCE_CANDIDATE_SOURCE | WENDAO_GATEWAY_RETRIEVAL_CANDIDATE_SOURCE)
+    ) && source_path_has_markdown_extension(source_path)
 }
 
 fn graph_relation_substitute_status(source_path: &str) -> &'static str {

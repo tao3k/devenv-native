@@ -13,6 +13,10 @@ artifact-cache = [
   "dep:xiuxian-db-store",
   "xiuxian-db-store/artifact-cache",
 ]
+foyer-artifact-cache = [
+  "artifact-cache",
+  "xiuxian-db-store/foyer-artifact-cache",
+]
 audio-shard-arrow = [
   "dep:arrow",
 ]

@@ -522,17 +522,44 @@ def run_fixture_probe(
         "forceAudioMaterializationShardCount": force_artifact_summary[
             "audioMaterializationShardCount"
         ],
+        "forceAudioMaterializationByteCount": force_artifact_summary[
+            "audioMaterializationByteCount"
+        ],
+        "forceAudioMaterializationArtifactCacheBackendCounts": force_artifact_summary[
+            "audioMaterializationArtifactCacheBackendCounts"
+        ],
+        "forceAudioMaterializationArtifactCacheMemoryBytes": force_artifact_summary[
+            "audioMaterializationArtifactCacheMemoryBytes"
+        ],
+        "forceAudioMaterializationArtifactCacheStorageBytes": force_artifact_summary[
+            "audioMaterializationArtifactCacheStorageBytes"
+        ],
+        "forceAudioMaterializationArtifactCacheConfigErrorCount": force_artifact_summary[
+            "audioMaterializationArtifactCacheConfigErrorCount"
+        ],
         "forceAudioMaterializationArtifactCacheHitCount": force_artifact_summary[
             "audioMaterializationArtifactCacheHitCount"
+        ],
+        "forceAudioMaterializationArtifactCacheHitBytes": force_artifact_summary[
+            "audioMaterializationArtifactCacheHitBytes"
         ],
         "forceAudioMaterializationExistingOutputCount": force_artifact_summary[
             "audioMaterializationExistingOutputCount"
         ],
+        "forceAudioMaterializationExistingOutputBytes": force_artifact_summary[
+            "audioMaterializationExistingOutputBytes"
+        ],
         "forceAudioMaterializationMediaSplitterCount": force_artifact_summary[
             "audioMaterializationMediaSplitterCount"
         ],
+        "forceAudioMaterializationMediaSplitterBytes": force_artifact_summary[
+            "audioMaterializationMediaSplitterBytes"
+        ],
         "forceAudioMaterializationSourceCounts": force_artifact_summary[
             "audioMaterializationSourceCounts"
+        ],
+        "forceAudioMaterializationSourceBytes": force_artifact_summary[
+            "audioMaterializationSourceBytes"
         ],
         "forceAudioTranscriptAdmissionEnabled": force_artifact_summary[
             "audioTranscriptAdmissionEnabled"
@@ -566,9 +593,49 @@ def run_fixture_probe(
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
+        "artifactRegistryReuseAudioMaterializationByteCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationByteCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheBackendCounts": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheBackendCounts"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheMemoryBytes": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheMemoryBytes"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheStorageBytes": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheStorageBytes"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheConfigErrorCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheConfigErrorCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
         "artifactRegistryReuseAudioMaterializationArtifactCacheHitCount": (
             artifact_registry_reuse_artifact_summary[
                 "audioMaterializationArtifactCacheHitCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheHitBytes"
             ]
             if artifact_registry_reuse_artifact_summary
             else 0
@@ -580,6 +647,13 @@ def run_fixture_probe(
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
+        "artifactRegistryReuseAudioMaterializationExistingOutputBytes": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationExistingOutputBytes"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
         "artifactRegistryReuseAudioMaterializationMediaSplitterCount": (
             artifact_registry_reuse_artifact_summary[
                 "audioMaterializationMediaSplitterCount"
@@ -587,8 +661,20 @@ def run_fixture_probe(
             if artifact_registry_reuse_artifact_summary
             else 0
         ),
+        "artifactRegistryReuseAudioMaterializationMediaSplitterBytes": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationMediaSplitterBytes"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
         "artifactRegistryReuseAudioMaterializationSourceCounts": (
             artifact_registry_reuse_artifact_summary["audioMaterializationSourceCounts"]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioMaterializationSourceBytes": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationSourceBytes"]
             if artifact_registry_reuse_artifact_summary
             else {}
         ),
@@ -1032,6 +1118,17 @@ def run_cargo_perf_test(
             "WENDAO_DOCUMENT_EXTRACT_PERF_REPORT": str(report_path),
         }
     )
+    if (audio_worker := getattr(args, "audio_worker", None)) not in (None, "skip"):
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_WORKER"] = str(audio_worker)
+    audio_header_mappings = {
+        "audio_hosted_provider": "WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_PROVIDER",
+        "audio_hosted_base_url": "WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_BASE_URL",
+        "audio_hosted_model": "WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_MODEL",
+    }
+    for attr, key in audio_header_mappings.items():
+        value = getattr(args, attr, None)
+        if value is not None:
+            env[key] = str(value)
     apply_rust_pdf_ocr_env(args, env)
     if inputs is not None:
         env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"] = json.dumps(

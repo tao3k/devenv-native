@@ -7,5 +7,8 @@ mod refresh;
 mod schema;
 
 pub(super) use connection::{open_read_model_connection, open_read_model_read_only_connection};
-pub(super) use query::{query_active_agent_org_task_row_window, query_agent_org_task_rows};
+pub(super) use query::{
+    query_active_agent_org_task_row_window, query_agent_org_task_rows_by_orgid,
+    query_agent_org_task_rows_matching,
+};
 pub(super) use refresh::refresh_agent_org_read_model;

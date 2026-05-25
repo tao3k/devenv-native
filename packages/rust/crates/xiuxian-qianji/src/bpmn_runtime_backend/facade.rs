@@ -5,11 +5,6 @@ use super::duckdb;
 
 use crate::BpmnOrchestrationError;
 use crate::runtime_config::QianjiRuntimeCheckpointConfig;
-use qianji_bpmn_engine::{
-    BpmnCheckpointEnvelope, delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint,
-    release_checkpoint_lease, renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
-    try_acquire_checkpoint_lease,
-};
 #[cfg(feature = "duckdb")]
 use std::collections::HashMap;
 #[cfg(feature = "duckdb")]
@@ -18,6 +13,11 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 #[cfg(feature = "duckdb")]
 use xiuxian_db_store::qianji_bpmn::QianjiBpmnDuckDbDataStore;
+use xiuxian_qianji_bpmn_engine::{
+    BpmnCheckpointEnvelope, delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint,
+    release_checkpoint_lease, renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
+    try_acquire_checkpoint_lease,
+};
 
 #[cfg(feature = "duckdb")]
 use duckdb::{

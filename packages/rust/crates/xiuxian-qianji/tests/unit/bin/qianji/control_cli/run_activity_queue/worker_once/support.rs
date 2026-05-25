@@ -39,6 +39,56 @@ pub(super) fn registry_worker_task_with(
     }
 }
 
+pub(super) fn registry_flowhub_service_task() -> WorkerActivityTask {
+    let input_ref = registry_artifact_ref("artifact-flowhub-service-input");
+    let mut task = activity_task(
+        must_ok(
+            ActivityId::new("activity-registry-flowhub-service"),
+            "should build Flowhub service activity id",
+        ),
+        "flowhub.service",
+        "flowhub.agent-coding",
+    )
+    .with_input_ref(input_ref);
+    task.metadata = serde_json::json!({
+        "qianji_flowhub_service_task": {
+            "schema": "xiuxian_qianji.flowhub.service_activity_task.v1",
+            "scenarioId": "agent-coding",
+            "instanceId": "flowhub_agent_coding_worker",
+            "bpmnSource": "qianji-flowhub/plan/agent-coding.bpmn",
+            "processId": "agent_coding",
+            "activityId": "resolve_project",
+            "controlActivityId": "flowhub.flowhub_agent_coding_worker.agent_coding.resolve_project.7",
+            "nodeIndex": 3,
+            "tokenId": 7,
+            "workKind": "service",
+            "workId": "work-resolve-project",
+            "completion": {
+                "httpKind": "service",
+                "requiredOutputs": [{
+                    "name": "projectResolved",
+                    "targetRef": "flowhub.resolveProject",
+                    "required": true
+                }]
+            }
+        }
+    });
+    WorkerActivityTask {
+        run_id: must_ok(RunId::new("run-registry"), "should build registry run id"),
+        step_id: None,
+        activity_id: task.activity_id,
+        activity_type: task.activity_type,
+        task_queue: task.task_queue,
+        next_attempt: 1,
+        scheduled_at_ms: 1_000,
+        input_ref: task.input_ref,
+        idempotency_key: task.idempotency_key,
+        retry_policy: task.retry_policy,
+        timeout_ms: task.timeout_ms,
+        metadata: task.metadata,
+    }
+}
+
 pub(super) fn registry_openai_compatible_llm_task() -> WorkerActivityTask {
     let prompt_ref = registry_artifact_ref("artifact-registry-prompt");
     let mut task = activity_task(

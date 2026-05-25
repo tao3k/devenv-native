@@ -1,6 +1,10 @@
 use super::{
     Duration, PdfOcrShardCache, PdfOcrShardCachePolicy, PdfOcrShardInput, PdfOcrShardResult,
-    ocr_shard_cache_key,
+    ocr_shard_artifact_key, ocr_shard_cache_key,
+};
+use std::sync::Arc;
+use xiuxian_db_store::artifact_cache::{
+    ArtifactBlobCache, ArtifactBlobCacheBackend, ContentAddressedFilesystemBlobCache,
 };
 use xiuxian_wendao_attachments::pdf::ocr::PDF_OCR_SHARD_INPUT_SCHEMA_VERSION;
 
@@ -33,6 +37,34 @@ fn cache_roundtrips_successful_result() -> Result<(), String> {
     let result = PdfOcrShardResult::succeeded(&input, "cached text", 0.97);
 
     assert!(cache.store_successful(&input, &result)?);
+    let resolution = cache.resolve(std::slice::from_ref(&input));
+    let merged = resolution.merge(Vec::new())?;
+
+    assert_eq!(merged, vec![result]);
+    Ok(())
+}
+
+#[test]
+fn cache_roundtrips_successful_result_through_artifact_blob_cache() -> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let backend_root = temp.path().join("l2-artifacts");
+    let backend = Arc::new(ArtifactBlobCacheBackend::Filesystem(
+        ContentAddressedFilesystemBlobCache::new(backend_root.clone()),
+    ));
+    let cache = PdfOcrShardCache::new_with_artifact_cache_backend(
+        backend_root,
+        PdfOcrShardCachePolicy::default(),
+        Arc::clone(&backend),
+    );
+    let input = sample_ocr_input(0, "page");
+    let result = PdfOcrShardResult::succeeded(&input, "cached text", 0.97);
+
+    assert!(cache.store_successful(&input, &result)?);
+    assert!(
+        backend
+            .contains(&ocr_shard_artifact_key(&input)?)
+            .map_err(|error| error.to_string())?
+    );
     let resolution = cache.resolve(std::slice::from_ref(&input));
     let merged = resolution.merge(Vec::new())?;
 

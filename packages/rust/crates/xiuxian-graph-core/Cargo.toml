@@ -1,0 +1,24 @@
+[package]
+name = "xiuxian-graph-core"
+version.workspace = true
+edition.workspace = true
+description = "Shared graph projection, algorithm adapter, and Mermaid rendering primitives"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = []
+mermaid = ["dep:merman-core"]
+petgraph = ["dep:petgraph"]
+
+[dependencies]
+merman-core = { workspace = true, optional = true }
+petgraph = { workspace = true, optional = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+
+[lints]
+workspace = true

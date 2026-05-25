@@ -5,6 +5,7 @@ mod envelope;
 mod flight;
 mod ipc;
 mod semantic_preview;
+mod structural_facts;
 mod types;
 
 pub use constants::{
@@ -51,6 +52,7 @@ pub use semantic_preview::{
     build_wendaograph_ontology_read_model_quality_request_batches_from_rdf_source_artifacts,
     build_wendaograph_ontology_read_model_quality_request_batches_from_semantic_preview_artifacts,
 };
+pub use structural_facts::build_wendaograph_ontology_read_model_quality_request_batches_from_structural_facts_artifacts;
 pub use types::{
     WendaoGraphOntologyExtensionProofArrowRequest, WendaoGraphOntologyExtensionProofRequestBatches,
     WendaoGraphOntologyReadModelQualityArrowRequest,

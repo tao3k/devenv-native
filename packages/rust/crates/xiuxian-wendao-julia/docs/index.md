@@ -67,8 +67,18 @@ Polyglot boundary:
    through the real Flight host. Graph-neighbor materialization is intentionally
    a compact one-hop relation proof rather than a two-hop neighborhood dump, so
    live traces preserve relation-path evidence without large graph fanout. The
-   bridge also records additive `elapsedMs` timings for candidate-discovery
-   attempts and executed materialization routes. Candidate discovery can stop
+   materialization fanout is admitted through
+   `xiuxian-polyglot-orchestrator` before any route wave is executed. Dispatch
+   and queue plans both use the orchestrator's recommended max-in-flight value
+   as the wave cap, so queued Julia compute is throttled by the shared scheduler
+   rather than bypassing it with direct unbounded Rust fanout. Rust now also
+   builds `strategy_candidates` Arrow IPC from candidate discovery rows, admits
+   the SearchStrategyFlow service binding through
+   `xiuxian-polyglot-orchestrator`, sends the request through the shared runtime
+   Arrow Flight client, and decodes `strategy_frontier` rows from the
+   WendaoGraph.jl response. The bridge also
+   records additive `elapsedMs` timings for candidate-discovery attempts and
+   executed materialization routes. Candidate discovery can stop
    after the required attempt floor once enough unique source paths are present,
    while the host-local projection cache keeps projected page-index and
    retrieval-context materialization in the millisecond range. The measured
@@ -90,7 +100,20 @@ Polyglot boundary:
    adapter that keeps one Rust bridge and Julia host alive across requests; the
    first two-request root-backed proof measured `20557.705 ms` for the warmup
    request and `83.391 ms` for the second request while preserving required
-   evidence coverage.
+   evidence coverage. The session is a control channel only. It must not carry
+   Arrow payloads as JSON or base64; table data moves through Arrow Flight
+   bindings owned by the runtime and Studio routes. Reports should use
+   `jsonl-stdio-control` for this session and reserve
+   `arrow-flight`/`arrow-record-batch` for table payloads. Query-understanding
+   and branch-judgement rows from `pi-wendao` enter the public Rust bridge as
+   Arrow IPC files through `--query-understanding-arrow-ipc`,
+   `--branch-judgements-arrow-ipc`, or the matching
+   `queryUnderstandingArrowIpcPath` and `branchJudgementsArrowIpcPath` session
+   control fields; no query-understanding or branch-judgement delimited-text
+   CLI surface is exposed. The embedded local host now reads side-table and
+   candidate-input Arrow IPC files directly. The SearchStrategyFlow
+   request-bundle path carries side tables as Arrow IPC payloads through Arrow
+   Flight.
    The ontology read-model quality bridge is separate from SearchStrategyFlow:
    `build_wendaograph_ontology_read_model_quality_arrow_request(...)` packages
    accepted semantic read-model `RecordBatch` tables as Arrow IPC streams for
@@ -115,6 +138,19 @@ Polyglot boundary:
    WendaoGraph ontology quality runner and sends the same bundle through the
    runtime Flight client; it is not part of the default test path because it
    launches a real Julia service process.
+   Semantic preview and applied-RDF source artifact readers accept generated
+   Parquet object and relation tables plus generated projection-state JSON.
+   They rebuild the same semantic request tables without adding legacy
+   delimited-text aliases, fallbacks, or compatibility readers.
+   `build_wendaograph_ontology_read_model_quality_request_batches_from_structural_facts_artifacts(...)`
+   accepts Episteme structural-facts read-model artifacts through generated
+   Parquet object and relation tables plus generated projection-state JSON. The
+   adapter rebuilds the same semantic request tables while reading only those
+   generated Parquet/JSON structural-facts artifacts. It does not read raw
+   private corpus files, RDF source files, `episteme.toml`, or `wendao.toml`.
+   This keeps structural facts as pre-truth
+   source provenance while letting the same WendaoGraph quality contract reject
+   unknown relation endpoints or attempted ontology-truth promotion.
    The extension-proof caller fixture builds on the same service contract:
    `build_wendaograph_ontology_extension_proof_arrow_request(...)` packages
    compiled parent object/link registry tables with the semantic read-model

@@ -1,11 +1,11 @@
+use std::fmt::{Debug, Formatter};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
 
+use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackend;
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, PdfOcrShardResult};
 
-pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT";
 pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_BYTES";
 pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_MAX_ENTRIES_ENV: &str =
@@ -18,11 +18,29 @@ pub(super) const DOCUMENT_EXTRACT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS_ENV: &str 
 pub(super) const DEFAULT_OCR_SHARD_CACHE_MAX_BYTES: u64 = 10 * 1024 * 1024 * 1024;
 pub(super) const DEFAULT_OCR_SHARD_CACHE_SWEEP_INTERVAL_SECS: u64 = 60;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct PdfOcrShardCache {
     pub(super) root: PathBuf,
     pub(super) policy: PdfOcrShardCachePolicy,
     pub(super) last_sweep: Arc<Mutex<Option<Instant>>>,
+    pub(super) artifact_cache: Option<Arc<ArtifactBlobCacheBackend>>,
+}
+
+impl Debug for PdfOcrShardCache {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PdfOcrShardCache")
+            .field("root", &self.root)
+            .field("policy", &self.policy)
+            .field(
+                "artifact_cache_backend",
+                &self
+                    .artifact_cache
+                    .as_ref()
+                    .map(|cache| cache.backend_name()),
+            )
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

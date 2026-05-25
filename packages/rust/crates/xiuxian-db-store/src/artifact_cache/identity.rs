@@ -37,6 +37,8 @@ impl ArtifactKeyComponent {
 pub enum ArtifactKind {
     /// Encoded or decoded audio shard content.
     AudioChunk,
+    /// Source attachment bytes or format-normalized attachment payload.
+    AttachmentSourcePayload,
     /// One rendered PDF page raster.
     PdfPageRaster,
     /// One OCR recovery region crop.
@@ -45,6 +47,28 @@ pub enum ArtifactKind {
     VlmAtlas,
     /// Arrow IPC bytes that represent an extracted resource batch.
     ArrowIpcBatch,
+    /// Agent-ready prompt, evidence, and context bytes.
+    AgentEvidencePack,
+    /// Org source or read-model projection bytes.
+    OrgProjection,
+    /// JSON source or read-model projection bytes.
+    JsonProjection,
+    /// CSV or TSV tabular projection bytes.
+    TabularProjection,
+    /// Prompt context pack bytes prepared for an LLM call.
+    PromptContextPack,
+    /// Ontology registry snapshot bytes admitted from source contracts.
+    OntologyRegistrySnapshot,
+    /// Review-gated ontology candidate packet or ledger bytes.
+    OntologyCandidatePacket,
+    /// Ontology candidate Arrow or Parquet read-model projection bytes.
+    OntologyCandidateReadModel,
+    /// RDF draft bytes generated for ontology review.
+    OntologyRdfDraft,
+    /// Promotion review packet bytes for ontology candidates.
+    OntologyPromotionReviewPacket,
+    /// Structural facts, reasoning packets, or schedule-plan projection bytes.
+    OntologyReasoningProjection,
     /// Project-specific artifact kind that still uses safe key components.
     Custom(ArtifactKeyComponent),
 }
@@ -68,10 +92,22 @@ impl ArtifactKind {
     pub fn as_storage_component(&self) -> &str {
         match self {
             Self::AudioChunk => "audio-chunk",
+            Self::AttachmentSourcePayload => "attachment-source-payload",
             Self::PdfPageRaster => "pdf-page-raster",
             Self::OcrRegionCrop => "ocr-region-crop",
             Self::VlmAtlas => "vlm-atlas",
             Self::ArrowIpcBatch => "arrow-ipc-batch",
+            Self::AgentEvidencePack => "agent-evidence-pack",
+            Self::OrgProjection => "org-projection",
+            Self::JsonProjection => "json-projection",
+            Self::TabularProjection => "tabular-projection",
+            Self::PromptContextPack => "prompt-context-pack",
+            Self::OntologyRegistrySnapshot => "ontology-registry-snapshot",
+            Self::OntologyCandidatePacket => "ontology-candidate-packet",
+            Self::OntologyCandidateReadModel => "ontology-candidate-read-model",
+            Self::OntologyRdfDraft => "ontology-rdf-draft",
+            Self::OntologyPromotionReviewPacket => "ontology-promotion-review-packet",
+            Self::OntologyReasoningProjection => "ontology-reasoning-projection",
             Self::Custom(component) => component.as_str(),
         }
     }
