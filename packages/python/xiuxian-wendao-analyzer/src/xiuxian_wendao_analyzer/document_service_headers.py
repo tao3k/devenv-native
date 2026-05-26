@@ -16,6 +16,7 @@ from .document_service_routes import (
     WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE_ENV,
     WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+    WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER,
 )
 
 
@@ -72,15 +73,23 @@ def document_extract_page_range(
         return None
     parts = value.split(":")
     if len(parts) != 2:
-        raise ValueError(
-            "document extract page range must use 1-based inclusive `start:end`"
-        )
+        raise ValueError("document extract page range must use 1-based inclusive `start:end`")
     try:
         start, end = (int(part) for part in parts)
     except ValueError as exc:
-        raise ValueError(
-            "document extract page range must use integer page numbers"
-        ) from exc
+        raise ValueError("document extract page range must use integer page numbers") from exc
     if start <= 0 or end <= 0 or start > end:
         raise ValueError("document extract page range must satisfy 1 <= start <= end")
     return (start, end)
+
+
+def document_extract_source_preparation(headers: dict[str, str] | Any) -> str | None:
+    """Parse Rust-authorized source preparation mode."""
+
+    value = headers.get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER, "")
+    normalized = str(value).strip().lower().replace("_", "-")
+    if not normalized or normalized in {"none", "disabled"}:
+        return None
+    if normalized == "legacy-office-docx":
+        return normalized
+    raise ValueError(f"unsupported document source preparation `{value}`")

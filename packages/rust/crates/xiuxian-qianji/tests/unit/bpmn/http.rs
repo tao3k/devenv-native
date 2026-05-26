@@ -6,9 +6,9 @@ use crate::{
     QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStartRequest,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpRequest,
-    QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskCompleteHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
-    SchedulerAgentIdentity, qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskCompleteBatchHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, SchedulerAgentIdentity, qianji_bpmn_workflow_router,
 };
 use axum::{
     Router,
@@ -28,7 +28,8 @@ use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec,
     BpmnHumanTaskFormSpec, BpmnHumanTaskLifecycleEventKind, BpmnHumanTaskResourceRoleSpec,
     BpmnInstanceInit, BpmnLaneMembershipSpec, BpmnNodeKind, BpmnNodeSpec, BpmnPackage,
-    BpmnProcessSpec, PendingHostWorkClaim, PendingHostWorkKind, PendingHumanTaskClaimInput,
+    BpmnProcessSpec, BpmnTaskInputBinding, BpmnTaskInputSource, BpmnTaskIoSpec,
+    BpmnTaskOutputBinding, PendingHostWorkClaim, PendingHostWorkKind, PendingHumanTaskClaimInput,
     PendingHumanTaskClaimRequest, ProcessKey, advance_instance, claim_pending_human_task,
     create_instance,
 };
@@ -105,6 +106,27 @@ fn bpmn_workflow_http_requests_default_to_runtime_valkey_backend() {
         QianjiBpmnWorkflowHttpCheckpointBackend::RuntimeValkey
     );
     assert_eq!(task_complete.completion.claimant.as_deref(), Some("alice"));
+
+    let task_complete_batch =
+        serde_json::from_value::<QianjiBpmnWorkflowTaskCompleteBatchHttpRequest>(json!({
+            "bpmn_path": "flow.bpmn",
+            "completions": [{
+                "token_id": 7,
+                "process_id": "flow",
+                "activity_id": "review",
+                "kind": "user",
+                "data": {
+                    "approved": true
+                },
+                "claimant": "alice"
+            }]
+        }))
+        .unwrap_or_else(|error| panic!("task-complete batch HTTP request should decode: {error}"));
+    assert_eq!(
+        task_complete_batch.checkpoint_backend,
+        QianjiBpmnWorkflowHttpCheckpointBackend::RuntimeValkey
+    );
+    assert_eq!(task_complete_batch.completions.len(), 1);
 }
 
 #[test]
@@ -222,6 +244,181 @@ async fn bpmn_workflow_http_snapshot_exposes_pending_human_task_contract() {
         snapshot_json["human_task_events"][1]["claimant"],
         json!("alice")
     );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn bpmn_workflow_http_snapshot_exposes_host_dispatch_details() {
+    let process = BpmnProcessSpec::new(
+        ProcessKey::new("pkg_http", "service_flow", "digest_http_service"),
+        vec![
+            BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent),
+            BpmnNodeSpec::new(1, "Task_Service", BpmnNodeKind::ServiceTask).with_task_io(
+                BpmnTaskIoSpec::new()
+                    .with_input(BpmnTaskInputBinding::new(
+                        "amount",
+                        BpmnTaskInputSource::variable("order.amount"),
+                    ))
+                    .with_input(BpmnTaskInputBinding::new(
+                        "mode",
+                        BpmnTaskInputSource::literal(r#"{"priority":"fast"}"#),
+                    ))
+                    .with_output(BpmnTaskOutputBinding::new("result", "service.result")),
+            ),
+            BpmnNodeSpec::new(2, "done", BpmnNodeKind::EndEvent),
+        ],
+        vec![
+            BpmnEdgeSpec::new(0, 1, None::<&str>),
+            BpmnEdgeSpec::new(1, 2, None::<&str>),
+        ],
+        Vec::new(),
+    );
+    let package = Arc::new(BpmnPackage::new("pkg_http", vec![process]));
+    let mut instance = create_instance(
+        Arc::clone(&package),
+        "service_flow",
+        BpmnInstanceInit::new(
+            "wf_http_service_dispatch",
+            json!({ "order": { "amount": 7 } }),
+            10,
+        ),
+    )
+    .unwrap_or_else(|error| panic!("instance should be created: {error:?}"));
+
+    let outcome = advance_instance(
+        package.as_ref(),
+        &mut instance,
+        &QianjiBpmnHostBridge::default(),
+    )
+    .await
+    .unwrap_or_else(|error| panic!("instance should block on service work: {error:?}"));
+    assert!(matches!(outcome, BpmnAdvanceOutcome::BlockedOnHost(_)));
+
+    let snapshot = QianjiBpmnWorkflowSnapshotHttpResponse::from_instance(&instance);
+
+    assert_eq!(snapshot.pending_host_work_count, 1);
+    let work = &snapshot.pending_host_work[0];
+    assert_eq!(work.kind, PendingHostWorkKind::Service);
+    assert_eq!(work.node_id.as_deref(), Some("Task_Service"));
+    assert_eq!(work.variables, json!({ "order": { "amount": 7 } }));
+    assert_eq!(
+        work.inputs,
+        json!({ "amount": 7, "mode": { "priority": "fast" } })
+    );
+    assert_eq!(
+        work.output_bindings,
+        vec![BpmnTaskOutputBinding::new("result", "service.result")]
+    );
+    assert!(work.repeat.is_none());
+
+    let snapshot_json = serde_json::to_value(&snapshot)
+        .unwrap_or_else(|error| panic!("snapshot should serialize to JSON: {error}"));
+    let work_json = &snapshot_json["pending_host_work"][0];
+    assert_eq!(work_json["node_id"], json!("Task_Service"));
+    assert_eq!(work_json["variables"]["order"]["amount"], json!(7));
+    assert_eq!(work_json["inputs"]["amount"], json!(7));
+    assert_eq!(work_json["inputs"]["mode"]["priority"], json!("fast"));
+    assert_eq!(work_json["output_bindings"][0]["name"], json!("result"));
+    assert_eq!(
+        work_json["output_bindings"][0]["target_ref"],
+        json!("service.result")
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn bpmn_workflow_http_start_at_routes_to_requested_host_task() {
+    let valkey = TestValkey::spawn()
+        .await
+        .unwrap_or_else(|error| panic!("valkey should start for HTTP BPMN test: {error}"));
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let bpmn_path = write_http_service_chain_bundle(&temp_dir);
+    let router = workflow_http_router(valkey.url());
+    let instance = unique_instance_id("wf_http_start_at_service");
+
+    let started = post_json::<QianjiBpmnWorkflowRunHttpResponse>(
+        router,
+        "/workflows/start",
+        json!({
+            "bpmn_path": bpmn_path.display().to_string(),
+            "process_id": "service_chain",
+            "instance_id": instance.as_str(),
+            "initial_variables": { "project": "qianji" },
+            "start_at_node_id": "validate_contract"
+        }),
+    )
+    .await;
+
+    assert!(matches!(
+        started.outcome,
+        BpmnAdvanceOutcome::BlockedOnHost(_)
+    ));
+    assert!(!started.resumed_from_checkpoint);
+    assert_eq!(started.workflow.pending_host_work_count, 1);
+    let work = &started.workflow.pending_host_work[0];
+    assert_eq!(work.kind, PendingHostWorkKind::Service);
+    assert_eq!(work.node_id.as_deref(), Some("validate_contract"));
+    assert_eq!(work.activity_id.as_deref(), Some("validate_contract"));
+    assert_eq!(work.variables["project"], json!("qianji"));
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn bpmn_workflow_http_batch_completion_completes_parallel_host_boundary() {
+    let valkey = TestValkey::spawn()
+        .await
+        .unwrap_or_else(|error| panic!("valkey should start for HTTP BPMN test: {error}"));
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let bpmn_path = write_http_parallel_service_bundle(&temp_dir);
+    let router = workflow_http_router(valkey.url());
+    let instance = unique_instance_id("wf_http_batch_parallel_service");
+
+    let started = post_json::<QianjiBpmnWorkflowRunHttpResponse>(
+        router.clone(),
+        "/workflows/start",
+        json!({
+            "bpmn_path": bpmn_path.display().to_string(),
+            "process_id": "parallel_batch_service",
+            "instance_id": instance.as_str(),
+            "initial_variables": {},
+        }),
+    )
+    .await;
+
+    assert!(matches!(
+        started.outcome,
+        BpmnAdvanceOutcome::BlockedOnHost(_)
+    ));
+    assert_eq!(started.workflow.pending_host_work_count, 2);
+    let completions = started
+        .workflow
+        .pending_host_work
+        .iter()
+        .map(|work| {
+            json!({
+                "token_id": work.token_id,
+                "process_id": "parallel_batch_service",
+                "activity_id": work.activity_id.as_deref().unwrap_or("review"),
+                "kind": "service",
+                "data": {
+                    "result": format!("completed_{}", work.token_id)
+                }
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let complete = post_json::<QianjiBpmnWorkflowRunHttpResponse>(
+        router,
+        format!("/workflows/{}/tasks/complete-batch", instance.as_str()).as_str(),
+        json!({
+            "bpmn_path": bpmn_path.display().to_string(),
+            "completions": completions
+        }),
+    )
+    .await;
+
+    assert_eq!(complete.outcome, BpmnAdvanceOutcome::Completed);
+    assert!(complete.resumed_from_checkpoint);
+    assert_eq!(complete.workflow.pending_host_work_count, 0);
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -613,5 +810,59 @@ fn write_http_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
 </bpmn:definitions>"#,
     )
     .unwrap_or_else(|error| panic!("HTTP BPMN fixture should write: {error}"));
+    bpmn_path
+}
+
+fn write_http_service_chain_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir.path().join("http-service-chain.bpmn");
+    fs::write(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_http_service_chain">
+  <bpmn:process id="service_chain" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="resolve_project" />
+    <bpmn:serviceTask id="validate_contract" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="resolve_project" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="resolve_project" targetRef="validate_contract" />
+    <bpmn:sequenceFlow id="flow_3" sourceRef="validate_contract" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    )
+    .unwrap_or_else(|error| panic!("HTTP BPMN fixture should write: {error}"));
+    bpmn_path
+}
+
+fn write_http_parallel_service_bundle(temp_dir: &TempDir) -> PathBuf {
+    let bpmn_path = temp_dir.path().join("http-parallel-service.bpmn");
+    fs::write(
+        &bpmn_path,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_http_parallel_service">
+  <bpmn:process id="parallel_batch_service" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="review">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="review_output_result" name="result" />
+        <bpmn:outputSet id="review_output_set">
+          <bpmn:dataOutputRefs>review_output_result</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:loopCardinality>2</bpmn:loopCardinality>
+      </bpmn:multiInstanceLoopCharacteristics>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>review_output_result</bpmn:sourceRef>
+        <bpmn:targetRef>results</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>"#,
+    )
+    .unwrap_or_else(|error| panic!("HTTP parallel BPMN fixture should write: {error}"));
     bpmn_path
 }

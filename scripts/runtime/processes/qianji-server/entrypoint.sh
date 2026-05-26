@@ -12,6 +12,7 @@ PIDFILE="${QIANJI_SERVER_PIDFILE:-$RUNTIME_DIR/qianji-server.pid}"
 QIANJI_SERVER_BIN="${QIANJI_SERVER_BIN:-$PROJECT_ROOT/target/debug/qianji-server}"
 BIND_ADDR="${QIANJI_SERVER_BIND_ADDR:-127.0.0.1:38130}"
 QIANJI_VALKEY_URL="${QIANJI_SERVER_VALKEY_URL:-${VALKEY_URL:-redis://127.0.0.1:6379/0}}"
+FLOWHUB_ROOT="${QIANJI_FLOWHUB_ROOT:-$PROJECT_ROOT/qianji-flowhub}"
 STDOUT_LOG="${QIANJI_SERVER_STDOUT_LOG:-$LOG_DIR/qianji-server.stdout.log}"
 STDERR_LOG="${QIANJI_SERVER_STDERR_LOG:-$LOG_DIR/qianji-server.stderr.log}"
 BUILD_MODE="${QIANJI_SERVER_BUILD:-auto}"
@@ -20,6 +21,7 @@ LOG_DIR="$(process_abs_path "$PROJECT_ROOT" "$LOG_DIR")"
 RUNTIME_DIR="$(process_abs_path "$PROJECT_ROOT" "$RUNTIME_DIR")"
 PIDFILE="$(process_abs_path "$PROJECT_ROOT" "$PIDFILE")"
 QIANJI_SERVER_BIN="$(process_abs_path "$PROJECT_ROOT" "$QIANJI_SERVER_BIN")"
+FLOWHUB_ROOT="$(process_abs_path "$PROJECT_ROOT" "$FLOWHUB_ROOT")"
 
 source "$PROJECT_ROOT/scripts/runtime/process-runtime.sh"
 mkdir -p "$RUNTIME_DIR" "$LOG_DIR"
@@ -60,6 +62,7 @@ esac
 "$QIANJI_SERVER_BIN" \
   --bind "$BIND_ADDR" \
   --valkey-url "$QIANJI_VALKEY_URL" \
+  --flowhub-root "$FLOWHUB_ROOT" \
   --require-valkey-ready \
   > >(tee -a "$STDOUT_LOG") \
   2> >(tee -a "$STDERR_LOG" >&2) &

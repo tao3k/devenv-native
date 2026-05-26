@@ -171,7 +171,8 @@ async fn live_advisory_executor_parses_role_json_output() {
 
 #[cfg(feature = "advisory-prompt-pack-cache")]
 #[tokio::test]
-async fn live_advisory_executor_reuses_prompt_context_pack_artifacts() {
+async fn live_advisory_executor_reuses_prompt_context_pack_artifacts()
+-> Result<(), Box<dyn std::error::Error>> {
     let planner = QianjiAdvisoryAuditExecutor::new(
         Arc::new(ThousandFacesOrchestrator::new(
             "Contract Kernel".to_string(),
@@ -189,7 +190,7 @@ async fn live_advisory_executor_reuses_prompt_context_pack_artifacts() {
         }"#,
         vec![],
     ));
-    let cache_root = tempfile::tempdir().expect("cache tempdir should be created");
+    let cache_root = tempfile::tempdir()?;
     let cache: Arc<dyn ArtifactBlobCache + Send + Sync> =
         Arc::new(ContentAddressedFilesystemBlobCache::new(cache_root.path()));
 
@@ -216,6 +217,7 @@ async fn live_advisory_executor_reuses_prompt_context_pack_artifacts() {
             .iter()
             .any(|evidence| evidence.message.contains("cache_hit=true"))
     }));
+    Ok(())
 }
 
 #[tokio::test]

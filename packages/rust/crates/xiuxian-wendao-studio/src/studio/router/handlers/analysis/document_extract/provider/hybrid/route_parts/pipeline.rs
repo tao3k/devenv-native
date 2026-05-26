@@ -3,11 +3,11 @@ use super::{
     BTreeMap, BTreeSet, DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, HybridDocumentResourceBatch, Instant,
     Ocr2RegionMaterializationStats, Path, PathBuf, PdfOcrShardInput, PdfOcrShardResult,
     PdfOcrShardSchedulerTrace, PdfOcrWorkerScheduler, PdfPageRegionRenderRequest,
-    PdfPageRenderProfile, PdfPageRenderShardReport, StudioDocumentExtractFlightRouteProvider,
-    cached_ocr2_region_render_report, decode_ocr_shard_input_batches,
-    downgrade_hosted_vlm_region_parent_page_inputs, hosted_vlm_region_parent_page_shards,
-    hybrid_page_ocr_input_arrow_path, hybrid_page_ocr_render_profile_with_lookup,
-    materialize_hybrid_page_ocr_resource_batch,
+    PdfPageRenderProfile, PdfPageRenderShardReport, PdfRegionShardRenderRequest,
+    StudioDocumentExtractFlightRouteProvider, cached_ocr2_region_render_report,
+    decode_ocr_shard_input_batches, downgrade_hosted_vlm_region_parent_page_inputs,
+    hosted_vlm_region_parent_page_shards, hybrid_page_ocr_input_arrow_path,
+    hybrid_page_ocr_render_profile_with_lookup, materialize_hybrid_page_ocr_resource_batch,
     materialize_hybrid_page_ocr_resource_batch_from_results, materialize_ocr2_recovery_page_images,
     ocr2_recovery_region_requests_for_inputs,
     ocr2_region_render_ahead_limit_for_capacity_with_lookup,
@@ -533,13 +533,13 @@ pub(super) fn spawn_next_ocr2_region_render_chunk(
         let render_profile_for_render = render_profile;
         let regions_for_render = regions;
         let report = tokio::task::spawn_blocking(move || {
-            render_pdf_region_shards_with_source_hash(
-                source_for_render.as_path(),
-                output_for_render.as_path(),
-                &render_profile_for_render,
-                regions_for_render.as_slice(),
-                source_content_hash.as_str(),
-            )
+            render_pdf_region_shards_with_source_hash(PdfRegionShardRenderRequest {
+                path: source_for_render.as_path(),
+                output_dir: output_for_render.as_path(),
+                profile: &render_profile_for_render,
+                regions: regions_for_render.as_slice(),
+                source_hash: source_content_hash.as_str(),
+            })
         })
         .await
         .map_err(|error| {
@@ -565,6 +565,7 @@ pub(super) fn decode_ocr2_region_render_chunk(
     let input_batches = read_arrow_file(ocr_input_path.as_path())?;
     let rendered_inputs = decode_ocr_shard_input_batches(&input_batches)?;
     stats.render_reported_elapsed_ms += render_chunk.report.elapsed_ms;
+    stats.record_render_artifact_cache_report(&render_chunk.report);
     stats.rendered_region_count = stats
         .rendered_region_count
         .saturating_add(rendered_inputs.len());

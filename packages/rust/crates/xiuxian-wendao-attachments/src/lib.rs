@@ -85,6 +85,10 @@ pub mod archive_audit;
 /// Image attachment preflight auditing for routing and cache planning.
 pub mod image_audit;
 
+#[cfg(feature = "image-shards")]
+/// Standalone image attachment shard planning and materialization.
+pub mod image_shards;
+
 #[doc(hidden)]
 pub mod pdf;
 

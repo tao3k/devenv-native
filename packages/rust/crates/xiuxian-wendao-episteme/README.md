@@ -75,9 +75,11 @@ candidate review packets, candidate read models, RDF drafts, promotion review
 packets, structural reasoning projections, and schedule-plan payloads can use
 the optional `foyer-artifact-cache` feature, which exposes Episteme-owned
 bundle helpers over the db-store `ontology_artifact_key` namespace and
-`ArtifactBlobCache`. The artifact cache stores derived bytes only; ontology
-truth, promotion status, manifest admission, and read-model validation remain
-owned by Episteme and its DuckDB/Arrow consumers.
+`ArtifactBlobCache`. Bundle writers delegate to db-store fetch-through so
+Foyer backends can coalesce same-key misses while Episteme keeps ownership of
+ontology identity and directory packing. The artifact cache stores derived
+bytes only; ontology truth, promotion status, manifest admission, and
+read-model validation remain owned by Episteme and its DuckDB/Arrow consumers.
 
 The private ontology candidate materializer is also Rust-owned in this crate.
 It selects the active source contract, reads source rows, mapping-ledger terms,
@@ -104,6 +106,20 @@ violations, and missing relation endpoints. This gives downstream
 DuckDB/DataFusion, WendaoGraph, and Flight slices a typed readiness check before
 they consume candidate facts. The gate does not parse candidate TSV files and
 does not make TSV a semantic contract.
+
+The SearchStrategyFlow oracle projection follows the same boundary. It reads
+manifest-declared Org review ledgers, derives expected selected and rejected
+candidate ids from review and promotion decisions, and writes
+`search_strategy_oracle_cases.json`,
+`search_strategy_oracle_candidates.json`, and
+`search_strategy_oracle_report.json` as read-model evidence for downstream
+WendaoGraph and ScienceResearch benchmarks. The projection is derived from
+ontology/Org authority, never from hand-maintained benchmark TSV truth, and it
+does not parse private source text, mutate source files, or mark any row as
+ontology truth. Candidate rows also carry SearchStrategyFlow support fields
+such as `revisionId`, `routeRole`, `requiredEvidence`, `finalScore`,
+`contextCost`, `action`, and `blocked`, so downstream frontier tests can use
+the compiled Episteme projection directly instead of inventing route fixtures.
 
 The structural facts seed compiler is the first deterministic structure pass for
 private Episteme repositories. It reads declared source manifests and
@@ -183,7 +199,9 @@ four generated stage run directories into a runtime-supplied
 not change the default bootstrap command behavior. The companion
 `read_through_episteme_ontology_bootstrap_artifacts` API first restores the
 four deterministic stage directories from the same substrate and only
-regenerates when one or more stage bundles are missing.
+regenerates when one or more stage bundles are missing. Generated bundle
+storage uses db-store fetch-through, so repeated same-key agent/review flows
+can reuse existing bundle bytes without repacking the run directory.
 Callers should build cache options through
 `admit_episteme_ontology_bootstrap_artifact_cache_options`, which validates
 source/profile digest components with the same ontology artifact-key rules used

@@ -13,6 +13,7 @@ pub use super::control::{
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimPayload,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
@@ -40,10 +41,10 @@ pub use super::http_transport::{
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpPayload,
     QianjiBpmnWorkflowTaskClaimHttpRequest, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
-    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
-    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
-    qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, qianji_bpmn_workflow_router,
 };
 pub use super::identity::{
     QianjiBpmnActivityId, QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId,

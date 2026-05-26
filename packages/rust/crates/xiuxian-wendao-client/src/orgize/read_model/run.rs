@@ -24,10 +24,10 @@ use super::json::{
     emit_task_archive_apply_json, emit_task_archive_plan_json, emit_task_list_json,
     emit_task_report_json,
 };
-use super::memory::{ProbeRecallScope, rank_probe_rows};
+use super::memory::{ProbeRecallScope, org_inferred_memory_objects_for_row, rank_probe_rows};
 use super::model::{
-    AGENT_ORG_TASKS_TABLE, AgentOrgReadModelMaterializationReport, ResolvedReadModelSettings,
-    TaskQuerySnapshot,
+    AGENT_ORG_ELEMENTS_TABLE, AGENT_ORG_MEMORY_OBJECTS_TABLE, AGENT_ORG_TASKS_TABLE,
+    AgentOrgReadModelMaterializationReport, ResolvedReadModelSettings, TaskQuerySnapshot,
 };
 use super::render::{
     render_archive_plan_row, render_archive_target_summary, render_orgid_show_row,
@@ -52,8 +52,15 @@ pub(crate) fn run_read_model(
     println!("backend: duckdb");
     println!("database: {}", refreshed.settings.database_path.display());
     println!("table: {AGENT_ORG_TASKS_TABLE}");
+    println!("memory-table: {AGENT_ORG_MEMORY_OBJECTS_TABLE}");
+    println!("element-table: {AGENT_ORG_ELEMENTS_TABLE}");
     println!("sources: {}", refreshed.source_paths.len());
     println!("rows: {}", refreshed.materialized.rows);
+    println!(
+        "memory-objects: {}",
+        refreshed.materialized.memory_object_rows
+    );
+    println!("org-elements: {}", refreshed.materialized.org_element_rows);
     println!("active: {}", refreshed.materialized.active_rows);
     println!("done: {}", refreshed.materialized.done_rows);
     println!("archived: {}", refreshed.materialized.archived_rows);
@@ -75,7 +82,11 @@ pub(crate) fn run_task_list(
         args.text.as_deref(),
         &args.tags,
     )?;
-    let filtered = filter_task_rows(&snapshot.rows, args);
+    let filtered = filter_task_rows(
+        &snapshot.rows,
+        args,
+        snapshot_text_filter_already_applied(&snapshot, args.text.as_deref()),
+    );
     let limit = args.limit;
     let shown = filtered.iter().take(limit).copied().collect::<Vec<_>>();
     let active = filtered
@@ -200,7 +211,11 @@ pub(crate) fn run_task_recover(
         args.text.as_deref(),
         &args.tags,
     )?;
-    let mut candidates = filter_recover_rows(&snapshot.rows, args);
+    let mut candidates = filter_recover_rows(
+        &snapshot.rows,
+        args,
+        snapshot_text_filter_already_applied(&snapshot, args.text.as_deref()),
+    );
     candidates.sort_by(|left, right| {
         right
             .source_modified_unix_ms
@@ -281,6 +296,10 @@ fn can_use_cached_active_task_list_fast_path(args: &OrgizeTaskListArgs) -> bool 
         && args
             .view
             .is_none_or(|view| view == crate::orgize::OrgizeTaskListView::Active)
+}
+
+fn snapshot_text_filter_already_applied(snapshot: &TaskQuerySnapshot, text: Option<&str>) -> bool {
+    text.is_some() && snapshot.snapshot_label != "in-memory-fallback"
 }
 
 pub(crate) fn run_task_report(
@@ -848,6 +867,12 @@ fn error_chain_message(error: &anyhow::Error) -> String {
 fn materialization_report_from_agent_rows(
     rows: &[OrgizeAgentTaskRow],
 ) -> AgentOrgReadModelMaterializationReport {
+    let memory_object_rows = rows
+        .iter()
+        .cloned()
+        .map(agent_task_row_to_list_row)
+        .map(|row| org_inferred_memory_objects_for_row(&row).len())
+        .sum();
     AgentOrgReadModelMaterializationReport {
         rows: rows.len(),
         active_rows: rows
@@ -856,6 +881,8 @@ fn materialization_report_from_agent_rows(
             .count(),
         done_rows: rows.iter().filter(|row| row.is_done).count(),
         archived_rows: rows.iter().filter(|row| row.archived).count(),
+        memory_object_rows,
+        org_element_rows: 0,
     }
 }
 
@@ -881,5 +908,6 @@ fn agent_task_row_to_list_row(row: OrgizeAgentTaskRow) -> super::model::AgentOrg
         closed: row.closed,
         outline_path: row.outline_path,
         properties: row.properties,
+        matched_org_elements: Vec::new(),
     }
 }

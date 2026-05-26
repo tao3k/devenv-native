@@ -16,6 +16,8 @@ mod gate;
 mod inference;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+#[path = "unit/lifecycle.rs"]
+mod lifecycle;
 #[path = "unit/memory_engine/mod.rs"]
 mod memory_engine;
 #[path = "unit/projection.rs"]

@@ -351,11 +351,12 @@ repo-index adapters and bootstrap seams. The same owner-path rule applies to
 search: `src/search/` is the only search implementation root.
 
 Detailed repo-intelligence rollout notes, repo-index performance proofs, and
-cache/runtime evolution now belong in the package docs and GTD tracking
-surfaces instead of this README. Local CLI/audit link-graph bootstrap now uses
-a DuckDB-backed snapshot cache under the project cache root; Valkey remains the
-explicit shared runtime cache path for gateway/service-backed link-graph cache
-use. The local DuckDB cache stores the high-cardinality link-graph core as
+cache/runtime evolution now belong in the package docs and tracking surfaces
+instead of this README. Local CLI/audit link-graph bootstrap now uses a
+DuckDB-backed snapshot cache under `$PRJ_DATA_HOME/xiuxian-wendao`; Valkey
+remains the explicit shared runtime cache path for gateway/service-backed
+link-graph cache use. The local DuckDB cache stores the high-cardinality
+link-graph core as
 native Arrow IPC streams and keeps a bounded page-index residual so warm hits
 avoid rebuilding every page-index tree. The page-index residual remains a
 single bounded payload until a measured columnar form beats it; cache schema

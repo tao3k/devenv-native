@@ -64,6 +64,7 @@ fn standalone_orgize_orgid_show_json_projects_inferred_memory_objects() {
             "* TODO Target task :agent:\n",
             ":PROPERTIES:\n",
             ":ID: target-task\n",
+            ":EVIDENCE_REF: packages/rust/crates/xiuxian-memory-engine/tests/unit/inference.rs\n",
             ":END:\n",
             "** Reflection Questions\n",
             "| Question | Value |\n",
@@ -100,17 +101,30 @@ fn standalone_orgize_orgid_show_json_projects_inferred_memory_objects() {
 
     assert_eq!(parsed["command"], "orgize orgid-show");
     assert_eq!(parsed["task"]["orgid"], "target-task");
-    assert_eq!(parsed["task"]["memoryObjects"][0]["kind"], "failure");
+    assert_eq!(parsed["task"]["memoryObjects"][0]["kind"], "evidence");
     assert_eq!(
         parsed["task"]["memoryObjects"][0]["facet"],
-        "memory-failure"
+        "memory-evidence"
     );
     assert_eq!(
         parsed["task"]["memoryObjects"][0]["question"],
-        "Which failure mode should future agents avoid?"
+        "EVIDENCE_REF"
     );
     assert_eq!(
         parsed["task"]["memoryObjects"][0]["value"],
+        "packages/rust/crates/xiuxian-memory-engine/tests/unit/inference.rs"
+    );
+    assert_eq!(parsed["task"]["memoryObjects"][1]["kind"], "failure");
+    assert_eq!(
+        parsed["task"]["memoryObjects"][1]["facet"],
+        "memory-failure"
+    );
+    assert_eq!(
+        parsed["task"]["memoryObjects"][1]["question"],
+        "Which failure mode should future agents avoid?"
+    );
+    assert_eq!(
+        parsed["task"]["memoryObjects"][1]["value"],
         "Do not add a redundant memory subcommand."
     );
 }

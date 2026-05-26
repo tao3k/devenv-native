@@ -116,6 +116,7 @@ pub(crate) fn build_full_coverage_audio_plan(
         sample_rate_hz: config.sample_rate_hz,
         channels: config.channels,
         audio_format: config.audio_format.clone(),
+        audio_bitrate: config.audio_bitrate.clone(),
         strategy: "full-coverage".to_owned(),
     })
 }

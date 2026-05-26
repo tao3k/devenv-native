@@ -19,9 +19,7 @@ def test_pdf_compatibility_wrapper_delegates_to_document_extraction(
     source = tmp_path / "legacy.pdf"
     source.write_bytes(b"%PDF fixture")
 
-    rows = extract_pdf_resources(
-        source, converter=DocumentsFakeDoclingConverter("# Legacy\n")
-    )
+    rows = extract_pdf_resources(source, converter=DocumentsFakeDoclingConverter("# Legacy\n"))
 
     assert rows[0].sourcePath == str(source)
     assert rows[0].content == "# Legacy\n"
@@ -35,6 +33,7 @@ def test_known_docling_source_suffixes_cover_common_document_formats() -> None:
     expected_suffixes = {
         ".pdf",
         ".docx",
+        ".doc",
         ".xlsx",
         ".pptx",
         ".md",
@@ -59,6 +58,7 @@ def test_known_docling_source_suffixes_cover_common_document_formats() -> None:
     assert {
         "PDF",
         "DOCX",
+        "DOC (via legacy Office pre-conversion)",
         "XLSX",
         "PPTX",
         "HTML",

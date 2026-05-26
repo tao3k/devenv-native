@@ -215,6 +215,33 @@ impl QianjiBpmnExecutionFacade {
             .await
     }
 
+    /// Completes multiple explicit pending host-work results from a supplied
+    /// checkpoint, then stops at the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, any explicit result is rejected, or the checkpoint
+    /// backend cannot persist the resulting state.
+    pub async fn complete_pending_host_work_batch_from_checkpoint_until_host_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completions: Vec<QianjiBpmnPendingHostCompletion>,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_batch_from_checkpoint_until_host_boundary(
+                request,
+                checkpoint,
+                completions,
+                host,
+            )
+            .await
+    }
+
     /// Completes one explicit pending host-work result, then continues through
     /// non-human host work until the next user/manual boundary.
     ///

@@ -7,14 +7,20 @@ use crate::orgize::{
     OrgizeTaskRecoverArgs, OrgizeTaskReportArgs,
 };
 
+use super::memory::org_inferred_memory_objects_for_row;
 use super::model::AgentOrgTaskListRow;
 use super::section_lens::TaskSectionLens;
 
 pub(super) fn filter_task_rows<'a>(
     rows: &'a [AgentOrgTaskListRow],
     args: &OrgizeTaskListArgs,
+    text_already_applied: bool,
 ) -> Vec<&'a AgentOrgTaskListRow> {
-    let text = args.text.as_ref().map(|text| text.to_lowercase());
+    let text = if text_already_applied {
+        None
+    } else {
+        args.text.as_ref().map(|text| text.to_lowercase())
+    };
     let tags = args
         .tags
         .iter()
@@ -98,8 +104,13 @@ pub(super) fn filter_report_rows<'a>(
 pub(super) fn filter_recover_rows<'a>(
     rows: &'a [AgentOrgTaskListRow],
     args: &OrgizeTaskRecoverArgs,
+    text_already_applied: bool,
 ) -> Vec<&'a AgentOrgTaskListRow> {
-    let text = args.text.as_ref().map(|text| text.to_lowercase());
+    let text = if text_already_applied {
+        None
+    } else {
+        args.text.as_ref().map(|text| text.to_lowercase())
+    };
     let tags = args
         .tags
         .iter()
@@ -168,6 +179,15 @@ fn task_row_matches_text(row: &AgentOrgTaskListRow, text: &str) -> bool {
         .iter()
         .chain(row.deadline_repeater.iter())
         .any(|repeater| repeater_matches_text(repeater, text));
+    let memory_match = org_inferred_memory_objects_for_row(row)
+        .into_iter()
+        .any(|projection| {
+            projection.object.kind.name().contains(text)
+                || projection.object.kind.facet_label().contains(text)
+                || projection.source_kind.as_str().contains(text)
+                || projection.source_key.to_lowercase().contains(text)
+                || projection.object.value.to_lowercase().contains(text)
+        });
     row.orgid.to_lowercase().contains(text)
         || row.title.to_lowercase().contains(text)
         || row
@@ -195,6 +215,7 @@ fn task_row_matches_text(row: &AgentOrgTaskListRow, text: &str) -> bool {
             .any(|tag| tag.to_lowercase().contains(text))
         || property_match
         || repeater_match
+        || memory_match
 }
 
 fn normalize_tag_filter(tag: &str) -> String {

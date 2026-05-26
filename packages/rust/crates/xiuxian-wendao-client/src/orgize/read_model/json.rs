@@ -11,9 +11,12 @@ use crate::orgize::{
 use crate::{ClientContext, OutputFormat};
 
 use super::archive::{ArchiveApplyReport, archive_target_for_row};
-use super::memory::reflection_memory_objects_for_row;
+use super::memory::{
+    MemoryObjectSourceKind, OrgInferredMemoryObject, org_inferred_memory_objects_for_row,
+};
 use super::model::{
-    AGENT_ORG_TASKS_TABLE, AgentOrgReadModelMaterializationReport, AgentOrgTaskListRow,
+    AGENT_ORG_ELEMENTS_TABLE, AGENT_ORG_MEMORY_OBJECTS_TABLE, AGENT_ORG_TASKS_TABLE,
+    AgentOrgElementMatch, AgentOrgReadModelMaterializationReport, AgentOrgTaskListRow,
     ResolvedReadModelSettings, TaskQuerySnapshot,
 };
 use super::row_view::{
@@ -59,11 +62,17 @@ pub(super) fn emit_task_list_json(input: &TaskListJsonContext<'_>) -> Result<()>
         "command": "orgize task-list",
         "backend": "duckdb",
         "table": AGENT_ORG_TASKS_TABLE,
+        "readModelTables": [
+            AGENT_ORG_TASKS_TABLE,
+            AGENT_ORG_MEMORY_OBJECTS_TABLE,
+            AGENT_ORG_ELEMENTS_TABLE,
+        ],
         "view": input.args.view.map(task_list_view_label),
         "database": &input.snapshot.settings.database_path,
         "sources": &input.snapshot.source_paths,
         "snapshot": input.snapshot.snapshot_label,
         "snapshotRows": input.snapshot.materialized.as_ref().map(|materialized| materialized.rows),
+        "snapshotOrgElements": input.snapshot.materialized.as_ref().map(|materialized| materialized.org_element_rows),
         "refreshWarning": &input.snapshot.refresh_warning,
         "rows": input.rows,
         "showing": input.showing,
@@ -75,6 +84,7 @@ pub(super) fn emit_task_list_json(input: &TaskListJsonContext<'_>) -> Result<()>
             .enumerate()
             .map(|(index, row)| task_list_row_json(index + 1, row, input.context))
             .collect::<Vec<_>>(),
+        "recallPacket": serverless_recall_packet_json(input.shown, input.context),
     });
     emit_json_report(&report, input.context.output(), "orgize task-list")
 }
@@ -234,6 +244,7 @@ fn task_list_row_json(
 ) -> serde_json::Value {
     json!({
         "index": index,
+        "locator": org_section_locator_json(row, context),
         "orgid": row.orgid,
         "title": row.title,
         "state": row.todo_state,
@@ -243,12 +254,15 @@ fn task_list_row_json(
         "source": display_source_path(&row.source_path, context),
         "sourceModifiedUnixMs": row.source_modified_unix_ms,
         "sourceLine": row.source_line,
+        "sourceRangeStart": row.source_range_start,
+        "sourceRangeEnd": row.source_range_end,
         "scheduled": row.scheduled,
         "deadline": row.deadline,
         "closed": row.closed,
         "repeat": task_repeater_labels(row),
         "next": property_value(row, "NEXT_ACTION"),
         "resume": property_value(row, "RESUME_QUERY"),
+        "matchedOrgElements": matched_org_elements_json(row, context),
         "memoryObjects": memory_objects_json(row),
     })
 }
@@ -279,19 +293,169 @@ fn orgid_show_row_json(
 }
 
 fn memory_objects_json(row: &AgentOrgTaskListRow) -> Vec<serde_json::Value> {
-    reflection_memory_objects_for_row(row)
+    org_inferred_memory_objects_for_row(row)
         .into_iter()
         .enumerate()
-        .map(|(index, object)| {
+        .map(|(index, projection)| {
+            let object_index = index + 1;
             json!({
-                "index": index + 1,
-                "kind": object.kind.name(),
-                "facet": object.kind.facet_label(),
-                "question": object.question,
-                "value": object.value,
+                "index": object_index,
+                "locator": memory_object_locator_json(row, object_index, &projection),
+                "kind": projection.object.kind.name(),
+                "facet": projection.object.kind.facet_label(),
+                "sourceKind": projection.source_kind.as_str(),
+                "sourceKey": projection.source_key,
+                "question": projection.object.question,
+                "value": projection.object.value,
             })
         })
         .collect()
+}
+
+fn org_section_locator_json(
+    row: &AgentOrgTaskListRow,
+    context: &ClientContext,
+) -> serde_json::Value {
+    json!({
+        "schema": "xiuxian_wendao.org_memory_locator.v1",
+        "section": {
+            "kind": "org-section",
+            "orgid": row.orgid,
+            "title": row.title,
+            "source": display_source_path(&row.source_path, context),
+            "outline": row.outline_path,
+        },
+    })
+}
+
+fn matched_org_elements_json(
+    row: &AgentOrgTaskListRow,
+    context: &ClientContext,
+) -> Vec<serde_json::Value> {
+    row.matched_org_elements
+        .iter()
+        .filter(|element| is_recall_body_evidence(element))
+        .map(|element| matched_org_element_json(row, element, context))
+        .collect()
+}
+
+fn is_recall_body_evidence(element: &AgentOrgElementMatch) -> bool {
+    element.category != "property" && element.context != "propertyDrawer"
+}
+
+fn matched_org_element_json(
+    row: &AgentOrgTaskListRow,
+    element: &AgentOrgElementMatch,
+    context: &ClientContext,
+) -> serde_json::Value {
+    json!({
+        "locator": org_element_locator_json(row, element, context),
+        "ordinal": element.ordinal,
+        "category": element.category,
+        "kind": element.kind,
+        "affiliatedName": element.affiliated_name,
+        "context": element.context,
+        "summary": org_element_summary_json(element),
+        "language": element.language,
+        "sourceLine": element.source_start_line,
+        "sourceRangeStart": element.source_range_start,
+        "sourceRangeEnd": element.source_range_end,
+        "sourceRaw": element.source_raw,
+    })
+}
+
+fn org_element_locator_json(
+    row: &AgentOrgTaskListRow,
+    element: &AgentOrgElementMatch,
+    context: &ClientContext,
+) -> serde_json::Value {
+    json!({
+        "schema": "xiuxian_wendao.org_memory_locator.v1",
+        "section": {
+            "kind": "org-section",
+            "orgid": row.orgid,
+        },
+        "orgElement": {
+            "kind": "org-element",
+            "category": element.category,
+            "type": element.kind,
+            "context": element.context,
+            "ordinal": element.ordinal,
+            "source": display_source_path(&row.source_path, context),
+            "sourceLine": element.source_start_line,
+            "sourceRangeStart": element.source_range_start,
+            "sourceRangeEnd": element.source_range_end,
+            "query": {
+                "engine": "duckdb",
+                "table": AGENT_ORG_ELEMENTS_TABLE,
+                "sourcePath": display_source_path(&row.source_path, context),
+                "ordinal": element.ordinal,
+            },
+        },
+    })
+}
+
+fn org_element_summary_json(element: &AgentOrgElementMatch) -> serde_json::Value {
+    serde_json::from_str(&element.summary_json).unwrap_or_else(|_| json!({}))
+}
+
+fn memory_object_locator_json(
+    row: &AgentOrgTaskListRow,
+    object_index: usize,
+    projection: &OrgInferredMemoryObject,
+) -> serde_json::Value {
+    let object_kind = match projection.source_kind {
+        MemoryObjectSourceKind::Property => "org-property",
+        MemoryObjectSourceKind::Reflection => "org-reflection-row",
+    };
+    json!({
+        "schema": "xiuxian_wendao.org_memory_locator.v1",
+        "section": {
+            "kind": "org-section",
+            "orgid": row.orgid,
+        },
+        "object": {
+            "kind": object_kind,
+            "sourceKind": projection.source_kind.as_str(),
+            "sourceKey": projection.source_key,
+            "objectIndex": object_index,
+        },
+    })
+}
+
+fn serverless_recall_packet_json(
+    rows: &[&AgentOrgTaskListRow],
+    context: &ClientContext,
+) -> serde_json::Value {
+    json!({
+        "schema": "xiuxian_wendao.serverless_memory_recall_packet.v1",
+        "transport": "local-duckdb-arrow-ready",
+        "rows": rows
+            .iter()
+            .filter_map(|row| serverless_recall_packet_row_json(row, context))
+            .collect::<Vec<_>>(),
+    })
+}
+
+fn serverless_recall_packet_row_json(
+    row: &AgentOrgTaskListRow,
+    context: &ClientContext,
+) -> Option<serde_json::Value> {
+    let memory_objects = memory_objects_json(row);
+    if memory_objects.is_empty() {
+        return None;
+    }
+    Some(json!({
+        "locator": org_section_locator_json(row, context),
+        "orgid": row.orgid,
+        "title": row.title,
+        "source": display_source_path(&row.source_path, context),
+        "sourceLine": row.source_line,
+        "sourceRangeStart": row.source_range_start,
+        "sourceRangeEnd": row.source_range_end,
+        "matchedOrgElements": matched_org_elements_json(row, context),
+        "memoryObjects": memory_objects,
+    }))
 }
 
 fn task_report_tag_counts(rows: &[&AgentOrgTaskListRow]) -> BTreeMap<String, usize> {

@@ -16,7 +16,7 @@ use axum::response::{IntoResponse, Response};
 #[cfg(feature = "zhenfa-router")]
 use axum::routing::any_service;
 use axum::routing::{Router, get, post};
-use log::{error, info};
+use log::{error, info, warn};
 use tokio::sync::mpsc;
 #[cfg(feature = "zhenfa-router")]
 use tonic_web::GrpcWebLayer;
@@ -206,7 +206,44 @@ async fn handle_start(
     socket.set_reuseaddr(true)?;
     socket.bind(addr)?;
     let listener = socket.listen(listen_backlog)?;
-    Ok(axum::serve(listener, app).await?)
+    Ok(axum::serve(listener, app)
+        .with_graceful_shutdown(gateway_shutdown_signal())
+        .await?)
+}
+
+async fn gateway_shutdown_signal() {
+    let ctrl_c = async {
+        if let Err(error) = tokio::signal::ctrl_c().await {
+            warn!("Gateway failed to install ctrl-c shutdown handler: {error}");
+        }
+    };
+
+    #[cfg(unix)]
+    {
+        let terminate = async {
+            match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+                Ok(mut stream) => {
+                    stream.recv().await;
+                }
+                Err(error) => {
+                    warn!("Gateway failed to install SIGTERM shutdown handler: {error}");
+                    std::future::pending::<()>().await;
+                }
+            }
+        };
+
+        tokio::select! {
+            _ = ctrl_c => {},
+            _ = terminate => {},
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        ctrl_c.await;
+    }
+
+    info!("Gateway shutdown signal received");
 }
 
 fn log_gateway_startup_health(report: &GatewayStartupHealthReport) {

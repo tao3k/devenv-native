@@ -47,6 +47,33 @@ fn ontology_artifact_bundle_roundtrips_run_directory() -> Result<(), Box<dyn std
 }
 
 #[test]
+fn ontology_artifact_bundle_fetchthrough_hits_without_repacking_source()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let cache = ContentAddressedFilesystemBlobCache::new(temp.path().join("cache"));
+    let source = temp.path().join("source-run");
+    std::fs::create_dir_all(source.join("review"))?;
+    std::fs::write(source.join("reasoning_packet.json"), br#"{"rows":2}"#)?;
+    std::fs::write(source.join("review").join("ledger.org"), b"* Review\n")?;
+    let identity = EpistemeOntologyArtifactBundleIdentity {
+        kind: EpistemeOntologyArtifactBundleKind::ReasoningProjection,
+        source_digest: "source-contract".to_owned(),
+        profile_digest: "bootstrap-v1".to_owned(),
+        run_digest: "run-20260524".to_owned(),
+    };
+
+    let first = write_episteme_ontology_artifact_bundle(&cache, &identity, source.as_path())?;
+    std::fs::remove_dir_all(source.as_path())?;
+    let second = write_episteme_ontology_artifact_bundle(&cache, &identity, source.as_path())?;
+
+    assert_eq!(second.artifact_key, first.artifact_key);
+    assert_eq!(second.byte_len, first.byte_len);
+    assert!(!second.replaced);
+
+    Ok(())
+}
+
+#[test]
 fn ontology_artifact_bundle_restore_reports_cache_miss() -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::TempDir::new()?;
     let cache = ContentAddressedFilesystemBlobCache::new(temp.path().join("cache"));

@@ -207,6 +207,7 @@ fn sample_manifest() -> AudioShardManifestItem {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         cache_key: "audio-shards-v1:shard-0001".to_owned(),
         reading_order_key: "000000.000000000000".to_owned(),
     }

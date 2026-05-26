@@ -1,6 +1,7 @@
 #[cfg(feature = "audio-shard-arrow")]
 use super::{
-    audio_shard_contract_versions, audio_shard_pressure_evidence, audio_shard_schedule_plan,
+    AudioShardScheduleRequest, audio_shard_contract_versions, audio_shard_pressure_evidence,
+    audio_shard_schedule_plan,
 };
 #[cfg(feature = "pdf-source-range")]
 use super::{
@@ -164,7 +165,13 @@ fn source_range_schedule_plan_caps_override_by_adaptive_budget() {
 fn audio_schedule_plan_uses_orchestrator_auto_policy() {
     let pressure = audio_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
 
-    let plan = audio_shard_schedule_plan(pressure, None, None, Some(12), 10);
+    let plan = audio_shard_schedule_plan(AudioShardScheduleRequest {
+        pressure,
+        adaptive_worker_budget: None,
+        diagnostic_worker_override: None,
+        max_worker_cap: Some(12),
+        shard_count: 10,
+    });
 
     assert_eq!(plan.action, AudioScheduleAction::Dispatch);
     assert_eq!(plan.reason, AudioScheduleReason::CapacityAvailable);
@@ -177,7 +184,13 @@ fn audio_schedule_plan_uses_orchestrator_auto_policy() {
 fn audio_schedule_plan_respects_adaptive_budget() {
     let pressure = audio_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
 
-    let plan = audio_shard_schedule_plan(pressure, Some(2), Some(99), Some(12), 10);
+    let plan = audio_shard_schedule_plan(AudioShardScheduleRequest {
+        pressure,
+        adaptive_worker_budget: Some(2),
+        diagnostic_worker_override: Some(99),
+        max_worker_cap: Some(12),
+        shard_count: 10,
+    });
 
     assert_eq!(plan.recommended_workers, 2);
     assert_eq!(plan.shard_wave_size, 2);
@@ -187,10 +200,11 @@ fn audio_schedule_plan_respects_adaptive_budget() {
 #[test]
 fn audio_contract_versions_preserve_arrow_contract_names() {
     assert_eq!(
-        audio_shard_contract_versions(),
-        (
-            AUDIO_SHARD_INPUT_SCHEMA_VERSION,
-            AUDIO_SHARD_RESULT_SCHEMA_VERSION
-        )
+        audio_shard_contract_versions().input_schema_version,
+        AUDIO_SHARD_INPUT_SCHEMA_VERSION
+    );
+    assert_eq!(
+        audio_shard_contract_versions().result_schema_version,
+        AUDIO_SHARD_RESULT_SCHEMA_VERSION
     );
 }

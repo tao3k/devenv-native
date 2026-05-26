@@ -5,9 +5,9 @@ use super::{
     BpmnTaskWorklistCliCommand, ConstructCliCommand, ContractFeedbackCliCommand,
     DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, EmitCliCommand, LintCliCommand,
     REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, TemplateCliCommand,
-    build_contract_feedback_config, build_rest_docs_collection_context, parse_bpmn_command,
-    parse_construct_command, parse_contract_feedback_command, parse_dir_command,
-    parse_emit_command, parse_lint_command, parse_template_command,
+    build_contract_feedback_config, build_rest_docs_collection_context, normalize_prj_data_home,
+    parse_bpmn_command, parse_construct_command, parse_contract_feedback_command,
+    parse_dir_command, parse_emit_command, parse_lint_command, parse_template_command,
     resolve_bpmn_checkpoint_store_with_env, resolve_workspace_root, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
     run_bpmn_status_command_with_runtime_env, run_bpmn_task_claim_command_with_runtime_env,
@@ -16,13 +16,12 @@ use super::{
     run_bpmn_task_worklist_command_with_runtime_env, run_construct_command,
     run_deterministic_rest_docs_contract_feedback, run_dir_command, run_emit_command,
     run_lint_command, run_scaffold_rest_docs_contract_feedback, run_template_command,
-    sanitize_prj_cache_home,
 };
 use crate::runtime_config::QianjiRuntimeEnv;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
-use xiuxian_config_core::resolve_cache_home_from_value;
+use xiuxian_config_core::resolve_path_from_value;
 
 mod bpmn;
 mod cache_paths;
@@ -176,17 +175,17 @@ use = ["missing-module as missing"]
 
 fn default_contract_feedback_storage_path_with(
     workspace_root: &Path,
-    raw_cache_home: Option<&str>,
+    raw_data_home: Option<&str>,
 ) -> PathBuf {
-    resolve_prj_cache_home_with(workspace_root, raw_cache_home)
-        .join("wendao")
+    resolve_prj_data_home_with(workspace_root, raw_data_home)
+        .join("xiuxian-qianji")
         .join("contract_feedback")
 }
 
-fn resolve_prj_cache_home_with(workspace_root: &Path, raw_cache_home: Option<&str>) -> PathBuf {
-    let resolved = resolve_cache_home_from_value(Some(workspace_root), raw_cache_home)
-        .unwrap_or_else(|| workspace_root.join(".cache"));
-    sanitize_prj_cache_home(workspace_root, resolved)
+fn resolve_prj_data_home_with(workspace_root: &Path, raw_data_home: Option<&str>) -> PathBuf {
+    let resolved = resolve_path_from_value(Some(workspace_root), raw_data_home)
+        .unwrap_or_else(|| workspace_root.join(".data"));
+    normalize_prj_data_home(workspace_root, resolved)
 }
 
 fn assert_common_show_shape(rendered: &str) {

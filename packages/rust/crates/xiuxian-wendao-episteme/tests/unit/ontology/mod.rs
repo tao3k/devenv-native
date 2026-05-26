@@ -13,6 +13,7 @@ mod qianji_review_candidates;
 mod rdf_draft;
 mod registry;
 mod review_ledger;
+mod search_strategy_oracle;
 mod source_patch_apply;
 mod source_patch_apply_plan;
 mod source_patch_draft;

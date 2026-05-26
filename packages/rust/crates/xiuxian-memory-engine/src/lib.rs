@@ -69,6 +69,7 @@ mod encoder;
 mod episode;
 mod gate;
 mod inference;
+mod lifecycle;
 mod persistence;
 mod projection;
 mod q_table;
@@ -90,8 +91,14 @@ pub use gate::{
     MemoryLifecycleState, MemoryPromotionTarget, MemoryUtilityLedger,
 };
 pub use inference::{
-    InferredMemoryObject, InferredMemoryObjectKind, infer_memory_object_from_reflection,
-    infer_memory_object_kind_from_question,
+    InferredMemoryObject, InferredMemoryObjectKind, infer_memory_object_from_property,
+    infer_memory_object_from_reflection, infer_memory_object_kind_from_property_key,
+    infer_memory_object_kind_from_question, infer_memory_objects_from_properties,
+};
+pub use lifecycle::{
+    MemoryLayer, MemoryLifecycleDecision, MemoryLifecycleFacts, MemoryRecallDefault, MemoryStatus,
+    infer_memory_layer, infer_memory_lifecycle_facts_from_properties, infer_memory_recall_default,
+    infer_memory_status,
 };
 pub use projection::{MemoryProjectionFilter, MemoryProjectionRow, MemoryProjectionTimestampMs};
 pub use q_table::{QTable, QTablePersistenceError};

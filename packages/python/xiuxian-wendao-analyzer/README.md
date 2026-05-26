@@ -263,11 +263,12 @@ monotonic, durations must be positive, and the materialized media window must
 cover the logical shard window.
 
 Minimal reference rows without candidate backend metadata are also accepted.
-For the current Chinese PI private-audio lane, the next precision rerun is
-limited to the local `Qwen/Qwen3-ASR-1.7B` MLX endpoint and OpenRouter
+For the current Chinese PI private-audio lane, Qwen precision capability is the
+established model path: local `Qwen/Qwen3-ASR-1.7B` MLX and OpenRouter
 `qwen/qwen3-asr-flash-2026-02-10` through the speech-to-text
-`/audio/transcriptions` endpoint. Gemini and chat/audio Xiaomi requests remain
-historical rejected evidence for this lane.
+`/audio/transcriptions` endpoint are the supported comparison backends. Gemini
+and chat/audio Xiaomi requests remain historical rejected evidence for this
+lane.
 Hosted diagnostics run ordered serial requests unless
 `--hosted-request-concurrency` is set explicitly. Production Rust-to-Python
 audio shard calls receive their analyzer worker budget from the Rust Flight
@@ -641,13 +642,15 @@ Wendao analyzer startup selects hosted OpenRouter audio by default; local
 Qwen3-compatible testing uses the same hosted worker with an OpenAI-compatible
 local base URL. Use `--audio-workers` to cap analyzer-side request
 concurrency, and the `--rust-audio-*` flags to profile model-neutral Rust
-chunking, materialization, base/recovery worker budgets, and optional
-speech-timestamp recovery controls.
+chunking, materialization format/bitrate, base/recovery worker budgets, and
+optional speech-timestamp recovery controls.
 When a VAD or speech-density sidecar exists, pass
 `--rust-audio-speech-segments-jsonl <segments.jsonl>` with optional
 `--rust-audio-speech-merge-gap-ms`, `--rust-audio-speech-min-window-ms`, and
+`--rust-audio-speech-max-window-ms`,
+`--rust-audio-speech-boundary-snap-tolerance-ms`, and
 `--rust-audio-speech-limit-chunks`; the harness forwards them to the Rust
-provider or Gateway, which constrains failed-row recovery planning before the
+provider or Gateway, which constrains speech-window planning before the
 unchanged `/analysis/audio-shards` Flight call.
 Use `--only-fixture audio` or another fixture name for targeted real fixture
 diagnostics. Use `--docling-source-root` only when you already have a prepared

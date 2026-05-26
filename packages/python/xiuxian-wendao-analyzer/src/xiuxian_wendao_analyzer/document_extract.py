@@ -47,6 +47,7 @@ def extract_document_table(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
+    source_preparation: str | None = None,
 ) -> pa.Table:
     """Extract one document and return Arrow resource rows.
 
@@ -59,11 +60,7 @@ def extract_document_table(
 
     source = Path(source_path)
     if source.exists() and not force and page_range is None:
-        out = (
-            Path(output_dir)
-            if output_dir is not None
-            else default_document_output_dir(source)
-        )
+        out = Path(output_dir) if output_dir is not None else default_document_output_dir(source)
         cached_table = _read_cached_table(source, out)
         if cached_table is not None:
             return cached_table
@@ -77,6 +74,7 @@ def extract_document_table(
             force=force,
             error_row=error_row,
             page_range=page_range,
+            source_preparation=source_preparation,
         )
     )
 
@@ -90,6 +88,7 @@ def extract_document_resources(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
+    source_preparation: str | None = None,
 ) -> list[DocumentResourceRow]:
     """Extract one local document into Arrow-friendly resource rows.
 
@@ -111,11 +110,7 @@ def extract_document_resources(
             ]
         raise FileNotFoundError(f"document source path does not exist: {source}")
 
-    out = (
-        Path(output_dir)
-        if output_dir is not None
-        else default_document_output_dir(source)
-    )
+    out = Path(output_dir) if output_dir is not None else default_document_output_dir(source)
     out.mkdir(parents=True, exist_ok=True)
 
     if not force and page_range is None:
@@ -134,6 +129,7 @@ def extract_document_resources(
                 out,
                 profile=DOCUMENT_EXTRACT_FULL_PROFILE,
                 force=force,
+                source_preparation=source_preparation,
             )
             cached = _read_cached_resources(source, out)
             if cached is None:
@@ -154,6 +150,7 @@ def extract_document_resources(
         profile=profile,
         error_row=error_row,
         page_range=page_range,
+        source_preparation=source_preparation,
     )
 
 
@@ -165,6 +162,7 @@ def extract_pdf_resources(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
+    source_preparation: str | None = None,
 ) -> list[DocumentResourceRow]:
     """Compatibility wrapper for PDF callers migrating to document extraction.
 
@@ -180,6 +178,7 @@ def extract_pdf_resources(
         profile=profile,
         force=force,
         error_row=error_row,
+        source_preparation=source_preparation,
     )
 
 
@@ -191,6 +190,7 @@ def extract_pdf_table(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
+    source_preparation: str | None = None,
 ) -> pa.Table:
     """Compatibility wrapper for PDF callers that need an Arrow table.
 
@@ -206,4 +206,5 @@ def extract_pdf_table(
         profile=profile,
         force=force,
         error_row=error_row,
+        source_preparation=source_preparation,
     )

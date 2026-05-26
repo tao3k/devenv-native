@@ -27,7 +27,7 @@ from .fixtures import (
     resolve_fixtures,
     select_fixtures,
 )
-from .http_status import normalize_rest_endpoint, pick_free_port, wait_for_http_endpoint
+from .http_status import normalize_rest_endpoint
 from .ocr2_trace import summarize_hosted_vlm_ocr_request_traces
 from .pdf_render import run_pdf_render_shard_audit
 from .precision_speed import candidate_taxonomy, hosted_vlm_promotion_gate
@@ -38,16 +38,10 @@ from .probes import (
     run_structure_baseline_probe,
 )
 from .processes import terminate_server
-from .providers import (
-    start_gateway_server,
-    start_rust_provider_server,
-    start_valkey_server,
-)
+from .provider_lifecycle import RustProviderRuntime
 from .reporting import pdf_ocr_profile_label, render_markdown, summarize_results
 from .runtime import (
     wait_for_document_extract_flight_endpoint,
-    wait_for_port,
-    wait_for_process_stdout_contains,
 )
 from .workers import (
     audio_worker_process_env,
@@ -71,6 +65,8 @@ def main() -> int:
         )
     if args.shard_cache_reuse_probe and args.flight_mode != "hybrid-page-ocr":
         raise SystemExit("--shard-cache-reuse-probe requires --flight-mode hybrid-page-ocr")
+    if args.region_projection_reuse_probe and args.flight_mode != "hybrid-page-ocr":
+        raise SystemExit("--region-projection-reuse-probe requires --flight-mode hybrid-page-ocr")
     if args.prepare_only:
         real_fixture_root = resolve_docling_source_root(args.docling_source_root)
         prepare_docling_fixtures(
@@ -126,8 +122,6 @@ def main() -> int:
         args.benchmark_port = args.port
         args.converter_count_path = args.converter_count_path
         python_workers = []
-        rust_server = None
-        valkey_server = None
         ocr_shard_cache_summary = None
         args.rust_document_extract_endpoint = list(args.rust_document_extract_endpoint)
         args.rust_pdf_ocr_endpoint = list(args.rust_pdf_ocr_endpoint)
@@ -170,6 +164,13 @@ def main() -> int:
                     worker.endpoint_url for worker in python_workers
                 )
                 args.rust_pdf_ocr_endpoint.extend(worker.endpoint_url for worker in python_workers)
+        rust_provider_runtime = RustProviderRuntime(
+            args,
+            temp_root=temp_root,
+            process_log_dir=process_log_dir,
+            python_host=args.host,
+            python_port=args.port,
+        )
         try:
             for worker in python_workers:
                 wait_for_document_extract_flight_endpoint(
@@ -178,60 +179,7 @@ def main() -> int:
                     worker.process,
                     timeout_seconds=args.server_start_timeout,
                 )
-            if args.rust_provider_mode == "gateway" and not args.external_endpoint:
-                gateway_host = args.rust_provider_host or args.host
-                gateway_port = resolve_local_rust_provider_port(args)
-                valkey_port = args.gateway_valkey_port or pick_free_port(args.host)
-                valkey_server = start_valkey_server(
-                    host=args.host,
-                    port=valkey_port,
-                    temp_root=temp_root,
-                    log_dir=process_log_dir,
-                )
-                wait_for_port(
-                    args.host,
-                    valkey_port,
-                    valkey_server,
-                    timeout_seconds=args.server_start_timeout,
-                )
-                args.benchmark_host = gateway_host
-                args.benchmark_port = gateway_port
-                if normalize_rest_endpoint(args.rust_rest_endpoint) is None:
-                    args.rust_rest_endpoint = f"http://{gateway_host}:{gateway_port}"
-                rust_server = start_gateway_server(
-                    args,
-                    gateway_port=gateway_port,
-                    python_host=args.host,
-                    python_port=args.port,
-                    valkey_url=f"redis://{args.host}:{valkey_port}/0",
-                    temp_root=temp_root,
-                    log_dir=process_log_dir,
-                )
-                wait_for_http_endpoint(
-                    f"http://{gateway_host}:{gateway_port}/api/health",
-                    rust_server,
-                    timeout_seconds=args.server_start_timeout,
-                )
-            elif should_start_local_rust_provider(args) and not args.external_endpoint:
-                rust_host = args.rust_provider_host or args.host
-                rust_port = resolve_local_rust_provider_port(args)
-                args.benchmark_host = rust_host
-                args.benchmark_port = rust_port
-                rust_server = start_rust_provider_server(
-                    args,
-                    rust_host=rust_host,
-                    rust_port=rust_port,
-                    python_host=args.host,
-                    python_port=args.port,
-                    temp_root=temp_root,
-                    log_dir=process_log_dir,
-                )
-                wait_for_rust_provider_ready(
-                    rust_host,
-                    rust_port,
-                    rust_server,
-                    timeout_seconds=args.server_start_timeout,
-                )
+            rust_provider_runtime.start_if_needed()
             structure_baseline_report = run_structure_baseline_probe(
                 args,
                 {**fixtures, **distinct_miss_fixtures},
@@ -248,13 +196,13 @@ def main() -> int:
                     fixture_name,
                     fixture_path,
                     output_dir / fixture_name,
+                    restart_provider=rust_provider_runtime.restart,
                 )
                 for fixture_name, fixture_path in fixtures.items()
             ]
             ocr_shard_cache_summary = summarize_ocr_shard_cache(args.ocr_shard_cache_root)
         finally:
-            terminate_server(rust_server)
-            terminate_server(valkey_server)
+            rust_provider_runtime.terminate()
             for worker in reversed(python_workers):
                 terminate_server(worker.process)
 
@@ -363,6 +311,7 @@ def build_report_payload(
         "rustAudioSampleRateHz": getattr(args, "rust_audio_sample_rate_hz", None),
         "rustAudioChannels": getattr(args, "rust_audio_channels", None),
         "rustAudioFormat": getattr(args, "rust_audio_format", None),
+        "rustAudioBitrate": getattr(args, "rust_audio_bitrate", None),
         "rustAudioArtifactCacheDir": (
             str(path)
             if (path := getattr(args, "rust_audio_artifact_cache_dir", None)) is not None
@@ -384,6 +333,16 @@ def build_report_payload(
         "rustAudioSpeechMinWindowMs": getattr(
             args,
             "rust_audio_speech_min_window_ms",
+            None,
+        ),
+        "rustAudioSpeechMaxWindowMs": getattr(
+            args,
+            "rust_audio_speech_max_window_ms",
+            None,
+        ),
+        "rustAudioSpeechBoundarySnapToleranceMs": getattr(
+            args,
+            "rust_audio_speech_boundary_snap_tolerance_ms",
             None,
         ),
         "rustAudioSpeechLimitChunks": getattr(
@@ -560,6 +519,7 @@ def build_report_payload(
             ),
         },
         "shardCacheReuseProbe": args.shard_cache_reuse_probe,
+        "regionProjectionReuseProbe": getattr(args, "region_projection_reuse_probe", False),
         "artifactRegistryReuseProbe": args.artifact_registry_reuse_probe,
         "ocrShardCache": ocr_shard_cache_summary
         or summarize_ocr_shard_cache(args.ocr_shard_cache_root),
@@ -627,40 +587,6 @@ def reset_process_log_dir(process_log_dir: Path) -> None:
     if process_log_dir.exists():
         shutil.rmtree(process_log_dir)
     process_log_dir.mkdir(parents=True, exist_ok=True)
-
-
-def should_start_local_rust_provider(args) -> bool:
-    return args.flight_mode in {"async", "hybrid-page-ocr", "audio-shards"} or bool(
-        args.artifact_registry_reuse_probe
-    )
-
-
-def resolve_local_rust_provider_port(args: object) -> int:
-    explicit_port = getattr(args, "rust_provider_port", None)
-    if explicit_port is not None:
-        return explicit_port
-    return pick_free_port(getattr(args, "host", "127.0.0.1"))
-
-
-def wait_for_rust_provider_ready(
-    host: str,
-    port: int,
-    server: Any,
-    *,
-    timeout_seconds: float,
-) -> None:
-    """Wait until the Rust Flight provider has bound and emitted its ready marker."""
-    wait_for_port(
-        host,
-        port,
-        server,
-        timeout_seconds=timeout_seconds,
-    )
-    wait_for_process_stdout_contains(
-        server,
-        f"READY http://{host}:{port}",
-        timeout_seconds=timeout_seconds,
-    )
 
 
 def _openrouter_key_configured() -> bool:

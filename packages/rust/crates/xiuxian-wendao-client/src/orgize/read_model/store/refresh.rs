@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use xiuxian_wendao_parsers::{OrgizeAgentTaskReadModelRequest, collect_agent_task_rows};
+use xiuxian_wendao_parsers::{
+    OrgizeAgentTaskReadModelRequest, OrgizeOrgElementReadModelRequest, collect_agent_task_rows,
+    collect_org_element_rows,
+};
 
 use crate::ClientContext;
 use crate::orgize::read_model::model::RefreshedAgentOrgReadModel;
@@ -20,7 +23,11 @@ pub(in crate::orgize::read_model) fn refresh_agent_org_read_model(
         match_expression: Some("+agent".to_string()),
         include_comments: false,
     })?;
-    let materialized = materialize_agent_org_tasks(&settings, &report.rows).with_context(|| {
+    let element_report = collect_org_element_rows(&OrgizeOrgElementReadModelRequest {
+        paths: source_paths.clone(),
+    })?;
+    let materialized = materialize_agent_org_tasks(&settings, &report.rows, &element_report.rows)
+        .with_context(|| {
         format!(
             "failed to materialize Org agent read model at `{}`",
             settings.database_path.display()

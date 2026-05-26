@@ -170,3 +170,23 @@ pub struct QianjiBpmnWorkflowTaskCompleteRequest {
 /// Report returned by the workflow control service after one host-task
 /// completion action.
 pub type QianjiBpmnWorkflowTaskCompleteReport = QianjiBpmnWorkflowResumeReport;
+
+/// Typed request for completing multiple pending host work items from one
+/// checkpoint-backed BPMN workflow host boundary.
+#[derive(Debug, Clone, PartialEq)]
+pub struct QianjiBpmnWorkflowTaskCompleteBatchRequest {
+    /// Filesystem path to the BPMN source.
+    pub bpmn_path: PathBuf,
+    /// Optional DMN sources loaded alongside the BPMN package.
+    pub dmn_paths: Vec<PathBuf>,
+    /// Workflow instance identifier used for checkpoint lookup.
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
+    /// Checkpoint backend that already owns persisted workflow state.
+    pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
+    /// Explicit completion payloads for pending host tasks.
+    pub completions: Vec<QianjiBpmnWorkflowTaskCompletionPayload>,
+}
+
+/// Report returned by the workflow control service after a host-task
+/// completion batch.
+pub type QianjiBpmnWorkflowTaskCompleteBatchReport = QianjiBpmnWorkflowResumeReport;

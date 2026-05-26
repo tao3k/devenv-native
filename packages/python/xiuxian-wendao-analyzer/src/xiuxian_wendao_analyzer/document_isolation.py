@@ -33,6 +33,7 @@ def run_isolated_document_extract(
     *,
     profile: str,
     force: bool,
+    source_preparation: str | None = None,
 ) -> None:
     """Run one document extraction in a child Python process.
 
@@ -55,6 +56,8 @@ def run_isolated_document_extract(
     ]
     if force:
         command.append("--force")
+    if source_preparation:
+        command.extend(["--source-preparation", source_preparation])
 
     try:
         result = subprocess.run(
@@ -86,13 +89,9 @@ def _full_profile_timeout_seconds() -> float:
     try:
         timeout = float(value)
     except ValueError as exc:
-        raise ValueError(
-            f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number"
-        ) from exc
+        raise ValueError(f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number") from exc
     if timeout <= 0:
-        raise ValueError(
-            f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number"
-        )
+        raise ValueError(f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number")
     return timeout
 
 
@@ -111,6 +110,7 @@ def _run_child(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--profile", required=True)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--source-preparation", default="")
     args = parser.parse_args(argv)
 
     try:
@@ -122,6 +122,7 @@ def _run_child(argv: Sequence[str] | None = None) -> int:
             converter=None,
             profile=args.profile,
             error_row=False,
+            source_preparation=args.source_preparation or None,
         )
     except Exception as exc:
         print(

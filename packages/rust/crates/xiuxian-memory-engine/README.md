@@ -6,6 +6,8 @@ Episodic operational memory for the Wendao stack.
 
 `xiuxian-memory-engine` owns the bounded memory layer only:
 
+- memory lifecycle contracts for cache, temporary, scheduled, episodic, and
+  knowledge records
 - episode storage
 - semantic recall plus utility reranking
 - Q-value or utility estimation
@@ -20,14 +22,20 @@ registry.
 The formal cross-layer boundary is defined in
 [`docs/rfcs/2026-04-05-wendao-memory-layer-boundaries-rfc.md`](../../../../../docs/rfcs/2026-04-05-wendao-memory-layer-boundaries-rfc.md).
 
-Within that model, `xiuxian-memory-engine` is responsible for
-`EpisodicMemory`, not for `WorkingKnowledge` or `DurableKnowledge`.
+Within that model, `xiuxian-memory-engine` owns the lifecycle contract and
+recall priors for memory records. It does not own the durable documentation or
+knowledge registry that stores promoted knowledge.
 
 ## Current Model
 
 The current crate model is intentionally episodic:
 
 - `Episode` is an interaction or experience unit
+- `MemoryLayer`, `MemoryStatus`, and `MemoryRecallDefault` define the
+  lifecycle envelope for cache, temporary, scheduled, episodic, and knowledge
+  records
+- `MemoryLifecycleFacts::evaluate()` computes a deterministic recall prior:
+  `layer_prior * status_multiplier * recall_default_multiplier`
 - two-phase retrieval is semantic recall followed by Q-value reranking
 - `QTable` currently implements online utility smoothing, not full
   temporal-difference future-return learning
@@ -56,6 +64,10 @@ Do not place the following in this crate:
 - generic cache-registry behavior
 - validated working-knowledge registry behavior
 - durable publication or archival policy
+
+The crate may define the lifecycle state and recall prior for a promoted
+knowledge record, but publication and long-term registry writes stay with the
+owning knowledge surface.
 
 ## References
 

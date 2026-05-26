@@ -13,7 +13,9 @@ use serde_json::Value;
 use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
     BpmnHumanTaskLifecycleEvent, BpmnInstanceState, BpmnLaneMembershipSpec, BpmnTaskIoSpec,
-    InstanceLifecycle, PendingHostWork, PendingHostWorkClaim, PendingHostWorkKind,
+    BpmnTaskOutputBinding, InstanceLifecycle, PendingHostWork, PendingHostWorkClaim,
+    PendingHostWorkKind, PendingHostWorkRequest, RepeatExecutionContext,
+    build_pending_host_work_requests,
 };
 
 /// Pending host-work item embedded in HTTP workflow snapshots.
@@ -25,6 +27,10 @@ pub struct QianjiBpmnPendingHostWorkHttpResponse {
     pub process_id: Option<QianjiBpmnProcessId>,
     /// BPMN node index.
     pub node_index: u32,
+    /// Stable BPMN node identifier, when the snapshot still has the process
+    /// graph needed to resolve the node index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node_id: Option<String>,
     /// Stable BPMN activity identifier for the blocked node.
     pub activity_id: Option<QianjiBpmnActivityId>,
     /// Host work category.
@@ -41,10 +47,35 @@ pub struct QianjiBpmnPendingHostWorkHttpResponse {
     pub task_io: Option<BpmnTaskIoSpec>,
     /// Optional checkpointed claim metadata.
     pub claim: Option<PendingHostWorkClaim>,
+    /// Host-visible workflow variables for this dispatch request.
+    #[serde(default)]
+    pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch request.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
+    /// Optional repeat-execution metadata for this blocked host request.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeat: Option<RepeatExecutionContext>,
 }
 
 impl QianjiBpmnPendingHostWorkHttpResponse {
-    fn from_pending_host_work(work: &PendingHostWork) -> Self {
+    fn from_instance_pending_host_work(
+        instance: &BpmnInstanceState,
+        work: &PendingHostWork,
+    ) -> Self {
+        Self::from_pending_host_work_with_details(
+            work,
+            PendingHostWorkHttpDispatchDetails::from_instance_pending_work(instance, work),
+        )
+    }
+
+    fn from_pending_host_work_with_details(
+        work: &PendingHostWork,
+        details: PendingHostWorkHttpDispatchDetails,
+    ) -> Self {
         Self {
             token_id: work.token_id,
             process_id: work
@@ -52,6 +83,7 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
                 .as_ref()
                 .map(|process_id| process_id.as_str().into()),
             node_index: work.node_index,
+            node_id: details.node_id,
             activity_id: work
                 .activity_id
                 .as_ref()
@@ -66,7 +98,108 @@ impl QianjiBpmnPendingHostWorkHttpResponse {
             lane: work.lane.clone(),
             task_io: work.task_io.clone(),
             claim: work.claim.clone(),
+            variables: details.variables,
+            inputs: details.inputs,
+            output_bindings: details.output_bindings,
+            repeat: details.repeat,
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct PendingHostWorkHttpDispatchDetails {
+    node_id: Option<String>,
+    variables: Value,
+    inputs: Value,
+    output_bindings: Vec<BpmnTaskOutputBinding>,
+    repeat: Option<RepeatExecutionContext>,
+}
+
+impl Default for PendingHostWorkHttpDispatchDetails {
+    fn default() -> Self {
+        Self {
+            node_id: None,
+            variables: Value::Null,
+            inputs: Value::Object(Default::default()),
+            output_bindings: Vec::new(),
+            repeat: None,
+        }
+    }
+}
+
+impl PendingHostWorkHttpDispatchDetails {
+    fn from_instance_pending_work(instance: &BpmnInstanceState, work: &PendingHostWork) -> Self {
+        let mut details = Self {
+            node_id: work
+                .activity_id
+                .as_ref()
+                .map(|activity_id| activity_id.to_string())
+                .or_else(|| Some(format!("node_{}", work.node_index))),
+            ..Self::default()
+        };
+        if let Some(request) =
+            build_pending_host_work_requests(instance)
+                .ok()
+                .and_then(|requests| {
+                    requests.into_iter().find(|request| {
+                        pending_host_work_request_token_id(request) == work.token_id
+                    })
+                })
+        {
+            details.apply_request(request);
+        }
+        details
+    }
+
+    fn apply_request(&mut self, request: PendingHostWorkRequest) {
+        match request {
+            PendingHostWorkRequest::Send(request) => {
+                self.variables = request.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+            }
+            PendingHostWorkRequest::Service(request) => {
+                self.variables = request.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+                self.repeat = request.repeat;
+            }
+            PendingHostWorkRequest::Script(request) => {
+                self.variables = request.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+                self.repeat = request.repeat;
+            }
+            PendingHostWorkRequest::User(request) => {
+                self.variables = request.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+                self.repeat = request.repeat;
+            }
+            PendingHostWorkRequest::Manual(request) => {
+                self.variables = request.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+                self.repeat = request.repeat;
+            }
+            PendingHostWorkRequest::BusinessRule(request) => {
+                self.variables = request.evaluation.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+                self.repeat = request.repeat;
+            }
+        }
+    }
+}
+
+fn pending_host_work_request_token_id(request: &PendingHostWorkRequest) -> u64 {
+    match request {
+        PendingHostWorkRequest::Send(request) => request.token_id,
+        PendingHostWorkRequest::Service(request) => request.token_id,
+        PendingHostWorkRequest::Script(request) => request.token_id,
+        PendingHostWorkRequest::User(request) => request.token_id.get(),
+        PendingHostWorkRequest::Manual(request) => request.token_id.get(),
+        PendingHostWorkRequest::BusinessRule(request) => request.token_id,
     }
 }
 
@@ -111,7 +244,11 @@ impl QianjiBpmnWorkflowSnapshotHttpResponse {
             pending_host_work: instance
                 .pending_host_work
                 .iter()
-                .map(QianjiBpmnPendingHostWorkHttpResponse::from_pending_host_work)
+                .map(|work| {
+                    QianjiBpmnPendingHostWorkHttpResponse::from_instance_pending_host_work(
+                        instance, work,
+                    )
+                })
                 .collect(),
             human_task_events: instance.human_task_events.clone(),
             wait_registration_count: instance.waits.len(),
@@ -207,7 +344,8 @@ impl QianjiBpmnWorkflowTaskClaimHttpResponse {
             claimed: report.changed,
             checkpoint_sequence: report.checkpoint_sequence,
             checkpoint_backend: report.checkpoint_store.backend_name().to_string(),
-            claimed_work: QianjiBpmnPendingHostWorkHttpResponse::from_pending_host_work(
+            claimed_work: QianjiBpmnPendingHostWorkHttpResponse::from_instance_pending_host_work(
+                &report.instance,
                 &report.claimed_work,
             ),
             workflow: QianjiBpmnWorkflowSnapshotHttpResponse::from_instance(&report.instance),
@@ -238,7 +376,8 @@ impl QianjiBpmnWorkflowTaskReleaseHttpResponse {
             released: report.changed,
             checkpoint_sequence: report.checkpoint_sequence,
             checkpoint_backend: report.checkpoint_store.backend_name().to_string(),
-            released_work: QianjiBpmnPendingHostWorkHttpResponse::from_pending_host_work(
+            released_work: QianjiBpmnPendingHostWorkHttpResponse::from_instance_pending_host_work(
+                &report.instance,
                 &report.released_work,
             ),
             workflow: QianjiBpmnWorkflowSnapshotHttpResponse::from_instance(&report.instance),

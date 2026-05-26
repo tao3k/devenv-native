@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -62,6 +63,7 @@ def export_audio_transcript_reference_drafts(
         "tsvPath": str(tsv_path),
         "rows": len(draft_rows),
         "chars": sum(len(str(row["text"])) for row in draft_rows),
+        **_reference_draft_text_stats(draft_rows),
     }
 
 
@@ -80,6 +82,11 @@ def _empty_reference_draft_export() -> dict[str, Any]:
         "tsvPath": None,
         "rows": 0,
         "chars": 0,
+        "emptyRows": 0,
+        "minChars": 0,
+        "maxChars": 0,
+        "duplicateTextHashCount": 0,
+        "uniqueTextHashCount": 0,
     }
 
 
@@ -109,9 +116,7 @@ def _reference_draft_rows_from_resources(
                     "sourceId": source_path,
                     "chunkIndex": len(draft_rows),
                     "startSeconds": segment["startSeconds"],
-                    "durationSeconds": (
-                        segment["endSeconds"] - segment["startSeconds"]
-                    ),
+                    "durationSeconds": (segment["endSeconds"] - segment["startSeconds"]),
                     "referenceStatus": REFERENCE_STATUS_CANDIDATE_DRAFT,
                     "text": segment["text"],
                 }
@@ -195,6 +200,19 @@ def _parse_time_offset(value: str) -> float | None:
 def _write_reference_draft_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     lines = [json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _reference_draft_text_stats(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    texts = [str(row["text"]) for row in rows]
+    lengths = [len(text) for text in texts]
+    hashes = {hashlib.sha256(text.encode("utf-8")).hexdigest() for text in texts}
+    return {
+        "emptyRows": sum(1 for length in lengths if length == 0),
+        "minChars": min(lengths, default=0),
+        "maxChars": max(lengths, default=0),
+        "duplicateTextHashCount": len(texts) - len(hashes),
+        "uniqueTextHashCount": len(hashes),
+    }
 
 
 def _write_reference_draft_tsv(path: Path, rows: list[dict[str, Any]]) -> None:

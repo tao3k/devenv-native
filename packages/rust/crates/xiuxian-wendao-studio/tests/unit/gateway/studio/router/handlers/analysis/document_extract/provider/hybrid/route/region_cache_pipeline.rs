@@ -105,6 +105,47 @@ fn cached_ocr2_region_render_report_rejects_missing_artifacts() -> Result<(), St
 }
 
 #[test]
+fn ocr2_region_materialization_stats_records_artifact_cache_report() {
+    let mut stats = Ocr2RegionMaterializationStats::default();
+    let mut report = sample_render_report();
+    report.artifact_cache_hit_count = 2;
+    report.artifact_cache_miss_count = 3;
+    report.artifact_cache_throttled_count = 1;
+    report.artifact_cache_byte_count = 4096;
+    report.artifact_cache_region_crop_hit_count = 1;
+    report.artifact_cache_region_crop_miss_count = 2;
+    report.artifact_cache_region_crop_throttled_count = 1;
+    report.artifact_cache_region_crop_byte_count = 3000;
+    report.artifact_cache_region_manifest_projection_row_hit_count = 1;
+    report.artifact_cache_region_manifest_projection_row_miss_count = 1;
+    report.artifact_cache_region_manifest_projection_row_byte_count = 1096;
+
+    stats.record_render_artifact_cache_report(&report);
+    stats.record_render_artifact_cache_report(&report);
+
+    assert_eq!(stats.render_artifact_cache_hit_count, 4);
+    assert_eq!(stats.render_artifact_cache_miss_count, 6);
+    assert_eq!(stats.render_artifact_cache_throttled_count, 2);
+    assert_eq!(stats.render_artifact_cache_byte_count, 8192);
+    assert_eq!(stats.render_artifact_cache_region_crop_hit_count, 2);
+    assert_eq!(stats.render_artifact_cache_region_crop_miss_count, 4);
+    assert_eq!(stats.render_artifact_cache_region_crop_throttled_count, 2);
+    assert_eq!(stats.render_artifact_cache_region_crop_byte_count, 6000);
+    assert_eq!(
+        stats.render_artifact_cache_region_manifest_projection_row_hit_count,
+        2
+    );
+    assert_eq!(
+        stats.render_artifact_cache_region_manifest_projection_row_miss_count,
+        2
+    );
+    assert_eq!(
+        stats.render_artifact_cache_region_manifest_projection_row_byte_count,
+        2192
+    );
+}
+
+#[test]
 fn hybrid_page_ocr_resource_batch_orders_split_pipeline_results() -> Result<(), String> {
     let mut page = sample_region_input();
     page.page_index = 0;

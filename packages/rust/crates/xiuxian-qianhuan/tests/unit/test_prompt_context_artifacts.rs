@@ -3,7 +3,8 @@ use xiuxian_qianhuan::{
     InjectionMode, InjectionPolicy, InjectionSessionId, InjectionSnapshot, InjectionSnapshotId,
     InjectionSnapshotInput, InjectionTurnId, PromptContextBlock, PromptContextBlockId,
     PromptContextBlockInput, PromptContextCategory, PromptContextPackIdentity, PromptContextSource,
-    PromptSessionScope, read_through_injection_snapshot_pack,
+    PromptSessionScope, fetch_through_injection_snapshot_pack,
+    read_through_injection_snapshot_pack,
 };
 
 #[test]
@@ -46,6 +47,34 @@ fn prompt_context_pack_readthrough_hits_for_repeated_context()
 
     let second = read_through_injection_snapshot_pack(&cache, &repeated_snapshot)?;
     assert!(second.cache_hit());
+    assert_eq!(second.bytes(), first_bytes.as_slice());
+
+    Ok(())
+}
+
+#[test]
+fn prompt_context_pack_fetchthrough_hits_for_repeated_context()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let cache = ContentAddressedFilesystemBlobCache::new(temp.path());
+    let first_snapshot = snapshot("snap-1", 1);
+    let repeated_snapshot = snapshot("snap-2", 2);
+
+    let first = fetch_through_injection_snapshot_pack(&cache, first_snapshot)?;
+    assert!(!first.cache_hit());
+    assert_eq!(first.artifact().backend_name(), "filesystem");
+    assert_eq!(
+        first
+            .artifact()
+            .write_outcome()
+            .map(|write| write.byte_len()),
+        Some(first.byte_len())
+    );
+
+    let first_bytes = first.bytes().to_vec();
+    let second = fetch_through_injection_snapshot_pack(&cache, repeated_snapshot)?;
+    assert!(second.cache_hit());
+    assert_eq!(second.artifact().backend_name(), "filesystem");
     assert_eq!(second.bytes(), first_bytes.as_slice());
 
     Ok(())

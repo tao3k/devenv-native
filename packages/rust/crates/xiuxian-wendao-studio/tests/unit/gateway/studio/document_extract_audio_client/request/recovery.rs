@@ -70,6 +70,7 @@ async fn audio_shard_response_plans_recovery_split_from_base_quality() -> Result
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     };
     let mut first = sample_input();
@@ -237,6 +238,7 @@ fn noop_recovery_parent_audio_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     }
 }

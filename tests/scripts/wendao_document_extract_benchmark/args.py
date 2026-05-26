@@ -267,16 +267,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--rust-audio-context-before-ms",
         type=int,
-        help=(
-            "Leading overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS."
-        ),
+        help=("Leading overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS."),
     )
     parser.add_argument(
         "--rust-audio-context-after-ms",
         type=int,
-        help=(
-            "Trailing overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS."
-        ),
+        help=("Trailing overlap forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS."),
     )
     parser.add_argument(
         "--rust-audio-recovery-split-ms",
@@ -301,6 +297,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--rust-audio-format",
         help="Audio materialization format forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT.",
+    )
+    parser.add_argument(
+        "--rust-audio-bitrate",
+        help=("Optional audio encoder bitrate forwarded to WENDAO_DOCUMENT_EXTRACT_AUDIO_BITRATE."),
     )
     parser.add_argument(
         "--rust-audio-artifact-cache-dir",
@@ -357,6 +357,26 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Minimum speech recovery window forwarded to "
             "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-max-window-ms",
+        type=int,
+        help=(
+            "Optional speech window cap forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MAX_WINDOW_MS. Use this to "
+            "tune VAD-aligned shard packing without overloading the base audio "
+            "chunk duration."
+        ),
+    )
+    parser.add_argument(
+        "--rust-audio-speech-boundary-snap-tolerance-ms",
+        type=int,
+        help=(
+            "Optional speech boundary tolerance forwarded to "
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS. "
+            "Use this to preserve near-cap VAD boundaries without creating "
+            "short tail shards."
         ),
     )
     parser.add_argument(
@@ -733,16 +753,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--hosted-vlm-ocr-region-composite-max-source-pixels",
         type=int,
-        help=(
-            "Maximum aggregate source-page pixel area for adaptive same-page region composites."
-        ),
+        help=("Maximum aggregate source-page pixel area for adaptive same-page region composites."),
     )
     parser.add_argument(
         "--hosted-vlm-ocr-region-composite-max-image-bytes",
         type=int,
-        help=(
-            "Maximum aggregate encoded image bytes for adaptive same-page region composites."
-        ),
+        help=("Maximum aggregate encoded image bytes for adaptive same-page region composites."),
     )
     parser.add_argument(
         "--hosted-vlm-ocr-region-atlas-mode",
@@ -1036,9 +1052,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--cargo-features",
-        default=(
-            "performance,studio,zhenfa-router,duckdb,document-extract-attachment-audit"
-        ),
+        default=("performance,studio,zhenfa-router,duckdb,document-extract-attachment-audit"),
         help="Cargo feature set used by the Rust benchmark probe.",
     )
     parser.add_argument(
@@ -1067,9 +1081,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--converter-count-path",
         type=Path,
-        help=(
-            "Optional converter count file to read in external-endpoint benchmark mode."
-        ),
+        help=("Optional converter count file to read in external-endpoint benchmark mode."),
     )
     parser.add_argument(
         "--fail-on-duplicate-conversions",
@@ -1083,6 +1095,16 @@ def parse_args() -> argparse.Namespace:
             "After the force run, run a second forced hybrid-page-ocr extraction "
             "into a fresh output directory to measure OCR shard cache reuse "
             "without relying on the whole-document _resources.arrow cache."
+        ),
+    )
+    parser.add_argument(
+        "--region-projection-reuse-probe",
+        action="store_true",
+        help=(
+            "After the force run, remove the route-local hosted-region render "
+            "cache and run a second forced hybrid-page-ocr extraction. This "
+            "isolates shared ArtifactBlobCache projection/crop reuse from the "
+            "higher-level render-output cache."
         ),
     )
     parser.add_argument(

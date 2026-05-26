@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use xiuxian_wendao_server::transport::ANALYSIS_DOCUMENT_EXTRACT_ROUTE;
 
+use crate::studio::router::handlers::analysis::document_extract::provider::transport::DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX;
+
 use super::{
     DocumentExtractJobRegistry, StudioDocumentExtractFlightRouteProvider,
     collect_document_extract_string_values,
@@ -10,6 +12,54 @@ use super::{
     },
     fs, test_document_resource_batch,
 };
+
+#[tokio::test]
+async fn legacy_doc_document_extract_sends_rust_selected_source_preparation() -> Result<(), String>
+{
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let source = temp.path().join("legacy.doc");
+    fs::write(source.as_path(), b"legacy office").map_err(|error| error.to_string())?;
+    let output = temp.path().join("output");
+    let response_batch = test_document_resource_batch(
+        source.to_string_lossy().as_ref(),
+        output.join("legacy.md").to_string_lossy().as_ref(),
+    )?;
+    let observed = Arc::new(Mutex::new(None));
+    let (endpoint, server_handle) =
+        spawn_document_extract_service(response_batch, Arc::clone(&observed)).await?;
+    let registry = DocumentExtractJobRegistry::new(
+        temp.path().join("jobs.duckdb"),
+        temp.path().join("artifacts"),
+    )?;
+    let provider =
+        StudioDocumentExtractFlightRouteProvider::from_registry_with_document_extract_endpoint(
+            Ok(registry),
+            1,
+            endpoint.as_str(),
+        );
+
+    let _response = provider
+        .sync_document_extract_batch(
+            source.to_string_lossy().as_ref(),
+            output.to_string_lossy().as_ref(),
+            true,
+            false,
+            "full",
+        )
+        .await?;
+    server_handle.abort();
+
+    let observed_request = observed
+        .lock()
+        .map_err(|error| error.to_string())?
+        .clone()
+        .ok_or_else(|| "document extract request was not observed".to_owned())?;
+    assert_eq!(
+        observed_request.source_preparation.as_deref(),
+        Some(DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX),
+    );
+    Ok(())
+}
 
 #[tokio::test]
 async fn native_org_document_extract_merges_resolved_eligible_attachment_from_analyzer_flight()

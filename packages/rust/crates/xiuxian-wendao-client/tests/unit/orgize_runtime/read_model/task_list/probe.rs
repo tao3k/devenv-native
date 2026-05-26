@@ -978,6 +978,63 @@ fn standalone_orgize_task_probe_prefers_specific_memory_tokens_over_weak_org_tok
 }
 
 #[test]
+fn standalone_orgize_task_probe_uses_memory_lifecycle_prior_for_ranking() {
+    let temp = tempdir_or_panic();
+    let agenda = temp.path().join("memory_lifecycle_lane.org");
+    std::fs::write(
+        &agenda,
+        concat!(
+            "* TODO Scoped episodic recall prior :agent:memory:\n",
+            ":PROPERTIES:\n",
+            ":ID: scoped-episodic-memory\n",
+            ":MEMORY_LAYER: episodic\n",
+            ":MEMORY_STATUS: closed\n",
+            ":RECALL_DEFAULT: scoped\n",
+            ":REUSABLE_KNOWLEDGE: lifecycle prior invariant selects durable recall policy.\n",
+            ":END:\n",
+            "* TODO Long term knowledge recall prior :agent:memory:\n",
+            ":PROPERTIES:\n",
+            ":ID: knowledge-memory\n",
+            ":MEMORY_LAYER: knowledge\n",
+            ":MEMORY_STATUS: active\n",
+            ":RECALL_DEFAULT: yes\n",
+            ":REUSABLE_KNOWLEDGE: lifecycle prior invariant selects durable recall policy.\n",
+            ":END:\n",
+        ),
+    )
+    .unwrap_or_else(|error| panic!("write agenda: {error}"));
+
+    let output = run_orgize(
+        temp.path(),
+        &[
+            "task-probe",
+            "--text",
+            "lifecycle prior invariant durable recall policy",
+            "--limit",
+            "1",
+            "memory_lifecycle_lane.org",
+        ],
+        "task-probe memory lifecycle prior",
+    );
+
+    assert_cli_success(&output);
+    assert!(
+        output
+            .stdout
+            .starts_with("title: Long term knowledge recall prior"),
+        "stdout: {}",
+        output.stdout
+    );
+    assert!(
+        output
+            .stdout
+            .contains("show: wendao-client orgize orgid-show --cached --id knowledge-memory"),
+        "stdout: {}",
+        output.stdout
+    );
+}
+
+#[test]
 fn standalone_orgize_task_probe_recalls_from_file_key_tokens() {
     let temp = tempdir_or_panic();
     let target = temp

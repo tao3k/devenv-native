@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from .document_service_headers import (
     document_extract_page_range,
     document_extract_profile,
+    document_extract_source_preparation,
     header_bool,
 )
 from .document_service_routes import (
@@ -52,6 +53,7 @@ def build_document_extract_table(
     error_row = header_bool(headers, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, True)
     profile = document_extract_profile(headers)
     page_range = document_extract_page_range(headers)
+    source_preparation = document_extract_source_preparation(headers)
 
     return extract_document_table(
         source_path,
@@ -61,4 +63,5 @@ def build_document_extract_table(
         force=force,
         error_row=error_row,
         page_range=page_range,
+        source_preparation=source_preparation,
     )

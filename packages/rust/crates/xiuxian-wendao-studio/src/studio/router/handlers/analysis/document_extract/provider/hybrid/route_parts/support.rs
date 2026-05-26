@@ -90,6 +90,27 @@ pub(super) fn direct_docling_structure_recovery_render_report(
             .to_string(),
         elapsed_ms: 0.0,
         error_message: None,
+        artifact_cache_backend: None,
+        artifact_cache_hit_count: 0,
+        artifact_cache_miss_count: 0,
+        artifact_cache_throttled_count: 0,
+        artifact_cache_byte_count: 0,
+        artifact_cache_page_raster_hit_count: 0,
+        artifact_cache_page_raster_miss_count: 0,
+        artifact_cache_page_raster_throttled_count: 0,
+        artifact_cache_page_raster_byte_count: 0,
+        artifact_cache_region_crop_hit_count: 0,
+        artifact_cache_region_crop_miss_count: 0,
+        artifact_cache_region_crop_throttled_count: 0,
+        artifact_cache_region_crop_byte_count: 0,
+        artifact_cache_region_manifest_projection_hit_count: 0,
+        artifact_cache_region_manifest_projection_miss_count: 0,
+        artifact_cache_region_manifest_projection_throttled_count: 0,
+        artifact_cache_region_manifest_projection_byte_count: 0,
+        artifact_cache_region_manifest_projection_row_hit_count: 0,
+        artifact_cache_region_manifest_projection_row_miss_count: 0,
+        artifact_cache_region_manifest_projection_row_throttled_count: 0,
+        artifact_cache_region_manifest_projection_row_byte_count: 0,
     }
 }
 
@@ -196,6 +217,26 @@ pub(super) struct Ocr2RegionMaterializationStats {
     pub(super) rendered_region_count: usize,
     pub(super) render_cache_hit_count: usize,
     pub(super) render_cache_miss_count: usize,
+    pub(super) render_artifact_cache_hit_count: u64,
+    pub(super) render_artifact_cache_miss_count: u64,
+    pub(super) render_artifact_cache_throttled_count: u64,
+    pub(super) render_artifact_cache_byte_count: u64,
+    pub(super) render_artifact_cache_page_raster_hit_count: u64,
+    pub(super) render_artifact_cache_page_raster_miss_count: u64,
+    pub(super) render_artifact_cache_page_raster_throttled_count: u64,
+    pub(super) render_artifact_cache_page_raster_byte_count: u64,
+    pub(super) render_artifact_cache_region_crop_hit_count: u64,
+    pub(super) render_artifact_cache_region_crop_miss_count: u64,
+    pub(super) render_artifact_cache_region_crop_throttled_count: u64,
+    pub(super) render_artifact_cache_region_crop_byte_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_hit_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_miss_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_throttled_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_byte_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_hit_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_miss_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_throttled_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_byte_count: u64,
     pub(super) render_reported_elapsed_ms: f64,
     pub(super) pipeline_planned_render_chunk_count: usize,
     pub(super) pipeline_endpoint_count: usize,
@@ -207,6 +248,74 @@ pub(super) struct Ocr2RegionMaterializationStats {
     pub(super) pipeline_base_result_shard_count: usize,
     pub(super) pipeline_region_result_count: usize,
     pub(super) pipeline_region_result_shard_count: usize,
+}
+
+impl Ocr2RegionMaterializationStats {
+    pub(super) fn record_render_artifact_cache_report(
+        &mut self,
+        report: &PdfPageRenderShardReport,
+    ) {
+        self.render_artifact_cache_hit_count = self
+            .render_artifact_cache_hit_count
+            .saturating_add(report.artifact_cache_hit_count);
+        self.render_artifact_cache_miss_count = self
+            .render_artifact_cache_miss_count
+            .saturating_add(report.artifact_cache_miss_count);
+        self.render_artifact_cache_throttled_count = self
+            .render_artifact_cache_throttled_count
+            .saturating_add(report.artifact_cache_throttled_count);
+        self.render_artifact_cache_byte_count = self
+            .render_artifact_cache_byte_count
+            .saturating_add(report.artifact_cache_byte_count);
+        self.render_artifact_cache_page_raster_hit_count = self
+            .render_artifact_cache_page_raster_hit_count
+            .saturating_add(report.artifact_cache_page_raster_hit_count);
+        self.render_artifact_cache_page_raster_miss_count = self
+            .render_artifact_cache_page_raster_miss_count
+            .saturating_add(report.artifact_cache_page_raster_miss_count);
+        self.render_artifact_cache_page_raster_throttled_count = self
+            .render_artifact_cache_page_raster_throttled_count
+            .saturating_add(report.artifact_cache_page_raster_throttled_count);
+        self.render_artifact_cache_page_raster_byte_count = self
+            .render_artifact_cache_page_raster_byte_count
+            .saturating_add(report.artifact_cache_page_raster_byte_count);
+        self.render_artifact_cache_region_crop_hit_count = self
+            .render_artifact_cache_region_crop_hit_count
+            .saturating_add(report.artifact_cache_region_crop_hit_count);
+        self.render_artifact_cache_region_crop_miss_count = self
+            .render_artifact_cache_region_crop_miss_count
+            .saturating_add(report.artifact_cache_region_crop_miss_count);
+        self.render_artifact_cache_region_crop_throttled_count = self
+            .render_artifact_cache_region_crop_throttled_count
+            .saturating_add(report.artifact_cache_region_crop_throttled_count);
+        self.render_artifact_cache_region_crop_byte_count = self
+            .render_artifact_cache_region_crop_byte_count
+            .saturating_add(report.artifact_cache_region_crop_byte_count);
+        self.render_artifact_cache_region_manifest_projection_hit_count = self
+            .render_artifact_cache_region_manifest_projection_hit_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_hit_count);
+        self.render_artifact_cache_region_manifest_projection_miss_count = self
+            .render_artifact_cache_region_manifest_projection_miss_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_miss_count);
+        self.render_artifact_cache_region_manifest_projection_throttled_count = self
+            .render_artifact_cache_region_manifest_projection_throttled_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_throttled_count);
+        self.render_artifact_cache_region_manifest_projection_byte_count = self
+            .render_artifact_cache_region_manifest_projection_byte_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_byte_count);
+        self.render_artifact_cache_region_manifest_projection_row_hit_count = self
+            .render_artifact_cache_region_manifest_projection_row_hit_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_hit_count);
+        self.render_artifact_cache_region_manifest_projection_row_miss_count = self
+            .render_artifact_cache_region_manifest_projection_row_miss_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_miss_count);
+        self.render_artifact_cache_region_manifest_projection_row_throttled_count = self
+            .render_artifact_cache_region_manifest_projection_row_throttled_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_throttled_count);
+        self.render_artifact_cache_region_manifest_projection_row_byte_count = self
+            .render_artifact_cache_region_manifest_projection_row_byte_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_byte_count);
+    }
 }
 
 #[derive(Debug)]

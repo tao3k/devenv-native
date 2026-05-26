@@ -45,9 +45,9 @@ pub mod zhenfa_router;
 
 #[cfg(feature = "artifact-cache")]
 pub use artifacts::{
-    PromptContextPackIdentity, PromptContextPackReadThrough, prompt_context_pack_bytes,
-    prompt_context_pack_key, read_through_injection_snapshot_pack,
-    read_through_prompt_context_pack,
+    PromptContextPackIdentity, PromptContextPackReadThrough, fetch_through_injection_snapshot_pack,
+    fetch_through_prompt_context_pack, prompt_context_pack_bytes, prompt_context_pack_key,
+    read_through_injection_snapshot_pack, read_through_prompt_context_pack,
 };
 pub use config::InjectionWindowConfig;
 pub use contracts::{

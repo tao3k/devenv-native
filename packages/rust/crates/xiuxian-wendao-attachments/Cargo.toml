@@ -11,6 +11,7 @@ publish = false
 default = []
 foyer-artifact-cache = [
   "dep:xiuxian-db-store",
+  "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/foyer-artifact-cache",
 ]
 audio-shard-arrow = [
@@ -20,12 +21,16 @@ archive-audit = [
   "dep:flate2",
   "dep:tar",
 ]
+image-shards = [
+  "dep:image",
+]
 pdf-source-range = [
   "dep:arrow",
   "dep:lopdf",
   "dep:num-traits",
 ]
 pdf-render = [
+  "foyer-artifact-cache",
   "pdf-source-range",
   "dep:image",
   "dep:pdfium-render",

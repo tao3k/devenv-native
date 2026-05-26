@@ -27,9 +27,9 @@ pub(crate) use test_exports::{
     BpmnTaskWorklistCliCommand, ConstructCliCommand, ContractFeedbackCliCommand,
     DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, EmitCliCommand, LintCliCommand,
     REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, TemplateCliCommand,
-    build_contract_feedback_config, build_rest_docs_collection_context, parse_bpmn_command,
-    parse_construct_command, parse_contract_feedback_command, parse_dir_command,
-    parse_emit_command, parse_lint_command, parse_template_command,
+    build_contract_feedback_config, build_rest_docs_collection_context, normalize_prj_data_home,
+    parse_bpmn_command, parse_construct_command, parse_contract_feedback_command,
+    parse_dir_command, parse_emit_command, parse_lint_command, parse_template_command,
     resolve_bpmn_checkpoint_store_with_env, resolve_workspace_root, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
     run_bpmn_status_command_with_runtime_env, run_bpmn_task_claim_command_with_runtime_env,
@@ -38,7 +38,6 @@ pub(crate) use test_exports::{
     run_bpmn_task_worklist_command_with_runtime_env, run_construct_command,
     run_deterministic_rest_docs_contract_feedback, run_dir_command, run_emit_command,
     run_lint_command, run_scaffold_rest_docs_contract_feedback, run_template_command,
-    sanitize_prj_cache_home,
 };
 #[path = "facade.rs"]
 mod facade;

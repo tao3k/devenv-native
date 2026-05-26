@@ -160,7 +160,7 @@ impl PdfOcrShardCache {
 
     fn read(&self, input: &PdfOcrShardInput) -> Option<PdfOcrShardResult> {
         if let Some(cache) = &self.artifact_cache {
-            return self.read_artifact_blob(input, cache);
+            return Self::read_artifact_blob(input, cache);
         }
         let path = self.cache_path(input);
         if !path.exists() {
@@ -179,7 +179,6 @@ impl PdfOcrShardCache {
     }
 
     fn read_artifact_blob(
-        &self,
         input: &PdfOcrShardInput,
         cache: &ArtifactBlobCacheBackend,
     ) -> Option<PdfOcrShardResult> {
@@ -197,9 +196,10 @@ impl PdfOcrShardCache {
 fn artifact_cache_env_lookup(key: &str) -> Option<String> {
     std::env::var(key).ok().or_else(|| {
         (key == "PRJ_CACHE_HOME").then(|| {
-            std::env::current_dir()
-                .map(|root| root.join(".cache").to_string_lossy().into_owned())
-                .unwrap_or_else(|_| ".cache".to_string())
+            std::env::current_dir().map_or_else(
+                |_| ".cache".to_string(),
+                |root| root.join(".cache").to_string_lossy().into_owned(),
+            )
         })
     })
 }

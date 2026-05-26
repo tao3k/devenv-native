@@ -14,3 +14,4 @@ pub(crate) use api::{
     start_prepared_workflow_until_human_boundary, start_prepared_workflow_with_trace_observer,
     start_workflow,
 };
+pub(crate) use completion::complete_prepared_workflow_task_batch_until_host_boundary;

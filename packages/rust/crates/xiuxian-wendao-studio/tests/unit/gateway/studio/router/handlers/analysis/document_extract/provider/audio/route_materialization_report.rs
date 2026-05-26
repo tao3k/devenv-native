@@ -1,12 +1,14 @@
 use std::path::PathBuf;
 
+use sha2::Digest;
 use xiuxian_qianji::{WorkflowStageFacts, WorkflowStageStatus, WorkflowStageTrace, WorkflowTrace};
 use xiuxian_wendao_attachments::audio::AudioShardManifestItem;
+use xiuxian_wendao_server::transport::{DocumentExtractFlightRequest, DocumentExtractMode};
 
 use super::{
     AUDIO_MATERIALIZATION_REPORT_NAME, AUDIO_MATERIALIZATION_REPORT_SCHEMA,
     AudioDocumentExtractConfig, AudioShardMaterializationSource, AudioShardMaterializedItem,
-    write_audio_materialization_report,
+    audio_cache_manifest, write_audio_materialization_report,
 };
 
 #[test]
@@ -28,6 +30,7 @@ fn audio_materialization_report_records_artifact_backend_and_byte_sources() -> R
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         ffmpeg_path: PathBuf::from("ffmpeg"),
         ffprobe_path: PathBuf::from("ffprobe"),
         artifact_cache_dir: Some(artifact_root.clone()),
@@ -37,6 +40,8 @@ fn audio_materialization_report_records_artifact_backend_and_byte_sources() -> R
         speech_segments_jsonl_path: None,
         speech_merge_gap_ms: 500,
         speech_min_window_ms: 0,
+        speech_max_window_ms: None,
+        speech_boundary_snap_tolerance_ms: 0,
         speech_limit_chunks: 10_000,
     };
     let base = materialized_item(
@@ -202,6 +207,71 @@ fn audio_materialization_report_records_artifact_backend_and_byte_sources() -> R
     Ok(())
 }
 
+#[test]
+fn audio_cache_manifest_records_speech_sidecar_hash() -> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let sidecar_path = temp.path().join("segments.jsonl");
+    let sidecar_contents = "{\"startMs\":1000,\"endMs\":3000}\n";
+    std::fs::write(sidecar_path.as_path(), sidecar_contents).map_err(|error| error.to_string())?;
+    let config = AudioDocumentExtractConfig {
+        backend_profile: "hosted-audio-transcript-v1".to_owned(),
+        chunk_duration_ms: 30_000,
+        context_before_ms: 0,
+        context_after_ms: 0,
+        recovery_split_duration_ms: 15_000,
+        sample_rate_hz: 16_000,
+        channels: 1,
+        audio_format: "wav".to_owned(),
+        audio_bitrate: None,
+        ffmpeg_path: PathBuf::from("ffmpeg"),
+        ffprobe_path: PathBuf::from("ffprobe"),
+        artifact_cache_dir: None,
+        transcript_admission_dir: None,
+        base_worker_budget: None,
+        recovery_worker_budget: None,
+        speech_segments_jsonl_path: Some(sidecar_path.clone()),
+        speech_merge_gap_ms: 500,
+        speech_min_window_ms: 0,
+        speech_max_window_ms: None,
+        speech_boundary_snap_tolerance_ms: 0,
+        speech_limit_chunks: 10_000,
+    };
+    let manifest = audio_cache_manifest(
+        &DocumentExtractFlightRequest {
+            source_path: "/tmp/source.mp3".to_owned(),
+            output_dir: "/tmp/out".to_owned(),
+            force: false,
+            error_row: false,
+            profile: "default".to_owned(),
+            mode: DocumentExtractMode::AudioShards,
+            wait_ms: 0,
+            audio_worker: None,
+            audio_hosted_provider: None,
+            audio_hosted_base_url: None,
+            audio_hosted_endpoint: None,
+            audio_hosted_model: None,
+        },
+        &config,
+        "sourcehash",
+        42_000,
+    )?;
+
+    let expected_hash = format!("{:x}", sha2::Sha256::digest(sidecar_contents.as_bytes()));
+    assert_eq!(
+        manifest
+            .get("speechSegmentsJsonl")
+            .and_then(serde_json::Value::as_str),
+        Some(sidecar_path.to_string_lossy().as_ref())
+    );
+    assert_eq!(
+        manifest
+            .get("speechSegmentsSha256")
+            .and_then(serde_json::Value::as_str),
+        Some(expected_hash.as_str())
+    );
+    Ok(())
+}
+
 fn workflow_stage(stage_id: &str, duration_nanos: u64) -> WorkflowStageTrace {
     WorkflowStageTrace {
         stage_id: stage_id.to_owned(),
@@ -235,6 +305,7 @@ fn materialized_item(
             sample_rate_hz: 16_000,
             channels: 1,
             audio_format: "wav".to_owned(),
+            audio_bitrate: None,
             cache_key: format!("cache-{id}"),
             reading_order_key: format!("000000000000-{id}"),
         },

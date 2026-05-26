@@ -131,7 +131,10 @@ route-local cache backends. Qianji still owns only the workflow/advisory plan
 boundary; Qianhuan owns prompt-context pack identity and serialization; db-store
 owns the artifact cache backend. Plans and live findings report per-role
 prompt-context pack cache hits and byte counts without changing the default
-advisory planning path.
+advisory planning path. When the cache is enabled, Qianji calls Qianhuan's
+owned fetch-through helper for prompt-context packs; db-store and Foyer perform
+the same-key miss coalescing, while Qianji remains a cache consumer and never
+constructs a concrete cache backend.
 
 ---
 
@@ -190,7 +193,21 @@ including only unclaimed work and work already claimed by the supplied claimant.
 over that same service layer. Its workflow snapshot responses include
 `pending_host_work` entries with Rust-owned identity plus optional `form` and
 standard BPMN `assignment` metadata, matching the stream contract for
-non-stream clients.
+non-stream clients. HTTP snapshots also expose host-dispatch details that
+non-stream clients need to execute the work without falling back to the CLI
+stream: resolved `node_id`, workflow `variables`, materialized task `inputs`,
+declared `output_bindings`, and repeat metadata for bounded multi-instance
+tasks.
+The HTTP `POST /workflows/start` request accepts the optional
+`start_at_node_id` field and forwards it to the same fresh-instance start-at
+control path used by `qianji bpmn start-at`.
+The HTTP task-completion surface also supports
+`POST /workflows/{instance_id}/tasks/complete-batch` for multiple completions
+from the same blocked host boundary. The batch path loads one checkpoint,
+validates all pending host-work identities, applies the completion set inside
+one BPMN session, and advances once to the next host boundary or terminal
+outcome. Single-task completion remains available at
+`/workflows/{instance_id}/tasks/complete`.
 `qianji-server --bind 127.0.0.1:38130 --valkey-url redis://127.0.0.1:6379/0`
 starts the minimal daemon shell over that router. HTTP defaults are
 Valkey-only: omitted checkpoint backend fields resolve to the service-owned
@@ -201,8 +218,10 @@ otherwise. The service bind address resolves from `[server].bind_addr` unless
 does not answer `PING`; `--no-require-valkey-ready` explicitly disables that
 gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
 that the effective Valkey checkpoint backend responds to `PING`. Local
-no-server CLI/control workflow state uses the configured DuckDB path by
-default; HTTP remains Valkey-only.
+no-server CLI/control workflow state defaults to
+`$PRJ_DATA_HOME/xiuxian-qianji/duckdb/workflow-state.duckdb` unless
+`qianji.toml` or `QIANJI_WORKFLOW_STATE_DUCKDB_PATH` provides an explicit
+override; HTTP remains Valkey-only.
 The generic Qianji control ledger has its own operator surfaces.
 `qianji control run-create --ledger <path> --run-id <id>
 --occurred-at-ms <ms> --intent <text> [--json]` appends the explicit

@@ -307,6 +307,7 @@ fn two_pass_parent_audio_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     }
 }
@@ -327,6 +328,7 @@ fn preflight_parent_audio_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     }
 }
@@ -347,6 +349,7 @@ fn partial_preflight_parent_audio_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     }
 }

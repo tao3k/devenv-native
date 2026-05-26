@@ -3,7 +3,7 @@
 use std::sync::{Mutex, MutexGuard};
 
 use xiuxian_wendao_attachments::polyglot::{
-    audio_shard_pressure_evidence, audio_shard_schedule_plan,
+    AudioShardScheduleRequest, audio_shard_pressure_evidence, audio_shard_schedule_plan,
 };
 
 const HEALTHY_STREAK_BEFORE_INCREASE: usize = 2;
@@ -152,13 +152,13 @@ fn scheduled_audio_worker_budget(
         0,
         false,
     );
-    let plan = audio_shard_schedule_plan(
+    let plan = audio_shard_schedule_plan(AudioShardScheduleRequest {
         pressure,
-        Some(saturating_usize_to_u32(current_worker_budget)),
-        None,
-        Some(saturating_usize_to_u32(max_worker_bound)),
-        saturating_usize_to_u32(shard_count),
-    );
+        adaptive_worker_budget: Some(saturating_usize_to_u32(current_worker_budget)),
+        diagnostic_worker_override: None,
+        max_worker_cap: Some(saturating_usize_to_u32(max_worker_bound)),
+        shard_count: saturating_usize_to_u32(shard_count),
+    });
     usize::try_from(plan.recommended_workers)
         .unwrap_or(usize::MAX)
         .max(1)

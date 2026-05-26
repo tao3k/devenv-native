@@ -232,6 +232,126 @@ def summarize_artifact_reports(reports: list[dict[str, Any]]) -> dict[str, Any]:
             reports,
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount",
         ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterHitCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterHitCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterMissCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterMissCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterThrottledCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterThrottledCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterByteCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterByteCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropHitCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropHitCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropMissCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropMissCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropThrottledCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropThrottledCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropByteCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropByteCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionHitCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionHitCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionMissCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionMissCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionThrottledCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionThrottledCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionByteCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionByteCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowThrottledCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowThrottledCount",
+            )
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowByteCount": (
+            _sum_int_report_values(
+                reports,
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowByteCount",
+            )
+        ),
         "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": _sum_float_report_values(
             reports,
             "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs",

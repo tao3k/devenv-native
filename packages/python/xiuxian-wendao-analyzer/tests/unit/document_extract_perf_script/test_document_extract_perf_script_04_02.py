@@ -290,9 +290,9 @@ def test_wait_for_rust_provider_ready_waits_for_port_and_ready_marker(
     ) -> None:
         calls.append(("ready", server, needle, timeout_seconds))
 
-    monkeypatch.setattr(benchmark._cli, "wait_for_port", fake_wait_for_port)
+    monkeypatch.setattr(benchmark._provider_lifecycle, "wait_for_port", fake_wait_for_port)
     monkeypatch.setattr(
-        benchmark._cli,
+        benchmark._provider_lifecycle,
         "wait_for_process_stdout_contains",
         fake_wait_for_process_stdout_contains,
     )

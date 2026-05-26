@@ -23,7 +23,10 @@ use super::plan::{
     source_sha256_hex,
 };
 use super::response::build_audio_transcript_with_org_batch;
-use super::speech::recovery_speech_window_input_from_config;
+use super::speech::{
+    base_speech_window_plan_from_config, configured_speech_segments_sha256_from_config,
+    recovery_speech_window_input_from_config,
+};
 use crate::studio::document_extract_audio_client::{
     AudioShardFlightClient, AudioShardFlightRequestOptions, AudioShardRecoveryWorkflowExecution,
     AudioShardRecoveryWorkflowRequest,
@@ -79,7 +82,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         let duration_ms = probe_audio_duration_ms(source.as_path(), config.ffprobe_path.as_path())?;
         let source_hash = source_sha256_hex(source.as_path())?;
         let cache_manifest =
-            audio_cache_manifest(request, &config, source_hash.as_str(), duration_ms);
+            audio_cache_manifest(request, &config, source_hash.as_str(), duration_ms)?;
         if source.exists()
             && !request.force
             && audio_cache_manifest_matches(output.as_path(), &cache_manifest)
@@ -88,8 +91,10 @@ impl StudioDocumentExtractFlightRouteProvider {
             return Ok(DocumentExtractFlightRouteResponse::from_batches(batches));
         }
 
-        let plan =
+        let full_coverage_plan =
             build_full_coverage_audio_plan(source.as_path(), source_hash, duration_ms, &config)?;
+        let plan = base_speech_window_plan_from_config(&full_coverage_plan, &config)?
+            .unwrap_or(full_coverage_plan);
         let scheduled_base_worker_budget = config.base_worker_budget.or_else(|| {
             Some(
                 self.runtime
@@ -186,7 +191,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                     materialization: dispatch.materialization,
                     profile,
                     request_metrics: &[],
-                    selection_options: AudioRiskParentSelectionOptions::default(),
+                    selection_options: audio_recovery_selection_options_for_plan(dispatch.plan),
                     patch_options: AudioRecoveryPatchGateOptions::default(),
                     recovery_split_duration_ms: dispatch.config.recovery_split_duration_ms,
                     recovery_speech_window_input: dispatch.recovery_speech_window_input,
@@ -233,6 +238,22 @@ impl StudioDocumentExtractFlightRouteProvider {
     }
 }
 
+pub(crate) fn audio_recovery_selection_options_for_plan(
+    plan: &AudioShardPlan,
+) -> AudioRiskParentSelectionOptions {
+    if plan.strategy != "speech-segments" {
+        return AudioRiskParentSelectionOptions::default();
+    }
+    AudioRiskParentSelectionOptions {
+        include_boundaries: false,
+        max_chars_per_minute: -1.0,
+        max_chinese_ratio: -1.0,
+        min_latency_ms: u64::MAX,
+        min_repeated_ngram_ratio: 2.0,
+        ..AudioRiskParentSelectionOptions::default()
+    }
+}
+
 fn audio_shard_request_options_for_document_extract(
     request: &DocumentExtractFlightRequest,
     config: &AudioDocumentExtractConfig,
@@ -257,12 +278,13 @@ fn audio_cache_manifest(
     config: &AudioDocumentExtractConfig,
     source_hash: &str,
     duration_ms: u64,
-) -> serde_json::Value {
+) -> Result<serde_json::Value, String> {
     let speech_segments_jsonl = config
         .speech_segments_jsonl_path
         .as_ref()
         .map(|path| path.to_string_lossy().to_string());
-    serde_json::json!({
+    let speech_segments_sha256 = configured_speech_segments_sha256_from_config(config)?;
+    Ok(serde_json::json!({
         "schema": AUDIO_CACHE_MANIFEST_SCHEMA,
         "sourceSha256": source_hash,
         "sourceDurationMs": duration_ms,
@@ -274,16 +296,18 @@ fn audio_cache_manifest(
         "sampleRateHz": config.sample_rate_hz,
         "channels": config.channels,
         "audioFormat": config.audio_format.as_str(),
+        "audioBitrate": config.audio_bitrate.as_deref(),
         "speechMergeGapMs": config.speech_merge_gap_ms,
         "speechMinWindowMs": config.speech_min_window_ms,
         "speechLimitChunks": config.speech_limit_chunks,
         "speechSegmentsJsonl": speech_segments_jsonl,
+        "speechSegmentsSha256": speech_segments_sha256,
         "requestAudioWorker": request.audio_worker.as_deref(),
         "hostedProvider": request.audio_hosted_provider.as_deref(),
         "hostedBaseUrl": request.audio_hosted_base_url.as_deref(),
         "hostedEndpoint": request.audio_hosted_endpoint.as_deref(),
         "hostedModel": request.audio_hosted_model.as_deref(),
-    })
+    }))
 }
 
 fn audio_cache_manifest_matches(output_dir: &Path, expected: &serde_json::Value) -> bool {

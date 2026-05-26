@@ -34,7 +34,7 @@ use xiuxian_wendao::duckdb::{
 use xiuxian_wendao_runtime::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
     DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW, DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
-    DEFAULT_SEARCH_DUCKDB_THREADS,
+    DEFAULT_SEARCH_DUCKDB_THREADS, default_wendao_data_root,
 };
 use xiuxian_wendao_server::transport::{
     DatasetOntologyFlightManifest, DatasetOntologyMaterializeFlightRouteProvider,
@@ -310,8 +310,7 @@ fn read_ontology_sql(ontology_root: &Path, relative_path: &str) -> Result<String
 fn dataset_ontology_duckdb_runtime(
     project_root: &Path,
 ) -> Result<SearchDuckDbRuntimeConfig, String> {
-    let temp_directory = project_root
-        .join(".cache")
+    let temp_directory = default_wendao_data_root(project_root)
         .join("duckdb")
         .join("dataset-ontology");
     fs::create_dir_all(&temp_directory).map_err(|error| {

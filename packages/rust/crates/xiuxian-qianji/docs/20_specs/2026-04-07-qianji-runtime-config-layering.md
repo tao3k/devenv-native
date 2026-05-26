@@ -71,7 +71,7 @@ Effective precedence for `workflow_state.local_duckdb_path` is:
 1. explicit `QianjiRuntimeEnv.qianji_workflow_state_duckdb_path`
 2. `qianji.toml` `[workflow_state].local_duckdb_path`
 3. `QIANJI_WORKFLOW_STATE_DUCKDB_PATH`
-4. built-in local runtime-path fallback
+4. `$PRJ_DATA_HOME/xiuxian-qianji/duckdb/workflow-state.duckdb` runtime fallback
 
 This path is used only by local embedded or CLI BPMN control surfaces. HTTP
 workflow control through `qianji-server` continues to default to
@@ -107,12 +107,13 @@ stay on the shared helper lane:
 
 Contract-feedback storage path resolution follows the same ownership split:
 
-1. `xiuxian-config-core::resolve_cache_home(...)` and
-   `resolve_cache_home_from_value(...)` own the generic `PRJ_CACHE_HOME`
-   trimming, relative-path joining, and default `.cache` fallback
+1. `xiuxian-config-core::resolve_data_home(...)` owns the generic
+   `PRJ_DATA_HOME` trimming, relative-path joining, and default `.data`
+   fallback
 2. `xiuxian-qianji/src/bin/qianji.rs` may still enforce the package-specific
-   rule that contract-feedback cache storage must stay under the resolved
-   workspace root when an absolute override points elsewhere
+   rule that default contract-feedback storage must stay under
+   `$PRJ_DATA_HOME/xiuxian-qianji` unless `--storage-path` explicitly points
+   elsewhere
 
 ## 8. Macro Boundary
 

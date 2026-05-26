@@ -19,25 +19,23 @@ from .fixtures import resolve_fixtures, select_fixtures
 from .pdfium import prepare_pdfium_runtime, validate_pdfium_library_path
 from .runtime import rust_process_env
 
+PDF_RENDER_SHARD_MANIFEST_JSON = "pdf_page_render_shard_manifest.json"
+PDF_RENDER_SHARD_MANIFEST_MARKDOWN = "pdf_page_render_shard_manifest.md"
+PDF_RENDER_ARTIFACT_CACHE_SUMMARY_JSON = "pdf_render_artifact_cache_summary.json"
+
 
 def run_pdf_render_shard_audit(args: argparse.Namespace, report_dir: Path) -> int:
-    with tempfile.TemporaryDirectory(
-        prefix="wendao-pdf-render-shard-audit-"
-    ) as temp_root_text:
+    with tempfile.TemporaryDirectory(prefix="wendao-pdf-render-shard-audit-") as temp_root_text:
         fixture_dir = Path(temp_root_text) / "fixtures"
         fixture_dir.mkdir()
         fixtures, _real_fixture_root = resolve_fixtures(args, fixture_dir)
         fixtures = select_fixtures(fixtures, args.only_fixture)
         if not args.only_fixture:
             fixtures = {
-                name: path
-                for name, path in fixtures.items()
-                if path.suffix.lower() == ".pdf"
+                name: path for name, path in fixtures.items() if path.suffix.lower() == ".pdf"
             }
         if not fixtures:
-            raise SystemExit(
-                "PDF render shard audit requires at least one selected PDF fixture"
-            )
+            raise SystemExit("PDF render shard audit requires at least one selected PDF fixture")
         command, env_update = build_pdf_render_shard_audit_command(
             args,
             fixtures,
@@ -46,12 +44,114 @@ def run_pdf_render_shard_audit(args: argparse.Namespace, report_dir: Path) -> in
         env = rust_process_env()
         env.update(env_update)
         subprocess.run(command, check=True, env=env)
+    artifact_summary_path = write_pdf_render_artifact_cache_summary(report_dir)
     sys.stdout.write(
         "PDF render shard reports: "
-        f"{report_dir / 'pdf_page_render_shard_manifest.json'}, "
-        f"{report_dir / 'pdf_page_render_shard_manifest.md'}\n"
+        f"{report_dir / PDF_RENDER_SHARD_MANIFEST_JSON}, "
+        f"{report_dir / PDF_RENDER_SHARD_MANIFEST_MARKDOWN}, "
+        f"{artifact_summary_path}\n"
     )
     return 0
+
+
+def write_pdf_render_artifact_cache_summary(report_dir: Path) -> Path:
+    manifest_path = report_dir / PDF_RENDER_SHARD_MANIFEST_JSON
+    summary_path = report_dir / PDF_RENDER_ARTIFACT_CACHE_SUMMARY_JSON
+    summary = summarize_pdf_render_artifact_cache(manifest_path)
+    report_dir.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return summary_path
+
+
+def summarize_pdf_render_artifact_cache(manifest_path: Path) -> dict[str, Any]:
+    if not manifest_path.is_file():
+        raise SystemExit(f"Missing PDF render shard manifest: {manifest_path}")
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    records = list(payload.get("records", []))
+    backend_counts = _pdf_render_artifact_backend_counts(payload, records)
+    hit_count = _pdf_render_artifact_count(payload, records, "artifactCacheHitCount")
+    miss_count = _pdf_render_artifact_count(payload, records, "artifactCacheMissCount")
+    throttled_count = _pdf_render_artifact_count(payload, records, "artifactCacheThrottledCount")
+    byte_count = _pdf_render_artifact_count(payload, records, "artifactCacheByteCount")
+    kind_counts = {
+        field: _pdf_render_artifact_count(payload, records, field)
+        for field in (
+            "artifactCachePageRasterHitCount",
+            "artifactCachePageRasterMissCount",
+            "artifactCachePageRasterThrottledCount",
+            "artifactCachePageRasterByteCount",
+            "artifactCacheRegionCropHitCount",
+            "artifactCacheRegionCropMissCount",
+            "artifactCacheRegionCropThrottledCount",
+            "artifactCacheRegionCropByteCount",
+            "artifactCacheRegionManifestProjectionHitCount",
+            "artifactCacheRegionManifestProjectionMissCount",
+            "artifactCacheRegionManifestProjectionThrottledCount",
+            "artifactCacheRegionManifestProjectionByteCount",
+            "artifactCacheRegionManifestProjectionRowHitCount",
+            "artifactCacheRegionManifestProjectionRowMissCount",
+            "artifactCacheRegionManifestProjectionRowThrottledCount",
+            "artifactCacheRegionManifestProjectionRowByteCount",
+        )
+    }
+    return {
+        "schema": "xiuxian_wendao.pdf_render_artifact_cache_summary.v1",
+        "manifestPath": str(manifest_path),
+        "recordCount": len(records),
+        "totalInputs": int(payload.get("totalInputs") or len(records)),
+        "totalRenderedShards": int(payload.get("totalRenderedShards") or 0),
+        "renderedInputs": int(payload.get("renderedInputs") or 0),
+        "fallbackInputs": int(payload.get("fallbackInputs") or 0),
+        "artifactCacheBackendCounts": backend_counts,
+        "artifactCacheConfiguredRecordCount": sum(backend_counts.values()),
+        "artifactCacheHitCount": hit_count,
+        "artifactCacheMissCount": miss_count,
+        "artifactCacheThrottledCount": throttled_count,
+        "artifactCacheByteCount": byte_count,
+        **kind_counts,
+        "artifactCacheReuseObserved": hit_count > 0,
+        "artifactCacheMaterializationObserved": (miss_count + throttled_count) > 0,
+    }
+
+
+def _pdf_render_artifact_backend_counts(
+    payload: dict[str, Any], records: list[Any]
+) -> dict[str, int]:
+    raw_counts = payload.get("artifactCacheBackendCounts")
+    if isinstance(raw_counts, dict):
+        return {
+            str(backend): int(count)
+            for backend, count in sorted(raw_counts.items())
+            if int(count) > 0
+        }
+    counts: dict[str, int] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        backend = record.get("artifactCacheBackend")
+        if not backend:
+            continue
+        backend_name = str(backend)
+        counts[backend_name] = counts.get(backend_name, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _pdf_render_artifact_count(
+    payload: dict[str, Any],
+    records: list[Any],
+    field_name: str,
+) -> int:
+    value = payload.get(field_name)
+    if value is not None:
+        return int(value)
+    total = 0
+    for record in records:
+        if isinstance(record, dict):
+            total += int(record.get(field_name) or 0)
+    return total
 
 
 def build_pdf_render_shard_audit_command(
@@ -83,9 +183,7 @@ def build_pdf_render_shard_audit_command(
     env = {
         "WENDAO_PDF_RENDER_SHARD_INPUTS_JSON": json.dumps(inputs),
         "WENDAO_PDF_RENDER_SHARD_REPORT_DIR": str(report_dir),
-        "WENDAO_PDF_RENDER_SELECTION": normalize_render_selection(
-            args.pdf_render_selection
-        ),
+        "WENDAO_PDF_RENDER_SELECTION": normalize_render_selection(args.pdf_render_selection),
     }
     env.update(build_pdf_render_region_env(args, fixtures))
     pdfium_library_path = resolve_pdfium_library_path(args)
@@ -104,9 +202,7 @@ def build_pdf_render_region_env(
     selection = normalize_render_selection(args.pdf_render_selection)
     if selection != "region_shards":
         if region_specs:
-            raise SystemExit(
-                "--pdf-render-region requires --pdf-render-selection region-shards"
-            )
+            raise SystemExit("--pdf-render-region requires --pdf-render-selection region-shards")
         return {}
     return {
         "WENDAO_PDF_RENDER_REGIONS_JSON": json.dumps(
@@ -124,9 +220,7 @@ def build_hybrid_pdf_render_region_env(args: argparse.Namespace) -> dict[str, st
         return {}
     fixtures = getattr(args, "benchmark_fixtures", {})
     if not fixtures:
-        raise SystemExit(
-            "--hybrid-pdf-render-selection region-shards requires selected fixtures"
-        )
+        raise SystemExit("--hybrid-pdf-render-selection region-shards requires selected fixtures")
     return {
         "WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_JSON": json.dumps(
             parse_pdf_render_regions(region_specs, fixtures)
@@ -142,9 +236,7 @@ def parse_pdf_render_regions(
         raise SystemExit(
             "--pdf-render-selection region-shards requires at least one --pdf-render-region"
         )
-    regions_by_fixture: dict[str, list[dict[str, Any]]] = {
-        name: [] for name in fixtures
-    }
+    regions_by_fixture: dict[str, list[dict[str, Any]]] = {name: [] for name in fixtures}
     seen_regions: set[tuple[str, int, int]] = set()
     for region_spec in region_specs:
         fixture_name, region = parse_pdf_render_region(region_spec)
@@ -168,9 +260,7 @@ def parse_pdf_render_regions(
         regions_by_fixture[fixture_name].append(region)
 
     missing = sorted(
-        fixture_name
-        for fixture_name, regions in regions_by_fixture.items()
-        if not regions
+        fixture_name for fixture_name, regions in regions_by_fixture.items() if not regions
     )
     if missing:
         raise SystemExit(
@@ -208,18 +298,14 @@ def parse_pdf_render_region(region_spec: str) -> tuple[str, dict[str, Any]]:
         right = float(parts[4])
         top = float(parts[5])
     except ValueError as error:
-        raise SystemExit(
-            f"Invalid --pdf-render-region numeric value: {region_spec}"
-        ) from error
+        raise SystemExit(f"Invalid --pdf-render-region numeric value: {region_spec}") from error
     if page_index < 0 or region_index < 0:
         raise SystemExit(
-            "--pdf-render-region page and region indexes must be non-negative: "
-            + region_spec
+            "--pdf-render-region page and region indexes must be non-negative: " + region_spec
         )
     if right <= left or top <= bottom:
         raise SystemExit(
-            "--pdf-render-region bbox must satisfy right > left and top > bottom: "
-            + region_spec
+            "--pdf-render-region bbox must satisfy right > left and top > bottom: " + region_spec
         )
     region: dict[str, Any] = {
         "pageIndex": page_index,
@@ -240,9 +326,7 @@ def resolve_pdfium_library_path(args: argparse.Namespace) -> Path | None:
     explicit_path = getattr(args, "pdfium_library_path", None)
     if explicit_path is not None:
         return validate_pdfium_library_path(explicit_path)
-    if getattr(args, "prepare_pdfium_runtime", False) or hybrid_pdf_ocr_requires_pdfium(
-        args
-    ):
+    if getattr(args, "prepare_pdfium_runtime", False) or hybrid_pdf_ocr_requires_pdfium(args):
         return prepare_pdfium_runtime()
     return None
 

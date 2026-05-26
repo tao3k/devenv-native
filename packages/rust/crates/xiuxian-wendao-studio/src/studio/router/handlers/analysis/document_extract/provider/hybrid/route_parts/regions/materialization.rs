@@ -23,7 +23,8 @@ use xiuxian_wendao_attachments::pdf::profile::{
 use xiuxian_wendao_attachments::pdf::render::PdfPageRenderShardReport;
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::{
-    PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfRenderRoutingDecision, PdfRenderStatus,
+    PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfRegionShardRenderRequest,
+    PdfRenderRoutingDecision, PdfRenderStatus,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::{
@@ -177,19 +178,22 @@ async fn materialize_ocr2_recovery_region_images_render(
         let output_for_render = output_dir.clone();
         let regions_for_render = regions.clone();
         tokio::task::spawn_blocking(move || {
-            render_pdf_region_shards_with_source_hash(
-                source_for_render.as_path(),
-                output_for_render.as_path(),
-                &render_profile,
-                regions_for_render.as_slice(),
-                source_content_hash.as_str(),
-            )
+            render_pdf_region_shards_with_source_hash(PdfRegionShardRenderRequest {
+                path: source_for_render.as_path(),
+                output_dir: output_for_render.as_path(),
+                profile: &render_profile,
+                regions: regions_for_render.as_slice(),
+                source_hash: source_content_hash.as_str(),
+            })
         })
         .await
         .map_err(|error| format!("join hosted VLM/OCR recovery region render task: {error}"))??
     };
     materialization.record_phase_elapsed("regionMaterializeRender", phase_started);
     materialization.stats.render_reported_elapsed_ms = region_render_report.elapsed_ms;
+    materialization
+        .stats
+        .record_render_artifact_cache_report(&region_render_report);
 
     let phase_started = Instant::now();
     let ocr_input_path = hybrid_page_ocr_input_arrow_path(&region_render_report)?;
@@ -351,6 +355,27 @@ pub(crate) fn cached_ocr2_region_render_report(
             .to_string(),
         elapsed_ms: 0.0,
         error_message: None,
+        artifact_cache_backend: None,
+        artifact_cache_hit_count: 0,
+        artifact_cache_miss_count: 0,
+        artifact_cache_throttled_count: 0,
+        artifact_cache_byte_count: 0,
+        artifact_cache_page_raster_hit_count: 0,
+        artifact_cache_page_raster_miss_count: 0,
+        artifact_cache_page_raster_throttled_count: 0,
+        artifact_cache_page_raster_byte_count: 0,
+        artifact_cache_region_crop_hit_count: 0,
+        artifact_cache_region_crop_miss_count: 0,
+        artifact_cache_region_crop_throttled_count: 0,
+        artifact_cache_region_crop_byte_count: 0,
+        artifact_cache_region_manifest_projection_hit_count: 0,
+        artifact_cache_region_manifest_projection_miss_count: 0,
+        artifact_cache_region_manifest_projection_throttled_count: 0,
+        artifact_cache_region_manifest_projection_byte_count: 0,
+        artifact_cache_region_manifest_projection_row_hit_count: 0,
+        artifact_cache_region_manifest_projection_row_miss_count: 0,
+        artifact_cache_region_manifest_projection_row_throttled_count: 0,
+        artifact_cache_region_manifest_projection_row_byte_count: 0,
     })
 }
 

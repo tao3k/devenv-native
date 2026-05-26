@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use xiuxian_wendao_parsers::{OrgizeAgentTaskProperty, OrgizeAgentTaskRepeater};
 
 pub(super) const AGENT_ORG_TASKS_TABLE: &str = "agent_org_tasks";
+pub(super) const AGENT_ORG_MEMORY_OBJECTS_TABLE: &str = "agent_org_memory_objects";
+pub(super) const AGENT_ORG_ELEMENTS_TABLE: &str = "agent_org_elements";
 
 #[derive(Debug, Clone)]
 pub(super) struct ResolvedReadModelSettings {
@@ -23,6 +25,8 @@ pub(super) struct AgentOrgReadModelMaterializationReport {
     pub(super) active_rows: usize,
     pub(super) done_rows: usize,
     pub(super) archived_rows: usize,
+    pub(super) memory_object_rows: usize,
+    pub(super) org_element_rows: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -64,4 +68,20 @@ pub(super) struct AgentOrgTaskListRow {
     pub(super) closed: Option<String>,
     pub(super) outline_path: Vec<String>,
     pub(super) properties: Vec<OrgizeAgentTaskProperty>,
+    pub(super) matched_org_elements: Vec<AgentOrgElementMatch>,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct AgentOrgElementMatch {
+    pub(super) ordinal: u64,
+    pub(super) category: String,
+    pub(super) kind: String,
+    pub(super) affiliated_name: Option<String>,
+    pub(super) context: String,
+    pub(super) summary_json: String,
+    pub(super) language: Option<String>,
+    pub(super) source_start_line: u64,
+    pub(super) source_range_start: u64,
+    pub(super) source_range_end: u64,
+    pub(super) source_raw: String,
 }

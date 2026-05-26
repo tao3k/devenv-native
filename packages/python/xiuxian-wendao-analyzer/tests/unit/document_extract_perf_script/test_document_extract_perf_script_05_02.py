@@ -339,6 +339,12 @@ def test_run_fixture_probe_exports_audio_transcript_org(
     draft_path = tmp_path / "report" / "audio-transcripts" / "meeting.reference_draft.jsonl"
     assert result["audioTranscriptReferenceDraftJsonlPath"] == str(draft_path)
     assert result["audioTranscriptReferenceDraftRows"] == 1
+    assert result["audioTranscriptReferenceDraftChars"] == 7
+    assert result["audioTranscriptReferenceDraftEmptyRows"] == 0
+    assert result["audioTranscriptReferenceDraftMinChars"] == 7
+    assert result["audioTranscriptReferenceDraftMaxChars"] == 7
+    assert result["audioTranscriptReferenceDraftDuplicateTextHashCount"] == 0
+    assert result["audioTranscriptReferenceDraftUniqueTextHashCount"] == 1
     assert draft_path.exists()
 
 

@@ -39,7 +39,9 @@ pub enum ArtifactCacheError {
 }
 
 impl ArtifactCacheError {
-    pub(crate) fn invalid_component(
+    /// Build an invalid component error for caller-owned key validation.
+    #[must_use]
+    pub fn invalid_component(
         field: &'static str,
         value: impl Into<String>,
         reason: &'static str,
@@ -51,11 +53,9 @@ impl ArtifactCacheError {
         }
     }
 
-    pub(crate) fn io(
-        action: &'static str,
-        path: impl Into<PathBuf>,
-        source: std::io::Error,
-    ) -> Self {
+    /// Build an IO error for caller-owned artifact byte materialization.
+    #[must_use]
+    pub fn io(action: &'static str, path: impl Into<PathBuf>, source: std::io::Error) -> Self {
         Self::Io {
             action,
             path: path.into(),
@@ -63,7 +63,9 @@ impl ArtifactCacheError {
         }
     }
 
-    pub(crate) fn backend(
+    /// Build a backend error for caller-owned artifact byte materialization.
+    #[must_use]
+    pub fn backend(
         backend: &'static str,
         action: &'static str,
         message: impl Into<String>,

@@ -12,6 +12,7 @@ def fixture_structure_order_consistency(
     force_report: dict[str, Any],
     cached_report: dict[str, Any],
     shard_cache_reuse_report: dict[str, Any] | None = None,
+    region_projection_reuse_report: dict[str, Any] | None = None,
     artifact_registry_reuse_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     runs = [
@@ -20,6 +21,13 @@ def fixture_structure_order_consistency(
     ]
     if shard_cache_reuse_report is not None:
         runs.append(structure_order_run("shard_cache_reuse", shard_cache_reuse_report))
+    if region_projection_reuse_report is not None:
+        runs.append(
+            structure_order_run(
+                "region_projection_reuse",
+                region_projection_reuse_report,
+            )
+        )
     if artifact_registry_reuse_report is not None:
         runs.append(
             structure_order_run(

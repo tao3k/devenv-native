@@ -356,6 +356,7 @@ pub(crate) fn sample_variable_window_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "speech-segments".to_owned(),
     }
 }
@@ -391,11 +392,13 @@ pub(crate) fn sample_speech_window_planner_input() -> AudioSpeechWindowPlannerIn
         min_window_ms: 8_000,
         short_merge_gap_ms: Some(3_000),
         max_window_ms: Some(30_000),
+        boundary_snap_tolerance_ms: 0,
         context_before_ms: 500,
         context_after_ms: 700,
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
     }
 }
 
@@ -415,6 +418,7 @@ pub(crate) fn sample_materialized_item() -> AudioShardMaterializedItem {
             sample_rate_hz: 16_000,
             channels: 1,
             audio_format: "wav".to_owned(),
+            audio_bitrate: None,
             cache_key: "audio-shards-v1:materialized-audio-shard-id".to_owned(),
             reading_order_key: "000001.000000009000".to_owned(),
         },

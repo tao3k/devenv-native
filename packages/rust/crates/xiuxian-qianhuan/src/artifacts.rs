@@ -3,7 +3,8 @@
 use serde::Serialize;
 use xiuxian_db_store::artifact_cache::{
     AgentArtifactKeyParts, ArtifactBlobCache, ArtifactCacheError, ArtifactKey, ArtifactKind,
-    ArtifactReadThrough, agent_artifact_key, read_through_artifact_bytes,
+    ArtifactReadThrough, agent_artifact_key, fetch_through_artifact_bytes,
+    read_through_artifact_bytes,
 };
 
 use crate::{InjectionPolicy, InjectionSnapshot, PromptContextBlock, RoleMixProfile};
@@ -15,11 +16,11 @@ const PROMPT_CONTEXT_ARTIFACT_BACKEND: &str = "qianhuan-prompt-context";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PromptContextPackIdentity {
     /// Digest of the context source scope.
-    pub source_digest: String,
+    pub source: String,
     /// Digest of the policy and role profile that shape the pack.
-    pub profile_digest: String,
+    pub profile: String,
     /// Digest of the retained prompt-context blocks.
-    pub shard_digest: String,
+    pub shard: String,
 }
 
 impl PromptContextPackIdentity {
@@ -33,15 +34,15 @@ impl PromptContextPackIdentity {
     /// Returns [`ArtifactCacheError`] when snapshot serialization fails.
     pub fn from_snapshot_content(snapshot: &InjectionSnapshot) -> Result<Self, ArtifactCacheError> {
         Ok(Self {
-            source_digest: digest_bytes(snapshot.session_id.as_ref().as_bytes()),
-            profile_digest: digest_json(
+            source: digest_bytes(snapshot.session_id.as_ref().as_bytes()),
+            profile: digest_json(
                 "serializing prompt-context profile identity",
                 &PromptContextPackProfileDigest {
                     policy: &snapshot.policy,
                     role_mix: &snapshot.role_mix,
                 },
             )?,
-            shard_digest: digest_json(
+            shard: digest_json(
                 "serializing prompt-context shard identity",
                 &PromptContextPackShardDigest {
                     blocks: &snapshot.blocks,
@@ -109,9 +110,9 @@ pub fn prompt_context_pack_key(
 ) -> Result<ArtifactKey, ArtifactCacheError> {
     agent_artifact_key(AgentArtifactKeyParts {
         kind: ArtifactKind::PromptContextPack,
-        source_digest: identity.source_digest,
-        profile_digest: identity.profile_digest,
-        shard_digest: identity.shard_digest,
+        source_digest: identity.source,
+        profile_digest: identity.profile,
+        shard_digest: identity.shard,
     })
 }
 
@@ -152,6 +153,26 @@ pub fn read_through_prompt_context_pack(
     Ok(PromptContextPackReadThrough { key, artifact })
 }
 
+/// Fetch or build a prompt-context pack through the shared artifact substrate.
+///
+/// Backends with native fetch-through support may coalesce concurrent same-key
+/// misses. Use this helper when the builder can be moved into the backend-owned
+/// execution path.
+///
+/// # Errors
+///
+/// Returns [`ArtifactCacheError`] when key construction, cache fetch-through,
+/// or prompt-context pack construction fails.
+pub fn fetch_through_prompt_context_pack(
+    cache: &dyn ArtifactBlobCache,
+    identity: PromptContextPackIdentity,
+    build: impl FnOnce() -> Result<Vec<u8>, ArtifactCacheError> + Send + 'static,
+) -> Result<PromptContextPackReadThrough, ArtifactCacheError> {
+    let key = prompt_context_pack_key(identity)?;
+    let artifact = fetch_through_artifact_bytes(cache, &key, build)?;
+    Ok(PromptContextPackReadThrough { key, artifact })
+}
+
 /// Read or build the versioned pack bytes for an injection snapshot.
 ///
 /// # Errors
@@ -164,6 +185,22 @@ pub fn read_through_injection_snapshot_pack(
 ) -> Result<PromptContextPackReadThrough, ArtifactCacheError> {
     let identity = PromptContextPackIdentity::from_snapshot_content(snapshot)?;
     read_through_prompt_context_pack(cache, identity, || prompt_context_pack_bytes(snapshot))
+}
+
+/// Fetch or build the versioned pack bytes for an owned injection snapshot.
+///
+/// # Errors
+///
+/// Returns [`ArtifactCacheError`] when snapshot identity serialization,
+/// prompt-context pack serialization, or cache IO fails.
+pub fn fetch_through_injection_snapshot_pack(
+    cache: &dyn ArtifactBlobCache,
+    snapshot: InjectionSnapshot,
+) -> Result<PromptContextPackReadThrough, ArtifactCacheError> {
+    let identity = PromptContextPackIdentity::from_snapshot_content(&snapshot)?;
+    fetch_through_prompt_context_pack(cache, identity, move || {
+        prompt_context_pack_bytes(&snapshot)
+    })
 }
 
 #[derive(Serialize)]

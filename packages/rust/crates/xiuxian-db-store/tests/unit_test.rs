@@ -6,11 +6,13 @@ use xiuxian_db_store::artifact_cache::{
     ARTIFACT_CACHE_MEMORY_BYTES_ENV, ARTIFACT_CACHE_MEMORY_SHARDS_ENV,
     ARTIFACT_CACHE_RECLAIMERS_ENV, ARTIFACT_CACHE_RECOVER_CONCURRENCY_ENV, ARTIFACT_CACHE_ROOT_ENV,
     ARTIFACT_CACHE_RUNTIME_WORKERS_ENV, ARTIFACT_CACHE_STORAGE_BYTES_ENV, AgentArtifactKeyParts,
-    ArtifactBlobCache, ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobWrite,
-    ArtifactCacheBackendKind, ArtifactKey, ArtifactKeyComponent, ArtifactKeyParts, ArtifactKind,
+    ArtifactBlobCache, ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobReadStatus,
+    ArtifactBlobWrite, ArtifactBlobWriteOutcome, ArtifactCacheBackendKind, ArtifactCacheError,
+    ArtifactKey, ArtifactKeyComponent, ArtifactKeyParts, ArtifactKind, ArtifactReadThroughStatus,
     AttachmentArtifactKeyParts, ContentAddressedFilesystemBlobCache, OntologyArtifactKeyParts,
-    agent_artifact_key, attachment_artifact_key, ontology_artifact_key, pack_artifact_directory,
-    read_through_artifact_bytes, unpack_artifact_directory,
+    agent_artifact_key, attachment_artifact_key, fetch_through_artifact_bytes,
+    ontology_artifact_key, pack_artifact_directory, read_through_artifact_bytes,
+    unpack_artifact_directory,
 };
 #[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::{

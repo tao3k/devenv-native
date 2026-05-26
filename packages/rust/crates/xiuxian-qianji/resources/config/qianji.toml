@@ -17,7 +17,9 @@ persist_best_effort = true
 valkey_url = "redis://127.0.0.1:6379/0"
 
 [workflow_state]
-local_duckdb_path = ".run/qianji-workflow-state.duckdb"
+# Leave `local_duckdb_path` unset so runtime-owned local state defaults to
+# `$PRJ_DATA_HOME/xiuxian-qianji`. Operator deployments may override this value
+# in their root `qianji.toml`.
 
 [server]
 bind_addr = "127.0.0.1:38130"

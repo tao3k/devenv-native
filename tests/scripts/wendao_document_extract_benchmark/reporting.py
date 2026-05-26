@@ -32,6 +32,41 @@ from .rust_status import combine_rust_jobs_status_summaries
 if TYPE_CHECKING:
     from .common import Any, argparse
 
+OCR2_REGION_RENDER_ARTIFACT_KIND_SUFFIXES = (
+    "PageRasterHitCount",
+    "PageRasterMissCount",
+    "PageRasterThrottledCount",
+    "PageRasterByteCount",
+    "RegionCropHitCount",
+    "RegionCropMissCount",
+    "RegionCropThrottledCount",
+    "RegionCropByteCount",
+    "RegionManifestProjectionHitCount",
+    "RegionManifestProjectionMissCount",
+    "RegionManifestProjectionThrottledCount",
+    "RegionManifestProjectionByteCount",
+    "RegionManifestProjectionRowHitCount",
+    "RegionManifestProjectionRowMissCount",
+    "RegionManifestProjectionRowThrottledCount",
+    "RegionManifestProjectionRowByteCount",
+)
+
+
+def _sum_prefixed_ocr2_region_render_artifact_kind_counts(
+    results: list[dict[str, Any]],
+    result_prefix: str,
+) -> dict[str, int]:
+    return {
+        f"{result_prefix}Ocr2RegionRenderArtifactCache{suffix}": sum(
+            _numeric_result_value(
+                result,
+                f"{result_prefix}Ocr2RegionRenderArtifactCache{suffix}",
+            )
+            for result in results
+        )
+        for suffix in OCR2_REGION_RENDER_ARTIFACT_KIND_SUFFIXES
+    }
+
 
 def summarize_results(
     results: list[dict[str, Any]],
@@ -46,6 +81,7 @@ def summarize_results(
         sum(
             result["forceErrorRows"]
             + result.get("shardCacheReuseErrorRows", 0)
+            + result.get("regionProjectionReuseErrorRows", 0)
             + result.get("artifactRegistryReuseErrorRows", 0)
             + result["cacheErrorRows"]
             for result in results
@@ -94,6 +130,29 @@ def summarize_results(
         ),
         "totalAudioTranscriptReferenceDraftChars": sum(
             result.get("audioTranscriptReferenceDraftChars", 0) for result in results
+        ),
+        "totalAudioTranscriptReferenceDraftEmptyRows": sum(
+            result.get("audioTranscriptReferenceDraftEmptyRows", 0) for result in results
+        ),
+        "totalAudioTranscriptReferenceDraftDuplicateTextHashCount": sum(
+            result.get("audioTranscriptReferenceDraftDuplicateTextHashCount", 0)
+            for result in results
+        ),
+        "minAudioTranscriptReferenceDraftChars": min(
+            (
+                result.get("audioTranscriptReferenceDraftMinChars", 0)
+                for result in results
+                if result.get("audioTranscriptReferenceDraftRows", 0) > 0
+            ),
+            default=0,
+        ),
+        "maxAudioTranscriptReferenceDraftChars": max(
+            (
+                result.get("audioTranscriptReferenceDraftMaxChars", 0)
+                for result in results
+                if result.get("audioTranscriptReferenceDraftRows", 0) > 0
+            ),
+            default=0,
         ),
         "totalForceAudioMaterializationShardCount": sum(
             result.get("forceAudioMaterializationShardCount", 0) for result in results
@@ -334,8 +393,119 @@ def summarize_results(
         "forceHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
             result.get("forceHybridPageOcrTimingPhaseElapsedMs", {}) for result in results
         ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": sum(
+            _numeric_result_value(
+                result,
+                "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount",
+            )
+            for result in results
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": sum(
+            _numeric_result_value(
+                result,
+                "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount",
+            )
+            for result in results
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": sum(
+            _numeric_result_value(
+                result,
+                "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount",
+            )
+            for result in results
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": sum(
+            _numeric_result_value(
+                result,
+                "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount",
+            )
+            for result in results
+        ),
+        **_sum_prefixed_ocr2_region_render_artifact_kind_counts(
+            results,
+            "forceHybridPageOcrTiming",
+        ),
         "shardCacheReuseHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
             result.get("shardCacheReuseHybridPageOcrTimingPhaseElapsedMs", {}) for result in results
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": sum(
+            _numeric_result_value(
+                result,
+                "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount",
+            )
+            for result in results
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": sum(
+            _numeric_result_value(
+                result,
+                "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount",
+            )
+            for result in results
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": sum(
+            _numeric_result_value(
+                result,
+                "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount",
+            )
+            for result in results
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": sum(
+            _numeric_result_value(
+                result,
+                "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount",
+            )
+            for result in results
+        ),
+        **_sum_prefixed_ocr2_region_render_artifact_kind_counts(
+            results,
+            "shardCacheReuseHybridPageOcrTiming",
+        ),
+        "regionProjectionReuseHybridPageOcrTimingPhaseElapsedMs": _combine_float_counts(
+            result.get("regionProjectionReuseHybridPageOcrTimingPhaseElapsedMs", {})
+            for result in results
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": sum(
+            _numeric_result_value(
+                result,
+                "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount",
+            )
+            for result in results
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": sum(
+            _numeric_result_value(
+                result,
+                "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount",
+            )
+            for result in results
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": sum(
+            _numeric_result_value(
+                result,
+                "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount",
+            )
+            for result in results
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": sum(
+            _numeric_result_value(
+                result,
+                "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount",
+            )
+            for result in results
+        ),
+        **_sum_prefixed_ocr2_region_render_artifact_kind_counts(
+            results,
+            "regionProjectionReuseHybridPageOcrTiming",
+        ),
+        "maxRegionProjectionReuseMetricsRustSchedulerElapsedMs": max(
+            (
+                value
+                for result in results
+                if isinstance(
+                    (value := result.get("regionProjectionReuseMetricsRustSchedulerElapsedMs")),
+                    int | float,
+                )
+            ),
+            default=None,
         ),
         "maxShardCacheReuseMetricsRustSchedulerElapsedMs": max(
             (
@@ -634,6 +804,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"- Rust audio sample rate Hz: `{payload.get('rustAudioSampleRateHz')}`",
         f"- Rust audio channels: `{payload.get('rustAudioChannels')}`",
         f"- Rust audio format: `{payload.get('rustAudioFormat')}`",
+        f"- Rust audio bitrate: `{payload.get('rustAudioBitrate')}`",
         f"- Rust audio artifact cache dir: `{payload.get('rustAudioArtifactCacheDir')}`",
         "- Rust audio transcript admission dir: "
         f"`{payload.get('rustAudioTranscriptAdmissionDir')}`",
@@ -725,7 +896,15 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "referenceDraftRows="
         f"{payload['summary'].get('totalAudioTranscriptReferenceDraftRows')}, "
         "referenceDraftChars="
-        f"{payload['summary'].get('totalAudioTranscriptReferenceDraftChars')}`",
+        f"{payload['summary'].get('totalAudioTranscriptReferenceDraftChars')}, "
+        "referenceDraftMinChars="
+        f"{payload['summary'].get('minAudioTranscriptReferenceDraftChars')}, "
+        "referenceDraftMaxChars="
+        f"{payload['summary'].get('maxAudioTranscriptReferenceDraftChars')}, "
+        "referenceDraftEmptyRows="
+        f"{payload['summary'].get('totalAudioTranscriptReferenceDraftEmptyRows')}, "
+        "referenceDraftDuplicateTextHashes="
+        f"{payload['summary'].get('totalAudioTranscriptReferenceDraftDuplicateTextHashCount')}`",
         "- Audio materialization cache: "
         f"`forceShards={payload['summary'].get('totalForceAudioMaterializationShardCount')}, "
         f"forceBytes={payload['summary'].get('totalForceAudioMaterializationByteCount')}, "
@@ -856,6 +1035,8 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`{payload.get('pdfOcrFastTextSourceConverter', 'default')}`",
         "- Shard-cache reuse probe: "
         f"`{any(result.get('shardCacheReuseEnabled') for result in payload['results'])}`",
+        "- Region-projection reuse probe: "
+        f"`{any(result.get('regionProjectionReuseEnabled') for result in payload['results'])}`",
         "- Artifact-registry reuse probe: "
         f"`{any(result.get('artifactRegistryReuseEnabled') for result in payload['results'])}`",
         "- OCR shard cache: "
@@ -914,7 +1095,33 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"renderChunks={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount')}, "
         f"dispatchChunks={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount')}, "
         f"cacheHits={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderCacheHitCount')}, "
-        f"cacheMisses={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount')}`",
+        f"cacheMisses={_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount')}, "
+        "artifactHits="
+        f"{_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount')}, "
+        "artifactMisses="
+        f"{_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount')}, "
+        "artifactThrottled="
+        f"{_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount')}, "
+        "artifactBytes="
+        f"{_summary_or_first_result_value(payload, 'forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount')}`",
+        "- Rust hosted region projection reuse: "
+        "artifactHits="
+        f"`{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount')}, "
+        "artifactMisses="
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount')}, "
+        "crop="
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropHitCount')}/"
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropMissCount')}, "
+        "rowProjection="
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount')}/"
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount')}, "
+        "pageProjection="
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionHitCount')}/"
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionMissCount')}, "
+        "artifactBytes="
+        f"{_summary_or_first_result_value(payload, 'regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount')}, "
+        "schedulerMs="
+        f"{_format_optional_float(payload['summary'].get('maxRegionProjectionReuseMetricsRustSchedulerElapsedMs'))}`",
         f"- Structure sidecar rows: `{payload['summary']['totalStructureRows']}`",
         "- Structure OCR blocks: "
         f"`page={payload['summary']['totalStructureOcrPageBlocks']}, "
@@ -970,8 +1177,12 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"`{_format_float_counts(payload['summary'].get('forceHybridPageOcrTimingPhaseElapsedMs'))}`, "
         "shardReusePhases="
         f"`{_format_float_counts(payload['summary'].get('shardCacheReuseHybridPageOcrTimingPhaseElapsedMs'))}`, "
+        "regionProjectionReusePhases="
+        f"`{_format_float_counts(payload['summary'].get('regionProjectionReuseHybridPageOcrTimingPhaseElapsedMs'))}`, "
         "shardReuseSchedulerMs="
         f"`{_format_optional_float(payload['summary'].get('maxShardCacheReuseMetricsRustSchedulerElapsedMs'))}`, "
+        "regionProjectionReuseSchedulerMs="
+        f"`{_format_optional_float(payload['summary'].get('maxRegionProjectionReuseMetricsRustSchedulerElapsedMs'))}`, "
         "hostedLocalGapMs="
         f"`{_format_optional_float(hosted_vlm_promotion.get('observed', {}).get('forceHostedVlmLocalOverheadMs'))}`, "
         "schedulerNonHostedMs="
@@ -1046,13 +1257,14 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"rejectedStructureLoss={candidate_taxonomy.get('rejectedStructureLoss')}`",
         f"- Artifact errors: `{payload['summary']['artifactErrorCount']}`",
         "",
-        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Fixture | Requests | Rows/request | Error rows | Duplicate conversions | Queue max | Running max | Permits min | Total rows | Structure rows | OCR blocks | Order sorted | IPC bytes | Force ms | Artifact reuse ms | Region projection reuse ms | Shard reuse force ms | Cache p50 ms | Cache p95 ms | Wall ms | Max RSS KB | Speedup |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for result in payload["results"]:
         error_rows = (
             result["forceErrorRows"]
             + result.get("shardCacheReuseErrorRows", 0)
+            + result.get("regionProjectionReuseErrorRows", 0)
             + result.get("artifactRegistryReuseErrorRows", 0)
             + result["cacheErrorRows"]
         )
@@ -1067,6 +1279,9 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "ocrBlocks": ocr_blocks,
             "orderSorted": result.get("structureReadingOrderSorted"),
             "shardCacheReuseForceMs": _format_optional_float(result.get("shardCacheReuseForceMs")),
+            "regionProjectionReuseForceMs": _format_optional_float(
+                result.get("regionProjectionReuseForceMs")
+            ),
             "artifactRegistryReuseForceMs": _format_optional_float(
                 result.get("artifactRegistryReuseForceMs")
             ),
@@ -1078,7 +1293,7 @@ def render_markdown(payload: dict[str, Any]) -> str:
             "{totalRows} | {structureRows} | {ocrBlocks} | {orderSorted} | "
             "{arrowIpcBytes} | "
             "{forceRefreshMs:.3f} | {artifactRegistryReuseForceMs} | "
-            "{shardCacheReuseForceMs} | "
+            "{regionProjectionReuseForceMs} | {shardCacheReuseForceMs} | "
             "{cacheHitP50Ms:.3f} | {cacheHitP95Ms:.3f} | "
             "{wallTimeMs:.3f} | {cacheMaxRssKb} | {cacheSpeedup:.2f} |".format(**row)
         )
@@ -1181,6 +1396,13 @@ def _combine_float_counts(values: Any) -> dict[str, float]:
             if isinstance(key, str) and isinstance(count, int | float):
                 totals[key] = totals.get(key, 0.0) + float(count)
     return dict(sorted(totals.items()))
+
+
+def _numeric_result_value(result: dict[str, Any], key: str) -> int | float:
+    value = result.get(key)
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return value
+    return 0
 
 
 def _combine_string_counts(values: Any) -> dict[str, int]:

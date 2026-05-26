@@ -5,11 +5,13 @@ use sha2::Digest;
 use std::ffi::OsString;
 use std::fs;
 use std::io::Read;
+#[cfg(feature = "foyer-artifact-cache")]
+use std::path::{Path, PathBuf};
 use std::process::Command;
 #[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobCacheBackend, ArtifactBlobCacheBackendConfig, ArtifactBlobWrite,
-    ArtifactKey, ArtifactKeyParts, ArtifactKind,
+    ArtifactBlobCache, ArtifactBlobCacheBackend, ArtifactBlobCacheBackendConfig,
+    ArtifactCacheError, ArtifactKey, ArtifactKeyParts, ArtifactKind, fetch_through_artifact_bytes,
 };
 
 #[cfg(feature = "foyer-artifact-cache")]
@@ -102,45 +104,21 @@ fn materialize_one(
             materialization_source: AudioShardMaterializationSource::ExistingOutput,
         });
     }
-    #[cfg(feature = "foyer-artifact-cache")]
-    if let Some(cache) = artifact_cache
-        && let Some(digest) =
-            restore_audio_shard_from_artifact_cache(cache, &manifest, output_path.as_path())?
-    {
-        return Ok(AudioShardMaterializedItem {
+    if let Some(cache) = artifact_cache {
+        return materialize_audio_shard_with_artifact_cache(
+            plan,
+            input,
             manifest,
             output_path,
-            shard_sha256: digest.sha256,
-            shard_byte_len: digest.byte_len,
-            materialization_source: AudioShardMaterializationSource::ArtifactCache,
-        });
+            cache,
+        );
     }
-    let status = Command::new(input.ffmpeg_path.as_path())
-        .args(ffmpeg_args(
-            plan,
-            &manifest,
-            &input.source_path,
-            &output_path,
-        ))
-        .status()
-        .map_err(|error| {
-            format!(
-                "failed to launch audio splitter {}: {error}",
-                input.ffmpeg_path.display()
-            )
-        })?;
-    if !status.success() {
-        return Err(format!(
-            "audio splitter failed for shard {} with status {status}",
-            manifest.shard_id
-        ));
-    }
-    #[cfg(feature = "foyer-artifact-cache")]
-    let (digest, cache_bytes) =
-        file_digest_with_optional_bytes(output_path.as_path(), artifact_cache.is_some())?;
-    if let Some(cache) = artifact_cache {
-        write_audio_shard_to_artifact_cache(cache, &manifest, cache_bytes.as_slice())?;
-    }
+    run_audio_splitter(
+        input.ffmpeg_path.as_path(),
+        ffmpeg_args(plan, &manifest, &input.source_path, &output_path),
+        &manifest.shard_id,
+    )?;
+    let digest = file_digest(output_path.as_path())?;
     Ok(AudioShardMaterializedItem {
         shard_sha256: digest.sha256,
         shard_byte_len: digest.byte_len,
@@ -227,39 +205,46 @@ fn audio_artifact_blob_cache(
 }
 
 #[cfg(feature = "foyer-artifact-cache")]
-fn restore_audio_shard_from_artifact_cache(
+fn materialize_audio_shard_with_artifact_cache(
+    plan: &AudioShardPlan,
+    input: &AudioShardMaterializationInput,
+    manifest: AudioShardManifestItem,
+    output_path: PathBuf,
     cache: &dyn ArtifactBlobCache,
-    manifest: &AudioShardManifestItem,
-    output_path: &std::path::Path,
-) -> Result<Option<AudioShardDigest>, String> {
-    let key = audio_shard_artifact_key(manifest)?;
-    let Some(read) = cache
-        .read(&key)
-        .map_err(|error| format!("read audio shard artifact cache: {error}"))?
-    else {
-        return Ok(None);
-    };
-    let bytes = read.bytes();
-    fs::write(output_path, bytes).map_err(|error| {
+) -> Result<AudioShardMaterializedItem, String> {
+    let key = audio_shard_artifact_key(&manifest)?;
+    let ffmpeg_path = input.ffmpeg_path.clone();
+    let args = ffmpeg_args(plan, &manifest, &input.source_path, &output_path);
+    let shard_id = manifest.shard_id.clone();
+    let builder_output_path = output_path.clone();
+    let artifact = fetch_through_artifact_bytes(cache, &key, move || {
+        run_audio_splitter(ffmpeg_path.as_path(), args, &shard_id).map_err(|error| {
+            ArtifactCacheError::backend("audio-shards", "splitting audio shard", error)
+        })?;
+        fs::read(builder_output_path.as_path()).map_err(|error| {
+            ArtifactCacheError::io("reading audio shard", builder_output_path.as_path(), error)
+        })
+    })
+    .map_err(|error| format!("fetch through audio shard artifact cache: {error}"))?;
+    fs::write(output_path.as_path(), artifact.bytes()).map_err(|error| {
         format!(
             "failed to restore audio shard {} from artifact cache: {error}",
             output_path.display()
         )
     })?;
-    Ok(Some(bytes_digest(bytes)))
-}
-
-#[cfg(feature = "foyer-artifact-cache")]
-fn write_audio_shard_to_artifact_cache(
-    cache: &dyn ArtifactBlobCache,
-    manifest: &AudioShardManifestItem,
-    bytes: &[u8],
-) -> Result<(), String> {
-    let key = audio_shard_artifact_key(manifest)?;
-    cache
-        .write(&key, ArtifactBlobWrite::new(bytes))
-        .map_err(|error| format!("write audio shard artifact cache: {error}"))?;
-    Ok(())
+    let digest = bytes_digest(artifact.bytes());
+    let materialization_source = if artifact.cache_hit() {
+        AudioShardMaterializationSource::ArtifactCache
+    } else {
+        AudioShardMaterializationSource::MediaSplitter
+    };
+    Ok(AudioShardMaterializedItem {
+        manifest,
+        output_path,
+        shard_sha256: digest.sha256,
+        shard_byte_len: digest.byte_len,
+        materialization_source,
+    })
 }
 
 #[cfg(feature = "foyer-artifact-cache")]
@@ -288,7 +273,7 @@ fn ffmpeg_args(
     source_path: &std::path::Path,
     output_path: &std::path::Path,
 ) -> Vec<OsString> {
-    [
+    let mut args = vec![
         "-hide_banner".into(),
         "-nostdin".into(),
         "-loglevel".into(),
@@ -305,9 +290,36 @@ fn ffmpeg_args(
         "-ar".into(),
         plan.sample_rate_hz.to_string().into(),
         "-vn".into(),
-        output_path.as_os_str().to_owned(),
-    ]
-    .into()
+    ];
+    if let Some(audio_bitrate) = manifest.audio_bitrate.as_ref() {
+        args.push("-b:a".into());
+        args.push(audio_bitrate.as_str().into());
+    }
+    args.push(output_path.as_os_str().to_owned());
+    args
+}
+
+#[cfg(feature = "foyer-artifact-cache")]
+fn run_audio_splitter(
+    ffmpeg_path: &Path,
+    args: Vec<OsString>,
+    shard_id: &str,
+) -> Result<(), String> {
+    let status = Command::new(ffmpeg_path)
+        .args(args)
+        .status()
+        .map_err(|error| {
+            format!(
+                "failed to launch audio splitter {}: {error}",
+                ffmpeg_path.display()
+            )
+        })?;
+    if !status.success() {
+        return Err(format!(
+            "audio splitter failed for shard {shard_id} with status {status}"
+        ));
+    }
+    Ok(())
 }
 
 fn seconds_arg(ms: u64) -> OsString {

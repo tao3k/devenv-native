@@ -6,7 +6,7 @@ use anyhow::{Result, anyhow};
 #[cfg(feature = "advisory-prompt-pack-cache")]
 use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
 #[cfg(feature = "advisory-prompt-pack-cache")]
-use xiuxian_qianhuan::read_through_injection_snapshot_pack;
+use xiuxian_qianhuan::fetch_through_injection_snapshot_pack;
 use xiuxian_qianhuan::{
     InjectionSessionId, InjectionSnapshotId, InjectionSnapshotInput, InjectionTurnId,
     PersonaProfile, PromptContextBlock, PromptContextBlockId, PromptContextBlockInput,
@@ -259,8 +259,8 @@ impl QianjiAdvisoryAuditExecutor {
             return Ok(None);
         };
         let read_through =
-            read_through_injection_snapshot_pack(cache, snapshot).map_err(|error| {
-                anyhow!("failed to read through advisory prompt-context artifact pack: {error}")
+            fetch_through_injection_snapshot_pack(cache, snapshot.clone()).map_err(|error| {
+                anyhow!("failed to fetch through advisory prompt-context artifact pack: {error}")
             })?;
         Ok(Some(QianjiAdvisoryPromptPackArtifactReport::new(
             read_through.cache_hit(),

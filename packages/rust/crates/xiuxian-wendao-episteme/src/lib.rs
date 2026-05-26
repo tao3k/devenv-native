@@ -73,7 +73,8 @@ pub use ontology::{
     EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanReport,
     EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest,
     EpistemeOntologyStructuralFactsReport, EpistemeOntologyStructuralFactsRequest,
-    EpistemeOntologyStructuralFactsValidationMode, ONTOLOGY_MANIFEST_RELATIVE_PATH,
+    EpistemeOntologyStructuralFactsValidationMode, EpistemeSearchStrategyOracleReport,
+    EpistemeSearchStrategyOracleRequest, ONTOLOGY_MANIFEST_RELATIVE_PATH,
     ONTOLOGY_REGISTRY_RELATIVE_PATH, admit_ontology_registry_snapshot,
     apply_episteme_ontology_source_patch, export_episteme_ontology_rdf_draft,
     export_episteme_ontology_source_patch_draft, generate_episteme_ontology_candidates,
@@ -94,6 +95,7 @@ pub use ontology::{
     write_episteme_ontology_structural_facts_reasoning_ledger_seed,
     write_episteme_ontology_structural_facts_reasoning_packet,
     write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan,
+    write_episteme_search_strategy_oracle,
 };
 #[cfg(feature = "foyer-artifact-cache")]
 pub use ontology::{

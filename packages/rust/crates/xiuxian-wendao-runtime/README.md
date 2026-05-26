@@ -35,6 +35,12 @@ host-side runtime concerns for this lane:
 - temp/spill directory policy
 - connection/bootstrap helpers that depend on deployment context
 
+By default, Wendao-owned DuckDB files and spill directories resolve under
+`$PRJ_DATA_HOME/xiuxian-wendao`. Gateway deployments may override
+`search.duckdb.database_path` and `search.duckdb.temp_directory` through the
+root `wendao.toml`; package resource config leaves those paths unset so the
+runtime default remains authoritative.
+
 Arrow remains a default substrate in this crate rather than a transport-only
 optional dependency gate. The transport feature still gates transport-facing
 logic, but Arrow and Arrow Flight stay first-class runtime dependencies.

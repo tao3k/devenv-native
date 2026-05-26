@@ -8,7 +8,7 @@
 //! - the local `DuckDB` surface keeps type-only config and runtime connection
 //!   features split so config crates do not compile `DuckDB` unless needed
 
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
+#[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
 mod arrow_codec;
 #[cfg(feature = "artifact-cache")]
 /// Attachment and document extraction artifact cache contracts.
@@ -44,11 +44,17 @@ pub use arrow::array::{
 pub use arrow::datatypes::{DataType as LanceDataType, Field as LanceField, Schema as LanceSchema};
 #[cfg(feature = "engine")]
 pub use arrow::record_batch::RecordBatch as EngineRecordBatch;
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
+#[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
 pub use arrow_codec::{
     attach_record_batch_metadata, attach_record_batch_trace_id, decode_record_batches_ipc,
     encode_record_batch_ipc, encode_record_batches_ipc,
 };
+#[cfg(all(
+    feature = "artifact-cache",
+    feature = "arrow-codec",
+    not(feature = "vector-store")
+))]
+pub use arrow_codec::{read_record_batches_ipc_artifact, write_record_batches_ipc_artifact};
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{
     RETRIEVAL_BEST_SECTION_COLUMN, RETRIEVAL_DOC_TYPE_COLUMN, RETRIEVAL_ID_COLUMN,

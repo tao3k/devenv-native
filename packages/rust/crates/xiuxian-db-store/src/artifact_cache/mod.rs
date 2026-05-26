@@ -22,7 +22,11 @@ pub use backend::{
     ARTIFACT_CACHE_RUNTIME_WORKERS_ENV, ARTIFACT_CACHE_STORAGE_BYTES_ENV, ArtifactBlobCacheBackend,
     ArtifactBlobCacheBackendConfig, ArtifactCacheBackendKind,
 };
-pub use blob::{ArtifactBlobCache, ArtifactBlobRead, ArtifactBlobWrite, ArtifactBlobWriteOutcome};
+pub use blob::{
+    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobFetchStatus,
+    ArtifactBlobRead, ArtifactBlobReadStatus, ArtifactBlobWrite, ArtifactBlobWriteOutcome,
+    ArtifactBytes,
+};
 pub use directory_bundle::{pack_artifact_directory, unpack_artifact_directory};
 pub use error::ArtifactCacheError;
 pub use filesystem::{
@@ -35,4 +39,7 @@ pub use foyer_backend::{
 };
 pub use identity::{ArtifactKey, ArtifactKeyComponent, ArtifactKeyParts, ArtifactKind};
 pub use ontology_artifact::{OntologyArtifactKeyParts, ontology_artifact_key};
-pub use readthrough::{ArtifactReadThrough, read_through_artifact_bytes};
+pub use readthrough::{
+    ArtifactReadThrough, ArtifactReadThroughStatus, fetch_through_artifact_bytes,
+    read_through_artifact_bytes,
+};

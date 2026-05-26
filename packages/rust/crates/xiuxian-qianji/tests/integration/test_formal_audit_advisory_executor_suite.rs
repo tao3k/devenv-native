@@ -77,14 +77,15 @@ fn advisory_request() -> AdvisoryAuditRequest {
 
 #[cfg(feature = "advisory-prompt-pack-cache")]
 #[tokio::test]
-async fn advisory_executor_reports_prompt_context_pack_artifact_hits() {
+async fn advisory_executor_reports_prompt_context_pack_artifact_hits()
+-> Result<(), Box<dyn std::error::Error>> {
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
         "Safety Rules".to_string(),
         None,
     ));
     let registry = Arc::new(PersonaRegistry::with_builtins());
     let executor = QianjiAdvisoryAuditExecutor::new(orchestrator, registry);
-    let cache_root = tempfile::tempdir().expect("cache tempdir should be created");
+    let cache_root = tempfile::tempdir()?;
     let cache = ContentAddressedFilesystemBlobCache::new(cache_root.path());
     let request = advisory_request();
 
@@ -102,7 +103,9 @@ async fn advisory_executor_reports_prompt_context_pack_artifact_hits() {
 
     assert_eq!(first_reports.len(), 2);
     for report in &first_reports {
-        let report = report.expect("prompt-context pack metrics should be present");
+        let report = report.ok_or_else(|| {
+            std::io::Error::other("prompt-context pack metrics should be present")
+        })?;
         assert!(!report.cache_hit);
         assert!(report.byte_len > 0);
     }
@@ -121,11 +124,14 @@ async fn advisory_executor_reports_prompt_context_pack_artifact_hits() {
 
     assert_eq!(second_reports.len(), first_reports.len());
     for (first, second) in first_reports.iter().zip(second_reports.iter()) {
-        let first = first.expect("first metrics should be present");
-        let second = second.expect("second metrics should be present");
+        let first =
+            first.ok_or_else(|| std::io::Error::other("first metrics should be present"))?;
+        let second =
+            second.ok_or_else(|| std::io::Error::other("second metrics should be present"))?;
         assert!(second.cache_hit);
         assert_eq!(second.byte_len, first.byte_len);
     }
+    Ok(())
 }
 
 fn workspace_root() -> PathBuf {

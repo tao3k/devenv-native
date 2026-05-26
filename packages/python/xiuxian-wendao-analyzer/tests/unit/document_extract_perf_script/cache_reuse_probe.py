@@ -57,6 +57,7 @@ def _latency_by_report(report_name: str) -> float:
     return {
         "force.json": 1000.0,
         "shard-cache-reuse.json": 42.0,
+        "region-projection-reuse.json": 21.0,
         "artifact-registry-reuse.json": 9.0,
         "cache.json": 4.0,
     }[report_name]
@@ -142,6 +143,70 @@ def _artifact_report(report_name: str, latency: float) -> dict[str, object]:
         ),
         "hybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
             0 if report_name == "shard-cache-reuse.json" else 6
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": (
+            6
+            if report_name in {"artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": (
+            6 if report_name == "force.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": (
+            1200
+            if report_name
+            in {"force.json", "artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterHitCount": (
+            2
+            if report_name in {"artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterMissCount": (
+            2 if report_name == "force.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterThrottledCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCachePageRasterByteCount": (
+            300
+            if report_name
+            in {"force.json", "artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropHitCount": (
+            2
+            if report_name in {"artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropMissCount": (
+            2 if report_name == "force.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropThrottledCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionCropByteCount": (
+            600
+            if report_name
+            in {"force.json", "artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionHitCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionMissCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionThrottledCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionByteCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount": (
+            2
+            if report_name in {"artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount": (
+            2 if report_name == "force.json" else 0
+        ),
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowThrottledCount": 0,
+        "hybridPageOcrTimingOcr2RegionRenderArtifactCacheRegionManifestProjectionRowByteCount": (
+            300
+            if report_name
+            in {"force.json", "artifact-registry-reuse.json", "region-projection-reuse.json"}
+            else 0
         ),
         "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
             0.0 if report_name == "shard-cache-reuse.json" else 125.0

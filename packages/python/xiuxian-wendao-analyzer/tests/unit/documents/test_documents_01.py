@@ -48,9 +48,7 @@ def test_extract_document_resources_writes_markdown_and_arrow_cache(
             elementId="_main",
         )
     ]
-    assert (output_dir / "handbook.md").read_text(
-        encoding="utf-8"
-    ) == "# Handbook\n\nText\n"
+    assert (output_dir / "handbook.md").read_text(encoding="utf-8") == "# Handbook\n\nText\n"
     assert (output_dir / DOCUMENT_RESOURCE_ARROW_CACHE_NAME).exists()
     assert not (output_dir / "_metadata.json").exists()
     assert (output_dir / "_complete.marker").exists()
@@ -95,6 +93,42 @@ def test_extract_document_resources_writes_timing_sidecar(tmp_path: Path) -> Non
     assert total["elapsedMs"] >= 0.0
 
 
+def test_extract_document_resources_preconverts_legacy_doc(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "legacy.doc"
+    source.write_bytes(b"legacy office fixture")
+    output_dir = tmp_path / "legacy-output"
+
+    def fake_prepare_docling_source(original: Path, out: Path, *, mode: str) -> Path:
+        assert original == source
+        assert out == output_dir
+        assert mode == "legacy-office-docx"
+        converted = out / "_legacy_office" / "legacy.docx"
+        converted.parent.mkdir(parents=True, exist_ok=True)
+        converted.write_bytes(b"docx fixture")
+        return converted
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.document_extract_inline.prepare_docling_source",
+        fake_prepare_docling_source,
+    )
+    converter = DocumentsFakeDoclingConverter("# Legacy\n")
+
+    rows = extract_document_resources(
+        source,
+        output_dir,
+        converter=converter,
+        source_preparation="legacy-office-docx",
+    )
+
+    assert converter.calls == [output_dir / "_legacy_office" / "legacy.docx"]
+    assert rows[0].sourcePath == str(source)
+    assert rows[0].resourcePath == str(output_dir / "legacy.md")
+    assert rows[0].content == "# Legacy\n"
+
+
 def test_extract_document_resources_uses_fresh_cache(tmp_path: Path) -> None:
     source = tmp_path / "notes.docx"
     source.write_bytes(b"docx fixture")
@@ -105,9 +139,7 @@ def test_extract_document_resources_uses_fresh_cache(tmp_path: Path) -> None:
         output_dir,
         converter=DocumentsFakeDoclingConverter("# Notes\n"),
     )
-    cached_rows = extract_document_resources(
-        source, output_dir, converter=FailingConverter()
-    )
+    cached_rows = extract_document_resources(source, output_dir, converter=FailingConverter())
 
     assert cached_rows == first_rows
 
@@ -116,9 +148,7 @@ def test_extract_document_table_uses_resource_schema(tmp_path: Path) -> None:
     source = tmp_path / "report.xlsx"
     source.write_bytes(b"xlsx fixture")
 
-    table = extract_document_table(
-        source, converter=DocumentsFakeDoclingConverter("# Workbook\n")
-    )
+    table = extract_document_table(source, converter=DocumentsFakeDoclingConverter("# Workbook\n"))
 
     assert table.schema == DOCUMENT_RESOURCE_SCHEMA
     assert table.column_names == list(DOCUMENT_RESOURCE_FIELDS)
@@ -159,9 +189,7 @@ def test_extract_document_resources_emits_structured_docling_rows(
     rows = extract_document_resources(
         source,
         output_dir,
-        converter=DocumentsFakeDoclingConverter(
-            document=FakeStructuredDoclingDocument()
-        ),
+        converter=DocumentsFakeDoclingConverter(document=FakeStructuredDoclingDocument()),
     )
 
     row_by_type = {row.resourceType: row for row in rows}

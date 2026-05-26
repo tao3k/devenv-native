@@ -13,12 +13,33 @@ fn runtime_workflow_state_config_uses_system_default_path() {
     let cfg = resolve_workflow_state(&QianjiRuntimeEnv {
         prj_root: Some(project_root.clone()),
         prj_config_home: Some(config_home),
+        prj_data_home: Some(project_root.join(".data")),
         ..QianjiRuntimeEnv::default()
     });
 
     assert_eq!(
         cfg.local_duckdb_path,
-        project_root.join(".run/qianji-workflow-state.duckdb")
+        project_root.join(".data/xiuxian-qianji/duckdb/workflow-state.duckdb")
+    );
+}
+
+#[test]
+fn runtime_workflow_state_config_uses_prj_data_home_namespace() {
+    let tmp = TempDir::new()
+        .unwrap_or_else(|err| panic!("failed to create temp dir for runtime config test: {err}"));
+    let project_root = tmp.path().join("project");
+    let config_home = project_root.join(".config");
+
+    let cfg = resolve_workflow_state(&QianjiRuntimeEnv {
+        prj_root: Some(project_root.clone()),
+        prj_config_home: Some(config_home),
+        extra_env: vec![("PRJ_DATA_HOME".to_string(), ".runtime/data".to_string())],
+        ..QianjiRuntimeEnv::default()
+    });
+
+    assert_eq!(
+        cfg.local_duckdb_path,
+        project_root.join(".runtime/data/xiuxian-qianji/duckdb/workflow-state.duckdb")
     );
 }
 

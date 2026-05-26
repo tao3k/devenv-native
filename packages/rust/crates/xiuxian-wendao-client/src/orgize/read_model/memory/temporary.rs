@@ -6,13 +6,13 @@ use std::sync::Arc;
 
 use xiuxian_memory_engine::{
     Episode, EpisodeDraft, InferredMemoryObjectKind, IntentEncoder, QTable, TwoPhaseSearch,
-    TwoPhaseSearchRequest,
+    TwoPhaseSearchRequest, infer_memory_lifecycle_facts_from_properties,
 };
 
 use super::super::model::AgentOrgTaskListRow;
 use super::super::row_view::property_value;
 use super::super::section_lens::TaskSectionLens;
-use super::reflection::reflection_memory_objects_for_row;
+use super::inferred_memory_objects_for_row;
 
 const TEMPORARY_MEMORY_SCOPE: &str = "wendao-client:agent-org-temporary-memory";
 const EMBEDDING_DIMENSION: usize = 128;
@@ -273,7 +273,7 @@ fn push_candidate_reflection_memory_facets(
     facets: &mut Vec<OrgEvidenceFacet>,
     candidate: &RecallCandidate<'_>,
 ) {
-    for object in reflection_memory_objects_for_row(candidate.row) {
+    for object in inferred_memory_objects_for_row(candidate.row) {
         let value = format!("{} {}", object.question, object.value);
         push_evidence_facet(
             facets,
@@ -583,19 +583,37 @@ fn temporary_memory_scores(
 
     let encoder = Arc::new(IntentEncoder::new(EMBEDDING_DIMENSION));
     let q_table = Arc::new(QTable::with_params(1.0, 0.95));
+    let lifecycle_priors = candidates
+        .iter()
+        .map(|candidate| {
+            (
+                candidate.row.orgid.as_str(),
+                candidate_memory_recall_prior(candidate),
+            )
+        })
+        .collect::<HashMap<_, _>>();
     let episodes = candidates
         .iter()
         .zip(evidence_windows.iter())
         .zip(base_scores.iter())
         .map(|((candidate, evidence), score)| {
-            let reward = score.utility_value();
+            let lifecycle_prior = lifecycle_priors
+                .get(candidate.row.orgid.as_str())
+                .copied()
+                .unwrap_or(1.0);
+            let reward = score.utility_value() * lifecycle_prior;
             q_table.update(candidate.row.orgid.as_str(), reward);
             let intent = temporary_memory_episode_intent(candidate, evidence);
             Episode::new(EpisodeDraft {
                 id: candidate.row.orgid.as_str().into(),
                 intent_embedding: encoder.encode(intent.as_str()),
                 intent,
-                experience: temporary_memory_episode_experience(candidate, evidence, reward),
+                experience: temporary_memory_episode_experience(
+                    candidate,
+                    evidence,
+                    reward,
+                    lifecycle_prior,
+                ),
                 outcome: "org-facet-candidate".to_string(),
                 scope: Some(TEMPORARY_MEMORY_SCOPE.to_string()),
             })
@@ -612,8 +630,26 @@ fn temporary_memory_scores(
             lambda: Some(MEMORY_Q_WEIGHT),
         })
         .into_iter()
-        .map(|(episode, score)| (episode.id, score))
+        .map(|(episode, score)| {
+            let lifecycle_prior = lifecycle_priors
+                .get(episode.id.as_str())
+                .copied()
+                .unwrap_or(1.0);
+            (episode.id, score * lifecycle_prior)
+        })
         .collect()
+}
+
+fn candidate_memory_recall_prior(candidate: &RecallCandidate<'_>) -> f32 {
+    infer_memory_lifecycle_facts_from_properties(
+        candidate
+            .row
+            .properties
+            .iter()
+            .map(|property| (property.key.as_str(), property.value.as_str())),
+    )
+    .evaluate()
+    .recall_prior
 }
 
 fn temporary_memory_query_intent(query: &QueryEvidence) -> String {
@@ -631,6 +667,7 @@ fn temporary_memory_episode_experience(
     candidate: &RecallCandidate<'_>,
     evidence: &CandidateEvidence,
     reward: f32,
+    lifecycle_prior: f32,
 ) -> String {
     let facet_labels = evidence
         .facets
@@ -640,11 +677,12 @@ fn temporary_memory_episode_experience(
     let mut facet_labels = facet_labels.into_iter().collect::<Vec<_>>();
     facet_labels.sort_unstable();
     let mut experience = format!(
-        "source: {}:{}\nfacets: {}\norg-utility: {:.3}",
+        "source: {}:{}\nfacets: {}\norg-utility: {:.3}\nlifecycle-prior: {:.3}",
         candidate.row.source_path,
         candidate.row.source_line,
         facet_labels.join(","),
         reward,
+        lifecycle_prior,
     );
     if let Some(lens) = candidate.lens.as_ref()
         && let Some(next_unchecked) = lens.next_unchecked.as_deref()

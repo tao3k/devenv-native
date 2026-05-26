@@ -189,7 +189,7 @@ def test_local_rust_provider_port_uses_free_port_unless_explicit(
     monkeypatch,
 ) -> None:
     benchmark = _load_benchmark_module()
-    monkeypatch.setattr(benchmark._cli, "pick_free_port", lambda host: 62052)
+    monkeypatch.setattr(benchmark._provider_lifecycle, "pick_free_port", lambda host: 62052)
 
     assert (
         benchmark.resolve_local_rust_provider_port(

@@ -53,22 +53,28 @@ fn string_value(batch: &arrow::record_batch::RecordBatch, column: &str) -> Strin
     batch
         .column_by_name(column)
         .and_then(|array| array.as_any().downcast_ref::<StringArray>())
-        .map(|array| array.value(0).to_string())
-        .unwrap_or_else(|| panic!("missing string column `{column}`"))
+        .map_or_else(
+            || panic!("missing string column `{column}`"),
+            |array| array.value(0).to_string(),
+        )
 }
 
 fn u64_value(batch: &arrow::record_batch::RecordBatch, column: &str) -> u64 {
     batch
         .column_by_name(column)
         .and_then(|array| array.as_any().downcast_ref::<UInt64Array>())
-        .map(|array| array.value(0))
-        .unwrap_or_else(|| panic!("missing UInt64 column `{column}`"))
+        .map_or_else(
+            || panic!("missing UInt64 column `{column}`"),
+            |array| array.value(0),
+        )
 }
 
 fn bool_value(batch: &arrow::record_batch::RecordBatch, column: &str) -> bool {
     batch
         .column_by_name(column)
         .and_then(|array| array.as_any().downcast_ref::<BooleanArray>())
-        .map(|array| array.value(0))
-        .unwrap_or_else(|| panic!("missing Boolean column `{column}`"))
+        .map_or_else(
+            || panic!("missing Boolean column `{column}`"),
+            |array| array.value(0),
+        )
 }

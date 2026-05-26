@@ -86,12 +86,11 @@ ttl_seconds = 300
 #
 # This is the local query-execution layer for published Parquet search data. It
 # is not related to `xiuxian-memory-engine`, episodic memory, or durable memory
-# promotion. Leave `database_path` unset here so the embedded default stays on
-# DuckDB's own ephemeral in-process catalog mode without surfacing `:memory:`
-# in the system config.
+# promotion. Leave `database_path` and `temp_directory` unset here so the
+# runtime-owned defaults stay under `$PRJ_DATA_HOME/xiuxian-wendao`; gateway
+# deployments may override them through the root `wendao.toml`.
 [search.duckdb]
 enabled = true
-temp_directory = ".cache/duckdb/tmp"
 preserve_insertion_order = true
 parquet_metadata_cache = false
 

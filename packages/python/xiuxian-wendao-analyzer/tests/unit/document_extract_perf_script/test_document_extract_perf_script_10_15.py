@@ -188,37 +188,37 @@ def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
         "regionPipelineLastRegionResult": 16_700.0,
         "total": 24_350.906,
     }
-    payload["summary"][
-        "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
-    ] = 7_255.609
-    payload["summary"][
-        "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
-    ] = 6
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"] = 7_255.609
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"] = 4
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"] = 2
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"] = 1
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"] = 8192
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"] = 6
     payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] = 4
     payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] = 3
     payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] = 6
     payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"] = 6
+    payload["summary"]["forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"] = 6
+    payload["summary"]["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"] = 0.0
     payload["summary"][
-        "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
-    ] = 6
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"
+    ] = 0
     payload["summary"][
-        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
-    ] = 0.0
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"
+    ] = 0
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"
+    ] = 0
+    payload["summary"][
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"
+    ] = 0
     payload["summary"][
         "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
     ] = 6
-    payload["summary"][
-        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount"
-    ] = 4
-    payload["summary"][
-        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"
-    ] = 3
-    payload["summary"][
-        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"
-    ] = 6
-    payload["summary"][
-        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"
-    ] = 6
+    payload["summary"]["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount"] = 4
+    payload["summary"]["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"] = 3
+    payload["summary"]["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"] = 6
+    payload["summary"]["shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"] = 6
     payload["summary"][
         "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
     ] = 6
@@ -239,9 +239,11 @@ def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
     assert observed["forceHostedVlmLocalOverheadMs"] == pytest.approx(12_101.71)
     assert observed["forceHostedVlmSchedulerNonRequestMs"] == pytest.approx(4_477.118)
     assert observed["forceHostedVlmRegionRenderMs"] == pytest.approx(7_255.609)
-    assert observed["forceHostedVlmRegionRenderReportedElapsedMs"] == pytest.approx(
-        7_255.609
-    )
+    assert observed["forceHostedVlmRegionRenderReportedElapsedMs"] == pytest.approx(7_255.609)
+    assert observed["forceHostedVlmRegionRenderArtifactCacheHitCount"] == 4
+    assert observed["forceHostedVlmRegionRenderArtifactCacheMissCount"] == 2
+    assert observed["forceHostedVlmRegionRenderArtifactCacheThrottledCount"] == 1
+    assert observed["forceHostedVlmRegionRenderArtifactCacheByteCount"] == 8192
     assert observed["forceHostedVlmRegionPipelinePlannedRenderChunkCount"] == 6
     assert observed["forceHostedVlmRegionPipelineEndpointCount"] == 4
     assert observed["forceHostedVlmRegionPipelineRenderAheadLimit"] == 3
@@ -249,9 +251,11 @@ def test_hosted_vlm_promotion_observed_reports_local_overhead() -> None:
     assert observed["forceHostedVlmRegionPipelineRenderChunkCount"] == 6
     assert observed["forceHostedVlmRegionPipelineRegionDispatchCount"] == 6
     assert observed["shardCacheReuseHostedVlmRegionRenderReportedElapsedMs"] == 0.0
-    assert (
-        observed["shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount"] == 6
-    )
+    assert observed["shardCacheReuseHostedVlmRegionRenderArtifactCacheHitCount"] == 0
+    assert observed["shardCacheReuseHostedVlmRegionRenderArtifactCacheMissCount"] == 0
+    assert observed["shardCacheReuseHostedVlmRegionRenderArtifactCacheThrottledCount"] == 0
+    assert observed["shardCacheReuseHostedVlmRegionRenderArtifactCacheByteCount"] == 0
+    assert observed["shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount"] == 6
     assert observed["shardCacheReuseHostedVlmRegionPipelineEndpointCount"] == 4
     assert observed["shardCacheReuseHostedVlmRegionPipelineRenderAheadLimit"] == 3
     assert observed["shardCacheReuseHostedVlmRegionPipelineRenderSpawnCount"] == 6
@@ -332,9 +336,7 @@ def test_hosted_vlm_promotion_observed_reads_fixture_result_timing_fallback() ->
     assert observed["forceHostedVlmRegionPipelineRenderChunkCount"] == 3
     assert observed["forceHostedVlmRegionPipelineRegionDispatchCount"] == 3
     assert observed["shardCacheReuseHostedVlmRegionRenderReportedElapsedMs"] == 0.0
-    assert (
-        observed["shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount"] == 3
-    )
+    assert observed["shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount"] == 3
     assert observed["shardCacheReuseHostedVlmRegionPipelineEndpointCount"] == 4
     assert observed["shardCacheReuseHostedVlmRegionPipelineRenderAheadLimit"] == 3
     assert observed["shardCacheReuseHostedVlmRegionPipelineRenderSpawnCount"] == 3

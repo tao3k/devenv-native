@@ -7,7 +7,8 @@ use super::{
 use crate::config::test_support;
 use crate::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
-    default_search_duckdb_temp_directory,
+    default_search_duckdb_database_path, default_search_duckdb_temp_directory,
+    default_wendao_data_root,
 };
 
 #[test]
@@ -79,7 +80,10 @@ prefer_virtual_arrow = true
     let runtime = resolve_search_duckdb_runtime_with_settings(root, &settings);
 
     assert!(!runtime.enabled);
-    assert_eq!(runtime.database_path, DuckDbDatabasePath::InMemory);
+    assert_eq!(
+        runtime.database_path,
+        DuckDbDatabasePath::File(default_search_duckdb_database_path(root))
+    );
     assert_eq!(
         runtime.temp_directory,
         default_search_duckdb_temp_directory(root)
@@ -103,6 +107,26 @@ prefer_virtual_arrow = true
         runtime.execution.prefer_virtual_arrow,
         DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW
     );
+
+    Ok(())
+}
+
+#[test]
+fn duckdb_runtime_defaults_live_under_wendao_data_namespace()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::tempdir()?;
+    let root = temp.path();
+    let config_path = root.join("wendao.toml");
+    fs::write(&config_path, "[search.duckdb]\nenabled = true\n")?;
+    let settings = test_support::load_test_settings_from_path(&config_path)?;
+    let runtime = resolve_search_duckdb_runtime_with_settings(root, &settings);
+    let data_root = default_wendao_data_root(root);
+
+    assert_eq!(
+        runtime.database_path,
+        DuckDbDatabasePath::File(data_root.join("duckdb/search.duckdb"))
+    );
+    assert_eq!(runtime.temp_directory, data_root.join("duckdb/tmp"));
 
     Ok(())
 }

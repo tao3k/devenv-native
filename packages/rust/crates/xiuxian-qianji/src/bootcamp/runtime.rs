@@ -3,6 +3,7 @@ use crate::runtime_config::resolve_process_project_root;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+use xiuxian_config_core::resolve_data_home;
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
 pub(super) fn unix_timestamp_millis() -> Result<u128, QianjiError> {
@@ -23,9 +24,10 @@ fn resolve_repo_root_path(explicit: Option<&Path>) -> PathBuf {
 
 fn resolve_placeholder_link_graph_root() -> PathBuf {
     let base_root = resolve_process_project_root().unwrap_or_else(std::env::temp_dir);
-    base_root
-        .join(".cache")
+    resolve_data_home(Some(&base_root))
+        .unwrap_or_else(|| base_root.join(".data"))
         .join("xiuxian-qianji")
+        .join("bootcamp")
         .join("bootcamp-empty-link-graph-v1")
 }
 

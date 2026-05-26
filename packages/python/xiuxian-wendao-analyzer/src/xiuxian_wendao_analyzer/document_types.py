@@ -33,6 +33,7 @@ DOCUMENT_STRUCTURE_SCHEMA_VERSION = "xiuxian_wendao.document_structure.v1"
 DOCLING_SUPPORTED_DOCUMENT_FORMATS = (
     "PDF",
     "DOCX",
+    "DOC (via legacy Office pre-conversion)",
     "XLSX",
     "PPTX",
     "Markdown",
@@ -59,6 +60,7 @@ DOCLING_SUPPORTED_DOCUMENT_FORMATS = (
 DOCLING_COMMON_SOURCE_SUFFIXES = (
     ".pdf",
     ".docx",
+    ".doc",
     ".xlsx",
     ".pptx",
     ".md",
@@ -234,11 +236,7 @@ def document_resources_to_table(
     """Convert document resource rows into the stable Arrow table shape."""
 
     rows = [
-        (
-            resource.to_mapping()
-            if isinstance(resource, DocumentResourceRow)
-            else dict(resource)
-        )
+        (resource.to_mapping() if isinstance(resource, DocumentResourceRow) else dict(resource))
         for resource in resources
     ]
     return pa.Table.from_pylist(rows, schema=DOCUMENT_RESOURCE_SCHEMA)

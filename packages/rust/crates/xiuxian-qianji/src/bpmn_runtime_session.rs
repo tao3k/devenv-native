@@ -1,6 +1,7 @@
 //! Bpmn runtime session surface for `xiuxian-qianji`.
 
 use super::backend::QianjiBpmnCheckpointStore;
+use super::driver::QianjiBpmnPendingHostCompletion;
 use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
 use std::sync::Arc;
@@ -327,6 +328,55 @@ impl QianjiBpmnSession {
             result,
             completed_at_ms: completed_at_ms.into(),
         })?;
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_)
+                | BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
+    /// Applies explicit host-work results from the same blocked boundary, then
+    /// advances until the next host boundary or terminal outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when any completion identity is not
+    /// part of the current pending host-work set, when the engine rejects a
+    /// result, or when advancing the instance fails.
+    pub async fn complete_pending_host_work_batch_until_host_boundary<H: BpmnHostBridge>(
+        &mut self,
+        completions: Vec<QianjiBpmnPendingHostCompletion>,
+        host: &H,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError> {
+        for completion in &completions {
+            validate_pending_host_work_identity(
+                self.package.as_ref(),
+                &self.instance,
+                completion.token_id,
+                completion.process_id.as_str(),
+                completion.activity_id.as_str(),
+            )?;
+        }
+
+        let completed_at_ms = self.instance.updated_at_ms;
+        let mut outcome = BpmnAdvanceOutcome::Advanced;
+        for completion in completions {
+            outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+                package: self.package.as_ref(),
+                instance: &mut self.instance,
+                token_id: completion.token_id.into(),
+                result: completion.result,
+                completed_at_ms: completed_at_ms.into(),
+            })?;
+        }
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {

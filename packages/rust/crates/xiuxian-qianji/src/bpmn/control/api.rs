@@ -27,6 +27,7 @@ pub use types::{
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimPayload,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,

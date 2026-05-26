@@ -1,9 +1,15 @@
 use super::{
     AgentArtifactKeyParts, ArtifactBlobCache, ArtifactBlobCacheBackend,
     ArtifactBlobCacheBackendConfig, ArtifactBlobRead, ArtifactBlobWrite, ArtifactCacheBackendKind,
-    ArtifactKey, ArtifactKeyParts, ArtifactKind, FoyerArtifactBlobCache,
-    FoyerArtifactBlobCacheConfig, agent_artifact_key, read_through_artifact_bytes,
+    ArtifactKey, ArtifactKeyParts, ArtifactKind, ArtifactReadThroughStatus, FoyerArtifactBlobCache,
+    FoyerArtifactBlobCacheConfig, agent_artifact_key, fetch_through_artifact_bytes,
+    read_through_artifact_bytes,
 };
+use std::sync::{
+    Arc, Barrier,
+    atomic::{AtomicUsize, Ordering},
+};
+use std::time::Duration;
 
 fn sample_key() -> Result<ArtifactKey, Box<dyn std::error::Error>> {
     Ok(ArtifactKey::from_parts(ArtifactKeyParts {
@@ -59,6 +65,28 @@ fn foyer_blob_cache_roundtrips_bytes() -> Result<(), Box<dyn std::error::Error>>
 }
 
 #[test]
+fn foyer_memory_hits_return_shared_artifact_bytes() -> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let cache = FoyerArtifactBlobCache::from_config(test_config(temp.path()))?;
+    let key = sample_key()?;
+
+    cache.write(&key, ArtifactBlobWrite::new(b"hot prompt evidence"))?;
+    let first = cache
+        .read(&key)?
+        .ok_or("expected first read hit")?
+        .into_shared_bytes();
+    let second = cache
+        .read(&key)?
+        .ok_or("expected second read hit")?
+        .into_shared_bytes();
+
+    assert_eq!(first.as_slice(), b"hot prompt evidence");
+    assert!(first.ptr_eq(&second));
+    cache.close()?;
+    Ok(())
+}
+
+#[test]
 fn foyer_blob_cache_reopens_persisted_bytes() -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::TempDir::new()?;
     let key = sample_key()?;
@@ -95,6 +123,9 @@ fn foyer_agent_evidence_pack_reopens_cached_bytes() -> Result<(), Box<dyn std::e
             Ok(evidence_pack.to_vec())
         })?;
         assert!(first.cache_miss());
+        assert_eq!(first.status(), ArtifactReadThroughStatus::Miss);
+        assert_eq!(first.backend_name(), "foyer");
+        assert_eq!(first.artifact_key(), Some(&key));
         assert_eq!(first.bytes(), evidence_pack);
         assert_eq!(
             first.write_outcome().map(|write| write.byte_len()),
@@ -105,6 +136,8 @@ fn foyer_agent_evidence_pack_reopens_cached_bytes() -> Result<(), Box<dyn std::e
             Ok(b"unexpected hot rebuild".to_vec())
         })?;
         assert!(read.cache_hit());
+        assert_eq!(read.status(), ArtifactReadThroughStatus::Hit);
+        assert_eq!(read.backend_name(), "foyer");
         hit_count += 1;
         read_bytes += read.byte_len();
         assert_eq!(read.bytes(), evidence_pack);
@@ -117,6 +150,8 @@ fn foyer_agent_evidence_pack_reopens_cached_bytes() -> Result<(), Box<dyn std::e
         Ok(b"unexpected restart rebuild".to_vec())
     })?;
     assert!(read.cache_hit());
+    assert_eq!(read.status(), ArtifactReadThroughStatus::Hit);
+    assert_eq!(read.backend_name(), "foyer");
     hit_count += 1;
     read_bytes += read.byte_len();
     assert_eq!(read.bytes(), evidence_pack);
@@ -125,6 +160,48 @@ fn foyer_agent_evidence_pack_reopens_cached_bytes() -> Result<(), Box<dyn std::e
     assert_eq!(build_count, 1);
     assert_eq!(hit_count, 2);
     assert_eq!(read_bytes, evidence_pack.len() * 2);
+    Ok(())
+}
+
+#[test]
+fn foyer_fetchthrough_deduplicates_concurrent_same_key_builds()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp = tempfile::TempDir::new()?;
+    let cache = Arc::new(FoyerArtifactBlobCache::from_config(test_config(
+        temp.path(),
+    ))?);
+    let key = agent_evidence_pack_key()?;
+    let workers = 8;
+    let barrier = Arc::new(Barrier::new(workers));
+    let build_count = Arc::new(AtomicUsize::new(0));
+    let mut handles = Vec::with_capacity(workers);
+
+    for _ in 0..workers {
+        let cache = Arc::clone(&cache);
+        let key = key.clone();
+        let barrier = Arc::clone(&barrier);
+        let build_count = Arc::clone(&build_count);
+        handles.push(std::thread::spawn(move || {
+            barrier.wait();
+            fetch_through_artifact_bytes(cache.as_ref(), &key, move || {
+                build_count.fetch_add(1, Ordering::SeqCst);
+                std::thread::sleep(Duration::from_millis(50));
+                Ok(b"shared evidence pack".to_vec())
+            })
+        }));
+    }
+
+    for handle in handles {
+        let artifact = handle
+            .join()
+            .map_err(|_| "fetch-through worker panicked")??;
+        assert_eq!(artifact.backend_name(), "foyer");
+        assert_eq!(artifact.artifact_key(), Some(&key));
+        assert_eq!(artifact.bytes(), b"shared evidence pack");
+    }
+
+    assert_eq!(build_count.load(Ordering::SeqCst), 1);
+    cache.close()?;
     Ok(())
 }
 

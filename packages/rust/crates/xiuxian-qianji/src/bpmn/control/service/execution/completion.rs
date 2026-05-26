@@ -2,6 +2,7 @@ use super::resume::prepare_resume_workflow;
 use crate::bpmn::control::{
     QianjiBpmnPreparedWorkflowResume, QianjiBpmnWorkflowControlError,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
 };
@@ -124,6 +125,47 @@ pub(crate) async fn complete_prepared_workflow_task_until_host_boundary<H: BpmnH
     };
 
     Ok(QianjiBpmnWorkflowTaskCompleteReport {
+        resolved_bpmn_path: prepared.resolved_bpmn_path,
+        resolved_dmn_paths: prepared.resolved_dmn_paths,
+        checkpoint_store: prepared.checkpoint_store,
+        execution,
+    })
+}
+
+pub(crate) async fn complete_prepared_workflow_task_batch_until_host_boundary<H: BpmnHostBridge>(
+    service: &QianjiBpmnWorkflowControlService,
+    prepared: QianjiBpmnPreparedWorkflowResume,
+    request: &QianjiBpmnWorkflowTaskCompleteBatchRequest,
+    host: &H,
+) -> Result<QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowControlError> {
+    let mut execution_facade =
+        QianjiBpmnExecutionFacade::new(prepared.package, prepared.checkpoint_store.clone());
+    if let Some(scheduler_identity) = service.scheduler_identity.clone() {
+        execution_facade = execution_facade.with_scheduler_identity(scheduler_identity);
+    }
+    let loaded_checkpoint = prepared.loaded_checkpoint.clone().ok_or_else(|| {
+        QianjiBpmnWorkflowControlError::CheckpointMissing {
+            instance_id: request.instance_id.to_string(),
+        }
+    })?;
+    for completion in &request.completions {
+        validate_completion_claimant(Some(&loaded_checkpoint), completion)?;
+    }
+    let completions = request
+        .completions
+        .iter()
+        .map(pending_host_completion_from_completion)
+        .collect::<Vec<_>>();
+    let execution = execution_facade
+        .complete_pending_host_work_batch_from_checkpoint_until_host_boundary(
+            &prepared.execution_request,
+            loaded_checkpoint,
+            completions,
+            host,
+        )
+        .await?;
+
+    Ok(QianjiBpmnWorkflowTaskCompleteBatchReport {
         resolved_bpmn_path: prepared.resolved_bpmn_path,
         resolved_dmn_paths: prepared.resolved_dmn_paths,
         checkpoint_store: prepared.checkpoint_store,

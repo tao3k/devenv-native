@@ -179,6 +179,7 @@ fn empty_recovery_plan(
         sample_rate_hz: parent_plan.sample_rate_hz,
         channels: parent_plan.channels,
         audio_format: parent_plan.audio_format.clone(),
+        audio_bitrate: parent_plan.audio_bitrate.clone(),
         strategy: "speech-window-recovery-empty".to_owned(),
     }
 }

@@ -36,16 +36,25 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 | `archive-audit`        | Enables tar and tar.gz member manifest audits for archive fixtures.         |
 | `foyer-artifact-cache` | Enables the Foyer-backed artifact substrate for attachment materialization. |
 | `audio-shard-arrow`    | Enables Arrow builders/decoders for audio shard Flight rows.                |
+| `image-shards`         | Enables standalone image tile planning and lossless shard materialization.  |
 | `pdf-source-range`     | Enables `lopdf` source-page manifests without PDFium.                       |
-| `pdf-render`           | Adds PDFium-backed region/page raster proofs on top of source range.        |
+| `pdf-render`           | Adds PDFium-backed region/page raster proofs through the Foyer artifact substrate. |
 
 The `foyer-artifact-cache` feature consumes the db-store artifact substrate
 through `ArtifactBlobCache` and the stable `attachment_artifact_key` namespace,
-with Foyer as the backend. Derived bytes such as audio chunks, source payloads,
-PDF rasters, OCR region crops, VLM atlases, and Arrow IPC batches may be stored
-through that contract. Attachments still owns parser/materialization facts only;
-DuckDB/Arrow own structured truth and Studio/Gateway own route scheduling and
-merge decisions.
+with Foyer as the production backend. Derived bytes such as audio chunks,
+source payloads, PDF rasters, OCR region crops, VLM atlases, and Arrow IPC
+batches may be stored through that contract. Audio chunk materialization uses
+db-store fetch-through around the media splitter miss path, allowing Foyer to
+coalesce same-key misses while attachments keeps shard identity and digest
+reporting. PDF page raster and OCR region-crop materialization use the same
+artifact substrate while preserving the existing render output paths and OCR
+shard Arrow rows. PDF render reports expose the
+artifact backend, hit count, miss count, throttled count, and returned byte
+count so benchmark evidence can distinguish materialization work from
+artifact-substrate reuse. Attachments still owns parser/materialization facts
+only; DuckDB/Arrow own structured truth and Studio/Gateway own route scheduling
+and merge decisions.
 
 ## Boundaries
 
@@ -68,12 +77,19 @@ known Docling image suffixes, records MIME/format hints, and extracts
 PNG/JPEG/BMP/GIF/WebP/TIFF dimensions when they are available directly from
 the header.
 
-This audit is a Rust control-plane signal. It can identify future candidates
-for whole-image OCR cache keys, oversized image preflight, and later
-crop/tile planning, but it does not replace Docling OCR or layout authority.
-The Wendao performance probe can include these audit fields through the
-`document-extract-attachment-audit` feature on `xiuxian-wendao`; default live
-extraction still calls the existing Python/Docling path.
+This audit is a Rust control-plane signal. It can identify candidates for
+whole-image OCR cache keys, oversized image preflight, and image tiling, but it
+does not replace Docling OCR or layout authority. The Wendao performance probe
+can include these audit fields through the `document-extract-attachment-audit`
+feature on `xiuxian-wendao`; default live extraction still calls the existing
+Python/Docling path.
+
+The optional `image-shards` feature adds the first standalone image shard
+kernel. It plans deterministic row-major pixel tiles and materializes those
+tiles as lossless PNG files without resizing or downsampling the source image.
+This is an attachment-owned materialization surface only: it does not add a
+public Flight schema, does not invoke a model, and is not yet wired as a live
+gateway/analyzer image OCR route.
 
 ## Archive Attachment Audit
 
@@ -180,13 +196,15 @@ boundaries, and reports failed, skipped, missing, and duplicate shard coverage
 for Studio precision gates. Backend model names remain analyzer configuration,
 not attachment identity.
 When the optional `foyer-artifact-cache` feature is enabled, materialization can
-restore or persist normalized shard media through the db-store
+fetch, restore, or persist normalized shard media through the db-store
 `ArtifactBlobCache` backend factory with Foyer as the default backend.
 This cache stores artifact bytes only: it does not change the audio shard Arrow
 schemas, backend selection, merge rules, or precision gates. Force refresh still
 bypasses stale request-output files, but verified content-addressed shard
 artifacts may satisfy the materialization request without invoking the media
-splitter again. Cache keys derive from artifact kind, source digest, profile
+splitter again. On a miss, the splitter runs inside db-store fetch-through so
+concurrent same-key misses can share one generated payload when the backend
+supports it. Cache keys derive from artifact kind, source digest, profile
 digest, and shard digest; raw source paths are never treated as artifact
 identity. The materialization result carries each shard's byte length from the
 same digest/read path that produced or restored the shard, so Studio reports can
@@ -225,10 +243,15 @@ pure model invocation and normalization adapters.
 The same Rust substrate also mirrors the analyzer's speech-segment window
 packing contract. VAD or other upstream segment rows remain model-neutral timing
 facts; Rust can pack them into bounded audio shard windows, preserve uncapped
-Python semantics when no hard maximum window is configured, and keep per-window
-durations in shard identity. Attachments accepts those facts as JSONL or a JSON
-array using millisecond or second timestamp fields, then normalizes them into
-`AudioSpeechSegment` rows. For failed-row recovery, Rust can also clip those
+Python semantics when no hard maximum window is configured, keep per-window
+durations in shard identity, and optionally preserve near-cap natural speech
+boundaries with a bounded snap tolerance instead of creating short tail shards.
+The shard identity also includes the optional encoder bitrate when configured,
+so compressed materialization experiments cannot collide with the lossless WAV
+baseline in artifact or transcript admission caches.
+Attachments accepts those facts as JSONL or a JSON array using millisecond or
+second timestamp fields, then normalizes them into `AudioSpeechSegment` rows.
+For failed-row recovery, Rust can also clip those
 speech timing facts to the selected failed parent windows before materializing
 recovery shards. If no speech timing fact intersects a failed parent window,
 the helper returns no recovery plan instead of blindly invoking an audio model

@@ -198,18 +198,32 @@ Behavior:
 status` command renders Org-native SDD
     system/capability/view/decision/audit architecture status and parent edges
     from upstream Orgize SDD parsing. The `read-model` command materializes
-    agent-tagged Org tasks into DuckDB by default and does not expose a
+    agent-tagged Org tasks into DuckDB by default and also writes the derived
+    `agent_org_memory_objects` table. Memory object rows keep `orgid` as the
+    source section identity and use `source_kind`, `source_key`, and
+    `object_index` for row disambiguation; no separate `memory_id` or
+    `task_orgid` identity is introduced. The command does not expose a
     `--duckdb` runtime selector. The `task-list` command refreshes the same
     DuckDB read model and renders active task rows for agent recovery, with
-    optional text/tag filtering and explicit
-    DONE/archive inclusion flags. The `task-probe` command is the compact
+    optional text/tag filtering and explicit DONE/archive inclusion flags.
+    Text filtering also considers the derived memory object kind, facet,
+    source key, and value fields through the source `orgid`. The `task-probe`
+    command is the compact
     remembered-task recovery view; it reranks candidates with
     `xiuxian-memory-engine` plus structured Org facet fusion so title text,
     properties, SDD references, checklist state, and next actions vote together
     instead of letting one noisy title phrase dominate. The `task-list` and
     `orgid-show` JSON outputs include inferred `memoryObjects` derived from
-    completed Reflection Questions rows; the memory engine owns the object
-    classification and the client only projects Org evidence.
+    typed Org properties and completed Reflection Questions rows; the memory
+    engine owns the object classification and the client only projects Org
+    evidence. This is the serverless memory path: copied or normalized
+    reference-memory samples become project-owned Org properties, then
+    `wendao-client orgize read-model` materializes them into DuckDB/Arrow-ready
+    rows for compact local recall. Rows marked with memory lifecycle properties
+    such as `MEMORY_STATUS: superseded`, `MEMORY_STATUS: stale`,
+    `MEMORY_STATUS: rejected`, or `MEMORY_STATUS: blocked` stay visible as Org
+    tasks but are excluded from derived memory objects and serverless recall
+    packets. The client does not read external Codex memory files at runtime.
     The `task-report`
     command summarizes the same snapshot for active rows, completed
     achievements, archive candidates, repeating rows, and tag counts. The

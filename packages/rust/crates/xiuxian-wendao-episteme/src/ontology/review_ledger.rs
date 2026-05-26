@@ -149,7 +149,7 @@ fn validate_review_ledger_documents(
     Ok(())
 }
 
-fn validate_review_ledger_set(
+pub(super) fn validate_review_ledger_set(
     ledger_set: &ReviewLedgerSet,
     field: &str,
 ) -> Result<(), EpistemeOntologyError> {

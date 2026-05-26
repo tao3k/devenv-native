@@ -85,6 +85,51 @@ fn audio_speech_window_planner_preserves_uncapped_python_semantics() -> Result<(
 }
 
 #[test]
+fn audio_speech_window_planner_snaps_near_cap_segment_boundary() -> Result<(), String> {
+    let mut input = speech_window_planner_input();
+    input.min_window_ms = 2_000;
+    input.max_window_ms = Some(28_000);
+    input.boundary_snap_tolerance_ms = 2_000;
+    input.speech_segments = vec![
+        AudioSpeechSegment {
+            index: 0,
+            start_ms: 0,
+            duration_ms: 29_859,
+        },
+        AudioSpeechSegment {
+            index: 1,
+            start_ms: 35_000,
+            duration_ms: 3_000,
+        },
+    ];
+
+    let plan = build_audio_speech_window_plan(&input)?;
+
+    assert_eq!(plan.start_offsets_ms, vec![0, 35_000]);
+    assert_eq!(plan.window_durations_ms, vec![29_859, 3_000]);
+    Ok(())
+}
+
+#[test]
+fn audio_speech_window_planner_balances_short_tail_splits() -> Result<(), String> {
+    let mut input = speech_window_planner_input();
+    input.min_window_ms = 2_000;
+    input.max_window_ms = Some(28_000);
+    input.boundary_snap_tolerance_ms = 0;
+    input.speech_segments = vec![AudioSpeechSegment {
+        index: 0,
+        start_ms: 0,
+        duration_ms: 29_859,
+    }];
+
+    let plan = build_audio_speech_window_plan(&input)?;
+
+    assert_eq!(plan.start_offsets_ms, vec![0, 14_930]);
+    assert_eq!(plan.window_durations_ms, vec![14_930, 14_929]);
+    Ok(())
+}
+
+#[test]
 fn audio_speech_window_plan_rejects_invalid_duration_counts() -> Result<(), String> {
     let mut plan = sample_plan();
     plan.window_durations_ms = vec![30_000];
@@ -94,5 +139,27 @@ fn audio_speech_window_plan_rejects_invalid_duration_counts() -> Result<(), Stri
     };
 
     assert!(error.contains("duration count"));
+    Ok(())
+}
+
+#[test]
+fn audio_plan_identity_includes_optional_bitrate() -> Result<(), String> {
+    let mut baseline = sample_plan();
+    baseline.start_offsets_ms = vec![0];
+    let mut compressed = baseline.clone();
+    compressed.audio_bitrate = Some("96k".to_owned());
+
+    let baseline_item = plan_audio_shards(&baseline)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| "expected baseline shard".to_owned())?;
+    let compressed_item = plan_audio_shards(&compressed)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| "expected compressed shard".to_owned())?;
+
+    assert_eq!(compressed_item.audio_bitrate.as_deref(), Some("96k"));
+    assert_ne!(baseline_item.shard_id, compressed_item.shard_id);
+    assert_ne!(baseline_item.cache_key, compressed_item.cache_key);
     Ok(())
 }

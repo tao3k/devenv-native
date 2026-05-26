@@ -7,6 +7,7 @@ mod eval;
 mod format;
 mod io;
 mod lint;
+mod org_elements;
 mod sdd;
 mod sparse_tree;
 
@@ -23,6 +24,10 @@ pub use format::{OrgizeFormatReport, OrgizeFormatRequest, format_org_files};
 pub use lint::{
     OrgizeLintFileReport, OrgizeLintOutputFormat, OrgizeLintRequest, OrgizeLintRunReport,
     lint_org_files,
+};
+pub use org_elements::{
+    OrgizeOrgElementReadModelReport, OrgizeOrgElementReadModelRequest, OrgizeOrgElementRow,
+    collect_org_element_rows,
 };
 pub use sdd::{
     OrgizeSddGraphDiffRequest, OrgizeSddStatusRequest, count_sdd_graph_drift,

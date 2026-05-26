@@ -7,10 +7,17 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
+#[cfg(feature = "pdf-render")]
+use super::artifact_cache::{
+    PdfRenderArtifactCache, PdfRenderArtifactCacheStats, pdf_render_artifact_cache_from_environment,
+};
 use super::batches::{build_shard_manifest_batch, write_shard_artifact_batches};
 use super::document::source_page_range_document_manifests;
 #[cfg(feature = "pdf-render")]
-use super::document::{bind_pdfium, render_document_manifests, render_document_region_manifests};
+use super::document::{
+    bind_pdfium, render_document_manifests, render_document_region_manifests,
+    restore_document_region_manifests_from_cache,
+};
 use super::identity::{checked_len_u32, is_pdf_path, sha256_hex, source_page_range_profile};
 use super::report::{RenderShardContext, ReportParts};
 #[cfg(feature = "pdf-render")]
@@ -22,6 +29,22 @@ use super::types::{PdfPageRenderProfile, PdfPageRenderSelection, PdfPageRenderSh
 
 #[cfg(feature = "pdf-render")]
 const PDFIUM_RENDER_TRANSIENT_RETRY_COUNT: usize = 3;
+
+/// Named request for rendering PDF OCR region shards with a known source hash.
+#[cfg(feature = "pdf-render")]
+#[derive(Debug, Clone, Copy)]
+pub struct PdfRegionShardRenderRequest<'a> {
+    /// Source PDF path.
+    pub path: &'a Path,
+    /// Output directory for rendered shard artifacts.
+    pub output_dir: &'a Path,
+    /// Render profile applied to all requested regions.
+    pub profile: &'a PdfPageRenderProfile,
+    /// Region shard requests.
+    pub regions: &'a [PdfPageRegionRenderRequest],
+    /// SHA-256 digest of the source PDF bytes.
+    pub source_hash: &'a str,
+}
 
 /// # Errors
 ///
@@ -84,6 +107,7 @@ pub fn render_pdf_page_shards_with_selection(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
+    let artifact_cache = pdf_render_artifact_cache_from_environment()?;
     let (page_count, manifests) =
         match render_pdfium_manifests_with_retry(path, &source_hash, |document, source_hash| {
             let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
@@ -92,6 +116,7 @@ pub fn render_pdf_page_shards_with_selection(
                 &context,
                 source_hash,
                 page_selection.selected_page_indices(),
+                artifact_cache.as_ref(),
             )
             .map(|manifests| (page_count, manifests))
         })? {
@@ -103,13 +128,16 @@ pub fn render_pdf_page_shards_with_selection(
     let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
         write_shard_artifact_batches(output_dir, manifests.as_slice(), manifest_batch)?;
 
-    Ok(context.report(ReportParts::rendered(
-        page_count,
-        checked_len_u32(manifests.len()),
-        manifest_arrow_path,
-        ocr_input_arrow_path,
-        pending_resource_arrow_path,
-    )))
+    Ok(context.report(
+        ReportParts::rendered(
+            page_count,
+            checked_len_u32(manifests.len()),
+            manifest_arrow_path,
+            ocr_input_arrow_path,
+            pending_resource_arrow_path,
+        )
+        .with_artifact_cache_stats_from(artifact_cache_stats(artifact_cache.as_ref())),
+    ))
 }
 
 /// # Errors
@@ -147,6 +175,7 @@ pub fn render_pdf_page_shards_for_page_indices(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
+    let artifact_cache = pdf_render_artifact_cache_from_environment()?;
     let (page_count, manifests) =
         match render_pdfium_manifests_with_retry(path, &source_hash, |document, source_hash| {
             let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
@@ -155,6 +184,7 @@ pub fn render_pdf_page_shards_for_page_indices(
                 &context,
                 source_hash,
                 Some(selected_page_indices.as_slice()),
+                artifact_cache.as_ref(),
             )
             .map(|manifests| (page_count, manifests))
         })? {
@@ -166,13 +196,16 @@ pub fn render_pdf_page_shards_for_page_indices(
     let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
         write_shard_artifact_batches(output_dir, manifests.as_slice(), manifest_batch)?;
 
-    Ok(context.report(ReportParts::rendered(
-        page_count,
-        checked_len_u32(manifests.len()),
-        manifest_arrow_path,
-        ocr_input_arrow_path,
-        pending_resource_arrow_path,
-    )))
+    Ok(context.report(
+        ReportParts::rendered(
+            page_count,
+            checked_len_u32(manifests.len()),
+            manifest_arrow_path,
+            ocr_input_arrow_path,
+            pending_resource_arrow_path,
+        )
+        .with_artifact_cache_stats_from(artifact_cache_stats(artifact_cache.as_ref())),
+    ))
 }
 
 /// # Errors
@@ -271,7 +304,13 @@ pub fn render_pdf_region_shards(
     let source_bytes =
         fs::read(path).map_err(|error| format!("read PDF `{}`: {error}", path.display()))?;
     let source_hash = sha256_hex(&source_bytes);
-    render_pdf_region_shards_with_source_hash(path, output_dir, profile, regions, &source_hash)
+    render_pdf_region_shards_with_source_hash(PdfRegionShardRenderRequest {
+        path,
+        output_dir,
+        profile,
+        regions,
+        source_hash: &source_hash,
+    })
 }
 
 /// # Errors
@@ -281,12 +320,15 @@ pub fn render_pdf_region_shards(
 /// as fallback reports rather than errors.
 #[cfg(feature = "pdf-render")]
 pub fn render_pdf_region_shards_with_source_hash(
-    path: &Path,
-    output_dir: &Path,
-    profile: &PdfPageRenderProfile,
-    regions: &[PdfPageRegionRenderRequest],
-    source_hash: &str,
+    request: PdfRegionShardRenderRequest<'_>,
 ) -> Result<PdfPageRenderShardReport, String> {
+    let PdfRegionShardRenderRequest {
+        path,
+        output_dir,
+        profile,
+        regions,
+        source_hash,
+    } = request;
     let context = RenderShardContext::new(
         path,
         output_dir,
@@ -304,11 +346,32 @@ pub fn render_pdf_region_shards_with_source_hash(
         )));
     }
 
+    let artifact_cache = pdf_render_artifact_cache_from_environment()?;
+    if let Some(manifests) = restore_document_region_manifests_from_cache(
+        &context,
+        source_hash,
+        regions,
+        artifact_cache.as_ref(),
+    )? {
+        return write_region_shard_report(
+            &context,
+            output_dir,
+            inferred_region_page_count(regions),
+            manifests.as_slice(),
+            artifact_cache.as_ref(),
+        );
+    }
     let (page_count, manifests) =
         match render_pdfium_manifests_with_retry(path, source_hash, |document, source_hash| {
             let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
-            render_document_region_manifests(document, &context, source_hash, regions)
-                .map(|manifests| (page_count, manifests))
+            render_document_region_manifests(
+                document,
+                &context,
+                source_hash,
+                regions,
+                artifact_cache.as_ref(),
+            )
+            .map(|manifests| (page_count, manifests))
         })? {
             Ok(rendered) => rendered,
             Err(fallback) => return Ok(context.report(fallback)),
@@ -317,13 +380,64 @@ pub fn render_pdf_region_shards_with_source_hash(
     let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
         write_shard_artifact_batches(output_dir, manifests.as_slice(), manifest_batch)?;
 
-    Ok(context.report(ReportParts::rendered(
-        page_count,
-        checked_len_u32(manifests.len()),
-        manifest_arrow_path,
-        ocr_input_arrow_path,
-        pending_resource_arrow_path,
-    )))
+    Ok(context.report(
+        ReportParts::rendered(
+            page_count,
+            checked_len_u32(manifests.len()),
+            manifest_arrow_path,
+            ocr_input_arrow_path,
+            pending_resource_arrow_path,
+        )
+        .with_artifact_cache_stats_from(artifact_cache_stats(artifact_cache.as_ref())),
+    ))
+}
+
+#[cfg(feature = "pdf-render")]
+fn write_region_shard_report(
+    context: &RenderShardContext<'_>,
+    output_dir: &Path,
+    page_count: u32,
+    manifests: &[PdfPageShardManifest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
+) -> Result<PdfPageRenderShardReport, String> {
+    let manifest_batch = build_shard_manifest_batch(manifests)?;
+    let (manifest_arrow_path, ocr_input_arrow_path, pending_resource_arrow_path) =
+        write_shard_artifact_batches(output_dir, manifests, manifest_batch)?;
+
+    Ok(context.report(
+        ReportParts::rendered(
+            page_count,
+            checked_len_u32(manifests.len()),
+            manifest_arrow_path,
+            ocr_input_arrow_path,
+            pending_resource_arrow_path,
+        )
+        .with_artifact_cache_stats_from(artifact_cache_stats(artifact_cache)),
+    ))
+}
+
+#[cfg(feature = "pdf-render")]
+fn inferred_region_page_count(regions: &[PdfPageRegionRenderRequest]) -> u32 {
+    regions
+        .iter()
+        .map(|region| region.page_index)
+        .max()
+        .map_or(0, |page_index| page_index.saturating_add(1))
+}
+
+#[cfg(feature = "pdf-render")]
+fn artifact_cache_stats(
+    cache: Option<&PdfRenderArtifactCache>,
+) -> Option<PdfRenderArtifactCacheStats> {
+    #[cfg(feature = "foyer-artifact-cache")]
+    {
+        cache.map(PdfRenderArtifactCache::snapshot)
+    }
+    #[cfg(not(feature = "foyer-artifact-cache"))]
+    {
+        let _ = cache;
+        None
+    }
 }
 
 #[cfg(feature = "pdf-render")]

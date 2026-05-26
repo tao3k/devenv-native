@@ -34,6 +34,9 @@ _pdf_render = importlib.import_module("wendao_document_extract_benchmark.pdf_ren
 _pdfium = importlib.import_module("wendao_document_extract_benchmark.pdfium")
 _precision_speed = importlib.import_module("wendao_document_extract_benchmark.precision_speed")
 _probes = importlib.import_module("wendao_document_extract_benchmark.probes")
+_provider_lifecycle = importlib.import_module(
+    "wendao_document_extract_benchmark.provider_lifecycle"
+)
 _providers = importlib.import_module("wendao_document_extract_benchmark.providers")
 _reporting = importlib.import_module("wendao_document_extract_benchmark.reporting")
 _rust_status = importlib.import_module("wendao_document_extract_benchmark.rust_status")
@@ -61,6 +64,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _features,
     _ocr2_trace,
     _workers,
+    _provider_lifecycle,
     _providers,
     _http_status,
     _probes,

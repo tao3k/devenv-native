@@ -7,6 +7,7 @@
 //! 2. User config: `<PRJ_CONFIG_HOME>/xiuxian-artisan-workshop/qianji.toml`
 //! 3. Explicit config path: `$QIANJI_CONFIG_PATH`
 //! 4. Environment overrides:
+//!    - `PRJ_DATA_HOME`
 //!    - `QIANJI_LLM_MODEL`
 //!    - `OPENAI_API_BASE`
 //!    - `OPENAI_API_KEY`

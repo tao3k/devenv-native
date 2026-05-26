@@ -10,7 +10,7 @@ use arrow::ipc::reader::FileReader;
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 #[cfg(feature = "document-extract-attachment-audit")]
 use xiuxian_wendao_attachments::archive_audit::{
@@ -34,8 +34,12 @@ const HYBRID_PAGE_OCR_TIMING_REPORT_NAME: &str = "_hybrid_page_ocr_timing.json";
 const AUDIO_MATERIALIZATION_REPORT_NAME: &str = "_audio_materialization.json";
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_NAME: &str = "_audio_transcript_admission.json";
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "benchmark report DTO preserves a stable flat JSON schema"
+)]
 pub(crate) struct ArtifactReport {
     pub(crate) source: String,
     pub(crate) output_dir: String,
@@ -116,6 +120,40 @@ pub(crate) struct ArtifactReport {
     pub(crate) hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_hit_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_miss_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_throttled_count: usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_byte_count: u64,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_hit_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_miss_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_throttled_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_byte_count: u64,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_hit_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_miss_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_throttled_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_byte_count: u64,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_hit_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_miss_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_throttled_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_byte_count:
+        u64,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_hit_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_miss_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_throttled_count:
+        usize,
+    pub(crate) hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_byte_count:
+        u64,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms: f64,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_planned_render_chunk_count: usize,
     pub(crate) hybrid_page_ocr_timing_ocr2_region_pipeline_endpoint_count: usize,
@@ -174,109 +212,7 @@ fn inspect_artifact_dir(
     let mut report = ArtifactReport {
         source: source.to_string(),
         output_dir: output_dir.to_string(),
-        resources_arrow_exists: false,
-        resources_arrow_bytes: 0,
-        resources_row_count: 0,
-        resource_type_counts: BTreeMap::new(),
-        resource_status_counts: BTreeMap::new(),
-        audio_transcript_chars: 0,
-        audio_transcript_timeline_marker_count: 0,
-        audio_transcript_timeline_marked_rows: 0,
-        audio_materialization_report_bytes: 0,
-        audio_materialization_artifact_cache_configured: false,
-        audio_materialization_artifact_cache_backend: None,
-        audio_materialization_artifact_cache_root: None,
-        audio_materialization_artifact_cache_memory_bytes: 0,
-        audio_materialization_artifact_cache_storage_bytes: 0,
-        audio_materialization_artifact_cache_config_error: None,
-        audio_materialization_shard_count: 0,
-        audio_materialization_byte_count: 0,
-        audio_materialization_artifact_cache_hit_count: 0,
-        audio_materialization_artifact_cache_hit_bytes: 0,
-        audio_materialization_existing_output_count: 0,
-        audio_materialization_existing_output_bytes: 0,
-        audio_materialization_media_splitter_count: 0,
-        audio_materialization_media_splitter_bytes: 0,
-        audio_materialization_source_counts: BTreeMap::new(),
-        audio_materialization_source_bytes: BTreeMap::new(),
-        audio_materialization_workflow_id: None,
-        audio_materialization_workflow_stage_count: 0,
-        audio_materialization_workflow_total_elapsed_ms: 0.0,
-        audio_materialization_workflow_stage_elapsed_ms: BTreeMap::new(),
-        audio_transcript_admission_report_bytes: 0,
-        audio_transcript_admission_enabled: false,
-        audio_transcript_admission_hit_count: 0,
-        audio_transcript_admission_miss_count: 0,
-        audio_transcript_admission_stored_count: 0,
-        audio_transcript_admission_stale_count: 0,
-        audio_transcript_admission_planned_hit_count: 0,
-        audio_transcript_admission_planned_miss_count: 0,
-        audio_transcript_admission_planned_stored_count: 0,
-        audio_transcript_admission_planned_stale_count: 0,
-        structure_arrow_exists: false,
-        structure_arrow_bytes: 0,
-        structure_row_count: 0,
-        structure_block_type_counts: BTreeMap::new(),
-        structure_ocr_page_blocks: 0,
-        structure_ocr_region_blocks: 0,
-        structure_bbox_blocks: 0,
-        structure_reading_order_sorted: None,
-        structure_order_signature: None,
-        structure_order_first_key: None,
-        structure_order_last_key: None,
-        structure_baseline_dir: None,
-        structure_parity: None,
-        structure_parity_error: None,
-        metrics_arrow_exists: false,
-        metrics_arrow_bytes: 0,
-        metrics_row_count: 0,
-        metrics_status_counts: BTreeMap::new(),
-        metrics_shard_type_counts: BTreeMap::new(),
-        metrics_ocr_profile_counts: BTreeMap::new(),
-        metrics_result_chars: 0,
-        metrics_bbox_count: 0,
-        metrics_rust_scheduler_elapsed_ms: 0.0,
-        document_timing_arrow_bytes: 0,
-        document_timing_row_count: 0,
-        document_timing_status_counts: BTreeMap::new(),
-        document_timing_phase_elapsed_ms: BTreeMap::new(),
-        document_timing_total_elapsed_ms: 0.0,
-        hybrid_page_ocr_fallback_reason: None,
-        hybrid_page_ocr_timing_report_bytes: 0,
-        hybrid_page_ocr_timing_phase_elapsed_ms: BTreeMap::new(),
-        hybrid_page_ocr_timing_total_elapsed_ms: 0.0,
-        hybrid_page_ocr_timing_ocr_shard_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_shard_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_request_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_rendered_shard_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_render_cache_hit_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms: 0.0,
-        hybrid_page_ocr_timing_ocr2_region_pipeline_planned_render_chunk_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_pipeline_endpoint_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_pipeline_render_ahead_limit: 0,
-        hybrid_page_ocr_timing_ocr2_region_pipeline_render_spawn_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_pipeline_render_chunk_count: 0,
-        hybrid_page_ocr_timing_ocr2_region_pipeline_region_dispatch_count: 0,
-        structure_authority_pages: 0,
-        text_shortcut_pages: 0,
-        ocr_patch_regions: 0,
-        page_range_docling_fallback_pages: 0,
-        page_range_docling_fallback_chunk_count: 0,
-        page_range_docling_fallback_plan: None,
-        page_range_docling_fallback_chunks: Vec::new(),
-        page_range_docling_fallback_chunk_summary: None,
-        full_docling_fallback_count: 0,
-        hybrid_page_ocr_timing_scheduler_trace: Vec::new(),
-        #[cfg(feature = "document-extract-attachment-audit")]
-        image_attachment_audit: None,
-        #[cfg(feature = "document-extract-attachment-audit")]
-        image_attachment_audit_error: None,
-        #[cfg(feature = "document-extract-attachment-audit")]
-        archive_attachment_audit: None,
-        #[cfg(feature = "document-extract-attachment-audit")]
-        archive_attachment_audit_error: None,
-        artifact_error: None,
+        ..ArtifactReport::default()
     };
     if let Err(error) = populate_artifact_report(&mut report, structure_baseline_root) {
         report.artifact_error = Some(error);
@@ -644,6 +580,26 @@ fn populate_hybrid_page_ocr_region_timing(report: &mut ArtifactReport, value: &V
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_hit_count = value
+        .get("ocr2RegionRenderArtifactCacheHitCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_miss_count = value
+        .get("ocr2RegionRenderArtifactCacheMissCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_throttled_count = value
+        .get("ocr2RegionRenderArtifactCacheThrottledCount")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or_default();
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_byte_count = value
+        .get("ocr2RegionRenderArtifactCacheByteCount")
+        .and_then(Value::as_u64)
+        .unwrap_or_default();
+    populate_hybrid_page_ocr_region_artifact_cache_kinds(report, value);
     report.hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms = value
         .get("ocr2RegionRenderReportedElapsedMs")
         .and_then(Value::as_f64)
@@ -678,6 +634,74 @@ fn populate_hybrid_page_ocr_region_timing(report: &mut ArtifactReport, value: &V
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or_default();
+}
+
+fn populate_hybrid_page_ocr_region_artifact_cache_kinds(
+    report: &mut ArtifactReport,
+    value: &Value,
+) {
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_hit_count =
+        timing_report_usize(value, "ocr2RegionRenderArtifactCachePageRasterHitCount");
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_miss_count =
+        timing_report_usize(value, "ocr2RegionRenderArtifactCachePageRasterMissCount");
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_throttled_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCachePageRasterThrottledCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_byte_count =
+        value_u64(value, "ocr2RegionRenderArtifactCachePageRasterByteCount");
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_hit_count =
+        timing_report_usize(value, "ocr2RegionRenderArtifactCacheRegionCropHitCount");
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_miss_count =
+        timing_report_usize(value, "ocr2RegionRenderArtifactCacheRegionCropMissCount");
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_throttled_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionCropThrottledCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_byte_count =
+        value_u64(value, "ocr2RegionRenderArtifactCacheRegionCropByteCount");
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_hit_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionHitCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_miss_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionMissCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_throttled_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionThrottledCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_byte_count =
+        value_u64(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionByteCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_hit_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_miss_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_throttled_count =
+        timing_report_usize(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowThrottledCount",
+        );
+    report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_byte_count =
+        value_u64(
+            value,
+            "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowByteCount",
+        );
 }
 
 fn populate_hybrid_page_ocr_page_range_fallback(report: &mut ArtifactReport, value: &Value) {
@@ -1289,106 +1313,237 @@ fn artifact_report_reads_hybrid_page_ocr_timing_sidecar() -> Result<(), String> 
     assert_hybrid_page_ocr_timing_report(&report)
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "test fixture spells out the stable hybrid timing sidecar schema"
+)]
 fn write_hybrid_page_ocr_timing_sidecar(output_dir: &Path) -> Result<(), String> {
-    fs::write(
-        output_dir
-            .join(HYBRID_PAGE_OCR_TIMING_REPORT_NAME)
-            .as_path(),
-        serde_json::to_vec(&serde_json::json!({
-            "schema": "xiuxian_wendao.hybrid_page_ocr_timing.v1",
-            "ocrShardCount": 27,
-            "ocr2RegionShardCount": 6,
-            "ocr2RegionRequestCount": 6,
-            "ocr2RegionRenderedShardCount": 6,
-            "ocr2RegionRenderCacheHitCount": 6,
-            "ocr2RegionRenderCacheMissCount": 0,
-            "ocr2RegionRenderReportedElapsedMs": 125.5,
-            "ocr2RegionPipelinePlannedRenderChunkCount": 3,
-            "ocr2RegionPipelineEndpointCount": 4,
-            "ocr2RegionPipelineRenderAheadLimit": 3,
-            "ocr2RegionPipelineRenderSpawnCount": 3,
-            "ocr2RegionPipelineRenderChunkCount": 3,
-            "ocr2RegionPipelineRegionDispatchCount": 2,
-            "structureAuthorityPages": 4,
-            "textShortcutPages": 2,
-            "ocrPatchRegions": 3,
-            "pageRangeDoclingFallbackPages": 5,
-            "pageRangeDoclingFallbackChunkCount": 2,
-            "pageRangeDoclingFallbackPlan": {
-                "strategy": "source-profile-weighted",
-                "targetChunkCount": 4,
-                "fallbackPageCount": 5,
-                "rangeCount": 2,
-                "chunkSize": null,
-                "sourceProfileUsed": true,
-                "ranges": [
-                    {
-                        "pageStart": 0,
-                        "pageEnd": 2,
-                        "oneBasedStart": 1,
-                        "oneBasedEnd": 3,
-                    },
-                    {
-                        "pageStart": 3,
-                        "pageEnd": 4,
-                        "oneBasedStart": 4,
-                        "oneBasedEnd": 5,
-                    },
-                ],
-            },
-            "pageRangeDoclingFallbackChunks": [
+    let mut report = Map::new();
+    insert_test_json_value(
+        &mut report,
+        "schema",
+        "xiuxian_wendao.hybrid_page_ocr_timing.v1",
+    )?;
+    insert_test_json_value(&mut report, "ocrShardCount", 27)?;
+    insert_test_json_value(&mut report, "ocr2RegionShardCount", 6)?;
+    insert_test_json_value(&mut report, "ocr2RegionRequestCount", 6)?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderedShardCount", 6)?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderCacheHitCount", 6)?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderCacheMissCount", 0)?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderArtifactCacheHitCount", 4)?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderArtifactCacheMissCount", 2)?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheThrottledCount",
+        1,
+    )?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderArtifactCacheByteCount", 8192)?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCachePageRasterHitCount",
+        1,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCachePageRasterMissCount",
+        2,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCachePageRasterThrottledCount",
+        3,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCachePageRasterByteCount",
+        4096,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionCropHitCount",
+        4,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionCropMissCount",
+        5,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionCropThrottledCount",
+        6,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionCropByteCount",
+        8192,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionHitCount",
+        7,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionMissCount",
+        8,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionThrottledCount",
+        9,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionByteCount",
+        12288,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount",
+        10,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount",
+        11,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowThrottledCount",
+        12,
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowByteCount",
+        16384,
+    )?;
+    insert_test_json_value(&mut report, "ocr2RegionRenderReportedElapsedMs", 125.5)?;
+    insert_test_json_value(&mut report, "ocr2RegionPipelinePlannedRenderChunkCount", 3)?;
+    insert_test_json_value(&mut report, "ocr2RegionPipelineEndpointCount", 4)?;
+    insert_test_json_value(&mut report, "ocr2RegionPipelineRenderAheadLimit", 3)?;
+    insert_test_json_value(&mut report, "ocr2RegionPipelineRenderSpawnCount", 3)?;
+    insert_test_json_value(&mut report, "ocr2RegionPipelineRenderChunkCount", 3)?;
+    insert_test_json_value(&mut report, "ocr2RegionPipelineRegionDispatchCount", 2)?;
+    insert_test_json_value(&mut report, "structureAuthorityPages", 4)?;
+    insert_test_json_value(&mut report, "textShortcutPages", 2)?;
+    insert_test_json_value(&mut report, "ocrPatchRegions", 3)?;
+    insert_test_json_value(&mut report, "pageRangeDoclingFallbackPages", 5)?;
+    insert_test_json_value(&mut report, "pageRangeDoclingFallbackChunkCount", 2)?;
+    insert_test_json_value(
+        &mut report,
+        "pageRangeDoclingFallbackPlan",
+        serde_json::json!({
+            "strategy": "source-profile-weighted",
+            "targetChunkCount": 4,
+            "fallbackPageCount": 5,
+            "rangeCount": 2,
+            "chunkSize": null,
+            "sourceProfileUsed": true,
+            "ranges": [
                 {
                     "pageStart": 0,
                     "pageEnd": 2,
                     "oneBasedStart": 1,
                     "oneBasedEnd": 3,
-                    "elapsedMs": 1200.0,
-                    "resourceRows": 9,
                 },
                 {
                     "pageStart": 3,
                     "pageEnd": 4,
                     "oneBasedStart": 4,
                     "oneBasedEnd": 5,
-                    "elapsedMs": 4400.0,
-                    "resourceRows": 12,
                 },
             ],
-            "pageRangeDoclingFallbackChunkSummary": {
-                "chunkCount": 2,
-                "elapsedMsMax": 4400.0,
-                "elapsedMsTotal": 5600.0,
-                "resourceRows": 21,
-                "longestPageStart": 3,
-                "longestPageEnd": 4,
-                "longestOneBasedStart": 4,
-                "longestOneBasedEnd": 5,
-                "longestResourceRows": 12,
+        }),
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "pageRangeDoclingFallbackChunks",
+        serde_json::json!([
+            {
+                "pageStart": 0,
+                "pageEnd": 2,
+                "oneBasedStart": 1,
+                "oneBasedEnd": 3,
+                "elapsedMs": 1200.0,
+                "resourceRows": 9,
             },
-            "fullDoclingFallbackCount": 0,
-            "ocrSchedulerTrace": [
-                {
-                    "lane": "source-pdf-page-range",
-                    "shardCount": 7,
-                    "pageStart": 0,
-                    "pageEnd": 6,
-                    "latencyMs": 19327.0,
-                    "textCharCount": 48879,
-                },
-            ],
-            "totalElapsedMs": 5600.0,
-            "phaseElapsedMs": {
-                "regionMaterialize": 5550.0,
-                "ocrScheduler": 3.5,
-                "total": 5600.0,
+            {
+                "pageStart": 3,
+                "pageEnd": 4,
+                "oneBasedStart": 4,
+                "oneBasedEnd": 5,
+                "elapsedMs": 4400.0,
+                "resourceRows": 12,
             },
-        }))
-        .map_err(|error| error.to_string())?,
+        ]),
+    )?;
+    insert_test_json_value(
+        &mut report,
+        "pageRangeDoclingFallbackChunkSummary",
+        serde_json::json!({
+            "chunkCount": 2,
+            "elapsedMsMax": 4400.0,
+            "elapsedMsTotal": 5600.0,
+            "resourceRows": 21,
+            "longestPageStart": 3,
+            "longestPageEnd": 4,
+            "longestOneBasedStart": 4,
+            "longestOneBasedEnd": 5,
+            "longestResourceRows": 12,
+        }),
+    )?;
+    insert_test_json_value(&mut report, "fullDoclingFallbackCount", 0)?;
+    insert_test_json_value(
+        &mut report,
+        "ocrSchedulerTrace",
+        serde_json::json!([
+            {
+                "lane": "source-pdf-page-range",
+                "shardCount": 7,
+                "pageStart": 0,
+                "pageEnd": 6,
+                "latencyMs": 19327.0,
+                "textCharCount": 48879,
+            },
+        ]),
+    )?;
+    insert_test_json_value(&mut report, "totalElapsedMs", 5600.0)?;
+    insert_test_json_value(
+        &mut report,
+        "phaseElapsedMs",
+        serde_json::json!({
+            "regionMaterialize": 5550.0,
+            "ocrScheduler": 3.5,
+            "total": 5600.0,
+        }),
+    )?;
+    fs::write(
+        output_dir
+            .join(HYBRID_PAGE_OCR_TIMING_REPORT_NAME)
+            .as_path(),
+        serde_json::to_vec(&Value::Object(report)).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     Ok(())
 }
 
+fn insert_test_json_value<T: Serialize>(
+    object: &mut Map<String, Value>,
+    key: &str,
+    value: T,
+) -> Result<(), String> {
+    object.insert(
+        key.to_string(),
+        serde_json::to_value(value).map_err(|error| error.to_string())?,
+    );
+    Ok(())
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "test assertion covers the flat benchmark report schema"
+)]
 fn assert_hybrid_page_ocr_timing_report(report: &ArtifactReport) -> Result<(), String> {
     assert_eq!(report.artifact_error, None);
     assert!(report.hybrid_page_ocr_timing_report_bytes > 0);
@@ -1406,6 +1561,94 @@ fn assert_hybrid_page_ocr_timing_report(report: &ArtifactReport) -> Result<(), S
     assert_eq!(
         report.hybrid_page_ocr_timing_ocr2_region_render_cache_miss_count,
         0
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_hit_count,
+        4
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_miss_count,
+        2
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_throttled_count,
+        1
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_byte_count,
+        8192
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_hit_count,
+        1
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_miss_count,
+        2
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_throttled_count,
+        3
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_page_raster_byte_count,
+        4096
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_hit_count,
+        4
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_miss_count,
+        5
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_throttled_count,
+        6
+    );
+    assert_eq!(
+        report.hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_crop_byte_count,
+        8192
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_hit_count,
+        7
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_miss_count,
+        8
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_throttled_count,
+        9
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_byte_count,
+        12288
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_hit_count,
+        10
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_miss_count,
+        11
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_throttled_count,
+        12
+    );
+    assert_eq!(
+        report
+            .hybrid_page_ocr_timing_ocr2_region_render_artifact_cache_region_manifest_projection_row_byte_count,
+        16384
     );
     assert_float_eq(
         Some(report.hybrid_page_ocr_timing_ocr2_region_render_reported_elapsed_ms),

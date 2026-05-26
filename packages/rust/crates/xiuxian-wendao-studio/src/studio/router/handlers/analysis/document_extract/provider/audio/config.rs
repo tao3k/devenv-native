@@ -15,6 +15,7 @@ pub(super) const AUDIO_RECOVERY_SPLIT_MS_ENV: &str =
 pub(super) const AUDIO_SAMPLE_RATE_HZ_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ";
 pub(super) const AUDIO_CHANNELS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS";
 pub(super) const AUDIO_FORMAT_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT";
+pub(super) const AUDIO_BITRATE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_BITRATE";
 pub(super) const AUDIO_FFMPEG_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFMPEG";
 pub(super) const AUDIO_FFPROBE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFPROBE";
 pub(super) const AUDIO_ARTIFACT_CACHE_DIR_ENV: &str =
@@ -30,6 +31,10 @@ pub(super) const AUDIO_SPEECH_MERGE_GAP_MS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS";
 pub(super) const AUDIO_SPEECH_MIN_WINDOW_MS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS";
+pub(super) const AUDIO_SPEECH_MAX_WINDOW_MS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MAX_WINDOW_MS";
+pub(super) const AUDIO_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS";
 pub(super) const AUDIO_SPEECH_LIMIT_CHUNKS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS";
 
@@ -39,6 +44,7 @@ const DEFAULT_CONTEXT_MS: u64 = 0;
 const DEFAULT_RECOVERY_SPLIT_MS: u64 = 30_000;
 const DEFAULT_SPEECH_MERGE_GAP_MS: u64 = 500;
 const DEFAULT_SPEECH_MIN_WINDOW_MS: u64 = 0;
+const DEFAULT_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS: u64 = 0;
 const DEFAULT_SPEECH_LIMIT_CHUNKS: u32 = 10_000;
 const DEFAULT_SAMPLE_RATE_HZ: u32 = 16_000;
 const DEFAULT_CHANNELS: u8 = 1;
@@ -56,6 +62,7 @@ pub(crate) struct AudioDocumentExtractConfig {
     pub(crate) sample_rate_hz: u32,
     pub(crate) channels: u8,
     pub(crate) audio_format: String,
+    pub(crate) audio_bitrate: Option<String>,
     pub(crate) ffmpeg_path: PathBuf,
     pub(crate) ffprobe_path: PathBuf,
     pub(crate) artifact_cache_dir: Option<PathBuf>,
@@ -65,6 +72,8 @@ pub(crate) struct AudioDocumentExtractConfig {
     pub(crate) speech_segments_jsonl_path: Option<PathBuf>,
     pub(crate) speech_merge_gap_ms: u64,
     pub(crate) speech_min_window_ms: u64,
+    pub(crate) speech_max_window_ms: Option<u64>,
+    pub(crate) speech_boundary_snap_tolerance_ms: u64,
     pub(crate) speech_limit_chunks: u32,
 }
 
@@ -87,8 +96,16 @@ pub(crate) fn document_extract_audio_config(
     Ok(AudioDocumentExtractConfig {
         backend_profile,
         chunk_duration_ms: u64_value(lookup, AUDIO_CHUNK_MS_ENV, DEFAULT_CHUNK_MS)?,
-        context_before_ms: u64_value(lookup, AUDIO_CONTEXT_BEFORE_MS_ENV, DEFAULT_CONTEXT_MS)?,
-        context_after_ms: u64_value(lookup, AUDIO_CONTEXT_AFTER_MS_ENV, DEFAULT_CONTEXT_MS)?,
+        context_before_ms: u64_non_negative_value(
+            lookup,
+            AUDIO_CONTEXT_BEFORE_MS_ENV,
+            DEFAULT_CONTEXT_MS,
+        )?,
+        context_after_ms: u64_non_negative_value(
+            lookup,
+            AUDIO_CONTEXT_AFTER_MS_ENV,
+            DEFAULT_CONTEXT_MS,
+        )?,
         recovery_split_duration_ms: u64_value(
             lookup,
             AUDIO_RECOVERY_SPLIT_MS_ENV,
@@ -97,6 +114,7 @@ pub(crate) fn document_extract_audio_config(
         sample_rate_hz: u32_value(lookup, AUDIO_SAMPLE_RATE_HZ_ENV, DEFAULT_SAMPLE_RATE_HZ)?,
         channels: u8_value(lookup, AUDIO_CHANNELS_ENV, DEFAULT_CHANNELS)?,
         audio_format: string_value(lookup, AUDIO_FORMAT_ENV, DEFAULT_AUDIO_FORMAT),
+        audio_bitrate: optional_audio_bitrate_value(lookup, AUDIO_BITRATE_ENV)?,
         ffmpeg_path: PathBuf::from(string_value(lookup, AUDIO_FFMPEG_ENV, DEFAULT_FFMPEG)),
         ffprobe_path: PathBuf::from(string_value(lookup, AUDIO_FFPROBE_ENV, DEFAULT_FFPROBE)),
         artifact_cache_dir,
@@ -112,10 +130,16 @@ pub(crate) fn document_extract_audio_config(
             AUDIO_SPEECH_MERGE_GAP_MS_ENV,
             DEFAULT_SPEECH_MERGE_GAP_MS,
         )?,
-        speech_min_window_ms: u64_value(
+        speech_min_window_ms: u64_non_negative_value(
             lookup,
             AUDIO_SPEECH_MIN_WINDOW_MS_ENV,
             DEFAULT_SPEECH_MIN_WINDOW_MS,
+        )?,
+        speech_max_window_ms: optional_positive_u64_value(lookup, AUDIO_SPEECH_MAX_WINDOW_MS_ENV)?,
+        speech_boundary_snap_tolerance_ms: u64_non_negative_value(
+            lookup,
+            AUDIO_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS_ENV,
+            DEFAULT_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS,
         )?,
         speech_limit_chunks: u32_value(
             lookup,
@@ -194,6 +218,64 @@ fn u64_value(
     parse_positive_u64(lookup(key).as_deref(), key, default)
 }
 
+fn u64_non_negative_value(
+    lookup: &dyn Fn(&str) -> Option<String>,
+    key: &'static str,
+    default: u64,
+) -> Result<u64, String> {
+    let Some(value) = lookup(key).map(|value| value.trim().to_owned()) else {
+        return Ok(default);
+    };
+    if value.is_empty() {
+        return Ok(default);
+    }
+    value
+        .parse::<u64>()
+        .map_err(|_| format!("{key} must be a non-negative integer"))
+}
+
+fn optional_positive_u64_value(
+    lookup: &dyn Fn(&str) -> Option<String>,
+    key: &'static str,
+) -> Result<Option<u64>, String> {
+    let Some(value) = lookup(key).map(|value| value.trim().to_owned()) else {
+        return Ok(None);
+    };
+    if value.is_empty() || value.eq_ignore_ascii_case("auto") {
+        return Ok(None);
+    }
+    let parsed = value
+        .parse::<u64>()
+        .map_err(|_| format!("{key} must be `auto` or a positive integer"))?;
+    if parsed == 0 {
+        return Err(format!("{key} must be greater than zero"));
+    }
+    Ok(Some(parsed))
+}
+
+fn optional_audio_bitrate_value(
+    lookup: &dyn Fn(&str) -> Option<String>,
+    key: &'static str,
+) -> Result<Option<String>, String> {
+    let Some(value) = lookup(key).map(|value| value.trim().to_ascii_lowercase()) else {
+        return Ok(None);
+    };
+    if value.is_empty() || value.eq_ignore_ascii_case("auto") {
+        return Ok(None);
+    }
+    let digit_len = value.chars().take_while(|ch| ch.is_ascii_digit()).count();
+    let (digits, suffix) = value.split_at(digit_len);
+    if digits.is_empty() || digits.starts_with('0') {
+        return Err(format!(
+            "{key} must be a positive bitrate token such as `96k`"
+        ));
+    }
+    if !suffix.chars().all(|ch| matches!(ch, 'k' | 'm')) {
+        return Err(format!("{key} suffix must be `k`, `m`, or omitted"));
+    }
+    Ok(Some(value))
+}
+
 fn u32_value(
     lookup: &dyn Fn(&str) -> Option<String>,
     key: &'static str,
@@ -226,5 +308,5 @@ fn parse_positive_u64(value: Option<&str>, key: &'static str, default: u64) -> R
 }
 
 #[cfg(test)]
-#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/config.rs"]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/config/mod.rs"]
 mod tests;

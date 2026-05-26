@@ -10,9 +10,7 @@ from .support import (
 
 def test_shipped_example_set_matches_current_beta_freeze() -> None:
     example_names = {
-        path.name
-        for path in (_package_root() / "examples").glob("*.py")
-        if path.is_file()
+        path.name for path in (_package_root() / "examples").glob("*.py") if path.is_file()
     }
 
     assert example_names == {
@@ -55,8 +53,11 @@ def test_document_extraction_example_runs_fixture_mode() -> None:
 
     assert "mode= fixture" in result.stdout
     assert "known_docling_source= True" in result.stdout
-    assert "supported_formats= PDF,DOCX,XLSX,PPTX" in result.stdout
-    assert "common_suffixes= .pdf,.docx,.xlsx,.pptx" in result.stdout
+    assert (
+        "supported_formats= PDF,DOCX,DOC (via legacy Office pre-conversion),XLSX,PPTX"
+        in result.stdout
+    )
+    assert "common_suffixes= .pdf,.docx,.doc,.xlsx,.pptx" in result.stdout
     assert "rows= 1" in result.stdout
     assert (
         "sourcePath,resourceType,resourcePath,pageIndex,caption,content,mimeType,status,elementId"
@@ -79,9 +80,6 @@ def test_repo_search_example_exposes_help() -> None:
 def test_custom_repo_search_example_exposes_help() -> None:
     result = _run_example_via_uv("examples/custom_repo_analyzer_workflow.py", "--help")
 
-    assert (
-        "Run a host-backed repo-search workflow with a custom Python analyzer."
-        in result.stdout
-    )
+    assert "Run a host-backed repo-search workflow with a custom Python analyzer." in result.stdout
     assert "--query-text" in result.stdout
     assert "--path-prefix" in result.stdout

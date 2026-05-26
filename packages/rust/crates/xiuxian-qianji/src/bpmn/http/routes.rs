@@ -2,7 +2,8 @@ use super::error_api::QianjiBpmnWorkflowHttpError;
 use super::request_api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowStartHttpRequest,
     QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowTaskClaimHttpRequest,
-    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest,
 };
 use super::response_api::{
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,
@@ -10,7 +11,10 @@ use super::response_api::{
     QianjiBpmnWorkflowTaskReleaseHttpResponse,
 };
 use super::state::QianjiBpmnWorkflowHttpState;
-use crate::bpmn::control::QianjiBpmnWorkflowResumeRequest;
+use crate::bpmn::control::{
+    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest,
+};
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -38,6 +42,10 @@ where
         .route(
             "/workflows/{instance_id}/tasks/complete",
             post(complete_workflow_task::<H>),
+        )
+        .route(
+            "/workflows/{instance_id}/tasks/complete-batch",
+            post(complete_workflow_tasks_batch::<H>),
         )
         .route(
             "/workflows/{instance_id}/tasks/claim",
@@ -113,6 +121,47 @@ where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
     let request = request.into_task_complete_request(instance_id);
+    let report = complete_task_request(&state, request).await?;
+    Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
+        &report,
+    )))
+}
+
+async fn complete_workflow_tasks_batch<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(instance_id): Path<String>,
+    Json(request): Json<QianjiBpmnWorkflowTaskCompleteBatchHttpRequest>,
+) -> Result<Json<QianjiBpmnWorkflowRunHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let request = request.into_task_complete_batch_request(instance_id)?;
+    let resume_request = QianjiBpmnWorkflowResumeRequest {
+        bpmn_path: request.bpmn_path.clone(),
+        dmn_paths: request.dmn_paths.clone(),
+        instance_id: request.instance_id.clone(),
+        checkpoint_backend: request.checkpoint_backend.clone(),
+    };
+    let prepared = state
+        .service
+        .prepare_resume_workflow(&resume_request)
+        .await?;
+    let report = state
+        .service
+        .complete_prepared_workflow_task_batch_until_host_boundary(prepared, &request, &state.host)
+        .await?;
+    Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
+        &report,
+    )))
+}
+
+async fn complete_task_request<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+    request: QianjiBpmnWorkflowTaskCompleteRequest,
+) -> Result<QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
     let resume_request = QianjiBpmnWorkflowResumeRequest {
         bpmn_path: request.bpmn_path.clone(),
         dmn_paths: request.dmn_paths.clone(),
@@ -127,9 +176,7 @@ where
         .service
         .complete_prepared_workflow_task_until_host_boundary(prepared, &request, &state.host)
         .await?;
-    Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
-        &report,
-    )))
+    Ok(report)
 }
 
 async fn claim_workflow_task<H>(

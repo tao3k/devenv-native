@@ -70,6 +70,9 @@ pub struct AudioShardPlan {
     pub channels: u8,
     /// Normalized audio container or codec token, such as `wav` or `flac`.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token, such as `96k`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
     /// Shard selection strategy, such as `head` or `uniform`.
     pub strategy: String,
 }
@@ -102,6 +105,9 @@ pub struct AudioShardPlannerInput {
     pub channels: u8,
     /// Normalized audio container or codec token, such as `wav` or `flac`.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token, such as `96k`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
 }
 
 /// Raw DTO boundary for one detected speech segment.
@@ -149,6 +155,14 @@ pub struct AudioSpeechWindowPlannerInput {
     /// to exceed `chunk_duration_ms` when the caller has not requested a hard
     /// cap.
     pub max_window_ms: Option<u64>,
+    /// Optional tolerance for preserving natural speech boundaries near the
+    /// maximum window duration.
+    ///
+    /// A non-zero value lets a VAD segment or merged speech window exceed
+    /// `max_window_ms` by this many milliseconds instead of creating a short
+    /// tail shard. The default `0` keeps the strict hard-cap behavior.
+    #[serde(default)]
+    pub boundary_snap_tolerance_ms: u64,
     /// Context included before each logical shard when materializing media.
     pub context_before_ms: u64,
     /// Context included after each logical shard when materializing media.
@@ -159,6 +173,9 @@ pub struct AudioSpeechWindowPlannerInput {
     pub channels: u8,
     /// Normalized audio container or codec token, such as `wav` or `flac`.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token, such as `96k`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
 }
 
 /// Raw DTO boundary and stringly state boundary for audio shard manifest rows.
@@ -193,6 +210,9 @@ pub struct AudioShardManifestItem {
     pub channels: u8,
     /// Normalized audio container or codec token.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token used to materialize shard media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
     /// Cache key for normalized shard media and downstream result reuse.
     pub cache_key: String,
     /// Listening-order key stable across backend retries.

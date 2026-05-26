@@ -25,7 +25,8 @@ use crate::link_graph::set_link_graph_wendao_config_override;
 use xiuxian_wendao_runtime::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
     DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW, DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
-    DEFAULT_SEARCH_DUCKDB_THREADS, resolve_search_duckdb_runtime_with_settings,
+    DEFAULT_SEARCH_DUCKDB_THREADS, default_wendao_data_root,
+    resolve_search_duckdb_runtime_with_settings,
 };
 
 mod configured;

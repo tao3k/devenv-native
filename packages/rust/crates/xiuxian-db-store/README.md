@@ -63,7 +63,16 @@ Agent and model loops should use the first-class artifact kinds
 be reread across prompts, workflow steps, or process restarts. Use
 `agent_artifact_key` to keep the namespace stable and
 `read_through_artifact_bytes` to centralize miss/build/write behavior instead
-of creating route-local read-through cache logic.
+of creating route-local read-through cache logic. Read-through calls return an
+artifact receipt with the backend name, artifact key, hit/miss/throttled
+status, byte count, optional write outcome, and read/build/write timings so
+Gateway reports can distinguish cache reuse, backend pressure, and materializer
+cost.
+When a builder can be moved into a backend-owned execution path, use
+`fetch_through_artifact_bytes` instead. The Foyer backend maps that helper to
+Foyer's hybrid `get_or_fetch` path so concurrent same-key misses are coalesced
+inside the artifact substrate instead of rebuilding the same agent evidence
+pack, prompt context, projection, or shard bytes in every worker.
 
 Attachment and ontology routes should use the dedicated key helpers instead of
 custom namespaces. Use `attachment_artifact_key` for source payloads, audio
@@ -115,6 +124,10 @@ The Foyer memory tier is byte-weighted by artifact key plus payload length, so
 `WENDAO_ARTIFACT_CACHE_MEMORY_BYTES` is a byte-capacity control rather than an
 entry-count control. The default hybrid policy is `write-on-insertion` to keep
 agent artifacts restart-reusable; DuckDB/Arrow remain the truth and query plane.
+Foyer disk throttling is surfaced as a distinct read-through pressure status
+instead of being collapsed into an ordinary miss. Pressure reads rebuild bytes
+for the caller without writing back into the cache, preserving correctness
+while avoiding extra disk pressure.
 
 DuckLake support is intentionally embedded-first. This crate owns local
 metadata-file and PostgreSQL-catalog attach configuration, extension bootstrap

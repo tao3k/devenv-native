@@ -19,6 +19,8 @@ use xiuxian_wendao_server::transport::{
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
 };
 
+use crate::studio::router::handlers::analysis::document_extract::provider::transport::WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER;
+
 type BoxFlightStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send + 'static>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,6 +29,7 @@ pub(super) struct ObservedDocumentExtractRequest {
     pub(super) source_path: Option<String>,
     pub(super) output_dir: Option<String>,
     pub(super) profile: Option<String>,
+    pub(super) source_preparation: Option<String>,
 }
 
 #[derive(Clone)]
@@ -80,6 +83,10 @@ impl FlightService for DocumentExtractTestFlightService {
                 .map(ToOwned::to_owned),
             profile: metadata
                 .get(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER)
+                .and_then(|value| value.to_str().ok())
+                .map(ToOwned::to_owned),
+            source_preparation: metadata
+                .get(WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER)
                 .and_then(|value| value.to_str().ok())
                 .map(ToOwned::to_owned),
         };

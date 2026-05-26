@@ -1,6 +1,8 @@
+#[cfg(feature = "foyer-artifact-cache")]
+use super::AudioShardMaterializationSource;
 use super::{
-    AudioShardMaterializationInput, AudioShardMaterializationSource, error_to_string,
-    make_executable, materialize_audio_shards, plan_audio_shards, sample_plan,
+    AudioShardMaterializationInput, error_to_string, make_executable, materialize_audio_shards,
+    plan_audio_shards, sample_plan,
 };
 
 #[test]
@@ -23,6 +25,7 @@ fn audio_materialization_runs_splitter_with_planned_media_windows() -> Result<()
     plan.start_offsets_ms = vec![30_000];
     plan.context_before_ms = 2_000;
     plan.context_after_ms = 3_000;
+    plan.audio_bitrate = Some("96k".to_owned());
     let input = AudioShardMaterializationInput {
         source_path: source_path.clone(),
         output_dir: tempdir.path().join("chunks"),
@@ -42,6 +45,8 @@ fn audio_materialization_runs_splitter_with_planned_media_windows() -> Result<()
     assert!(log.contains("28.000"));
     assert!(log.contains("-t"));
     assert!(log.contains("35.000"));
+    assert!(log.contains("-b:a"));
+    assert!(log.contains("96k"));
     assert!(log.contains(source_path.to_string_lossy().as_ref()));
     Ok(())
 }

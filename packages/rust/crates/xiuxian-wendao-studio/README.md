@@ -812,11 +812,13 @@ The document-extract benchmark harness can now exercise this same route with
 the `document-extract-audio-shards` feature automatically for this mode and
 forward `--rust-audio-*` controls into model-neutral Studio environment
 variables for chunk duration, context windows, materialization format,
-base-worker budget, recovery-worker budget, and optional speech-timestamp
-recovery planning. `--rust-audio-speech-segments-jsonl` and its merge,
-minimum-window, and chunk-limit companions are forwarded to the same Studio
-environment variables used by production startup, so benchmark evidence covers
-the Rust-owned speech-window recovery path. Analyzer backend selection still
+optional materialization bitrate, base-worker budget, recovery-worker budget,
+and optional speech-timestamp recovery planning. `--rust-audio-speech-segments-jsonl` and its merge,
+minimum-window, optional max-window, boundary-snap tolerance, and chunk-limit
+companions are forwarded to the same Studio environment variables used by
+production startup, so benchmark evidence covers the Rust-owned speech-window
+recovery path without changing the audio shard Arrow schema. Analyzer backend
+selection still
 comes from data-driven request metadata or Python worker flags such as
 `--audio-worker hosted`; the managed Wendao analyzer startup selects hosted
 OpenRouter audio by default, while local Qwen3-compatible testing uses the same
@@ -1254,6 +1256,15 @@ Benchmark reports expose that decision through `hostedVlmPromotionGate`, which
 keeps hosted profile promotion tied to the frozen precision, row/order,
 character-floor, hosted-request, force-refresh, shard-cache reuse, and zero
 scaffold-validation-failure gates.
+Hybrid OCR timing reports keep route-local region render cache counters
+separate from shared artifact-substrate counters. `ocr2RegionRenderCache*`
+describes reuse of an already materialized region render directory, while
+`ocr2RegionRenderArtifactCacheHitCount`,
+`ocr2RegionRenderArtifactCacheMissCount`,
+`ocr2RegionRenderArtifactCacheThrottledCount`, and
+`ocr2RegionRenderArtifactCacheByteCount` describe the underlying
+`ArtifactBlobCache` read-through work performed by the attachment-owned raster
+and crop renderer.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

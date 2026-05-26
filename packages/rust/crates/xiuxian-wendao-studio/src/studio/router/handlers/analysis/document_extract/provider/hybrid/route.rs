@@ -35,8 +35,9 @@ use xiuxian_wendao_attachments::pdf::profile::{
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use xiuxian_wendao_attachments::pdf::render::{
-    PdfPageRegionRenderRequest, PdfPageRenderProfile, page_region_render_request_chunks_all,
-    page_region_render_request_chunks_by_page, page_region_render_request_chunks_by_page_area_desc,
+    PdfPageRegionRenderRequest, PdfPageRenderProfile, PdfRegionShardRenderRequest,
+    page_region_render_request_chunks_all, page_region_render_request_chunks_by_page,
+    page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
     page_region_render_request_chunks_by_region_seed_page,

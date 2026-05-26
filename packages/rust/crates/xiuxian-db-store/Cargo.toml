@@ -10,10 +10,10 @@ publish = false
 [features]
 default = []
 artifact-cache = ["dep:tar"]
+arrow-codec = ["dep:arrow", "dep:arrow-ipc"]
 foyer-artifact-cache = ["artifact-cache", "dep:foyer", "dep:tokio"]
 engine = [
-  "dep:arrow",
-  "dep:arrow-ipc",
+  "arrow-codec",
   "dep:datafusion",
   "dep:parquet",
   "dep:serde",

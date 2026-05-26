@@ -72,6 +72,10 @@ impl ContentAddressedFilesystemBlobCache {
 }
 
 impl ArtifactBlobCache for ContentAddressedFilesystemBlobCache {
+    fn backend_name(&self) -> &'static str {
+        "filesystem"
+    }
+
     fn contains(&self, key: &ArtifactKey) -> Result<bool, ArtifactCacheError> {
         Ok(self.artifact_path(key).is_file())
     }

@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use xiuxian_db_store::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobWrite, ArtifactBlobWriteOutcome, ArtifactKey, ArtifactKind,
-    OntologyArtifactKeyParts, ontology_artifact_key, pack_artifact_directory,
+    ArtifactBlobCache, ArtifactKey, ArtifactKind, ArtifactReadThrough, OntologyArtifactKeyParts,
+    fetch_through_artifact_bytes, ontology_artifact_key, pack_artifact_directory,
     unpack_artifact_directory,
 };
 
@@ -94,26 +94,29 @@ pub struct EpistemeOntologyArtifactBundleRestoreReport {
     pub byte_len: usize,
 }
 
-/// Pack and write one ontology run directory into the shared artifact cache.
+/// Ensure one ontology run directory bundle exists in the shared artifact cache.
+///
+/// Cache backends with native fetch-through support may coalesce concurrent
+/// same-key misses. On a cache hit, this function returns the cached byte count
+/// without repacking the source directory.
 ///
 /// # Errors
 ///
 /// Returns an error when the identity is invalid, the run directory cannot be
-/// packed, or the artifact cache backend cannot write the bundle bytes.
+/// packed on a miss, or the artifact cache backend cannot store the bundle
+/// bytes.
 pub fn write_episteme_ontology_artifact_bundle(
     cache: &(dyn ArtifactBlobCache + Send + Sync),
     identity: &EpistemeOntologyArtifactBundleIdentity,
     source_dir: impl AsRef<Path>,
 ) -> Result<EpistemeOntologyArtifactBundleWriteReport> {
     let artifact_key = identity.artifact_key()?;
-    let source_dir = source_dir.as_ref();
-    let bytes = pack_artifact_directory(source_dir)?;
-    let outcome = cache.write(&artifact_key, ArtifactBlobWrite::new(bytes.as_slice()))?;
-    Ok(write_report(
-        artifact_key,
-        source_dir.to_path_buf(),
-        outcome,
-    ))
+    let source_dir = source_dir.as_ref().to_path_buf();
+    let bundle_dir = source_dir.clone();
+    let artifact = fetch_through_artifact_bytes(cache, &artifact_key, move || {
+        pack_artifact_directory(bundle_dir.as_path())
+    })?;
+    Ok(write_report(artifact_key, source_dir, &artifact))
 }
 
 /// Restore one ontology run directory from the shared artifact cache.
@@ -144,12 +147,14 @@ pub fn restore_episteme_ontology_artifact_bundle(
 fn write_report(
     artifact_key: ArtifactKey,
     source_dir: PathBuf,
-    outcome: ArtifactBlobWriteOutcome,
+    artifact: &ArtifactReadThrough,
 ) -> EpistemeOntologyArtifactBundleWriteReport {
     EpistemeOntologyArtifactBundleWriteReport {
         artifact_key,
         source_dir,
-        byte_len: outcome.byte_len(),
-        replaced: outcome.replaced(),
+        byte_len: artifact.byte_len(),
+        replaced: artifact
+            .write_outcome()
+            .is_some_and(|outcome| outcome.replaced()),
     }
 }

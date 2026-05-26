@@ -3,8 +3,9 @@
 use std::path::{Path, PathBuf};
 
 use crate::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobRead, ArtifactBlobWrite, ArtifactBlobWriteOutcome,
-    ArtifactCacheError, ArtifactKey, ContentAddressedFilesystemBlobCache,
+    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobRead,
+    ArtifactBlobReadStatus, ArtifactBlobWrite, ArtifactBlobWriteOutcome, ArtifactCacheError,
+    ArtifactKey, ContentAddressedFilesystemBlobCache,
 };
 
 #[cfg(feature = "foyer-artifact-cache")]
@@ -350,6 +351,10 @@ impl ArtifactBlobCacheBackend {
 }
 
 impl ArtifactBlobCache for ArtifactBlobCacheBackend {
+    fn backend_name(&self) -> &'static str {
+        self.backend_name()
+    }
+
     fn contains(&self, key: &ArtifactKey) -> Result<bool, ArtifactCacheError> {
         match self {
             Self::Filesystem(cache) => cache.contains(key),
@@ -363,6 +368,29 @@ impl ArtifactBlobCache for ArtifactBlobCacheBackend {
             Self::Filesystem(cache) => cache.read(key),
             #[cfg(feature = "foyer-artifact-cache")]
             Self::Foyer(cache) => cache.read(key),
+        }
+    }
+
+    fn read_with_status(
+        &self,
+        key: &ArtifactKey,
+    ) -> Result<ArtifactBlobReadStatus, ArtifactCacheError> {
+        match self {
+            Self::Filesystem(cache) => cache.read_with_status(key),
+            #[cfg(feature = "foyer-artifact-cache")]
+            Self::Foyer(cache) => cache.read_with_status(key),
+        }
+    }
+
+    fn fetch_through(
+        &self,
+        key: &ArtifactKey,
+        build: ArtifactBlobFetchBuilder,
+    ) -> Result<ArtifactBlobFetch, ArtifactCacheError> {
+        match self {
+            Self::Filesystem(cache) => cache.fetch_through(key, build),
+            #[cfg(feature = "foyer-artifact-cache")]
+            Self::Foyer(cache) => cache.fetch_through(key, build),
         }
     }
 

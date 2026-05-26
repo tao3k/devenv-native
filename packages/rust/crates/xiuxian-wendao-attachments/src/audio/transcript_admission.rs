@@ -176,6 +176,13 @@ enum AudioPlannedTranscriptAdmissionLookupRow {
     Stale,
 }
 
+#[derive(Default)]
+struct AudioPlannedTranscriptAdmissionPartition {
+    inputs: Vec<AudioShardInput>,
+    results: Vec<AudioShardResult>,
+    miss_manifests: Vec<AudioShardManifestItem>,
+}
+
 /// Look up accepted planned audio shard results before byte materialization.
 ///
 /// # Errors
@@ -218,27 +225,28 @@ pub fn lookup_planned_audio_transcript_admission(
         .iter()
         .filter(|row| matches!(row, AudioPlannedTranscriptAdmissionLookupRow::Stale))
         .count();
-    let mut inputs = Vec::new();
-    let mut results = Vec::new();
-    let mut miss_manifests = Vec::new();
-    for (manifest, row) in manifests.iter().zip(rows) {
-        match row {
-            AudioPlannedTranscriptAdmissionLookupRow::Hit(input, result) => {
-                inputs.push(*input);
-                results.push(*result);
+    let partition = manifests.iter().cloned().zip(rows).fold(
+        AudioPlannedTranscriptAdmissionPartition::default(),
+        |mut partition, (manifest, row)| {
+            match row {
+                AudioPlannedTranscriptAdmissionLookupRow::Hit(input, result) => {
+                    partition.inputs.push(*input);
+                    partition.results.push(*result);
+                }
+                AudioPlannedTranscriptAdmissionLookupRow::Miss
+                | AudioPlannedTranscriptAdmissionLookupRow::Stale => {
+                    partition.miss_manifests.push(manifest);
+                }
             }
-            AudioPlannedTranscriptAdmissionLookupRow::Miss
-            | AudioPlannedTranscriptAdmissionLookupRow::Stale => {
-                miss_manifests.push(manifest.clone());
-            }
-        }
-    }
-    let all_hit = !manifests.is_empty() && miss_manifests.is_empty();
+            partition
+        },
+    );
+    let all_hit = !manifests.is_empty() && partition.miss_manifests.is_empty();
     Ok(AudioPlannedTranscriptAdmissionLookup {
         all_hit,
-        inputs,
-        results,
-        miss_manifests,
+        inputs: partition.inputs,
+        results: partition.results,
+        miss_manifests: partition.miss_manifests,
         stats: AudioTranscriptAdmissionStats {
             enabled: true,
             hit_count,
@@ -559,10 +567,9 @@ fn backfill_planned_transcript_admission(
     admitted_results: &HashMap<String, AudioShardResult>,
     request_options: &AudioTranscriptAdmissionOptions,
 ) -> Result<usize, String> {
-    let mut stored_count = 0;
-    for input in inputs {
+    inputs.iter().try_fold(0usize, |stored_count, input| {
         let Some(result) = admitted_results.get(input.shard_element_id.as_str()) else {
-            continue;
+            return Ok(stored_count);
         };
         write_planned_audio_transcript_admission_record_for_input(
             cache_dir,
@@ -570,9 +577,8 @@ fn backfill_planned_transcript_admission(
             result,
             request_options,
         )?;
-        stored_count += 1;
-    }
-    Ok(stored_count)
+        Ok(stored_count + 1)
+    })
 }
 
 fn write_planned_audio_transcript_admission_record_for_input(

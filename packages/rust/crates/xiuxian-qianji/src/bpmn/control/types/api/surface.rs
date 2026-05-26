@@ -3,6 +3,7 @@ pub use super::execution::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowEventPollReport,
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeReport,
     QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStartRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
 };

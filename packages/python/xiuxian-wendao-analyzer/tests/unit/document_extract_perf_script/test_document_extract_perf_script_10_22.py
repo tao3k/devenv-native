@@ -40,6 +40,10 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert summary["totalAudioTranscriptOrgTimelineMarkerCount"] == 3
     assert summary["totalAudioTranscriptReferenceDraftRows"] == 2
     assert summary["totalAudioTranscriptReferenceDraftChars"] == 126
+    assert summary["totalAudioTranscriptReferenceDraftEmptyRows"] == 0
+    assert summary["totalAudioTranscriptReferenceDraftDuplicateTextHashCount"] == 0
+    assert summary["minAudioTranscriptReferenceDraftChars"] == 61
+    assert summary["maxAudioTranscriptReferenceDraftChars"] == 65
     assert summary["totalForceAudioTranscriptAdmissionMissCount"] == 2
     assert summary["totalForceAudioTranscriptAdmissionStoredCount"] == 2
     assert summary["totalArtifactReuseAudioTranscriptAdmissionHitCount"] == 2
@@ -143,6 +147,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Audio transcript evidence" in markdown
     assert "timelineMarkers=3" in markdown
     assert "referenceDraftRows=2" in markdown
+    assert "referenceDraftMinChars=61" in markdown
+    assert "referenceDraftDuplicateTextHashes=0" in markdown
     assert "Audio transcript admission" in markdown
     assert "forceMisses=2" in markdown
     assert "reuseHits=2" in markdown
@@ -176,6 +182,8 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "Rust PDF Hosted VLM/OCR region target pixels" in markdown
     assert "750000.0" in markdown
     assert "Rust PDF Hosted VLM/OCR region max slices" in markdown
+    assert "artifactHits=" in markdown
+    assert "artifactBytes=" in markdown
     assert "Structure parity" in markdown
     assert "Structure order stable across runs" in markdown
     assert "Structure baseline generation" in markdown
@@ -184,3 +192,30 @@ def test_summary_and_markdown_report_distinct_miss_burst() -> None:
     assert "maxForceMs=10.000" in markdown
     assert "defaultPromotionCandidate=" in markdown
     assert "optInPromotionControls=" in markdown
+
+
+def test_summary_treats_disabled_shard_region_artifact_cache_fields_as_zero() -> None:
+    benchmark = _load_benchmark_module()
+    result = distinct_miss_summary_result(benchmark)
+    result["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"] = 1
+    result["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"] = 2
+    result["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"] = 3
+    result["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"] = 4
+    result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"] = None
+    result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"] = None
+    result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"] = None
+    result["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"] = None
+
+    summary = benchmark.summarize_results([result])
+
+    assert summary["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"] == 1
+    assert summary["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"] == 2
+    assert summary["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"] == 3
+    assert summary["forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"] == 4
+    assert summary["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"] == 0
+    assert summary["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"] == 0
+    assert (
+        summary["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"]
+        == 0
+    )
+    assert summary["shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"] == 0

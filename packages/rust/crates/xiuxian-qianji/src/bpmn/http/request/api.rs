@@ -5,13 +5,14 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeRequest,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusRequest,
     QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimRequest,
-    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
-    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleasePayload,
-    QianjiBpmnWorkflowTaskReleaseRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
 };
 use crate::bpmn::http_transport::error_api::QianjiBpmnWorkflowHttpError;
 use crate::bpmn::identity::{
-    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
+    QianjiBpmnWorkflowInstanceId,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -49,6 +50,9 @@ pub struct QianjiBpmnWorkflowStartHttpRequest {
     /// Optional initial variables for a fresh run.
     #[serde(default)]
     pub initial_variables: Option<Value>,
+    /// Optional BPMN node id for a fresh synthetic start-at run.
+    #[serde(default)]
+    pub start_at_node_id: Option<QianjiBpmnStartAtNodeId>,
     /// Optional checkpoint backend to use for this bounded run. HTTP service
     /// mode defaults to runtime-configured Valkey when omitted.
     #[serde(default)]
@@ -65,7 +69,7 @@ impl QianjiBpmnWorkflowStartHttpRequest {
             process_id: self.process_id,
             instance_id: self.instance_id,
             initial_variables: self.initial_variables,
-            start_at_node_id: None,
+            start_at_node_id: self.start_at_node_id,
             checkpoint_backend: Some(self.checkpoint_backend.into_control_backend()),
         }
     }
@@ -187,27 +191,82 @@ impl QianjiBpmnWorkflowTaskCompleteHttpRequest {
                 token_id: self.completion.token_id,
                 process_id: self.completion.process_id,
                 activity_id: self.completion.activity_id,
-                kind: match self.completion.kind {
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::Send => {
-                        QianjiBpmnWorkflowTaskCompletionKind::Send
-                    }
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::Service => {
-                        QianjiBpmnWorkflowTaskCompletionKind::Service
-                    }
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::Script => {
-                        QianjiBpmnWorkflowTaskCompletionKind::Script
-                    }
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::User => {
-                        QianjiBpmnWorkflowTaskCompletionKind::User
-                    }
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::Manual => {
-                        QianjiBpmnWorkflowTaskCompletionKind::Manual
-                    }
-                },
+                kind: http_completion_kind_into_control(self.completion.kind),
                 data: self.completion.data,
                 claimant: self.completion.claimant,
             },
             continue_until_human_boundary: false,
+        }
+    }
+}
+
+/// JSON body for checkpoint-backed BPMN task-completion batches.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskCompleteBatchHttpRequest {
+    /// Filesystem path to the BPMN source.
+    pub bpmn_path: PathBuf,
+    /// Optional DMN sources loaded alongside the BPMN package.
+    #[serde(default)]
+    pub dmn_paths: Vec<PathBuf>,
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit completion payloads for pending host tasks.
+    pub completions: Vec<QianjiBpmnWorkflowTaskCompletionHttpPayload>,
+}
+
+impl QianjiBpmnWorkflowTaskCompleteBatchHttpRequest {
+    pub(in crate::bpmn::http_transport) fn into_task_complete_batch_request(
+        self,
+        instance_id: String,
+    ) -> Result<QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowHttpError> {
+        if self.completions.is_empty() {
+            return Err(QianjiBpmnWorkflowHttpError::bad_request(
+                "empty_task_completion_batch",
+                "completions must contain at least one task completion",
+            ));
+        }
+
+        Ok(QianjiBpmnWorkflowTaskCompleteBatchRequest {
+            bpmn_path: self.bpmn_path,
+            dmn_paths: self.dmn_paths,
+            instance_id: QianjiBpmnWorkflowInstanceId::from(instance_id),
+            checkpoint_backend: self.checkpoint_backend.into_control_backend(),
+            completions: self
+                .completions
+                .into_iter()
+                .map(|completion| QianjiBpmnWorkflowTaskCompletionPayload {
+                    token_id: completion.token_id,
+                    process_id: completion.process_id,
+                    activity_id: completion.activity_id,
+                    kind: http_completion_kind_into_control(completion.kind),
+                    data: completion.data,
+                    claimant: completion.claimant,
+                })
+                .collect(),
+        })
+    }
+}
+
+fn http_completion_kind_into_control(
+    kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
+) -> QianjiBpmnWorkflowTaskCompletionKind {
+    match kind {
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Send => {
+            QianjiBpmnWorkflowTaskCompletionKind::Send
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Service => {
+            QianjiBpmnWorkflowTaskCompletionKind::Service
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Script => {
+            QianjiBpmnWorkflowTaskCompletionKind::Script
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::User => {
+            QianjiBpmnWorkflowTaskCompletionKind::User
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Manual => {
+            QianjiBpmnWorkflowTaskCompletionKind::Manual
         }
     }
 }

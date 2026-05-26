@@ -1,6 +1,7 @@
 //! Foyer-backed `ArtifactBlobCache` implementation.
 
 use std::{
+    io::{Read, Write},
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -9,14 +10,15 @@ use std::{
 };
 
 use foyer::{
-    BlockEngineConfig, DeviceBuilder, Event, EventListener, FsDeviceBuilder, HybridCache,
-    HybridCacheBuilder, HybridCachePolicy, Load,
+    BlockEngineConfig, Code, DeviceBuilder, Error as FoyerError, Event, EventListener,
+    FsDeviceBuilder, HybridCache, HybridCacheBuilder, HybridCachePolicy, Source,
 };
 use tokio::runtime::{Builder as TokioRuntimeBuilder, Runtime};
 
 use crate::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobRead, ArtifactBlobWrite, ArtifactBlobWriteOutcome,
-    ArtifactCacheError, ArtifactKey,
+    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobFetchStatus,
+    ArtifactBlobRead, ArtifactBlobReadStatus, ArtifactBlobWrite, ArtifactBlobWriteOutcome,
+    ArtifactBytes, ArtifactCacheError, ArtifactKey,
 };
 
 const FOYER_BACKEND_NAME: &str = "foyer";
@@ -30,7 +32,27 @@ pub const FOYER_ARTIFACT_CACHE_POLICY: &str = "write-on-insertion";
 /// Default Foyer block size used by the artifact backend.
 pub const FOYER_ARTIFACT_BLOCK_SIZE_BYTES: usize = 16 * 1024 * 1024;
 
-type FoyerBlobCache = HybridCache<String, Vec<u8>>;
+type FoyerBlobCache = HybridCache<String, ArtifactBytes>;
+
+impl Code for ArtifactBytes {
+    fn encode(&self, writer: &mut impl Write) -> foyer::Result<()> {
+        self.len().encode(writer)?;
+        writer
+            .write_all(self.as_slice())
+            .map_err(FoyerError::io_error)
+    }
+
+    fn decode(reader: &mut impl Read) -> foyer::Result<Self>
+    where
+        Self: Sized,
+    {
+        Vec::<u8>::decode(reader).map(ArtifactBytes::from_vec)
+    }
+
+    fn estimated_size(&self) -> usize {
+        std::mem::size_of::<usize>() + self.len()
+    }
+}
 
 /// Configuration for the Foyer artifact blob cache backend.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -251,7 +273,7 @@ impl FoyerArtifactBlobCacheEvents {
 
 impl EventListener for FoyerArtifactBlobCacheEvents {
     type Key = String;
-    type Value = Vec<u8>;
+    type Value = ArtifactBytes;
 
     fn on_leave(&self, reason: Event, _key: &Self::Key, _value: &Self::Value) {
         let counter = match reason {
@@ -348,29 +370,35 @@ impl FoyerArtifactBlobCache {
 }
 
 impl ArtifactBlobCache for FoyerArtifactBlobCache {
+    fn backend_name(&self) -> &'static str {
+        FOYER_BACKEND_NAME
+    }
+
     fn contains(&self, key: &ArtifactKey) -> Result<bool, ArtifactCacheError> {
         Ok(self.inner()?.cache.contains(&foyer_storage_key(key)))
     }
 
     fn read(&self, key: &ArtifactKey) -> Result<Option<ArtifactBlobRead>, ArtifactCacheError> {
+        Ok(self.read_with_status(key)?.into_read())
+    }
+
+    fn read_with_status(
+        &self,
+        key: &ArtifactKey,
+    ) -> Result<ArtifactBlobReadStatus, ArtifactCacheError> {
         let inner = self.inner()?;
         let cache_key = foyer_storage_key(key);
-        if let Some(entry) = inner.cache.memory().get(&cache_key) {
-            return Ok(Some(ArtifactBlobRead::new(entry.value().clone())));
-        }
         run_on_foyer_runtime(&inner.runtime, {
             let cache = inner.cache.clone();
             async move {
                 cache
-                    .storage()
-                    .load(&cache_key)
+                    .get(&cache_key)
                     .await
-                    .map(|load| match load {
-                        Load::Entry { value, .. } => Some(ArtifactBlobRead::new(value)),
-                        Load::Piece { piece, .. } => {
-                            Some(ArtifactBlobRead::new(piece.value().clone()))
-                        }
-                        Load::Miss | Load::Throttled => None,
+                    .map(|entry| match entry {
+                        Some(entry) => ArtifactBlobReadStatus::Hit(ArtifactBlobRead::from_shared(
+                            entry.value().clone(),
+                        )),
+                        None => ArtifactBlobReadStatus::Miss,
                     })
                     .map_err(|error| {
                         ArtifactCacheError::backend(
@@ -383,15 +411,67 @@ impl ArtifactBlobCache for FoyerArtifactBlobCache {
         })
     }
 
+    fn fetch_through(
+        &self,
+        key: &ArtifactKey,
+        build: ArtifactBlobFetchBuilder,
+    ) -> Result<ArtifactBlobFetch, ArtifactCacheError> {
+        let inner = self.inner()?;
+        let cache_key = foyer_storage_key(key);
+        let started = std::time::Instant::now();
+        let entry = run_on_foyer_runtime(&inner.runtime, {
+            let cache = inner.cache.clone();
+            let cache_key = cache_key.clone();
+            async move {
+                cache
+                    .get_or_fetch(&cache_key, || async move {
+                        build().map(ArtifactBytes::from_vec)
+                    })
+                    .await
+                    .map_err(|error| {
+                        ArtifactCacheError::backend(
+                            FOYER_BACKEND_NAME,
+                            "fetching bytes",
+                            error.to_string(),
+                        )
+                    })
+            }
+        })?;
+        let elapsed = started.elapsed();
+        let status = match entry.source() {
+            Source::Memory | Source::Disk => ArtifactBlobFetchStatus::Hit,
+            Source::Outer => ArtifactBlobFetchStatus::Miss,
+        };
+        let write = if status == ArtifactBlobFetchStatus::Miss {
+            self.pending_disk_work.store(true, Ordering::Release);
+            Some(ArtifactBlobWriteOutcome::new(entry.value().len(), false))
+        } else {
+            None
+        };
+        Ok(ArtifactBlobFetch::from_shared(
+            entry.value().clone(),
+            status,
+            write,
+            elapsed,
+            if status.is_hit() {
+                std::time::Duration::ZERO
+            } else {
+                elapsed
+            },
+            std::time::Duration::ZERO,
+        ))
+    }
+
     fn write(
         &self,
         key: &ArtifactKey,
         value: ArtifactBlobWrite<'_>,
     ) -> Result<ArtifactBlobWriteOutcome, ArtifactCacheError> {
         let replaced = self.contains(key)?;
-        self.inner()?
-            .cache
-            .insert(foyer_storage_key(key), value.bytes().to_vec());
+        self.inner()?.cache.insert(
+            foyer_storage_key(key),
+            ArtifactBytes::from_slice(value.bytes()),
+        );
         self.pending_disk_work.store(true, Ordering::Release);
         Ok(ArtifactBlobWriteOutcome::new(value.byte_len(), replaced))
     }
@@ -467,7 +547,7 @@ fn build_foyer_cache_on_runtime(
         HybridCacheBuilder::new()
             .with_name("xiuxian-db-store-artifact-cache")
             .with_policy(HybridCachePolicy::WriteOnInsertion)
-            .with_flush_on_close(false)
+            .with_flush_on_close(true)
             .with_event_listener(events)
             .memory(config.memory_capacity_bytes())
             .with_shards(memory_shards)

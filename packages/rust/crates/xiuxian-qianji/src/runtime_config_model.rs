@@ -4,7 +4,7 @@ use super::constants::{
     DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION, DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE,
     DEFAULT_MEMORY_PROMOTION_PERSIST, DEFAULT_MEMORY_PROMOTION_PERSIST_BEST_EFFORT,
     DEFAULT_SERVER_BIND_ADDR, DEFAULT_SERVER_REQUIRE_VALKEY_READY,
-    DEFAULT_WORKFLOW_STATE_DUCKDB_PATH,
+    DEFAULT_WORKFLOW_STATE_DUCKDB_RELATIVE_PATH,
 };
 use std::path::PathBuf;
 
@@ -67,7 +67,7 @@ pub struct QianjiRuntimeWorkflowStateConfig {
 impl Default for QianjiRuntimeWorkflowStateConfig {
     fn default() -> Self {
         Self {
-            local_duckdb_path: PathBuf::from(DEFAULT_WORKFLOW_STATE_DUCKDB_PATH),
+            local_duckdb_path: PathBuf::from(DEFAULT_WORKFLOW_STATE_DUCKDB_RELATIVE_PATH),
         }
     }
 }
@@ -98,6 +98,8 @@ pub struct QianjiRuntimeEnv {
     pub prj_root: Option<PathBuf>,
     /// Optional config-home override.
     pub prj_config_home: Option<PathBuf>,
+    /// Optional data-home override.
+    pub prj_data_home: Option<PathBuf>,
     /// Optional explicit qianji config path override.
     pub qianji_config_path: Option<PathBuf>,
     /// Optional `QIANJI_LLM_MODEL` override.

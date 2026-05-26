@@ -19,6 +19,8 @@ from .pdf_render import build_hybrid_pdf_render_region_env, resolve_pdfium_libra
 from .processes import start_logged_process
 from .runtime import resolve_project_root, rust_process_env
 
+PDF_FULL_ARTIFACT_CACHE_ENV = "WENDAO_DOCUMENT_EXTRACT_PDF_FULL_ARTIFACT_CACHE"
+
 
 def rust_pdf_ocr_endpoint_pool(args: argparse.Namespace) -> str | None:
     endpoints = [
@@ -69,10 +71,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "rust_pdf_docling_page_range_profile",
         None,
     )
-    if (
-        rust_pdf_docling_page_range_profile
-        and rust_pdf_docling_page_range_profile != "full"
-    ):
+    if rust_pdf_docling_page_range_profile and rust_pdf_docling_page_range_profile != "full":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE"] = str(
             rust_pdf_docling_page_range_profile
         )
@@ -97,8 +96,8 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         rust_pdf_docling_page_range_structure_cost_budget
         and rust_pdf_docling_page_range_structure_cost_budget > 0
     ):
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET"] = (
-            str(rust_pdf_docling_page_range_structure_cost_budget)
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_STRUCTURE_COST_BUDGET"] = str(
+            rust_pdf_docling_page_range_structure_cost_budget
         )
     rust_pdf_docling_text_shortcut_promotion = getattr(
         args,
@@ -114,18 +113,13 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         )
     rust_pdf_local_backend_text = getattr(args, "rust_pdf_local_backend_text", None)
     if rust_pdf_local_backend_text and rust_pdf_local_backend_text != "disabled":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT"] = str(
-            rust_pdf_local_backend_text
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT"] = str(rust_pdf_local_backend_text)
     rust_pdf_local_backend_text_empty = getattr(
         args,
         "rust_pdf_local_backend_text_empty",
         None,
     )
-    if (
-        rust_pdf_local_backend_text_empty
-        and rust_pdf_local_backend_text_empty != "dispatch-python"
-    ):
+    if rust_pdf_local_backend_text_empty and rust_pdf_local_backend_text_empty != "dispatch-python":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT_EMPTY"] = str(
             rust_pdf_local_backend_text_empty
         )
@@ -134,18 +128,13 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "pdf_ocr_backend_text_empty_page",
         None,
     )
-    if (
-        pdf_ocr_backend_text_empty_page
-        and pdf_ocr_backend_text_empty_page != "disabled"
-    ):
+    if pdf_ocr_backend_text_empty_page and pdf_ocr_backend_text_empty_page != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_EMPTY_PAGE"] = str(
             pdf_ocr_backend_text_empty_page
         )
     rust_pdf_local_fast_text = getattr(args, "rust_pdf_local_fast_text", None)
     if rust_pdf_local_fast_text and rust_pdf_local_fast_text != "disabled":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT"] = str(
-            rust_pdf_local_fast_text
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_FAST_TEXT"] = str(rust_pdf_local_fast_text)
     rust_pdf_fast_text_source_range_split = getattr(
         args,
         "rust_pdf_fast_text_source_range_split",
@@ -163,31 +152,20 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "rust_pdf_fast_text_endpoint_affinity",
         None,
     )
-    if (
-        rust_pdf_fast_text_endpoint_affinity
-        and rust_pdf_fast_text_endpoint_affinity != "disabled"
-    ):
+    if rust_pdf_fast_text_endpoint_affinity and rust_pdf_fast_text_endpoint_affinity != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY"] = str(
             rust_pdf_fast_text_endpoint_affinity
         )
     rust_pdf_backend_text_topup = getattr(args, "rust_pdf_backend_text_topup", None)
     if rust_pdf_backend_text_topup and rust_pdf_backend_text_topup != "profile":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] = str(
-            rust_pdf_backend_text_topup
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP"] = str(rust_pdf_backend_text_topup)
     rust_pdf_failed_page_recovery = getattr(args, "rust_pdf_failed_page_recovery", None)
     if rust_pdf_failed_page_recovery and rust_pdf_failed_page_recovery != "disabled":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY"] = str(
-            rust_pdf_failed_page_recovery
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY"] = str(rust_pdf_failed_page_recovery)
     rust_pdf_ocr_profile_planner = getattr(args, "rust_pdf_ocr_profile_planner", None)
     if rust_pdf_ocr_profile_planner and rust_pdf_ocr_profile_planner != "disabled":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] = str(
-            rust_pdf_ocr_profile_planner
-        )
-    rust_pdf_hosted_vlm_render_dpi = getattr(
-        args, "rust_pdf_hosted_vlm_render_dpi", None
-    )
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] = str(rust_pdf_ocr_profile_planner)
+    rust_pdf_hosted_vlm_render_dpi = getattr(args, "rust_pdf_hosted_vlm_render_dpi", None)
     if rust_pdf_hosted_vlm_render_dpi and rust_pdf_hosted_vlm_render_dpi >= 300:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_RENDER_DPI"] = str(
             rust_pdf_hosted_vlm_render_dpi
@@ -201,13 +179,8 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO"] = str(
             rust_pdf_ocr_region_context_ratio
         )
-    rust_pdf_hosted_vlm_region_planner = getattr(
-        args, "rust_pdf_hosted_vlm_region_planner", None
-    )
-    if (
-        rust_pdf_hosted_vlm_region_planner
-        and rust_pdf_hosted_vlm_region_planner != "disabled"
-    ):
+    rust_pdf_hosted_vlm_region_planner = getattr(args, "rust_pdf_hosted_vlm_region_planner", None)
+    if rust_pdf_hosted_vlm_region_planner and rust_pdf_hosted_vlm_region_planner != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER"] = str(
             rust_pdf_hosted_vlm_region_planner
         )
@@ -228,10 +201,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "rust_pdf_hosted_vlm_region_max_slices",
         None,
     )
-    if (
-        rust_pdf_hosted_vlm_region_max_slices
-        and rust_pdf_hosted_vlm_region_max_slices > 0
-    ):
+    if rust_pdf_hosted_vlm_region_max_slices and rust_pdf_hosted_vlm_region_max_slices > 0:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES"] = str(
             rust_pdf_hosted_vlm_region_max_slices
         )
@@ -240,10 +210,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "rust_pdf_hosted_vlm_region_pipeline",
         None,
     )
-    if (
-        rust_pdf_hosted_vlm_region_pipeline
-        and rust_pdf_hosted_vlm_region_pipeline != "disabled"
-    ):
+    if rust_pdf_hosted_vlm_region_pipeline and rust_pdf_hosted_vlm_region_pipeline != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE"] = str(
             rust_pdf_hosted_vlm_region_pipeline
         )
@@ -252,10 +219,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "rust_pdf_hosted_vlm_region_render_ahead",
         None,
     )
-    if (
-        rust_pdf_hosted_vlm_region_render_ahead
-        and rust_pdf_hosted_vlm_region_render_ahead > 1
-    ):
+    if rust_pdf_hosted_vlm_region_render_ahead and rust_pdf_hosted_vlm_region_render_ahead > 1:
         env["WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD"] = str(
             rust_pdf_hosted_vlm_region_render_ahead
         )
@@ -273,9 +237,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         )
     rust_pdf_region_render_mode = getattr(args, "rust_pdf_region_render_mode", None)
     if rust_pdf_region_render_mode and rust_pdf_region_render_mode != "default":
-        env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE"] = str(
-            rust_pdf_region_render_mode
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PDF_REGION_RENDER_MODE"] = str(rust_pdf_region_render_mode)
     rust_pdf_hosted_vlm_region_dispatch_chunk_size = getattr(
         args,
         "rust_pdf_hosted_vlm_region_dispatch_chunk_size",
@@ -293,10 +255,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "rust_pdf_ocr_scheduler_lane_fairness",
         None,
     )
-    if (
-        rust_pdf_ocr_scheduler_lane_fairness
-        and rust_pdf_ocr_scheduler_lane_fairness != "disabled"
-    ):
+    if rust_pdf_ocr_scheduler_lane_fairness and rust_pdf_ocr_scheduler_lane_fairness != "disabled":
         env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS"] = str(
             rust_pdf_ocr_scheduler_lane_fairness
         )
@@ -310,10 +269,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "hosted_vlm_ocr_region_composite_size",
         None,
     )
-    if (
-        hosted_vlm_ocr_region_composite_size
-        and hosted_vlm_ocr_region_composite_size > 1
-    ):
+    if hosted_vlm_ocr_region_composite_size and hosted_vlm_ocr_region_composite_size > 1:
         env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE"] = str(
             hosted_vlm_ocr_region_composite_size
         )
@@ -322,10 +278,7 @@ def apply_rust_pdf_ocr_env(args: argparse.Namespace, env: dict[str, str]) -> Non
         "hosted_vlm_ocr_region_composite_mode",
         None,
     )
-    if (
-        hosted_vlm_ocr_region_composite_mode
-        and hosted_vlm_ocr_region_composite_mode != "fixed"
-    ):
+    if hosted_vlm_ocr_region_composite_mode and hosted_vlm_ocr_region_composite_mode != "fixed":
         env["WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_MODE"] = str(
             hosted_vlm_ocr_region_composite_mode
         )
@@ -356,45 +309,37 @@ def apply_rust_audio_env(args: argparse.Namespace, env: dict[str, str]) -> None:
     mappings = {
         "rust_audio_backend_profile": "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE",
         "rust_audio_chunk_ms": "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS",
-        "rust_audio_context_before_ms": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS"
-        ),
-        "rust_audio_context_after_ms": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS"
-        ),
-        "rust_audio_recovery_split_ms": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS"
-        ),
+        "rust_audio_context_before_ms": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS"),
+        "rust_audio_context_after_ms": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS"),
+        "rust_audio_recovery_split_ms": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS"),
         "rust_audio_sample_rate_hz": "WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ",
         "rust_audio_channels": "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS",
         "rust_audio_format": "WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT",
-        "rust_audio_artifact_cache_dir": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR"
-        ),
+        "rust_audio_bitrate": "WENDAO_DOCUMENT_EXTRACT_AUDIO_BITRATE",
+        "rust_audio_artifact_cache_dir": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR"),
         "rust_audio_transcript_admission_dir": (
             "WENDAO_DOCUMENT_EXTRACT_AUDIO_TRANSCRIPT_ADMISSION_DIR"
         ),
         "rust_audio_base_workers": "WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS",
-        "rust_audio_recovery_workers": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS"
+        "rust_audio_recovery_workers": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS"),
+        "rust_audio_speech_segments_jsonl": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL"),
+        "rust_audio_speech_merge_gap_ms": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS"),
+        "rust_audio_speech_min_window_ms": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS"),
+        "rust_audio_speech_max_window_ms": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MAX_WINDOW_MS"),
+        "rust_audio_speech_boundary_snap_tolerance_ms": (
+            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_BOUNDARY_SNAP_TOLERANCE_MS"
         ),
-        "rust_audio_speech_segments_jsonl": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_SEGMENTS_JSONL"
-        ),
-        "rust_audio_speech_merge_gap_ms": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MERGE_GAP_MS"
-        ),
-        "rust_audio_speech_min_window_ms": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_MIN_WINDOW_MS"
-        ),
-        "rust_audio_speech_limit_chunks": (
-            "WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS"
-        ),
+        "rust_audio_speech_limit_chunks": ("WENDAO_DOCUMENT_EXTRACT_AUDIO_SPEECH_LIMIT_CHUNKS"),
     }
     for attr, key in mappings.items():
         value = getattr(args, attr, None)
         if value is not None:
             env[key] = str(value)
+
+
+def apply_region_projection_probe_env(args: argparse.Namespace, env: dict[str, str]) -> None:
+    if getattr(args, "region_projection_reuse_probe", False):
+        env[PDF_FULL_ARTIFACT_CACHE_ENV] = "disabled"
 
 
 def start_rust_provider_server(
@@ -431,6 +376,7 @@ def start_rust_provider_server(
     env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = (
         rust_document_extract_endpoint_pool(args) or local_document_extract_endpoint
     )
+    apply_region_projection_probe_env(args, env)
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)
@@ -544,6 +490,7 @@ def start_gateway_server(
     env["WENDAO_DOCUMENT_EXTRACT_ENDPOINTS"] = (
         rust_document_extract_endpoint_pool(args) or local_document_extract_endpoint
     )
+    apply_region_projection_probe_env(args, env)
     env.update(build_hybrid_pdf_render_region_env(args))
     if pdfium_library_path is not None:
         env["WENDAO_PDFIUM_LIBRARY_PATH"] = str(pdfium_library_path)

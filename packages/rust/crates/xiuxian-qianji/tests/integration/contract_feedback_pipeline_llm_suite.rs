@@ -325,8 +325,8 @@ async fn live_run_and_persist_contract_feedback_flow_persists_live_entries_throu
 
 #[cfg(feature = "advisory-prompt-pack-cache")]
 #[tokio::test]
-async fn live_contract_feedback_runtime_reuses_prompt_context_pack_artifacts() {
-    let cache_root = tempfile::tempdir().expect("cache tempdir should be created");
+async fn live_contract_feedback_runtime_reuses_prompt_context_pack_artifacts() -> Result<()> {
+    let cache_root = tempfile::tempdir()?;
     let cache: Arc<dyn ArtifactBlobCache + Send + Sync> =
         Arc::new(ContentAddressedFilesystemBlobCache::new(cache_root.path()));
     let sink = InMemoryContractFeedbackSink::new();
@@ -392,4 +392,5 @@ async fn live_contract_feedback_runtime_reuses_prompt_context_pack_artifacts() {
             .iter()
             .any(|evidence| evidence.message.contains("cache_hit=true"))
     }));
+    Ok(())
 }

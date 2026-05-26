@@ -15,6 +15,16 @@ use crate::pdf::source_range::{
     source_page_range_all_page_indices, source_page_range_validate_page_index,
 };
 
+#[cfg(feature = "pdf-render")]
+use super::artifact_cache::{
+    PdfRenderArtifactCache, RegionCropArtifactIdentity, materialize_page_raster_identity,
+    materialize_region_crop_identity, materialize_requested_region_crop_identity,
+    restore_region_manifest_projection, restore_region_manifest_projection_row,
+    restore_requested_region_crop_identity, save_image_bytes, write_region_manifest_projection,
+    write_region_manifest_projection_row,
+};
+#[cfg(feature = "pdf-render")]
+use super::batches::{build_shard_manifest_batch, shard_manifests_from_batch};
 use super::identity::{checked_len_u32, sha256_hex};
 #[cfg(feature = "pdf-render")]
 use super::identity::{checked_pixels_i32, rotation_to_degrees, shard_element_id};
@@ -22,13 +32,13 @@ use super::identity::{checked_pixels_i32, rotation_to_degrees, shard_element_id}
 use super::manifest::{build_region_shard_manifest, region_pixel_box_for_crop};
 use super::manifest::{build_shard_manifest, render_dimensions_for_box};
 use super::report::{RenderShardContext, ReportParts};
-use super::types::{
-    PdfPageBox, PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
-};
 #[cfg(feature = "pdf-render")]
 use super::types::{
-    PdfPagePixelBox, PdfPageRegion, PdfPageRegionRenderRequest, PdfPageRegionShardManifestInput,
-    PdfPageRenderProfile,
+    PdfOcrShardType, PdfPagePixelBox, PdfPageRegion, PdfPageRegionRenderRequest,
+    PdfPageRegionShardManifestInput, PdfPageRenderProfile,
+};
+use super::types::{
+    PdfPageBox, PdfPageShardManifest, PdfPageShardManifestInput, RenderedRasterIdentity,
 };
 
 /// Environment variable that points to a dynamically loaded `PDFium` library.
@@ -63,6 +73,7 @@ pub(super) fn render_document_manifests(
     context: &RenderShardContext<'_>,
     source_hash: &str,
     selected_page_indices: Option<&[i32]>,
+    artifact_cache: Option<&PdfRenderArtifactCache>,
 ) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
     let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
     let shard_dir = context.shard_dir(source_hash);
@@ -90,7 +101,7 @@ pub(super) fn render_document_manifests(
                     format!("load page {page_index}: {error}"),
                 )
             })?;
-            render_page_manifest(&page, page_index, context, source_hash)
+            render_page_manifest(&page, page_index, context, source_hash, artifact_cache)
                 .map_err(|error| ReportParts::fallback(page_count, rendered_count, error))
         })
         .collect()
@@ -124,6 +135,7 @@ pub(super) fn render_document_region_manifests(
     context: &RenderShardContext<'_>,
     source_hash: &str,
     regions: &[PdfPageRegionRenderRequest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
 ) -> Result<Vec<PdfPageShardManifest>, ReportParts> {
     let page_count = u32::try_from(document.pages().len()).unwrap_or_default();
     let shard_dir = context.shard_dir(source_hash);
@@ -154,6 +166,21 @@ pub(super) fn render_document_region_manifests(
             .iter()
             .position(|region| region.page_index != page_index)
             .map_or(sorted_regions.len(), |offset| cursor + offset);
+        let page_regions = &sorted_regions[cursor..next_cursor];
+        if let Some(page_manifests) = restore_cached_page_region_manifests(
+            context,
+            source_hash,
+            page_index,
+            page_regions,
+            artifact_cache,
+        )
+        .map_err(|error| {
+            ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
+        })? {
+            manifests.extend(page_manifests);
+            cursor = next_cursor;
+            continue;
+        }
         let page = document
             .pages()
             .get(i32::try_from(page_index).unwrap_or(i32::MAX))
@@ -169,7 +196,19 @@ pub(super) fn render_document_region_manifests(
             page_index,
             context,
             source_hash,
-            &sorted_regions[cursor..next_cursor],
+            page_regions,
+            artifact_cache,
+        )
+        .map_err(|error| {
+            ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
+        })?;
+        persist_page_region_manifest_projection(
+            source_hash,
+            context.profile,
+            page_index,
+            page_regions,
+            page_manifests.as_slice(),
+            artifact_cache,
         )
         .map_err(|error| {
             ReportParts::fallback(page_count, checked_len_u32(manifests.len()), error)
@@ -181,18 +220,276 @@ pub(super) fn render_document_region_manifests(
 }
 
 #[cfg(feature = "pdf-render")]
+pub(super) fn restore_document_region_manifests_from_cache(
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    regions: &[PdfPageRegionRenderRequest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
+) -> Result<Option<Vec<PdfPageShardManifest>>, String> {
+    if artifact_cache.is_none() {
+        return Ok(None);
+    }
+
+    let mut sorted_regions = regions.to_vec();
+    sorted_regions.sort_by(|left, right| {
+        left.page_index
+            .cmp(&right.page_index)
+            .then_with(|| {
+                left.effective_reading_order_key()
+                    .cmp(&right.effective_reading_order_key())
+            })
+            .then_with(|| left.region_index.cmp(&right.region_index))
+    });
+
+    let mut manifests = Vec::new();
+    let mut cursor = 0;
+    while cursor < sorted_regions.len() {
+        let page_index = sorted_regions[cursor].page_index;
+        let next_cursor = sorted_regions[cursor..]
+            .iter()
+            .position(|region| region.page_index != page_index)
+            .map_or(sorted_regions.len(), |offset| cursor + offset);
+        let page_regions = &sorted_regions[cursor..next_cursor];
+        let Some(page_manifests) = restore_cached_page_region_manifests(
+            context,
+            source_hash,
+            page_index,
+            page_regions,
+            artifact_cache,
+        )?
+        else {
+            return Ok(None);
+        };
+        manifests.extend(page_manifests);
+        cursor = next_cursor;
+    }
+    Ok(Some(manifests))
+}
+
+#[cfg(feature = "pdf-render")]
+fn restore_cached_page_region_manifests(
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    page_index: u32,
+    regions: &[PdfPageRegionRenderRequest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
+) -> Result<Option<Vec<PdfPageShardManifest>>, String> {
+    if let Some(row_manifests) = restore_cached_region_manifest_rows(
+        context,
+        source_hash,
+        page_index,
+        regions,
+        artifact_cache,
+    )? {
+        return Ok(Some(row_manifests));
+    }
+    let Some(batches) = restore_region_manifest_projection(
+        artifact_cache,
+        source_hash,
+        context.profile,
+        page_index,
+        regions,
+    )?
+    else {
+        return Ok(None);
+    };
+    let mut manifests = Vec::new();
+    for batch in batches {
+        manifests.extend(shard_manifests_from_batch(&batch)?);
+    }
+    if manifests.len() != regions.len() {
+        return Ok(None);
+    }
+
+    restore_cached_region_manifest_crops(
+        context,
+        source_hash,
+        page_index,
+        regions,
+        manifests,
+        artifact_cache,
+    )
+}
+
+#[cfg(feature = "pdf-render")]
+fn restore_cached_region_manifest_rows(
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    page_index: u32,
+    regions: &[PdfPageRegionRenderRequest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
+) -> Result<Option<Vec<PdfPageShardManifest>>, String> {
+    let mut manifests = Vec::with_capacity(regions.len());
+    for request in regions {
+        let Some(batches) = restore_region_manifest_projection_row(
+            artifact_cache,
+            source_hash,
+            context.profile,
+            request,
+        )?
+        else {
+            return Ok(None);
+        };
+        let mut row_manifests = Vec::new();
+        for batch in batches {
+            row_manifests.extend(shard_manifests_from_batch(&batch)?);
+        }
+        if row_manifests.len() != 1 {
+            return Ok(None);
+        }
+        manifests.extend(row_manifests);
+    }
+
+    restore_cached_region_manifest_crops(
+        context,
+        source_hash,
+        page_index,
+        regions,
+        manifests,
+        artifact_cache,
+    )
+}
+
+#[cfg(feature = "pdf-render")]
+fn restore_cached_region_manifest_crops(
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    page_index: u32,
+    regions: &[PdfPageRegionRenderRequest],
+    mut manifests: Vec<PdfPageShardManifest>,
+    artifact_cache: Option<&PdfRenderArtifactCache>,
+) -> Result<Option<Vec<PdfPageShardManifest>>, String> {
+    for (manifest, request) in manifests.iter_mut().zip(regions.iter()) {
+        if validate_cached_region_manifest(manifest, request, page_index, source_hash, context)
+            .is_err()
+        {
+            return Ok(None);
+        }
+        let image_path = region_image_path(context, source_hash, request);
+        let Some(raster) = restore_requested_region_crop_identity(
+            artifact_cache,
+            source_hash,
+            context.profile,
+            request,
+            manifest.geometry.crop_box,
+            image_path.as_path(),
+        )?
+        else {
+            return Ok(None);
+        };
+        if raster.sha256 != manifest.raster_sha256 {
+            return Ok(None);
+        }
+        if raster.width_px != manifest.geometry.raster_width_px
+            || raster.height_px != manifest.geometry.raster_height_px
+        {
+            return Ok(None);
+        }
+        manifest.source_path = context.path.to_string_lossy().to_string();
+        manifest.image_path = image_path.to_string_lossy().to_string();
+    }
+    Ok(Some(manifests))
+}
+
+#[cfg(feature = "pdf-render")]
+fn persist_page_region_manifest_projection(
+    source_hash: &str,
+    profile: &PdfPageRenderProfile,
+    page_index: u32,
+    regions: &[PdfPageRegionRenderRequest],
+    manifests: &[PdfPageShardManifest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
+) -> Result<(), String> {
+    if artifact_cache.is_none() {
+        return Ok(());
+    }
+    let batch = build_shard_manifest_batch(manifests)?;
+    write_region_manifest_projection(
+        artifact_cache,
+        source_hash,
+        profile,
+        page_index,
+        regions,
+        std::slice::from_ref(&batch),
+    )?;
+    for (manifest, request) in manifests.iter().zip(regions.iter()) {
+        let batch = build_shard_manifest_batch(std::slice::from_ref(manifest))?;
+        write_region_manifest_projection_row(
+            artifact_cache,
+            source_hash,
+            profile,
+            request,
+            std::slice::from_ref(&batch),
+        )?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "pdf-render")]
+fn validate_cached_region_manifest(
+    manifest: &PdfPageShardManifest,
+    request: &PdfPageRegionRenderRequest,
+    page_index: u32,
+    source_hash: &str,
+    context: &RenderShardContext<'_>,
+) -> Result<(), String> {
+    if manifest.source_content_hash != source_hash {
+        return Err("cached PDF region manifest source hash mismatch".to_string());
+    }
+    if manifest.page_index != page_index || manifest.page_index != request.page_index {
+        return Err("cached PDF region manifest page index mismatch".to_string());
+    }
+    if manifest.shard_type != PdfOcrShardType::Region {
+        return Err("cached PDF region manifest is not a region shard".to_string());
+    }
+    if manifest.region_index != request.region_index {
+        return Err("cached PDF region manifest region index mismatch".to_string());
+    }
+    if manifest.reading_order_key != request.effective_reading_order_key() {
+        return Err("cached PDF region manifest reading order mismatch".to_string());
+    }
+    if manifest.render_profile != context.profile.profile_id {
+        return Err("cached PDF region manifest render profile mismatch".to_string());
+    }
+    if manifest.image_mime_type != context.profile.image_mime_type {
+        return Err("cached PDF region manifest image MIME type mismatch".to_string());
+    }
+    Ok(())
+}
+
+#[cfg(feature = "pdf-render")]
+fn region_image_path(
+    context: &RenderShardContext<'_>,
+    source_hash: &str,
+    request: &PdfPageRegionRenderRequest,
+) -> std::path::PathBuf {
+    context.shard_dir(source_hash).join(format!(
+        "page-{:05}-region-{:05}.{}",
+        request.page_index, request.region_index, context.profile.image_extension
+    ))
+}
+
+#[cfg(feature = "pdf-render")]
 fn render_page_manifest(
     page: &PdfPage<'_>,
     page_index: i32,
     context: &RenderShardContext<'_>,
     source_hash: &str,
+    artifact_cache: Option<&PdfRenderArtifactCache>,
 ) -> Result<PdfPageShardManifest, String> {
     let rendered = render_page_image(page, page_index, context.profile)?;
     let image_path = context.shard_dir(source_hash).join(format!(
         "page-{page_index:05}.{}",
         context.profile.image_extension
     ));
-    let raster = save_image_identity(&rendered.image, image_path.as_path())?;
+    let raster = materialize_page_raster_identity(
+        artifact_cache,
+        source_hash,
+        context.profile,
+        u32::try_from(page_index).unwrap_or_default(),
+        image_path.as_path(),
+        || save_image_bytes(&rendered.image, image_path.as_path()),
+    )?;
     Ok(build_shard_manifest(PdfPageShardManifestInput {
         source_path: context.path,
         source_content_hash: source_hash,
@@ -242,6 +539,7 @@ fn render_page_region_manifests(
     context: &RenderShardContext<'_>,
     source_hash: &str,
     regions: &[PdfPageRegionRenderRequest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
 ) -> Result<Vec<PdfPageShardManifest>, String> {
     let render_mode = pdf_region_render_mode();
     if render_mode == PdfRegionRenderMode::DirectCrop {
@@ -251,6 +549,7 @@ fn render_page_region_manifests(
             context,
             source_hash,
             regions,
+            artifact_cache,
         );
     }
     let rendered = render_page_image(
@@ -273,10 +572,23 @@ fn render_page_region_manifests(
                 "page-{page_index:05}-region-{:05}.{}",
                 request.region_index, context.profile.image_extension
             ));
-            let raster = save_region_crop_image(
-                &rendered.image,
-                source_page_pixel_box,
+            let raster = materialize_region_crop_identity(
+                artifact_cache,
+                RegionCropArtifactIdentity {
+                    source_hash,
+                    profile: context.profile,
+                    page_index,
+                    region_index: request.region_index,
+                    region_box: request.region_box,
+                },
                 image_path.as_path(),
+                || {
+                    save_region_crop_image_bytes(
+                        &rendered.image,
+                        source_page_pixel_box,
+                        image_path.as_path(),
+                    )
+                },
             )?;
             build_region_shard_manifest(PdfPageRegionShardManifestInput {
                 source_path: context.path,
@@ -330,6 +642,7 @@ fn render_page_region_direct_crop_manifests(
     context: &RenderShardContext<'_>,
     source_hash: &str,
     regions: &[PdfPageRegionRenderRequest],
+    artifact_cache: Option<&PdfRenderArtifactCache>,
 ) -> Result<Vec<PdfPageShardManifest>, String> {
     let page_index_i32 = i32::try_from(page_index).unwrap_or(i32::MAX);
     let geometry = page_geometry(page, page_index_i32, context.profile)?;
@@ -340,12 +653,12 @@ fn render_page_region_direct_crop_manifests(
         .map(|request| {
             build_direct_crop_region_manifest(
                 page,
-                page_index_i32,
                 context,
                 source_hash,
                 request,
                 &geometry,
                 parent_shard_element_id.as_str(),
+                artifact_cache,
             )
         })
         .collect()
@@ -354,12 +667,12 @@ fn render_page_region_direct_crop_manifests(
 #[cfg(feature = "pdf-render")]
 fn build_direct_crop_region_manifest(
     page: &PdfPage<'_>,
-    page_index_i32: i32,
     context: &RenderShardContext<'_>,
     source_hash: &str,
     request: &PdfPageRegionRenderRequest,
     geometry: &PageGeometry,
     parent_shard_element_id: &str,
+    artifact_cache: Option<&PdfRenderArtifactCache>,
 ) -> Result<PdfPageShardManifest, String> {
     let region_box = request
         .region_box
@@ -375,13 +688,23 @@ fn build_direct_crop_region_manifest(
         "page-{:05}-region-{:05}.{}",
         request.page_index, request.region_index, context.profile.image_extension
     ));
-    let raster = render_direct_region_crop_image(
-        page,
-        page_index_i32,
+    let raster = materialize_requested_region_crop_identity(
+        artifact_cache,
+        source_hash,
         context.profile,
-        geometry,
-        source_page_pixel_box,
+        request,
+        region_box,
         image_path.as_path(),
+        || {
+            render_direct_region_crop_image_uncached(
+                page,
+                i32::try_from(request.page_index).unwrap_or(i32::MAX),
+                context.profile,
+                geometry,
+                source_page_pixel_box,
+                image_path.as_path(),
+            )
+        },
     )?;
     build_region_shard_manifest(PdfPageRegionShardManifestInput {
         source_path: context.path,
@@ -450,14 +773,14 @@ fn render_page_image(
 }
 
 #[cfg(feature = "pdf-render")]
-fn render_direct_region_crop_image(
+fn render_direct_region_crop_image_uncached(
     page: &PdfPage<'_>,
     page_index: i32,
     profile: &PdfPageRenderProfile,
     geometry: &PageGeometry,
     pixel_box: PdfPagePixelBox,
     image_path: &Path,
-) -> Result<RenderedRasterIdentity, String> {
+) -> Result<Vec<u8>, String> {
     let scale_x = pdf_pixel_to_f32(geometry.raster_width_px)? / page.width().value.max(1.0);
     let scale_y = pdf_pixel_to_f32(geometry.raster_height_px)? / page.height().value.max(1.0);
     let crop_left = pdf_pixel_to_f32(pixel_box.left)?;
@@ -478,7 +801,7 @@ fn render_direct_region_crop_image(
     let image = bitmap.as_image().map_err(|error| {
         format!("convert direct region crop page {page_index} bitmap to image: {error}")
     })?;
-    save_image_identity(&image, image_path)
+    save_image_bytes(&image, image_path)
 }
 
 #[cfg(feature = "pdf-render")]
@@ -525,30 +848,27 @@ fn pdf_rotation_degrees_from_result(
     }
 }
 
-#[cfg(feature = "pdf-render")]
-fn save_image_identity(
-    image: &DynamicImage,
-    image_path: &Path,
-) -> Result<RenderedRasterIdentity, String> {
-    image
-        .save(image_path)
-        .map_err(|error| format!("write shard image `{}`: {error}", image_path.display()))?;
-    let raster_bytes = fs::read(image_path)
-        .map_err(|error| format!("read shard image `{}`: {error}", image_path.display()))?;
-    Ok(RenderedRasterIdentity {
-        path: image_path.to_path_buf(),
-        sha256: sha256_hex(&raster_bytes),
-        width_px: image.width(),
-        height_px: image.height(),
-    })
-}
-
-#[cfg(feature = "pdf-render")]
+#[cfg(all(test, feature = "pdf-render"))]
 pub(super) fn save_region_crop_image(
     page_image: &DynamicImage,
     pixel_box: PdfPagePixelBox,
     image_path: &Path,
 ) -> Result<RenderedRasterIdentity, String> {
+    let raster_bytes = save_region_crop_image_bytes(page_image, pixel_box, image_path)?;
+    Ok(RenderedRasterIdentity {
+        path: image_path.to_path_buf(),
+        sha256: sha256_hex(&raster_bytes),
+        width_px: pixel_box.width_px(),
+        height_px: pixel_box.height_px(),
+    })
+}
+
+#[cfg(feature = "pdf-render")]
+fn save_region_crop_image_bytes(
+    page_image: &DynamicImage,
+    pixel_box: PdfPagePixelBox,
+    image_path: &Path,
+) -> Result<Vec<u8>, String> {
     if pixel_box.right > page_image.width() || pixel_box.bottom > page_image.height() {
         return Err(format!(
             "region pixel box exceeds source raster: box=({}, {}, {}, {}), raster={}x{}",
@@ -566,7 +886,7 @@ pub(super) fn save_region_crop_image(
         pixel_box.width_px(),
         pixel_box.height_px(),
     );
-    save_image_identity(&crop, image_path)
+    save_image_bytes(&crop, image_path)
 }
 
 #[cfg(all(test, feature = "pdf-render"))]

@@ -14,6 +14,31 @@ use xiuxian_polyglot_orchestrator::{
 #[cfg(feature = "audio-shard-arrow")]
 use crate::audio::{AUDIO_SHARD_INPUT_SCHEMA_VERSION, AUDIO_SHARD_RESULT_SCHEMA_VERSION};
 
+/// Named audio shard scheduling request for the orchestrator bridge.
+#[cfg(feature = "audio-shard-arrow")]
+pub struct AudioShardScheduleRequest {
+    /// Current pressure evidence for audio shard execution.
+    pub pressure: AudioWorkerPressureEvidence,
+    /// Owner-provided adaptive worker budget.
+    pub adaptive_worker_budget: Option<u32>,
+    /// Benchmark-only worker override.
+    pub diagnostic_worker_override: Option<u32>,
+    /// Upper worker cap for the current host/session.
+    pub max_worker_cap: Option<u32>,
+    /// Number of shards eligible for the current scheduling wave.
+    pub shard_count: u32,
+}
+
+/// Audio Arrow contract version pair.
+#[cfg(feature = "audio-shard-arrow")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AudioShardContractVersions {
+    /// `xiuxian_wendao.audio_shard_input.v1`.
+    pub input_schema_version: &'static str,
+    /// `xiuxian_wendao.audio_shard_result.v1`.
+    pub result_schema_version: &'static str,
+}
+
 #[cfg(feature = "pdf-source-range")]
 use crate::pdf::ocr::{
     PDF_OCR_DEFAULT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
@@ -175,28 +200,22 @@ pub fn audio_shard_pressure_evidence(
 /// Returns an inert audio shard scheduling plan from attachment-owned facts.
 #[cfg(feature = "audio-shard-arrow")]
 #[must_use]
-pub fn audio_shard_schedule_plan(
-    pressure: AudioWorkerPressureEvidence,
-    adaptive_worker_budget: Option<u32>,
-    diagnostic_worker_override: Option<u32>,
-    max_worker_cap: Option<u32>,
-    shard_count: u32,
-) -> AudioSchedulePlan {
-    AudioSchedulingInput::audio_shards(pressure)
-        .with_adaptive_worker_budget(adaptive_worker_budget)
-        .with_worker_request(diagnostic_worker_override, max_worker_cap)
-        .with_shard_count(shard_count)
+pub fn audio_shard_schedule_plan(request: AudioShardScheduleRequest) -> AudioSchedulePlan {
+    AudioSchedulingInput::audio_shards(request.pressure)
+        .with_adaptive_worker_budget(request.adaptive_worker_budget)
+        .with_worker_request(request.diagnostic_worker_override, request.max_worker_cap)
+        .with_shard_count(request.shard_count)
         .plan()
 }
 
 /// Returns true when the audio shard bridge is compiled with Arrow contracts.
 #[cfg(feature = "audio-shard-arrow")]
 #[must_use]
-pub const fn audio_shard_contract_versions() -> (&'static str, &'static str) {
-    (
-        AUDIO_SHARD_INPUT_SCHEMA_VERSION,
-        AUDIO_SHARD_RESULT_SCHEMA_VERSION,
-    )
+pub const fn audio_shard_contract_versions() -> AudioShardContractVersions {
+    AudioShardContractVersions {
+        input_schema_version: AUDIO_SHARD_INPUT_SCHEMA_VERSION,
+        result_schema_version: AUDIO_SHARD_RESULT_SCHEMA_VERSION,
+    }
 }
 
 #[cfg(all(test, any(feature = "pdf-source-range", feature = "audio-shard-arrow")))]

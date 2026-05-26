@@ -15,6 +15,7 @@ mod reasoning_context_shard;
 mod reasoning_target;
 mod registry;
 mod review_ledger;
+mod search_strategy_oracle;
 mod source_patch_apply;
 mod source_patch_apply_plan;
 mod source_patch_draft;
@@ -105,6 +106,10 @@ pub use registry::{
     EpistemeOntologyRegistrySnapshotReport, EpistemeOntologyRegistrySourceContract,
     ONTOLOGY_REGISTRY_RELATIVE_PATH, admit_ontology_registry_snapshot, ontology_registry_path,
     read_ontology_registry_snapshot, validate_ontology_registry_snapshot,
+};
+pub use search_strategy_oracle::{
+    EpistemeSearchStrategyOracleReport, EpistemeSearchStrategyOracleRequest,
+    write_episteme_search_strategy_oracle,
 };
 pub use source_patch_apply::{
     EpistemeOntologySourcePatchAppliedTarget, EpistemeOntologySourcePatchApplyPreviewReport,
