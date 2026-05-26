@@ -165,7 +165,7 @@ fn source_range_schedule_plan_caps_override_by_adaptive_budget() {
 fn audio_schedule_plan_uses_orchestrator_auto_policy() {
     let pressure = audio_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
 
-    let plan = audio_shard_schedule_plan(AudioShardScheduleRequest {
+    let plan = audio_shard_schedule_plan(&AudioShardScheduleRequest {
         pressure,
         adaptive_worker_budget: None,
         diagnostic_worker_override: None,
@@ -184,7 +184,7 @@ fn audio_schedule_plan_uses_orchestrator_auto_policy() {
 fn audio_schedule_plan_respects_adaptive_budget() {
     let pressure = audio_shard_pressure_evidence(Some(12), 0, 0, 0, 0, 0, false);
 
-    let plan = audio_shard_schedule_plan(AudioShardScheduleRequest {
+    let plan = audio_shard_schedule_plan(&AudioShardScheduleRequest {
         pressure,
         adaptive_worker_budget: Some(2),
         diagnostic_worker_override: Some(99),

@@ -33,6 +33,31 @@ impl QianjiBpmnWorkflowHttpError {
             },
         }
     }
+
+    pub(in crate::bpmn::http_transport) fn internal_server_error(
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            body: QianjiBpmnWorkflowHttpErrorBody {
+                code: "workflow_activity_evidence_failed".to_owned(),
+                message: message.into(),
+            },
+        }
+    }
+
+    pub(in crate::bpmn::http_transport) fn service_unavailable(
+        code: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            body: QianjiBpmnWorkflowHttpErrorBody {
+                code: code.into(),
+                message: message.into(),
+            },
+        }
+    }
 }
 
 impl From<QianjiBpmnWorkflowControlError> for QianjiBpmnWorkflowHttpError {

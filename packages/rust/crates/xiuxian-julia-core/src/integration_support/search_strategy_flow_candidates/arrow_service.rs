@@ -5,9 +5,12 @@ use std::io::Cursor;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, BooleanArray, Float64Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use arrow_ipc::writer::StreamWriter;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    build_arrow_schema, validate_record_batch_schema,
+};
 
 use super::SearchStrategyFlowCandidateInput;
 
@@ -17,6 +20,27 @@ const SEARCH_STRATEGY_FLOW_CANDIDATE_KIND: &str = "markdown_heading_section";
 const SEARCH_STRATEGY_FLOW_EXACT_MARKDOWN_SEED_KIND: &str = "intent_exact_markdown_seed";
 const EXACT_MARKDOWN_SEED_EDGE_KIND: &str = "intent-exact-markdown-seed";
 const DOC_CANDIDATE_NODE_COUNT: i64 = 5;
+const SEARCH_STRATEGY_FLOW_CANDIDATE_INPUT_TABLE: &str = "strategy_flow_candidate_inputs";
+const SEARCH_STRATEGY_FLOW_CANDIDATE_INPUT_COLUMNS: [ArrowSchemaColumn; 18] = [
+    ArrowSchemaColumn::new("candidate_id", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("relative_path", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("heading_anchor", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("title", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("candidate_kind", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("node_count", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("edge_kind_count", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("edge_kinds", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("line_start", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("line_end", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("evidence_coverage", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("graph_score", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("authority_score", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("semantic_score", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("structural_score", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("context_cost", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("uncertainty", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("blocked", ArrowSchemaDataType::Boolean),
+];
 
 pub(crate) fn search_strategy_flow_candidate_inputs_arrow_record_batch(
     candidates: &[SearchStrategyFlowCandidateInput],
@@ -25,34 +49,11 @@ pub(crate) fn search_strategy_flow_candidate_inputs_arrow_record_batch(
         return Err("SearchStrategyFlow Arrow candidate request must not be empty".to_owned());
     }
 
-    let schema = Arc::new(Schema::new_with_metadata(
-        vec![
-            Field::new("candidate_id", DataType::Utf8, false),
-            Field::new("relative_path", DataType::Utf8, false),
-            Field::new("heading_anchor", DataType::Utf8, false),
-            Field::new("title", DataType::Utf8, false),
-            Field::new("candidate_kind", DataType::Utf8, false),
-            Field::new("node_count", DataType::Int64, false),
-            Field::new("edge_kind_count", DataType::Int64, false),
-            Field::new("edge_kinds", DataType::Utf8, false),
-            Field::new("line_start", DataType::Int64, false),
-            Field::new("line_end", DataType::Int64, false),
-            Field::new("evidence_coverage", DataType::Float64, false),
-            Field::new("graph_score", DataType::Float64, false),
-            Field::new("authority_score", DataType::Float64, false),
-            Field::new("semantic_score", DataType::Float64, false),
-            Field::new("structural_score", DataType::Float64, false),
-            Field::new("context_cost", DataType::Int64, false),
-            Field::new("uncertainty", DataType::Float64, false),
-            Field::new("blocked", DataType::Boolean, false),
-        ],
-        HashMap::from([(
-            "wendao.schema_version".to_owned(),
-            SEARCH_STRATEGY_FLOW_SCHEMA_VERSION.to_owned(),
-        )]),
+    let schema = Arc::new(build_arrow_schema(
+        &search_strategy_flow_candidate_inputs_contract(),
+        search_strategy_flow_candidate_inputs_metadata(),
     ));
-
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         schema,
         vec![
             strings(candidates.iter().map(candidate_id)),
@@ -103,7 +104,10 @@ pub(crate) fn search_strategy_flow_candidate_inputs_arrow_record_batch(
             booleans(candidates.iter().map(|candidate| candidate.blocked)),
         ],
     )
-    .map_err(|error| format!("build SearchStrategyFlow Arrow candidate batch: {error}"))
+    .map_err(|error| format!("build SearchStrategyFlow Arrow candidate batch: {error}"))?;
+    validate_record_batch_schema(&batch, &search_strategy_flow_candidate_inputs_contract())
+        .map_err(|error| search_strategy_flow_candidate_schema_error(&error))?;
+    Ok(batch)
 }
 
 pub(crate) fn search_strategy_flow_candidate_inputs_arrow_ipc(
@@ -126,6 +130,25 @@ pub(crate) fn search_strategy_flow_candidate_inputs_arrow_ipc(
 
 fn candidate_id(candidate: &SearchStrategyFlowCandidateInput) -> String {
     format!("{}#{}", candidate.relative_path, candidate.heading_anchor)
+}
+
+fn search_strategy_flow_candidate_inputs_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        SEARCH_STRATEGY_FLOW_CANDIDATE_INPUT_TABLE,
+        true,
+        SEARCH_STRATEGY_FLOW_CANDIDATE_INPUT_COLUMNS.to_vec(),
+    )
+}
+
+fn search_strategy_flow_candidate_inputs_metadata() -> HashMap<String, String> {
+    HashMap::from([(
+        "wendao.schema_version".to_owned(),
+        SEARCH_STRATEGY_FLOW_SCHEMA_VERSION.to_owned(),
+    )])
+}
+
+fn search_strategy_flow_candidate_schema_error(error: &ArrowSchemaContractError) -> String {
+    format!("SearchStrategyFlow Arrow candidate schema mismatch: {error}")
 }
 
 fn candidate_kind(candidate: &SearchStrategyFlowCandidateInput) -> &'static str {

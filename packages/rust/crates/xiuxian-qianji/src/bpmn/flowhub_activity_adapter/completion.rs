@@ -1,3 +1,5 @@
+//! Flowhub service-task completion adapters for `qianji-server` worker loops.
+
 use serde_json::Value;
 use xiuxian_qianji_control::{ControlResult, WorkerActivityTask};
 use xiuxian_qianji_runtime::{

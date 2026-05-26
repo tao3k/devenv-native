@@ -1,8 +1,10 @@
-use crate::julia_plugin_test_support::common::ResultTestExt;
-
-use super::{
+use crate::{
     GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN,
     GRAPH_STRUCTURAL_QUERY_ID_COLUMN, GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
+    julia_plugin_test_support::common::ResultTestExt,
+};
+
+use super::{
     GraphStructuralFilterRequestRow, GraphStructuralFilterScoreRow,
     GraphStructuralRerankRequestRow, GraphStructuralRerankScoreRow,
     build_graph_structural_filter_request_batch, build_graph_structural_rerank_request_batch,

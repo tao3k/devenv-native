@@ -16,6 +16,8 @@ foyer-artifact-cache = [
 ]
 audio-shard-arrow = [
   "dep:arrow",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/arrow-codec",
 ]
 archive-audit = [
   "dep:flate2",
@@ -24,8 +26,13 @@ archive-audit = [
 image-shards = [
   "dep:image",
 ]
+legacy-office = [
+  "dep:litchi",
+]
 pdf-source-range = [
   "dep:arrow",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/arrow-codec",
   "dep:lopdf",
   "dep:num-traits",
 ]
@@ -40,6 +47,7 @@ pdf-render = [
 arrow = { workspace = true, optional = true }
 flate2 = { workspace = true, optional = true }
 image = { workspace = true, optional = true }
+litchi = { git = "https://github.com/DevExzh/litchi.git", rev = "f9ca012b7240e83f62c3fec239a2870cd6c82294", default-features = false, features = ["ole", "ooxml"], optional = true }
 lopdf = { git = "https://github.com/J-F-Liu/lopdf", rev = "7a05512d831415b1f2b1ce522391d6beab8a1284", optional = true }
 num-traits = { workspace = true, optional = true }
 pdfium-render = { version = "0.9.0", optional = true }

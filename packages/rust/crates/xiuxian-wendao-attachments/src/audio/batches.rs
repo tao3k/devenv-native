@@ -1,15 +1,23 @@
 //! Audio shard Arrow batch builders and decoders.
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use arrow::array::{Array, ArrayRef, Float64Array, Int32Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use super::types::{
     AUDIO_SHARD_INPUT_SCHEMA_VERSION, AUDIO_SHARD_RESULT_SCHEMA_VERSION, AudioShardInput,
     AudioShardMaterializedItem, AudioShardResult, AudioShardResultStatus, AudioShardWorkerProfile,
 };
+
+const AUDIO_SHARD_INPUT_TABLE: &str = "audio_shard_input";
+const AUDIO_SHARD_RESULT_TABLE: &str = "audio_shard_result";
 
 /// Build audio worker input rows from Rust-materialized audio shards.
 #[must_use]
@@ -56,8 +64,8 @@ pub fn build_audio_shard_inputs(
 ///
 /// Returns an error if Arrow cannot build the audio worker input batch.
 pub fn build_audio_shard_input_batch(inputs: &[AudioShardInput]) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        audio_shard_input_schema(),
+    record_batch(
+        &audio_shard_input_contract(),
         vec![
             input_string_column(inputs, |input| input.contract_version.clone()),
             input_string_column(inputs, |input| input.source_path.clone()),
@@ -80,16 +88,16 @@ pub fn build_audio_shard_input_batch(inputs: &[AudioShardInput]) -> Result<Recor
             input_string_column(inputs, |input| input.shard_element_id.clone()),
             input_string_column(inputs, |input| input.reading_order_key.clone()),
         ],
+        "build audio shard input Arrow batch",
     )
-    .map_err(|error| format!("build audio shard input Arrow batch: {error}"))
 }
 
 /// # Errors
 ///
 /// Returns an error if Arrow cannot build the audio worker result batch.
 pub fn build_audio_shard_result_batch(results: &[AudioShardResult]) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        audio_shard_result_schema(),
+    record_batch(
+        &audio_shard_result_contract(),
         vec![
             result_string_column(results, |result| result.contract_version.clone()),
             result_string_column(results, |result| result.source_path.clone()),
@@ -122,8 +130,8 @@ pub fn build_audio_shard_result_batch(results: &[AudioShardResult]) -> Result<Re
             result_string_column(results, |result| result.shard_element_id.clone()),
             result_string_column(results, |result| result.element_id.clone()),
         ],
+        "build audio shard result Arrow batch",
     )
-    .map_err(|error| format!("build audio shard result Arrow batch: {error}"))
 }
 
 /// Decode stable audio worker result rows from Arrow batches.
@@ -151,11 +159,7 @@ pub fn decode_audio_shard_result_batches(
 pub fn decode_audio_shard_result_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<AudioShardResult>, String> {
-    validate_schema_compatible(
-        batch.schema().as_ref(),
-        audio_shard_result_schema().as_ref(),
-        "audio shard result",
-    )?;
+    validate_batch_schema(batch, &audio_shard_result_contract(), "audio shard result")?;
     let columns = AudioShardResultColumns::from_batch(batch)?;
     (0..batch.num_rows())
         .map(|row| decode_audio_shard_result_row(&columns, row))
@@ -237,55 +241,6 @@ fn decode_audio_shard_result_row(
     })
 }
 
-fn audio_shard_input_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        field_utf8("contractVersion", false),
-        field_utf8("sourcePath", false),
-        field_utf8("sourceContentHash", false),
-        field_utf8("shardPath", false),
-        field_utf8("shardSha256", false),
-        field_utf8("shardProfile", false),
-        field_utf8("taskProfile", false),
-        field_utf8("backendProfile", false),
-        field_utf8("preferredLanguages", false),
-        Field::new("sampleRateHz", DataType::Int32, false),
-        Field::new("channels", DataType::Int32, false),
-        field_utf8("audioFormat", false),
-        Field::new("startMs", DataType::Int64, false),
-        Field::new("durationMs", DataType::Int64, false),
-        Field::new("mediaStartMs", DataType::Int64, false),
-        Field::new("mediaDurationMs", DataType::Int64, false),
-        Field::new("contextBeforeMs", DataType::Int64, false),
-        Field::new("contextAfterMs", DataType::Int64, false),
-        field_utf8("shardElementId", false),
-        field_utf8("readingOrderKey", false),
-    ]))
-}
-
-fn audio_shard_result_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        field_utf8("contractVersion", false),
-        field_utf8("sourcePath", false),
-        field_utf8("sourceContentHash", false),
-        field_utf8("shardPath", false),
-        field_utf8("shardSha256", false),
-        field_utf8("shardProfile", false),
-        field_utf8("taskProfile", false),
-        field_utf8("backendProfile", false),
-        field_utf8("status", false),
-        field_utf8("text", true),
-        field_utf8("textMimeType", false),
-        Field::new("confidence", DataType::Float64, true),
-        field_utf8("errorMessage", true),
-        field_utf8("shardElementId", false),
-        field_utf8("elementId", false),
-    ]))
-}
-
-fn field_utf8(name: &str, nullable: bool) -> Field {
-    Field::new(name, DataType::Utf8, nullable)
-}
-
 fn input_string_column(
     inputs: &[AudioShardInput],
     value: impl Fn(&AudioShardInput) -> String,
@@ -330,33 +285,13 @@ fn result_string_column(
     ))
 }
 
-fn validate_schema_compatible(
-    actual: &Schema,
-    expected: &Schema,
+fn validate_batch_schema(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
     label: &str,
 ) -> Result<(), String> {
-    if actual.fields().len() != expected.fields().len() {
-        return Err(format!(
-            "{label} schema field count mismatch: expected {}, got {}",
-            expected.fields().len(),
-            actual.fields().len()
-        ));
-    }
-    for (actual_field, expected_field) in actual.fields().iter().zip(expected.fields()) {
-        if actual_field.name() != expected_field.name()
-            || actual_field.data_type() != expected_field.data_type()
-        {
-            return Err(format!(
-                "{label} schema mismatch at `{}`: got `{} {:?}`, expected `{} {:?}`",
-                expected_field.name(),
-                actual_field.name(),
-                actual_field.data_type(),
-                expected_field.name(),
-                expected_field.data_type()
-            ));
-        }
-    }
-    Ok(())
+    validate_record_batch_schema_with_options(batch, contract, exact_schema_options())
+        .map_err(|error| format!("{label} schema validation: {error}"))
 }
 
 fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, String> {
@@ -390,4 +325,104 @@ fn optional_string(column: &StringArray, row: usize) -> Option<String> {
 
 fn optional_f64(column: &Float64Array, row: usize) -> Option<f64> {
     (!column.is_null(row)).then(|| column.value(row))
+}
+
+fn audio_shard_input_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        AUDIO_SHARD_INPUT_TABLE,
+        true,
+        vec![
+            utf8_contract_column("contractVersion"),
+            utf8_contract_column("sourcePath"),
+            utf8_contract_column("sourceContentHash"),
+            utf8_contract_column("shardPath"),
+            utf8_contract_column("shardSha256"),
+            utf8_contract_column("shardProfile"),
+            utf8_contract_column("taskProfile"),
+            utf8_contract_column("backendProfile"),
+            utf8_contract_column("preferredLanguages"),
+            int32_contract_column("sampleRateHz"),
+            int32_contract_column("channels"),
+            utf8_contract_column("audioFormat"),
+            int64_contract_column("startMs"),
+            int64_contract_column("durationMs"),
+            int64_contract_column("mediaStartMs"),
+            int64_contract_column("mediaDurationMs"),
+            int64_contract_column("contextBeforeMs"),
+            int64_contract_column("contextAfterMs"),
+            utf8_contract_column("shardElementId"),
+            utf8_contract_column("readingOrderKey"),
+        ],
+    )
+}
+
+fn audio_shard_result_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        AUDIO_SHARD_RESULT_TABLE,
+        true,
+        vec![
+            utf8_contract_column("contractVersion"),
+            utf8_contract_column("sourcePath"),
+            utf8_contract_column("sourceContentHash"),
+            utf8_contract_column("shardPath"),
+            utf8_contract_column("shardSha256"),
+            utf8_contract_column("shardProfile"),
+            utf8_contract_column("taskProfile"),
+            utf8_contract_column("backendProfile"),
+            utf8_contract_column("status"),
+            nullable_utf8_contract_column("text"),
+            utf8_contract_column("textMimeType"),
+            nullable_float64_contract_column("confidence"),
+            nullable_utf8_contract_column("errorMessage"),
+            utf8_contract_column("shardElementId"),
+            utf8_contract_column("elementId"),
+        ],
+    )
+}
+
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    context: &'static str,
+) -> Result<RecordBatch, String> {
+    let batch = RecordBatch::try_new(schema_ref(contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_batch_schema(&batch, contract, context)?;
+    Ok(batch)
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_owned(),
+            contract.table_name().to_owned(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn exact_schema_options() -> ArrowSchemaValidationOptions {
+    ArrowSchemaValidationOptions::new().with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact)
+}
+
+const fn utf8_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_utf8_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn int32_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int32)
+}
+
+const fn int64_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int64)
+}
+
+const fn nullable_float64_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Float64)
 }

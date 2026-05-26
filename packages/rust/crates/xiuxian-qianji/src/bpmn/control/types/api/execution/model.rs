@@ -110,6 +110,19 @@ pub struct QianjiBpmnWorkflowEventPollRequest {
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
 }
 
+impl QianjiBpmnWorkflowEventPollRequest {
+    /// Builds the resume request required before polling external events.
+    #[must_use]
+    pub fn workflow_resume_request(&self) -> QianjiBpmnWorkflowResumeRequest {
+        QianjiBpmnWorkflowResumeRequest {
+            bpmn_path: self.bpmn_path.clone(),
+            dmn_paths: self.dmn_paths.clone(),
+            instance_id: self.instance_id.clone(),
+            checkpoint_backend: self.checkpoint_backend.clone(),
+        }
+    }
+}
+
 /// Report returned by the workflow control service after one external-event
 /// poll action.
 pub type QianjiBpmnWorkflowEventPollReport = QianjiBpmnWorkflowResumeReport;
@@ -167,6 +180,19 @@ pub struct QianjiBpmnWorkflowTaskCompleteRequest {
     pub continue_until_human_boundary: bool,
 }
 
+impl QianjiBpmnWorkflowTaskCompleteRequest {
+    /// Builds the resume request required before completing this host task.
+    #[must_use]
+    pub fn workflow_resume_request(&self) -> QianjiBpmnWorkflowResumeRequest {
+        QianjiBpmnWorkflowResumeRequest {
+            bpmn_path: self.bpmn_path.clone(),
+            dmn_paths: self.dmn_paths.clone(),
+            instance_id: self.instance_id.clone(),
+            checkpoint_backend: self.checkpoint_backend.clone(),
+        }
+    }
+}
+
 /// Report returned by the workflow control service after one host-task
 /// completion action.
 pub type QianjiBpmnWorkflowTaskCompleteReport = QianjiBpmnWorkflowResumeReport;
@@ -185,6 +211,19 @@ pub struct QianjiBpmnWorkflowTaskCompleteBatchRequest {
     pub checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend,
     /// Explicit completion payloads for pending host tasks.
     pub completions: Vec<QianjiBpmnWorkflowTaskCompletionPayload>,
+}
+
+impl QianjiBpmnWorkflowTaskCompleteBatchRequest {
+    /// Builds the resume request required before completing this host-task batch.
+    #[must_use]
+    pub fn workflow_resume_request(&self) -> QianjiBpmnWorkflowResumeRequest {
+        QianjiBpmnWorkflowResumeRequest {
+            bpmn_path: self.bpmn_path.clone(),
+            dmn_paths: self.dmn_paths.clone(),
+            instance_id: self.instance_id.clone(),
+            checkpoint_backend: self.checkpoint_backend.clone(),
+        }
+    }
 }
 
 /// Report returned by the workflow control service after a host-task

@@ -20,6 +20,18 @@ impl WorkerHeartbeatJournalRecord {
     pub const fn new(run_id: RunId, heartbeat: WorkerHeartbeat) -> Self {
         Self { run_id, heartbeat }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self { run_id, heartbeat } = self;
+        let observed_at_ms = heartbeat.observed_at_ms;
+        ControlEvent::run(
+            run_id,
+            observed_at_ms,
+            ControlEventKind::WorkerHeartbeatObserved { heartbeat },
+        )
+    }
 }
 
 /// Records one Worker heartbeat as an append-only control event.
@@ -36,13 +48,7 @@ where
     L: ControlLedger + ?Sized,
 {
     validate_worker_heartbeat(&request.heartbeat)?;
-    let WorkerHeartbeatJournalRecord { run_id, heartbeat } = request;
-    let observed_at_ms = heartbeat.observed_at_ms;
-    ledger.append_event(ControlEvent::run(
-        run_id,
-        observed_at_ms,
-        ControlEventKind::WorkerHeartbeatObserved { heartbeat },
-    ))
+    ledger.append_event(request.into_event())
 }
 
 /// Records one Worker heartbeat in hot state and durable history.

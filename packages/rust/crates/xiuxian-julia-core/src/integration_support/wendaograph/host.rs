@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::process::Command;
+use std::time::Instant;
 use std::{env, fs};
 
 use serde_json::Value;
@@ -31,7 +32,11 @@ use crate::integration_support::search_strategy_flow_flight::{
 use super::probes::{resolve_existing_path, wendaograph_julia_project};
 use super::scripts::SEARCH_STRATEGY_FLOW_JULIA;
 use super::search_strategy_routes::add_search_strategy_flow_retrieval_routes;
-use super::{SearchStrategyFlowServiceTraceRequest, search_strategy_flow_service_trace_json};
+use super::{
+    SearchStrategyFlowServiceTraceRequest, SearchStrategyFlowTimingMeasurements,
+    search_strategy_flow_service_trace_json,
+    search_strategy_flow_trace_with_materialization_timing,
+};
 
 /// Future `SearchStrategyFlow` probe action admitted by the Rust bridge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -397,6 +402,7 @@ pub(crate) async fn run_wendaograph_search_strategy_flow_json_with_service_and_f
         "branch-judgements",
         request.branch_judgements_arrow_ipc_path.as_str(),
     )?;
+    let candidate_discovery_started = Instant::now();
     let (candidate_batch, ontology_registry_payload) =
         match request.flight_materialization_config.as_ref() {
             Some(config) => {
@@ -418,6 +424,7 @@ pub(crate) async fn run_wendaograph_search_strategy_flow_json_with_service_and_f
                 None,
             ),
         };
+    let candidate_discovery_ms = elapsed_ms(candidate_discovery_started);
 
     let mut request_options = SearchStrategyFlowServiceRequestOptions::default();
     if let Some(payload) = query_understanding_payload.clone() {
@@ -434,12 +441,14 @@ pub(crate) async fn run_wendaograph_search_strategy_flow_json_with_service_and_f
     )
     .map_err(|error| format!("invalid SearchStrategyFlow service Flight config: {error}"))?
     .with_timeout_seconds(request.strategy_flow_service_timeout_seconds);
+    let algorithm_service_started = Instant::now();
     let service_roundtrip = roundtrip_search_strategy_flow_frontier_with_service_request(
         &candidate_batch,
         request_options,
         service_options,
     )
     .await?;
+    let algorithm_service_ms = elapsed_ms(algorithm_service_started);
     let trace = search_strategy_flow_service_trace_json(&SearchStrategyFlowServiceTraceRequest {
         intent: request.intent.as_str(),
         search_root: search_root.as_path(),
@@ -450,16 +459,32 @@ pub(crate) async fn run_wendaograph_search_strategy_flow_json_with_service_and_f
         response: &service_roundtrip.response,
         query_understanding_payload: query_understanding_payload.as_deref(),
         ontology_registry_payload: ontology_registry_payload.as_deref(),
+        timing: SearchStrategyFlowTimingMeasurements {
+            candidate_discovery: Some(candidate_discovery_ms),
+            algorithm_service: Some(algorithm_service_ms),
+            materialization: None,
+        },
     })?;
     match request.flight_materialization_config {
         Some(config) => {
-            enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
+            let materialization_started = Instant::now();
+            let enriched =
+                enrich_wendaograph_search_strategy_flow_retrieval_routes_with_flight_materialization(
                 &trace, &config,
             )
-            .await
+                .await?;
+            let materialization_ms = elapsed_ms(materialization_started);
+            search_strategy_flow_trace_with_materialization_timing(
+                enriched.as_str(),
+                materialization_ms,
+            )
         }
         None => enrich_wendaograph_search_strategy_flow_retrieval_routes(&trace),
     }
+}
+
+fn elapsed_ms(started: Instant) -> f64 {
+    started.elapsed().as_secs_f64() * 1000.0
 }
 
 fn run_wendaograph_search_strategy_flow_raw_json(

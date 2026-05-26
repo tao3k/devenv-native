@@ -16,7 +16,7 @@ WENDAO_BIN="${WENDAO_GATEWAY_BIN:-$PROJECT_ROOT/target/debug/wendao}"
 STDOUT_LOG="${WENDAO_GATEWAY_STDOUT_LOG:-$LOG_DIR/wendao-gateway.stdout.log}"
 STDERR_LOG="${WENDAO_GATEWAY_STDERR_LOG:-$LOG_DIR/wendao-gateway.stderr.log}"
 BUILD_MODE="${WENDAO_GATEWAY_BUILD:-auto}"
-GATEWAY_FEATURES="${WENDAO_GATEWAY_FEATURES:-cli-bin-support,zhenfa-router,document-extract-attachment-audit,document-extract-pdf-render,document-extract-audio-shards}"
+GATEWAY_FEATURES="${WENDAO_GATEWAY_FEATURES:-cli-bin-support,zhenfa-router,document-extract-attachment-audit,document-extract-pdf-render,document-extract-audio-shards,document-extract-legacy-office}"
 
 CONFIG_PATH="$(process_abs_path "$PROJECT_ROOT" "$CONFIG_PATH")"
 LOG_DIR="$(process_abs_path "$PROJECT_ROOT" "$LOG_DIR")"

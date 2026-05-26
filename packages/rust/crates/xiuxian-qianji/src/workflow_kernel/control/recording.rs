@@ -1,11 +1,10 @@
 //! Projects complete workflow traces into replayable Qianji control events.
 
-use std::collections::BTreeMap;
-
 use serde_json::json;
 use xiuxian_qianji_control::{
-    ControlError, ControlEvent, ControlEventKind, ControlEventRecord, ControlLedger, ControlResult,
-    RunId, RunStatus, RunView, StepId,
+    ControlError, ControlEvent, ControlEventRecord, ControlLedger, ControlResult, RunId, RunStatus,
+    RunView, StepId, WorkflowControlEvidenceRequirements, WorkflowTraceProjectionRecord,
+    WorkflowTraceProjectionStage, record_workflow_trace_projection,
 };
 
 use crate::workflow_kernel::{WorkflowStageStatus, WorkflowStageTrace, WorkflowTrace};
@@ -41,75 +40,6 @@ pub struct WorkflowControlRecordingOutcome {
     pub records: Vec<ControlEventRecord>,
     /// Ledger-replayed view after recording completed.
     pub run_view: RunView,
-}
-
-/// Workflow-side required-evidence declarations for control projection.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct WorkflowControlEvidenceRequirements {
-    required_by_stage: BTreeMap<StepId, Vec<String>>,
-}
-
-impl WorkflowControlEvidenceRequirements {
-    /// Creates an empty requirements set.
-    #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            required_by_stage: BTreeMap::new(),
-        }
-    }
-
-    /// Returns true when no stage requirements are declared.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.required_by_stage.is_empty()
-    }
-
-    /// Adds required-evidence keys for one workflow stage.
-    ///
-    /// # Errors
-    ///
-    /// Returns a control error when the stage id or any required-evidence key
-    /// is blank.
-    pub fn require_stage_evidence<I, S>(
-        mut self,
-        stage_id: impl Into<String>,
-        required_evidence: I,
-    ) -> ControlResult<Self>
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        self.insert_stage_evidence(stage_id, required_evidence)?;
-        Ok(self)
-    }
-
-    /// Inserts or replaces required-evidence keys for one workflow stage.
-    ///
-    /// # Errors
-    ///
-    /// Returns a control error when the stage id or any required-evidence key
-    /// is blank.
-    pub fn insert_stage_evidence<I, S>(
-        &mut self,
-        stage_id: impl Into<String>,
-        required_evidence: I,
-    ) -> ControlResult<()>
-    where
-        I: IntoIterator<Item = S>,
-        S: Into<String>,
-    {
-        let stage_id = StepId::new(stage_id)?;
-        let required_evidence = normalize_required_evidence(required_evidence)?;
-        self.required_by_stage.insert(stage_id, required_evidence);
-        Ok(())
-    }
-
-    fn required_evidence_for(&self, step_id: &StepId) -> Vec<String> {
-        self.required_by_stage
-            .get(step_id)
-            .cloned()
-            .unwrap_or_default()
-    }
 }
 
 /// Managed recorder for workflow trace control projections.
@@ -194,13 +124,13 @@ impl<'ledger> WorkflowControlRecorder<'ledger> {
             }
         }
         let terminal_status = workflow_trace_terminal_status(trace);
-        let records = workflow_trace_to_control_events_with_optional_required_evidence(
-            trace,
-            self.required_evidence,
-        )?
-        .into_iter()
-        .map(|event| self.ledger.append_event(event))
-        .collect::<ControlResult<Vec<_>>>()?;
+        let records = record_workflow_trace_projection(
+            self.ledger,
+            workflow_trace_to_control_projection_with_optional_required_evidence(
+                trace,
+                self.required_evidence,
+            )?,
+        )?;
         let run_view = self.ledger.load_run_view(&run_id)?;
         Ok(WorkflowControlRecordingOutcome {
             run_id,
@@ -218,7 +148,7 @@ impl<'ledger> WorkflowControlRecorder<'ledger> {
 ///
 /// Returns a control error when the workflow id or any stage id is blank.
 pub fn workflow_trace_to_control_events(trace: &WorkflowTrace) -> ControlResult<Vec<ControlEvent>> {
-    workflow_trace_to_control_events_with_optional_required_evidence(trace, None)
+    workflow_trace_to_control_projection_with_optional_required_evidence(trace, None)?.into_events()
 }
 
 /// Maps a workflow trace into control-plane events with stage evidence requirements.
@@ -231,74 +161,43 @@ pub fn workflow_trace_to_control_events_with_required_evidence(
     trace: &WorkflowTrace,
     required_evidence: &WorkflowControlEvidenceRequirements,
 ) -> ControlResult<Vec<ControlEvent>> {
-    workflow_trace_to_control_events_with_optional_required_evidence(trace, Some(required_evidence))
+    workflow_trace_to_control_projection_with_optional_required_evidence(
+        trace,
+        Some(required_evidence),
+    )?
+    .into_events()
 }
 
-fn workflow_trace_to_control_events_with_optional_required_evidence(
+fn workflow_trace_to_control_projection_with_optional_required_evidence(
     trace: &WorkflowTrace,
     required_evidence: Option<&WorkflowControlEvidenceRequirements>,
-) -> ControlResult<Vec<ControlEvent>> {
+) -> ControlResult<WorkflowTraceProjectionRecord> {
     let run_id = RunId::new(trace.workflow_id.clone())?;
     validate_required_evidence_trace_coverage(trace, required_evidence)?;
     let started_at_ms = trace
         .stages
         .first()
         .map_or(0, |stage| stage.started_unix_ms);
-    let mut events = vec![
-        ControlEvent::run(
-            run_id.clone(),
-            started_at_ms,
-            ControlEventKind::RunCreated {
-                intent: format!("workflow:{}", trace.workflow_id),
-                budget: None,
-                metadata: json!({
-                    "source": WORKFLOW_KERNEL_SOURCE,
-                    "stageCount": trace.stages.len(),
-                }),
-            },
-        ),
-        ControlEvent::run(run_id.clone(), started_at_ms, ControlEventKind::RunAdmitted),
-        ControlEvent::run(
-            run_id.clone(),
-            started_at_ms,
-            ControlEventKind::PlanRecorded {
-                summary: format!("Workflow trace with {} stage(s)", trace.stages.len()),
-            },
-        ),
-    ];
-
-    for stage in &trace.stages {
-        append_stage_events(&mut events, &run_id, stage, required_evidence)?;
-    }
-
-    let terminal_at_ms = trace
-        .stages
-        .last()
-        .map_or(started_at_ms, stage_terminal_at_ms);
-    if let Some(failed_stage) = trace
+    let stages = trace
         .stages
         .iter()
-        .find(|stage| stage.status == WorkflowStageStatus::Failed)
-    {
-        events.push(ControlEvent::run(
-            run_id,
-            terminal_at_ms,
-            ControlEventKind::RunFailed {
-                message: failed_stage
-                    .error
-                    .clone()
-                    .unwrap_or_else(|| "workflow stage failed".to_owned()),
-            },
-        ));
-    } else {
-        events.push(ControlEvent::run(
-            run_id,
-            terminal_at_ms,
-            ControlEventKind::RunCompleted,
-        ));
-    }
+        .map(|stage| workflow_stage_to_control_projection(stage, required_evidence))
+        .collect::<ControlResult<Vec<_>>>()?;
 
-    Ok(events)
+    Ok(WorkflowTraceProjectionRecord::new(
+        run_id,
+        format!("workflow:{}", trace.workflow_id),
+        started_at_ms,
+    )
+    .with_metadata(json!({
+        "source": WORKFLOW_KERNEL_SOURCE,
+        "stageCount": trace.stages.len(),
+    }))
+    .with_plan_summary(format!(
+        "Workflow trace with {} stage(s)",
+        trace.stages.len()
+    ))
+    .with_stages(stages))
 }
 
 /// Maps a workflow trace into sequence-numbered control records for immediate replay.
@@ -378,64 +277,38 @@ pub fn record_workflow_trace_to_control_ledger_with_required_evidence(
         .map(|outcome| outcome.records)
 }
 
-fn append_stage_events(
-    events: &mut Vec<ControlEvent>,
-    run_id: &RunId,
+fn workflow_stage_to_control_projection(
     stage: &WorkflowStageTrace,
     required_evidence: Option<&WorkflowControlEvidenceRequirements>,
-) -> ControlResult<()> {
+) -> ControlResult<WorkflowTraceProjectionStage> {
     let step_id = StepId::new(stage.stage_id.clone())?;
     let terminal_at_ms = stage_terminal_at_ms(stage);
     let required_evidence = required_evidence
-        .map(|requirements| requirements.required_evidence_for(&step_id))
+        .map(|requirements| requirements.required_evidence_for_step(&step_id))
         .unwrap_or_default();
-    events.push(ControlEvent::step(
-        run_id.clone(),
-        step_id.clone(),
-        stage.started_unix_ms,
-        ControlEventKind::StepCreated {
-            title: stage.stage_id.clone(),
-            required_evidence,
-            budget: None,
-        },
-    ));
-    events.push(ControlEvent::step(
-        run_id.clone(),
-        step_id.clone(),
-        stage.started_unix_ms,
-        ControlEventKind::StepStarted,
-    ));
-    events.push(ControlEvent::step(
-        run_id.clone(),
-        step_id.clone(),
-        terminal_at_ms,
-        ControlEventKind::ToolCallRecorded {
-            tool_name: WORKFLOW_STAGE_TOOL_NAME.to_owned(),
-            metadata: stage_metadata(stage),
-        },
-    ));
-    match stage.status {
-        WorkflowStageStatus::Succeeded => events.push(ControlEvent::step(
-            run_id.clone(),
+    let projection = match stage.status {
+        WorkflowStageStatus::Succeeded => WorkflowTraceProjectionStage::succeeded(
             step_id,
+            stage.stage_id.clone(),
+            stage.started_unix_ms,
             terminal_at_ms,
-            ControlEventKind::StepSucceeded,
-        )),
-        WorkflowStageStatus::Failed => events.push(ControlEvent::step(
-            run_id.clone(),
+            WORKFLOW_STAGE_TOOL_NAME,
+            stage_metadata(stage),
+        ),
+        WorkflowStageStatus::Failed => WorkflowTraceProjectionStage::failed(
             step_id,
+            stage.stage_id.clone(),
+            stage.started_unix_ms,
             terminal_at_ms,
-            ControlEventKind::StepFailed {
-                error_code: "workflow_stage_failed".to_owned(),
-                message: stage
-                    .error
-                    .clone()
-                    .unwrap_or_else(|| "workflow stage failed".to_owned()),
-                retryable: false,
-            },
-        )),
-    }
-    Ok(())
+            WORKFLOW_STAGE_TOOL_NAME,
+            stage_metadata(stage),
+            stage
+                .error
+                .clone()
+                .unwrap_or_else(|| "workflow stage failed".to_owned()),
+        ),
+    };
+    Ok(projection.with_required_evidence(required_evidence))
 }
 
 fn workflow_trace_terminal_status(trace: &WorkflowTrace) -> RunStatus {
@@ -462,41 +335,6 @@ fn stage_metadata(stage: &WorkflowStageTrace) -> serde_json::Value {
     })
 }
 
-fn normalize_required_evidence<I, S>(required_evidence: I) -> ControlResult<Vec<String>>
-where
-    I: IntoIterator<Item = S>,
-    S: Into<String>,
-{
-    required_evidence
-        .into_iter()
-        .try_fold(Vec::new(), |normalized, key| {
-            Ok(append_unique_required_evidence_key(
-                normalized,
-                normalize_required_evidence_key(key)?,
-            ))
-        })
-}
-
-fn normalize_required_evidence_key<S>(key: S) -> ControlResult<String>
-where
-    S: Into<String>,
-{
-    let key = key.into().trim().to_owned();
-    if key.is_empty() {
-        return Err(ControlError::BlankId {
-            field: "required_evidence",
-        });
-    }
-    Ok(key)
-}
-
-fn append_unique_required_evidence_key(mut normalized: Vec<String>, key: String) -> Vec<String> {
-    if !normalized.iter().any(|existing| existing == &key) {
-        normalized.push(key);
-    }
-    normalized
-}
-
 fn validate_required_evidence_trace_coverage(
     trace: &WorkflowTrace,
     required_evidence: Option<&WorkflowControlEvidenceRequirements>,
@@ -504,7 +342,7 @@ fn validate_required_evidence_trace_coverage(
     let Some(required_evidence) = required_evidence else {
         return Ok(());
     };
-    for stage_id in required_evidence.required_by_stage.keys() {
+    for stage_id in required_evidence.step_ids() {
         if !trace
             .stages
             .iter()

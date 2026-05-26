@@ -89,6 +89,10 @@ pub mod image_audit;
 /// Standalone image attachment shard planning and materialization.
 pub mod image_shards;
 
+#[cfg(feature = "legacy-office")]
+/// Legacy Microsoft Office attachment extraction through the Rust parser stack.
+pub mod legacy_office;
+
 #[doc(hidden)]
 pub mod pdf;
 

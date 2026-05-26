@@ -1,6 +1,11 @@
+//! Typed `qianji-server` to Flowhub activity scheduling request models.
+
 use std::path::Path;
 
 use xiuxian_qianji_control::RunId;
+use xiuxian_qianji_runtime::{
+    FlowhubScenarioIdRef, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+};
 
 use crate::bpmn::QianjiBpmnPendingHostWorkHttpResponse;
 
@@ -11,11 +16,11 @@ pub struct FlowhubServiceActivityHttpScheduleInput<'a> {
     /// Owning Qianji control-plane run id.
     pub run_id: &'a RunId,
     /// Schedule timestamp supplied by the caller.
-    pub occurred_at_ms: u64,
+    pub occurred_at_ms: QianjiRuntimeInstantMs,
     /// Flowhub scenario id, for example `agent-coding`.
-    pub scenario_id: &'a str,
+    pub scenario_id: FlowhubScenarioIdRef<'a>,
     /// BPMN workflow instance id.
-    pub instance_id: &'a str,
+    pub instance_id: QianjiRuntimeBpmnInstanceIdRef<'a>,
     /// Source BPMN document path used by the workflow route.
     pub bpmn_source: &'a Path,
     /// Pending BPMN host work returned by qianji-server HTTP snapshots.

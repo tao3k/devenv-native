@@ -3,20 +3,18 @@
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, BinaryArray};
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 
 use crate::integration_support::search_strategy_flow_candidates::SearchStrategyFlowCandidateInputBatch;
 
 use super::constants::{
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ARROW_IPC_MIME,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_BRANCH_JUDGEMENTS_PAYLOAD_COLUMN,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_METHOD,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ONTOLOGY_REGISTRY_PAYLOAD_COLUMN,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_QUERY_UNDERSTANDING_PAYLOAD_COLUMN,
+    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ARROW_IPC_MIME, WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_METHOD,
     WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_REQUEST_BUNDLE_TABLE,
     WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_SCHEMA_VERSION, WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_SERVICE,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_CANDIDATES_PAYLOAD_COLUMN,
+};
+use super::contract::{
+    search_strategy_flow_request_bundle_schema, validate_search_strategy_flow_request_bundle_batch,
+    validate_search_strategy_flow_request_payload_stream,
 };
 
 /// Optional Arrow IPC side-table payloads for one `SearchStrategyFlow` service request.
@@ -101,6 +99,13 @@ pub fn build_search_strategy_flow_service_arrow_request(
     validate_optional_payload("query_understanding", options.query_understanding.as_ref())?;
     validate_optional_payload("ontology_registry", options.ontology_registry.as_ref())?;
     validate_optional_payload("branch_judgements", options.branch_judgements.as_ref())?;
+    validate_search_strategy_flow_request_payload_stream(
+        "strategy_candidates_request",
+        candidate_batch.candidate_input_arrow_ipc_stream.as_slice(),
+    )?;
+    validate_optional_request_payload("query_understanding", options.query_understanding.as_ref())?;
+    validate_optional_request_payload("ontology_registry", options.ontology_registry.as_ref())?;
+    validate_optional_request_payload("branch_judgements", options.branch_judgements.as_ref())?;
 
     Ok(SearchStrategyFlowServiceArrowRequest {
         schema_version: WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_SCHEMA_VERSION,
@@ -123,29 +128,7 @@ pub fn build_search_strategy_flow_service_arrow_request(
 pub fn build_search_strategy_flow_service_flight_request_batch(
     request: &SearchStrategyFlowServiceArrowRequest,
 ) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new_with_metadata(
-        vec![
-            Field::new(
-                WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_CANDIDATES_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_QUERY_UNDERSTANDING_PAYLOAD_COLUMN,
-                DataType::Binary,
-                true,
-            ),
-            Field::new(
-                WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_ONTOLOGY_REGISTRY_PAYLOAD_COLUMN,
-                DataType::Binary,
-                true,
-            ),
-            Field::new(
-                WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_BRANCH_JUDGEMENTS_PAYLOAD_COLUMN,
-                DataType::Binary,
-                true,
-            ),
-        ],
+    let schema = Arc::new(search_strategy_flow_request_bundle_schema(
         [
             (
                 "wendao.service".to_string(),
@@ -168,7 +151,7 @@ pub fn build_search_strategy_flow_service_flight_request_batch(
         .collect(),
     ));
 
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         schema,
         vec![
             required_binary(request.strategy_candidates_payload.as_slice()),
@@ -177,7 +160,9 @@ pub fn build_search_strategy_flow_service_flight_request_batch(
             optional_binary(request.branch_judgements_payload.as_deref()),
         ],
     )
-    .map_err(|error| format!("build SearchStrategyFlow Flight request bundle: {error}"))
+    .map_err(|error| format!("build SearchStrategyFlow Flight request bundle: {error}"))?;
+    validate_search_strategy_flow_request_bundle_batch(&batch)?;
+    Ok(batch)
 }
 
 fn required_binary(payload: &[u8]) -> ArrayRef {
@@ -193,6 +178,16 @@ fn validate_optional_payload(label: &str, payload: Option<&Vec<u8>>) -> Result<(
         return Err(format!(
             "SearchStrategyFlow optional `{label}` Arrow IPC payload must not be empty"
         ));
+    }
+    Ok(())
+}
+
+fn validate_optional_request_payload(
+    table_name: &str,
+    payload: Option<&Vec<u8>>,
+) -> Result<(), String> {
+    if let Some(payload) = payload {
+        validate_search_strategy_flow_request_payload_stream(table_name, payload.as_slice())?;
     }
     Ok(())
 }

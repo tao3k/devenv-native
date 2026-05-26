@@ -58,7 +58,7 @@ def test_known_docling_source_suffixes_cover_common_document_formats() -> None:
     assert {
         "PDF",
         "DOCX",
-        "DOC (via legacy Office pre-conversion)",
+        "DOC (via Rust gateway legacy Office parser)",
         "XLSX",
         "PPTX",
         "HTML",

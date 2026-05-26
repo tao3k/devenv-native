@@ -1,7 +1,13 @@
 mod activity;
 mod agent;
+mod batch;
+mod event_builder;
 mod heartbeat;
+mod observation;
 mod recovery;
+mod run;
 mod schedule;
 mod signal_timer;
+mod step_lifecycle;
 mod step_queue;
+mod workflow_trace_projection;

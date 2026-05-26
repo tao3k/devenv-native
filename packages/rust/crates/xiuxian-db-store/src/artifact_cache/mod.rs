@@ -23,9 +23,9 @@ pub use backend::{
     ArtifactBlobCacheBackendConfig, ArtifactCacheBackendKind,
 };
 pub use blob::{
-    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobFetchStatus,
-    ArtifactBlobRead, ArtifactBlobReadStatus, ArtifactBlobWrite, ArtifactBlobWriteOutcome,
-    ArtifactBytes,
+    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobFetchParts,
+    ArtifactBlobFetchStatus, ArtifactBlobRead, ArtifactBlobReadStatus, ArtifactBlobWrite,
+    ArtifactBlobWriteOutcome, ArtifactBytes,
 };
 pub use directory_bundle::{pack_artifact_directory, unpack_artifact_directory};
 pub use error::ArtifactCacheError;

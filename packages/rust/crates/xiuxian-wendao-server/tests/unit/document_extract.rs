@@ -1,6 +1,7 @@
 use xiuxian_wendao_server::transport::{
-    DocumentExtractMode, decode_document_extract_source_path_utf8_hex,
-    encode_document_extract_source_path_utf8_hex,
+    DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE, DocumentExtractMode,
+    decode_document_extract_source_path_utf8_hex, encode_document_extract_source_path_utf8_hex,
+    normalize_document_extract_profile,
 };
 
 #[test]
@@ -37,4 +38,17 @@ fn document_extract_source_path_utf8_hex_roundtrips_non_ascii_paths() {
         decode_document_extract_source_path_utf8_hex(encoded.as_str()),
         Ok(source_path.to_string())
     );
+}
+
+#[test]
+fn document_extract_profile_parses_hosted_vlm_image_profile() -> Result<(), String> {
+    assert_eq!(
+        normalize_document_extract_profile("hosted-vlm-image-extract-v1")?,
+        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
+    );
+    assert_eq!(
+        normalize_document_extract_profile("image-vlm")?,
+        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
+    );
+    Ok(())
 }

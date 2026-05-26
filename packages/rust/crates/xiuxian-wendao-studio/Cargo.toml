@@ -19,6 +19,7 @@ studio = [
 ]
 zhenfa-router = [
   "studio",
+  "xiuxian-db-store/artifact-cache",
   "xiuxian-wendao/zhenfa-router",
   "xiuxian-zhenfa/gateway",
 ]
@@ -136,6 +137,13 @@ document-extract-attachment-audit = [
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao/document-extract-attachment-audit",
   "xiuxian-wendao-attachments/archive-audit",
+]
+document-extract-legacy-office = [
+  "studio",
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-db-store/artifact-cache",
+  "xiuxian-db-store/arrow-codec",
+  "xiuxian-wendao-attachments/legacy-office",
 ]
 document-extract-audio-shards = [
   "studio",

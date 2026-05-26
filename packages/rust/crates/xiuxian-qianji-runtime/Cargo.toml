@@ -9,8 +9,9 @@ publish = false
 
 [dependencies]
 async-trait = { workspace = true }
-xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
 serde_json = { workspace = true }
+sha2 = { workspace = true }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 
 [dev-dependencies]

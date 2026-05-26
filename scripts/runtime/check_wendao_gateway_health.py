@@ -8,10 +8,12 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 GATEWAY_PROCESS_ID_HEADER = "x-wendao-process-id"
 EXPECTED_HEALTH_STATUS = 200
@@ -198,6 +200,56 @@ def is_gateway_healthy(
     return True, "healthy"
 
 
+def is_transient_healthcheck_failure(message: str) -> bool:
+    if "health endpoint unreachable" not in message:
+        return False
+    transient_markers = (
+        "Can't assign requested address",
+        "Connection refused",
+        "Operation timed out",
+        "timed out",
+        "Temporary failure",
+    )
+    return any(marker in message for marker in transient_markers)
+
+
+def is_gateway_healthy_with_retries(
+    *,
+    host: str,
+    port: int,
+    pidfile: Path,
+    logfile: Path,
+    timeout_secs: float,
+    attempts: int,
+    retry_delay_secs: float,
+    opener: Opener = urllib.request.urlopen,
+    pid_exists: ProcessExists = process_exists,
+    process_command_for_pid: ProcessCommand = process_command,
+    sleeper: Callable[[float], None] = time.sleep,
+) -> tuple[bool, str]:
+    normalized_attempts = max(1, attempts)
+    for attempt_index in range(normalized_attempts):
+        healthy, message = is_gateway_healthy(
+            host=host,
+            port=port,
+            pidfile=pidfile,
+            logfile=logfile,
+            timeout_secs=timeout_secs,
+            opener=opener,
+            pid_exists=pid_exists,
+            process_command_for_pid=process_command_for_pid,
+        )
+        if (
+            healthy
+            or attempt_index + 1 >= normalized_attempts
+            or not is_transient_healthcheck_failure(message)
+        ):
+            return healthy, message
+        sleeper(max(0.0, retry_delay_secs))
+
+    return False, "gateway healthcheck retry loop ended unexpectedly"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Check Wendao gateway readiness against health and Flight routes"
@@ -222,14 +274,28 @@ def main() -> int:
         default=2.0,
         help="Per-request timeout in seconds",
     )
+    parser.add_argument(
+        "--attempts",
+        type=int,
+        default=1,
+        help="Health request attempts inside one process-compose probe",
+    )
+    parser.add_argument(
+        "--retry-delay-secs",
+        type=float,
+        default=0.2,
+        help="Delay between transient health request failures",
+    )
     args = parser.parse_args()
 
-    healthy, message = is_gateway_healthy(
+    healthy, message = is_gateway_healthy_with_retries(
         host=args.host,
         port=args.port,
         pidfile=args.pidfile,
         logfile=args.logfile,
         timeout_secs=args.timeout_secs,
+        attempts=args.attempts,
+        retry_delay_secs=args.retry_delay_secs,
     )
     if healthy:
         print(message)

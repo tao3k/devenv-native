@@ -7,27 +7,18 @@ use arrow::array::{
     Array, BooleanArray, Float64Array, Int32Array, ListArray, ListBuilder, StringArray,
     StringBuilder,
 };
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
 use crate::JuliaContractKind;
 
 use super::graph_structural::{
-    GRAPH_STRUCTURAL_ACCEPTED_COLUMN, GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN,
-    GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN,
-    GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_EDGE_SOURCES_COLUMN,
-    GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_NODE_IDS_COLUMN,
-    GRAPH_STRUCTURAL_CONSTRAINT_KIND_COLUMN, GRAPH_STRUCTURAL_DEPENDENCY_SCORE_COLUMN,
-    GRAPH_STRUCTURAL_EDGE_CONSTRAINT_KINDS_COLUMN, GRAPH_STRUCTURAL_EXPLANATION_COLUMN,
-    GRAPH_STRUCTURAL_FEASIBLE_COLUMN, GRAPH_STRUCTURAL_FILTER_REQUEST_COLUMNS,
-    GRAPH_STRUCTURAL_FINAL_SCORE_COLUMN, GRAPH_STRUCTURAL_KEYWORD_SCORE_COLUMN,
-    GRAPH_STRUCTURAL_PIN_ASSIGNMENT_COLUMN, GRAPH_STRUCTURAL_QUERY_ID_COLUMN,
-    GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN, GRAPH_STRUCTURAL_REJECTION_REASON_COLUMN,
-    GRAPH_STRUCTURAL_REQUIRED_BOUNDARY_SIZE_COLUMN, GRAPH_STRUCTURAL_RERANK_REQUEST_COLUMNS,
-    GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN, GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
-    GRAPH_STRUCTURAL_STRUCTURAL_SCORE_COLUMN, GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
-    GraphStructuralRouteKind, validate_graph_structural_filter_request_batch,
+    GRAPH_STRUCTURAL_ACCEPTED_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN,
+    GRAPH_STRUCTURAL_EXPLANATION_COLUMN, GRAPH_STRUCTURAL_FEASIBLE_COLUMN,
+    GRAPH_STRUCTURAL_FINAL_SCORE_COLUMN, GRAPH_STRUCTURAL_PIN_ASSIGNMENT_COLUMN,
+    GRAPH_STRUCTURAL_REJECTION_REASON_COLUMN, GRAPH_STRUCTURAL_STRUCTURAL_SCORE_COLUMN,
+    GraphStructuralRouteKind, graph_structural_filter_request_schema,
+    graph_structural_rerank_request_schema, validate_graph_structural_filter_request_batch,
     validate_graph_structural_filter_response_batch,
     validate_graph_structural_rerank_request_batch,
     validate_graph_structural_rerank_response_batch,
@@ -154,7 +145,7 @@ pub fn build_graph_structural_rerank_request_batch(
     rows: &[GraphStructuralRerankRequestRow],
 ) -> Result<RecordBatch, RepoIntelligenceError> {
     let batch = RecordBatch::try_new(
-        graph_structural_rerank_request_schema(),
+        Arc::new(graph_structural_rerank_request_schema()),
         vec![
             Arc::new(StringArray::from(
                 rows.iter()
@@ -238,7 +229,7 @@ pub fn build_graph_structural_filter_request_batch(
     rows: &[GraphStructuralFilterRequestRow],
 ) -> Result<RecordBatch, RepoIntelligenceError> {
     let batch = RecordBatch::try_new(
-        graph_structural_filter_request_schema(),
+        Arc::new(graph_structural_filter_request_schema()),
         vec![
             Arc::new(StringArray::from(
                 rows.iter()
@@ -596,66 +587,6 @@ pub async fn fetch_graph_structural_filter_rows_for_repository(
     )
     .await?;
     decode_graph_structural_filter_score_rows(response_batches.as_slice())
-}
-
-fn graph_structural_rerank_request_schema() -> Arc<Schema> {
-    debug_assert_eq!(GRAPH_STRUCTURAL_RERANK_REQUEST_COLUMNS.len(), 15);
-    Arc::new(Schema::new(vec![
-        utf8_field(GRAPH_STRUCTURAL_QUERY_ID_COLUMN),
-        utf8_field(GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN),
-        int32_field(GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN),
-        int32_field(GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN),
-        float64_field(GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN),
-        float64_field(GRAPH_STRUCTURAL_DEPENDENCY_SCORE_COLUMN),
-        float64_field(GRAPH_STRUCTURAL_KEYWORD_SCORE_COLUMN),
-        float64_field(GRAPH_STRUCTURAL_TAG_SCORE_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_EDGE_CONSTRAINT_KINDS_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_NODE_IDS_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_EDGE_SOURCES_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN),
-    ]))
-}
-
-fn graph_structural_filter_request_schema() -> Arc<Schema> {
-    debug_assert_eq!(GRAPH_STRUCTURAL_FILTER_REQUEST_COLUMNS.len(), 13);
-    Arc::new(Schema::new(vec![
-        utf8_field(GRAPH_STRUCTURAL_QUERY_ID_COLUMN),
-        utf8_field(GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN),
-        int32_field(GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN),
-        int32_field(GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN),
-        utf8_field(GRAPH_STRUCTURAL_CONSTRAINT_KIND_COLUMN),
-        int32_field(GRAPH_STRUCTURAL_REQUIRED_BOUNDARY_SIZE_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_EDGE_CONSTRAINT_KINDS_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_NODE_IDS_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_EDGE_SOURCES_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN),
-        list_utf8_field(GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN),
-    ]))
-}
-
-fn utf8_field(name: &str) -> Field {
-    Field::new(name, DataType::Utf8, false)
-}
-
-fn int32_field(name: &str) -> Field {
-    Field::new(name, DataType::Int32, false)
-}
-
-fn float64_field(name: &str) -> Field {
-    Field::new(name, DataType::Float64, false)
-}
-
-fn list_utf8_field(name: &str) -> Field {
-    Field::new(
-        name,
-        DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
-        false,
-    )
 }
 
 fn build_utf8_list_array<'a>(rows: impl IntoIterator<Item = &'a [String]>) -> ListArray {

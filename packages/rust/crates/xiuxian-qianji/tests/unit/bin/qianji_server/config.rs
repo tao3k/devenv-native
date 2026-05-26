@@ -15,6 +15,7 @@ fn qianji_server_valkey_url_overrides_runtime_checkpoint_store() {
         valkey_url: Some("redis://127.0.0.1:6382/0".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let service = build_workflow_control_service(&command);
     let store = must_ok(
@@ -44,6 +45,7 @@ valkey_url = "redis://127.0.0.1:6383/0"
         valkey_url: None,
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let valkey_url = must_ok(
         resolve_qianji_server_valkey_url_with_env(
@@ -74,6 +76,7 @@ valkey_url = "redis://127.0.0.1:6383/0"
         valkey_url: Some("redis://127.0.0.1:6384/0".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let valkey_url = must_ok(
         resolve_qianji_server_valkey_url_with_env(
@@ -104,6 +107,7 @@ bind_addr = "127.0.0.1:38131"
         valkey_url: None,
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let bind_addr = must_ok(
         resolve_qianji_server_bind_addr_with_env(
@@ -134,6 +138,7 @@ bind_addr = "127.0.0.1:38131"
         valkey_url: None,
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let bind_addr = must_ok(
         resolve_qianji_server_bind_addr_with_env(
@@ -164,6 +169,7 @@ require_valkey_ready = true
         valkey_url: None,
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let require_valkey_ready = must_ok(
         resolve_qianji_server_require_valkey_ready_with_env(
@@ -194,6 +200,7 @@ require_valkey_ready = true
         valkey_url: None,
         require_valkey_ready: Some(false),
         flowhub_root: None,
+        control_ledger_path: None,
     };
     let require_valkey_ready = must_ok(
         resolve_qianji_server_require_valkey_ready_with_env(

@@ -260,9 +260,11 @@ fn flowhub_service_activity_adapter_accepts_http_pending_work() -> Result<(), Bo
     let record = build_flowhub_service_activity_schedule_record_from_http_pending_work(
         FlowhubServiceActivityHttpScheduleInput {
             run_id: &run_id,
-            occurred_at_ms: 42,
-            scenario_id: "agent-coding",
-            instance_id: "flowhub_agent_coding_service_boundary",
+            occurred_at_ms: QianjiRuntimeInstantMs::from_millis(42),
+            scenario_id: FlowhubScenarioIdRef::new("agent-coding"),
+            instance_id: QianjiRuntimeBpmnInstanceIdRef::new(
+                "flowhub_agent_coding_service_boundary",
+            ),
             bpmn_source: Path::new("qianji-flowhub/plan/agent-coding.bpmn"),
             pending_work: &http_work,
         },

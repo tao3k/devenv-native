@@ -1,8 +1,12 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, WENDAO_TABLE_METADATA_KEY,
+    build_arrow_schema, validate_record_batch_schema,
+};
 
 use super::types::{Column, ColumnDataType, ProjectionStateRow, Row, required_value};
 
@@ -56,15 +60,13 @@ pub(super) fn relation_batch(rows: &[Row]) -> Result<RecordBatch, String> {
 }
 
 pub(super) fn projection_state_batch(rows: &[ProjectionStateRow]) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new(
-        SEMANTIC_PROJECTION_STATE_COLUMNS
-            .iter()
-            .map(|column| Field::new(column.name, column.arrow_data_type(), false))
-            .collect::<Vec<_>>(),
-    ));
+    let contract = table_contract(
+        "semantic_projection_state",
+        SEMANTIC_PROJECTION_STATE_COLUMNS,
+    );
 
-    RecordBatch::try_new(
-        schema,
+    let batch = RecordBatch::try_new(
+        schema_for_contract(&contract),
         vec![
             strings(rows.iter().map(|row| row.projection.as_str())),
             strings(rows.iter().map(|row| row.status.as_str())),
@@ -74,34 +76,35 @@ pub(super) fn projection_state_batch(rows: &[ProjectionStateRow]) -> Result<Reco
             ints(rows.iter().map(|row| row.source_evidence_count)),
         ],
     )
-    .map_err(|error| format!("build structural facts `semantic_projection_state` batch: {error}"))
+    .map_err(|error| {
+        format!("build structural facts `semantic_projection_state` batch: {error}")
+    })?;
+    validate_batch_schema(&batch, &contract)?;
+    Ok(batch)
 }
 
 fn rows_to_batch(
-    table_name: &str,
+    table_name: &'static str,
     columns: &[Column],
     rows: &[Row],
 ) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new(
-        columns
-            .iter()
-            .map(|column| Field::new(column.name, column.arrow_data_type(), false))
-            .collect::<Vec<_>>(),
-    ));
+    let contract = table_contract(table_name, columns);
     let arrays = columns
         .iter()
         .map(|column| column.array_from_rows(table_name, rows))
         .collect::<Result<Vec<_>, _>>()?;
 
-    RecordBatch::try_new(schema, arrays)
-        .map_err(|error| format!("build structural facts `{table_name}` batch: {error}"))
+    let batch = RecordBatch::try_new(schema_for_contract(&contract), arrays)
+        .map_err(|error| format!("build structural facts `{table_name}` batch: {error}"))?;
+    validate_batch_schema(&batch, &contract)?;
+    Ok(batch)
 }
 
 impl Column {
-    fn arrow_data_type(self) -> DataType {
+    fn arrow_schema_data_type(self) -> ArrowSchemaDataType {
         match self.data_type {
-            ColumnDataType::String => DataType::Utf8,
-            ColumnDataType::Int64 => DataType::Int64,
+            ColumnDataType::String => ArrowSchemaDataType::Utf8,
+            ColumnDataType::Int64 => ArrowSchemaDataType::Int64,
         }
     }
 
@@ -134,6 +137,40 @@ impl Column {
             }
         }
     }
+}
+
+fn table_contract(table_name: &'static str, columns: &[Column]) -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        table_name,
+        true,
+        columns
+            .iter()
+            .copied()
+            .map(|column| ArrowSchemaColumn::new(column.name, column.arrow_schema_data_type()))
+            .collect(),
+    )
+}
+
+fn schema_for_contract(contract: &ArrowSchemaContract) -> Arc<arrow::datatypes::Schema> {
+    Arc::new(build_arrow_schema(
+        contract,
+        HashMap::from([(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]),
+    ))
+}
+
+fn validate_batch_schema(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
+) -> Result<(), String> {
+    validate_record_batch_schema(batch, contract).map_err(|error| {
+        format!(
+            "build structural facts `{}` batch produced invalid schema: {error}",
+            contract.table_name()
+        )
+    })
 }
 
 fn strings<'a>(values: impl Iterator<Item = &'a str>) -> ArrayRef {

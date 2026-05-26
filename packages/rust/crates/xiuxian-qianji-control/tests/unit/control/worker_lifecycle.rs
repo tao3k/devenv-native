@@ -2,14 +2,107 @@ use std::error::Error;
 use std::io;
 
 use xiuxian_qianji_control::{
-    ActivityId, ActivityJournalWriteStatus, ActivityResult, ActivityStatus, ControlEvent,
-    ControlEventKind, ControlLedger, ErrorCode, InMemoryControlLedger, RunId, StepId,
+    ActivityId, ActivityJournalScope, ActivityJournalWriteStatus, ActivityResult, ActivityStatus,
+    ControlEvent, ControlEventKind, ControlLedger, ErrorCode, InMemoryControlLedger, RunId, StepId,
     WorkerActivityCompletedRecord, WorkerActivityFailedRecord, WorkerActivityFailureInput,
     WorkerActivityStartRecord, WorkerId, record_worker_activity_completed_idempotent,
     record_worker_activity_failed_idempotent, record_worker_activity_started_idempotent,
 };
 
 use crate::control::support::{activity_task, artifact_ref};
+
+#[test]
+fn worker_lifecycle_records_map_to_activity_journal_records() -> Result<(), Box<dyn Error>> {
+    let ledger = InMemoryControlLedger::new();
+    let run_id = RunId::new("run-worker-lifecycle-map")?;
+    let step_id = StepId::new("step-worker-lifecycle-map")?;
+    let activity_id = ActivityId::new("activity-worker-lifecycle-map")?;
+    let worker_id = WorkerId::new("worker-lifecycle-map")?;
+
+    ledger.append_event(ControlEvent::run(
+        run_id.clone(),
+        1,
+        ControlEventKind::RunCreated {
+            intent: "worker lifecycle record mapping".to_owned(),
+            budget: None,
+            metadata: serde_json::Value::Null,
+        },
+    ))?;
+    ledger.append_event(ControlEvent::step(
+        run_id.clone(),
+        step_id.clone(),
+        2,
+        ControlEventKind::StepCreated {
+            title: "Worker mapping".to_owned(),
+            required_evidence: Vec::new(),
+            budget: None,
+        },
+    ))?;
+    ledger.append_event(ControlEvent::step(
+        run_id.clone(),
+        step_id.clone(),
+        3,
+        ControlEventKind::ActivityScheduled {
+            task: activity_task(activity_id.clone())?,
+        },
+    ))?;
+    let worker_task = ledger
+        .load_worker_activity_tasks(&run_id, None)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| io::Error::other("missing worker task"))?;
+
+    let started = WorkerActivityStartRecord::new(worker_task.clone(), worker_id.clone(), 4)
+        .into_activity_started_record();
+    assert!(matches!(
+        started.scope,
+        ActivityJournalScope::Step { step_id: recorded, .. } if recorded == step_id
+    ));
+    assert_eq!(started.worker_id.as_ref(), Some(&worker_id));
+    assert_eq!(started.activity_id, activity_id);
+    assert_eq!(started.attempt, 1);
+
+    let completed = WorkerActivityCompletedRecord::new(
+        worker_task.clone(),
+        5,
+        ActivityResult {
+            output_ref: Some(artifact_ref("artifact-worker-lifecycle-map-output")?),
+            output_hash: Some("sha256:worker-lifecycle-map-output".to_owned()),
+            metadata: serde_json::Value::Null,
+        },
+    )
+    .into_activity_completed_record();
+    assert_eq!(completed.activity_id, activity_id);
+    assert_eq!(
+        completed.result.output_hash.as_deref(),
+        Some("sha256:worker-lifecycle-map-output")
+    );
+
+    let failed = WorkerActivityFailedRecord::new(
+        WorkerActivityFailureInput::new(
+            worker_task,
+            ErrorCode::new("mapped_failure")?,
+            "mapped worker failure",
+        )
+        .with_failed_at_ms(6)
+        .with_retryable(true),
+    )
+    .with_metadata(serde_json::json!({"source": "mapping"}))
+    .into_activity_failed_record();
+    assert_eq!(failed.activity_id, activity_id);
+    assert_eq!(failed.failure.attempt, 1);
+    assert!(failed.failure.retryable);
+    assert_eq!(
+        failed
+            .failure
+            .metadata
+            .get("source")
+            .and_then(serde_json::Value::as_str),
+        Some("mapping")
+    );
+
+    Ok(())
+}
 
 #[test]
 fn worker_lifecycle_records_step_task_start_and_completion() -> Result<(), Box<dyn Error>> {
@@ -176,6 +269,70 @@ fn worker_lifecycle_failure_uses_worker_task_attempt() -> Result<(), Box<dyn Err
             .and_then(|failure| failure.metadata.get("provider"))
             .and_then(serde_json::Value::as_str),
         Some("llm.openai")
+    );
+
+    Ok(())
+}
+
+#[test]
+fn worker_lifecycle_checked_failure_rejects_blank_message() -> Result<(), Box<dyn Error>> {
+    let ledger = InMemoryControlLedger::new();
+    let run_id = RunId::new("run-worker-lifecycle-blank-failure")?;
+    let activity_id = ActivityId::new("activity-worker-lifecycle-blank-failure")?;
+    let error_code = ErrorCode::new("blank_failure")?;
+
+    ledger.append_event(ControlEvent::run(
+        run_id.clone(),
+        1,
+        ControlEventKind::RunCreated {
+            intent: "worker lifecycle blank failure guard".to_owned(),
+            budget: None,
+            metadata: serde_json::Value::Null,
+        },
+    ))?;
+    ledger.append_event(ControlEvent::run(
+        run_id.clone(),
+        2,
+        ControlEventKind::ActivityScheduled {
+            task: activity_task(activity_id)?,
+        },
+    ))?;
+    let task = ledger
+        .load_worker_activity_tasks(&run_id, None)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| io::Error::other("missing worker task"))?;
+
+    let Err(input_error) =
+        WorkerActivityFailureInput::try_new(task.clone(), error_code.clone(), " ")
+    else {
+        return Err(io::Error::other("blank worker failure input should fail").into());
+    };
+    assert!(
+        input_error
+            .to_string()
+            .contains("message must not be blank"),
+        "unexpected input error: {input_error}"
+    );
+    let Err(message_error) = WorkerActivityFailureInput::validate_message("\t") else {
+        return Err(io::Error::other("blank worker failure message should fail").into());
+    };
+    assert!(
+        message_error
+            .to_string()
+            .contains("message must not be blank"),
+        "unexpected message error: {message_error}"
+    );
+
+    let unchecked_input = WorkerActivityFailureInput::new(task, error_code, "");
+    let Err(record_error) = WorkerActivityFailedRecord::try_new(unchecked_input) else {
+        return Err(io::Error::other("blank worker failure record should fail").into());
+    };
+    assert!(
+        record_error
+            .to_string()
+            .contains("message must not be blank"),
+        "unexpected record error: {record_error}"
     );
 
     Ok(())

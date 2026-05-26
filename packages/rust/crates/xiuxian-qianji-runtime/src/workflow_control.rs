@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
 use serde_json::Value;
-use xiuxian_qianji_bpmn_engine::{BpmnHostBridge, PendingHostWork};
+use xiuxian_qianji_bpmn_engine::{BpmnHostBridge, PendingHostWork, PendingHostWorkKind};
 
 use crate::{QianjiRuntimeBpmnActivityId, QianjiRuntimeBpmnProcessId, QianjiRuntimeBpmnTokenId};
 
@@ -186,6 +186,19 @@ pub struct QianjiRuntimeWorkflowTaskCompleteRequest<C> {
     pub continue_until_human_boundary: QianjiRuntimeContinueUntilHumanBoundary,
 }
 
+impl<C: Clone> QianjiRuntimeWorkflowTaskCompleteRequest<C> {
+    /// Builds the resume request required before completing this host task.
+    #[must_use]
+    pub fn workflow_resume_request(&self) -> QianjiRuntimeWorkflowResumeRequest<C> {
+        QianjiRuntimeWorkflowResumeRequest {
+            bpmn_source: self.bpmn_source.clone(),
+            dmn_sources: self.dmn_sources.clone(),
+            instance_id: self.instance_id.clone(),
+            checkpoint_backend: self.checkpoint_backend.clone(),
+        }
+    }
+}
+
 /// Runtime status view needed by worker loops.
 #[derive(Debug, Clone, PartialEq)]
 pub struct QianjiRuntimeWorkflowStatusView {
@@ -198,6 +211,34 @@ impl QianjiRuntimeWorkflowStatusView {
     #[must_use]
     pub fn new(pending_host_work: Vec<PendingHostWork>) -> Self {
         Self { pending_host_work }
+    }
+
+    /// Returns the number of checkpoint-derived pending host-work items.
+    #[must_use]
+    pub fn pending_host_work_count(&self) -> usize {
+        self.pending_host_work.len()
+    }
+
+    /// Returns the first pending host-work item matching the requested kind.
+    #[must_use]
+    pub fn first_pending_host_work_by_kind(
+        &self,
+        kind: &PendingHostWorkKind,
+    ) -> Option<&PendingHostWork> {
+        self.pending_host_work
+            .iter()
+            .find(|work| &work.kind == kind)
+    }
+
+    /// Consumes the status view and returns the first matching pending host-work item.
+    #[must_use]
+    pub fn into_first_pending_host_work_by_kind(
+        self,
+        kind: &PendingHostWorkKind,
+    ) -> Option<PendingHostWork> {
+        self.pending_host_work
+            .into_iter()
+            .find(|work| &work.kind == kind)
     }
 }
 

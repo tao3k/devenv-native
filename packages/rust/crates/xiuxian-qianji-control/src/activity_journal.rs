@@ -75,6 +75,24 @@ impl AdmittedActivityScheduleRecord {
             admission,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            run_id,
+            step_id,
+            occurred_at_ms,
+            admission,
+        } = self;
+        let event_kind = ControlEventKind::ActivityScheduled {
+            task: admission.task,
+        };
+        match step_id {
+            Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
+            None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
+        }
+    }
 }
 
 impl AdmittedLlmActivityScheduleRecord {
@@ -104,6 +122,24 @@ impl AdmittedLlmActivityScheduleRecord {
             admission,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            run_id,
+            step_id,
+            occurred_at_ms,
+            admission,
+        } = self;
+        let event_kind = ControlEventKind::ActivityScheduled {
+            task: llm_activity_schedule_task(&admission),
+        };
+        match step_id {
+            Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
+            None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
+        }
+    }
 }
 
 impl AdmittedActivityTaskScheduleRecord {
@@ -131,6 +167,22 @@ impl AdmittedActivityTaskScheduleRecord {
             step_id: Some(step_id),
             occurred_at_ms,
             task,
+        }
+    }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            run_id,
+            step_id,
+            occurred_at_ms,
+            task,
+        } = self;
+        let event_kind = ControlEventKind::ActivityScheduled { task };
+        match step_id {
+            Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
+            None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
         }
     }
 }
@@ -264,6 +316,26 @@ impl ActivityStartedJournalRecord {
         self.worker_id = Some(worker_id);
         self
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            scope,
+            occurred_at_ms,
+            activity_id,
+            worker_id,
+            attempt,
+        } = self;
+        scope.into_event(
+            occurred_at_ms,
+            ControlEventKind::ActivityStarted {
+                activity_id,
+                worker_id,
+                attempt,
+            },
+        )
+    }
 }
 
 /// Named request for recording one activity completion fact.
@@ -294,6 +366,24 @@ impl ActivityCompletedJournalRecord {
             activity_id,
             result,
         }
+    }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            scope,
+            occurred_at_ms,
+            activity_id,
+            result,
+        } = self;
+        scope.into_event(
+            occurred_at_ms,
+            ControlEventKind::ActivityCompleted {
+                activity_id,
+                result,
+            },
+        )
     }
 }
 
@@ -326,6 +416,24 @@ impl ActivityFailedJournalRecord {
             failure,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            scope,
+            occurred_at_ms,
+            activity_id,
+            failure,
+        } = self;
+        scope.into_event(
+            occurred_at_ms,
+            ControlEventKind::ActivityFailed {
+                activity_id,
+                failure,
+            },
+        )
+    }
 }
 
 /// Records an already admitted tool activity as an `ActivityScheduled` event.
@@ -342,20 +450,7 @@ where
     L: ControlLedger + ?Sized,
 {
     request.admission.validate()?;
-    let AdmittedActivityScheduleRecord {
-        run_id,
-        step_id,
-        occurred_at_ms,
-        admission,
-    } = request;
-    let event_kind = ControlEventKind::ActivityScheduled {
-        task: admission.task,
-    };
-    let event = match step_id {
-        Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
-        None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
-    };
-    ledger.append_event(event)
+    ledger.append_event(request.into_event())
 }
 
 /// Records an admitted activity schedule with duplicate and transition guards.
@@ -401,18 +496,7 @@ where
     L: ControlLedger + ?Sized,
 {
     request.task.validate()?;
-    let AdmittedActivityTaskScheduleRecord {
-        run_id,
-        step_id,
-        occurred_at_ms,
-        task,
-    } = request;
-    let event_kind = ControlEventKind::ActivityScheduled { task };
-    let event = match step_id {
-        Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
-        None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
-    };
-    ledger.append_event(event)
+    ledger.append_event(request.into_event())
 }
 
 /// Records an admitted workflow-neutral activity task schedule with duplicate
@@ -459,20 +543,7 @@ where
     L: ControlLedger + ?Sized,
 {
     request.admission.validate()?;
-    let AdmittedLlmActivityScheduleRecord {
-        run_id,
-        step_id,
-        occurred_at_ms,
-        admission,
-    } = request;
-    let event_kind = ControlEventKind::ActivityScheduled {
-        task: llm_activity_schedule_task(&admission),
-    };
-    let event = match step_id {
-        Some(step_id) => ControlEvent::step(run_id, step_id, occurred_at_ms, event_kind),
-        None => ControlEvent::run(run_id, occurred_at_ms, event_kind),
-    };
-    ledger.append_event(event)
+    ledger.append_event(request.into_event())
 }
 
 /// Records an admitted LLM activity schedule with duplicate and transition guards.
@@ -517,21 +588,7 @@ where
     L: ControlLedger + ?Sized,
 {
     validate_started_record(&request)?;
-    let ActivityStartedJournalRecord {
-        scope,
-        occurred_at_ms,
-        activity_id,
-        worker_id,
-        attempt,
-    } = request;
-    ledger.append_event(scope.into_event(
-        occurred_at_ms,
-        ControlEventKind::ActivityStarted {
-            activity_id,
-            worker_id,
-            attempt,
-        },
-    ))
+    ledger.append_event(request.into_event())
 }
 
 /// Records an activity attempt start with duplicate and transition guards.
@@ -583,19 +640,7 @@ where
     L: ControlLedger + ?Sized,
 {
     validate_result(&request.result)?;
-    let ActivityCompletedJournalRecord {
-        scope,
-        occurred_at_ms,
-        activity_id,
-        result,
-    } = request;
-    ledger.append_event(scope.into_event(
-        occurred_at_ms,
-        ControlEventKind::ActivityCompleted {
-            activity_id,
-            result,
-        },
-    ))
+    ledger.append_event(request.into_event())
 }
 
 /// Records an activity completion with duplicate and transition guards.
@@ -643,19 +688,7 @@ where
     L: ControlLedger + ?Sized,
 {
     validate_failure(&request.failure)?;
-    let ActivityFailedJournalRecord {
-        scope,
-        occurred_at_ms,
-        activity_id,
-        failure,
-    } = request;
-    ledger.append_event(scope.into_event(
-        occurred_at_ms,
-        ControlEventKind::ActivityFailed {
-            activity_id,
-            failure,
-        },
-    ))
+    ledger.append_event(request.into_event())
 }
 
 /// Records an activity failure with duplicate and transition guards.

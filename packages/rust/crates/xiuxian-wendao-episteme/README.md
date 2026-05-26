@@ -98,6 +98,9 @@ This crate now writes that first read model as
 `ontology_candidate_evidence.parquet` beside the candidate run. Studio may
 orchestrate the command, but promotion into RDF or SQL remains a later
 review-gated slice.
+Those Parquet table schemas are generated and exact-validated through the
+shared `xiuxian-db-store` Arrow schema contract surface; Episteme still owns
+the candidate row semantics, review status, and ontology-truth policy.
 
 The candidate read-model query gate reads those Parquet files back through the
 Rust Arrow/Parquet boundary and reports row counts, review-status violations,
@@ -144,6 +147,10 @@ structure facts for downstream graph/search readiness, not model-inferred
 ontology truth. The read-model gate rejects duplicate structural ids, missing
 relation endpoints, empty projection state, and any attempt to mark structural
 rows as ontology truth before later Org/RDF promotion slices.
+The structural facts Parquet object and relation schemas are also generated and
+exact-validated through the shared `xiuxian-db-store` Arrow schema contract
+surface, while Episteme keeps ownership of source-contract semantics and
+pre-truth policy.
 
 The structural facts reasoning-packet compiler is the next deterministic
 proposal-input pass. It reads a generated `structural_facts.json`, validates that

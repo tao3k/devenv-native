@@ -35,6 +35,10 @@ pub use search_strategy_flow_flight::{
     wendaograph_search_strategy_flow_provider_selector,
     wendaograph_search_strategy_flow_route_profile_ref,
 };
+#[cfg(test)]
+pub(crate) use search_strategy_flow_flight::{
+    search_strategy_flow_frontier_response_schema, search_strategy_flow_response_bundle_schema,
+};
 pub use service_runtime::JuliaServiceGuard;
 pub(crate) use service_runtime::{
     repo_root, reserve_service_port, wait_for_service_ready_with_attempts,

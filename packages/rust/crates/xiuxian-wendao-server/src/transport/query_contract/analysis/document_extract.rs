@@ -50,6 +50,8 @@ pub const WENDAO_AUDIO_HOSTED_MODEL_HEADER: &str = "x-wendao-audio-hosted-model"
 pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";
 /// Lightweight text-first document extraction profile for chat attachments.
 pub const DOCUMENT_EXTRACT_FAST_TEXT_PROFILE: &str = "fast-text";
+/// Hosted VLM document extraction profile for standalone image attachments.
+pub const DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE: &str = "hosted-vlm-image-extract-v1";
 
 /// Document extraction execution mode decoded from Flight metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -186,6 +188,9 @@ pub fn normalize_document_extract_profile(profile: &str) -> Result<&'static str,
         "" | "default" | "docling" | "full" | "full-docling" => Ok(DOCUMENT_EXTRACT_FULL_PROFILE),
         "attachment" | "attachment-fast-text" | "fast" | "fast_text" | "fast-text" | "text" => {
             Ok(DOCUMENT_EXTRACT_FAST_TEXT_PROFILE)
+        }
+        "hosted-vlm-image-extract-v1" | "image-vlm" | "hosted-image-vlm" => {
+            Ok(DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE)
         }
         other => Err(format!("unsupported document extract profile `{other}`")),
     }

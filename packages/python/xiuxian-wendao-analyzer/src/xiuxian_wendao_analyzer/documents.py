@@ -11,6 +11,7 @@ from .document_extract import (
     extract_pdf_resources,
     extract_pdf_table,
 )
+from .document_profiles import DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
 from .document_types import (
     DOCLING_COMMON_SOURCE_SUFFIXES,
     DOCLING_SUPPORTED_DOCUMENT_FORMATS,
@@ -38,6 +39,7 @@ __all__ = [
     "DOCUMENT_STRUCTURE_ARROW_CACHE_NAME",
     "DOCUMENT_STRUCTURE_SCHEMA",
     "DOCUMENT_STRUCTURE_SCHEMA_VERSION",
+    "DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE",
     "DocumentConverterProtocol",
     "DocumentResourceRow",
     "DocumentStructureBlock",

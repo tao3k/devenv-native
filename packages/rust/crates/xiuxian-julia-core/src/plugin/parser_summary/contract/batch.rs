@@ -10,6 +10,7 @@ use super::columns::JuliaParserSummaryResponseColumns;
 use super::values::{
     julia_parser_summary_request_schema, parser_summary_contract_error,
     parser_summary_request_error, required_utf8_values,
+    validate_julia_parser_summary_request_schema,
 };
 use super::{
     JULIA_PARSER_SUMMARY_REQUEST_ID_COLUMN, JULIA_PARSER_SUMMARY_SOURCE_ID_COLUMN,
@@ -41,6 +42,7 @@ pub(crate) fn build_julia_parser_summary_request_batch(
         ],
     )
     .map_err(|error| parser_summary_request_error(error.to_string()))?;
+    validate_julia_parser_summary_request_schema(&batch)?;
     validate_julia_parser_summary_request_batches(std::slice::from_ref(&batch))?;
     Ok(batch)
 }

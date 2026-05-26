@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use tower::util::ServiceExt;
 use xiuxian_qianji_control::{
-    ControlEvent, ControlEventKind, ControlLedger, InMemoryControlLedger, InMemoryHotStateStore,
-    RunId, record_admitted_activity_task_schedule_idempotent,
+    ControlLedger, InMemoryControlLedger, InMemoryHotStateStore, RunCreatedJournalRecord, RunId,
+    record_admitted_activity_task_schedule_idempotent, record_run_created,
 };
 
 use super::support::{must_ok, write_file};
@@ -23,9 +23,9 @@ use crate::qianji_server_cli::flowhub_worker::{
 };
 use crate::qianji_server_cli::run::{build_qianji_server_router, build_workflow_control_service};
 use crate::{
-    FlowhubServiceActivityHttpScheduleInput, QianjiBpmnHostBridge,
+    FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput, QianjiBpmnHostBridge,
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCheckpointBackend,
-    QianjiBpmnWorkflowHttpState,
+    QianjiBpmnWorkflowHttpState, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
 };
@@ -257,7 +257,6 @@ async fn qianji_server_agent_coding_fixture_worker_bridge_completes_service_chai
     let hot_state = InMemoryHotStateStore::new();
     let run_id = RunId::new(format!("flowhub-agent-coding-{instance_id}"))
         .unwrap_or_else(|error| panic!("run id should build: {error}"));
-    seed_control_run(&ledger, &run_id);
     let output = run_qianji_server_flowhub_service_worker_completion_loop(
         &workflow_state,
         &ledger,
@@ -294,7 +293,7 @@ async fn qianji_server_agent_coding_fixture_worker_bridge_completes_service_chai
             "lint_generated_org",
             "bounded_implementation",
             "record_evidence",
-            "check_generated_surface",
+            "lint_generated_surface",
         ]
     );
     assert!(output.completed_steps.iter().all(|step| step.released));
@@ -312,8 +311,8 @@ async fn qianji_server_agent_coding_fixture_worker_bridge_completes_service_chai
         "final workflow variables should retain validateContract: {body}"
     );
     assert_eq!(
-        body["workflow"]["variables"]["flowhub"]["checkGeneratedSurface"], true,
-        "final workflow variables should retain checkGeneratedSurface: {body}"
+        body["workflow"]["variables"]["flowhub"]["lintGeneratedSurface"], true,
+        "final workflow variables should retain lintGeneratedSurface: {body}"
     );
 }
 
@@ -449,6 +448,7 @@ fn server_command_with_valkey(
         valkey_url: Some(valkey_url),
         require_valkey_ready: None,
         flowhub_root: Some(flowhub_root),
+        control_ledger_path: None,
     }
 }
 
@@ -550,9 +550,9 @@ fn flowhub_worker_task(
     let schedule_record = build_flowhub_service_activity_schedule_record_from_http_pending_work(
         FlowhubServiceActivityHttpScheduleInput {
             run_id: &run_id,
-            occurred_at_ms: 42,
-            scenario_id: "agent-coding",
-            instance_id,
+            occurred_at_ms: QianjiRuntimeInstantMs::from_millis(42),
+            scenario_id: FlowhubScenarioIdRef::new("agent-coding"),
+            instance_id: QianjiRuntimeBpmnInstanceIdRef::new(instance_id),
             bpmn_source: Path::new(source_pair.bpmn_source.as_str()),
             pending_work: &http_work,
         },
@@ -569,17 +569,11 @@ fn flowhub_worker_task(
 }
 
 fn seed_control_run(ledger: &InMemoryControlLedger, run_id: &RunId) {
-    ledger
-        .append_event(ControlEvent::run(
-            run_id.clone(),
-            1,
-            ControlEventKind::RunCreated {
-                intent: "flowhub server worker bridge proof".to_owned(),
-                budget: None,
-                metadata: serde_json::Value::Null,
-            },
-        ))
-        .unwrap_or_else(|error| panic!("control run seed should append: {error}"));
+    record_run_created(
+        ledger,
+        RunCreatedJournalRecord::new(run_id.clone(), "flowhub server worker bridge proof", 1),
+    )
+    .unwrap_or_else(|error| panic!("control run seed should append: {error}"));
 }
 
 async fn workflow_status(router: &Router, instance_id: &str) -> (StatusCode, Value) {

@@ -24,13 +24,35 @@ fi
 
 HOST="$("$PYTHON_BIN" "$PROJECT_ROOT/scripts/runtime/resolve_wendao_document_extract_endpoint.py" --config "$CONFIG_PATH" --field host)"
 PORT="$("$PYTHON_BIN" "$PROJECT_ROOT/scripts/runtime/resolve_wendao_document_extract_endpoint.py" --config "$CONFIG_PATH" --field port)"
+TIMEOUT_SECS="${WENDAO_ANALYZER_HEALTH_TIMEOUT_SECS:-0.5}"
+ATTEMPTS="${WENDAO_ANALYZER_HEALTH_ATTEMPTS:-3}"
+RETRY_DELAY_SECS="${WENDAO_ANALYZER_HEALTH_RETRY_DELAY_SECS:-0.2}"
 
-"$PYTHON_BIN" - "$HOST" "$PORT" <<'PY'
+"$PYTHON_BIN" - "$HOST" "$PORT" "$TIMEOUT_SECS" "$ATTEMPTS" "$RETRY_DELAY_SECS" <<'PY'
 import socket
 import sys
+import time
 
 host = sys.argv[1]
 port = int(sys.argv[2])
-with socket.create_connection((host, port), timeout=2):
-    pass
+timeout_secs = max(0.1, float(sys.argv[3]))
+attempts = max(1, int(sys.argv[4]))
+retry_delay_secs = max(0.0, float(sys.argv[5]))
+last_error = None
+
+for attempt_index in range(attempts):
+    try:
+        with socket.create_connection((host, port), timeout=timeout_secs):
+            raise SystemExit(0)
+    except OSError as error:
+        last_error = error
+    if attempt_index + 1 < attempts:
+        time.sleep(retry_delay_secs)
+
+print(
+    "Error: analyzer endpoint unreachable: "
+    f"{host}:{port} after {attempts} attempt(s): {last_error}",
+    file=sys.stderr,
+)
+raise SystemExit(1)
 PY

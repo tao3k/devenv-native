@@ -1,9 +1,13 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::arrow_schema::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    WENDAO_TABLE_METADATA_KEY, build_arrow_schema, validate_record_batch_schema,
+};
 use crate::duckdb_crate::OptionalExt;
-use crate::duckdb_crate::arrow::{
+use arrow::{
     array::{Int64Array, StringArray},
-    datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
 use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
@@ -15,6 +19,12 @@ use super::{
 };
 
 const WORKFLOW_STATE_LOG_TABLE: &str = "qianji_bpmn_workflow_state_events";
+const WORKFLOW_STATE_SNAPSHOT_ARROW_COLUMNS: [ArrowSchemaColumn; 4] = [
+    ArrowSchemaColumn::new("instance_id", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("sequence", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("updated_at_ms", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("payload_json", ArrowSchemaDataType::Utf8),
+];
 const LOAD_LATEST_WORKFLOW_STATE_EVENT_SQL: &str = "
 SELECT payload_json
 FROM qianji_bpmn_workflow_state_events
@@ -487,14 +497,9 @@ fn workflow_state_snapshots_to_batch<'a>(
         .map(workflow_state_snapshot_columns)
         .collect::<Result<Vec<_>, QianjiBpmnDataStoreError>>()?;
     let count = columns.len();
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("instance_id", DataType::Utf8, false),
-        Field::new("sequence", DataType::Int64, false),
-        Field::new("updated_at_ms", DataType::Int64, false),
-        Field::new("payload_json", DataType::Utf8, false),
-    ]));
+    let contract = workflow_state_snapshot_arrow_contract();
     let batch = RecordBatch::try_new(
-        schema,
+        workflow_state_snapshot_arrow_schema(&contract),
         vec![
             Arc::new(StringArray::from(
                 columns
@@ -526,7 +531,36 @@ fn workflow_state_snapshots_to_batch<'a>(
         operation: "build_workflow_state_snapshot_arrow_batch",
         message: error.to_string(),
     })?;
+    validate_record_batch_schema(&batch, &contract)
+        .map_err(|error| workflow_state_schema_error(&error))?;
     Ok((batch, count))
+}
+
+fn workflow_state_snapshot_arrow_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        WORKFLOW_STATE_LOG_TABLE,
+        true,
+        WORKFLOW_STATE_SNAPSHOT_ARROW_COLUMNS.to_vec(),
+    )
+}
+
+fn workflow_state_snapshot_arrow_schema(
+    contract: &ArrowSchemaContract,
+) -> Arc<arrow::datatypes::Schema> {
+    Arc::new(build_arrow_schema(
+        contract,
+        HashMap::from([(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            WORKFLOW_STATE_LOG_TABLE.to_string(),
+        )]),
+    ))
+}
+
+fn workflow_state_schema_error(error: &ArrowSchemaContractError) -> QianjiBpmnDataStoreError {
+    QianjiBpmnDataStoreError::Storage {
+        operation: "validate_workflow_state_snapshot_arrow_schema",
+        message: error.to_string(),
+    }
 }
 
 struct WorkflowStateSnapshotColumns {

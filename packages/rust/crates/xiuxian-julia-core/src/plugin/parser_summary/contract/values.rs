@@ -5,8 +5,12 @@ use std::sync::Arc;
 use arrow::array::{
     Array, BooleanArray, Int32Array, Int64Array, LargeStringArray, StringArray, StringViewArray,
 };
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::{DataType, Schema};
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, build_arrow_schema,
+    validate_record_batch_schema,
+};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use super::{
@@ -15,19 +19,42 @@ use super::{
 };
 
 pub(super) fn julia_parser_summary_request_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new(
-            JULIA_PARSER_SUMMARY_REQUEST_ID_COLUMN,
-            DataType::Utf8,
-            false,
-        ),
-        Field::new(JULIA_PARSER_SUMMARY_SOURCE_ID_COLUMN, DataType::Utf8, false),
-        Field::new(
-            JULIA_PARSER_SUMMARY_SOURCE_TEXT_COLUMN,
-            DataType::Utf8,
-            false,
-        ),
-    ]))
+    Arc::new(build_arrow_schema(
+        &julia_parser_summary_request_contract(),
+        std::collections::HashMap::new(),
+    ))
+}
+
+pub(super) fn validate_julia_parser_summary_request_schema(
+    batch: &RecordBatch,
+) -> Result<(), RepoIntelligenceError> {
+    validate_record_batch_schema(batch, &julia_parser_summary_request_contract()).map_err(|error| {
+        parser_summary_contract_error(
+            "request",
+            format!("parser-summary request schema drift: {error}"),
+        )
+    })
+}
+
+fn julia_parser_summary_request_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        "julia_parser_summary_request",
+        true,
+        vec![
+            ArrowSchemaColumn::new(
+                JULIA_PARSER_SUMMARY_REQUEST_ID_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            ArrowSchemaColumn::new(
+                JULIA_PARSER_SUMMARY_SOURCE_ID_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            ArrowSchemaColumn::new(
+                JULIA_PARSER_SUMMARY_SOURCE_TEXT_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+        ],
+    )
 }
 
 pub(super) fn column_by_name<'a>(

@@ -1,24 +1,34 @@
+use super::activity_evidence::{
+    QianjiBpmnWorkflowCompletionActivityEvidenceInput,
+    QianjiBpmnWorkflowFailureActivityEvidenceInput, matching_pending_work_for_completion,
+    matching_pending_work_for_failure, now_unix_ms, record_completion_activity_evidence,
+    record_failure_activity_evidence,
+};
 use super::error_api::QianjiBpmnWorkflowHttpError;
 use super::request_api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowStartHttpRequest,
     QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowTaskClaimHttpRequest,
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskFailHttpRequest, QianjiBpmnWorkflowTaskFailureHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpRequest,
 };
 use super::response_api::{
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
 };
 use super::state::QianjiBpmnWorkflowHttpState;
 use crate::bpmn::control::{
-    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowTaskCompleteReport,
-    QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionPayload,
 };
+use crate::bpmn::identity::QianjiBpmnWorkflowInstanceId;
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
+use xiuxian_qianji_control::{ControlLedger, RunId};
 
 pub(super) fn router<H>(state: QianjiBpmnWorkflowHttpState<H>) -> Router
 where
@@ -48,12 +58,28 @@ where
             post(complete_workflow_tasks_batch::<H>),
         )
         .route(
+            "/workflows/{instance_id}/tasks/fail",
+            post(fail_workflow_task::<H>),
+        )
+        .route(
             "/workflows/{instance_id}/tasks/claim",
             post(claim_workflow_task::<H>),
         )
         .route(
             "/workflows/{instance_id}/tasks/release",
             post(release_workflow_task::<H>),
+        )
+        .route(
+            "/control/runs/{run_id}/history",
+            get(load_control_history::<H>),
+        )
+        .route(
+            "/control/runs/{run_id}/summary",
+            get(load_control_summary::<H>),
+        )
+        .route(
+            "/control/runs/{run_id}/recovery",
+            get(load_control_recovery::<H>),
         )
         .with_state(state)
 }
@@ -74,6 +100,74 @@ where
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
     )))
+}
+
+async fn load_control_history<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+) -> Result<Json<QianjiControlHistoryHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let events = ledger
+        .load_events(&run_id)
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    Ok(Json(QianjiControlHistoryHttpResponse::new(
+        run_id.as_str().to_owned(),
+        events,
+    )))
+}
+
+async fn load_control_summary<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+) -> Result<Json<QianjiControlRunSummaryHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let summary = ledger
+        .load_operator_summary(&run_id, now_unix_ms())
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    Ok(Json(QianjiControlRunSummaryHttpResponse::new(summary)))
+}
+
+async fn load_control_recovery<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+) -> Result<Json<QianjiControlRecoveryHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let recovery = ledger
+        .load_recovery_snapshot(&run_id, now_unix_ms())
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    Ok(Json(QianjiControlRecoveryHttpResponse::new(recovery)))
+}
+
+fn control_ledger<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+) -> Result<&dyn ControlLedger, QianjiBpmnWorkflowHttpError> {
+    state.activity_evidence_ledger.as_deref().ok_or_else(|| {
+        QianjiBpmnWorkflowHttpError::service_unavailable(
+            "control_ledger_unavailable",
+            "qianji-server was not started with a control ledger",
+        )
+    })
+}
+
+fn parse_control_run_id(run_id: String) -> Result<RunId, QianjiBpmnWorkflowHttpError> {
+    RunId::new(run_id).map_err(|_| {
+        QianjiBpmnWorkflowHttpError::bad_request(
+            "invalid_control_run_id",
+            "run_id must be a non-empty string",
+        )
+    })
 }
 
 async fn resume_workflow<H>(
@@ -136,21 +230,68 @@ where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
     let request = request.into_task_complete_batch_request(instance_id)?;
-    let resume_request = QianjiBpmnWorkflowResumeRequest {
-        bpmn_path: request.bpmn_path.clone(),
-        dmn_paths: request.dmn_paths.clone(),
-        instance_id: request.instance_id.clone(),
-        checkpoint_backend: request.checkpoint_backend.clone(),
-    };
+    let completions = request.completions.clone();
+    let resume_request = request.workflow_resume_request();
     let prepared = state
         .service
         .prepare_resume_workflow(&resume_request)
         .await?;
+    let pending_work = completions
+        .iter()
+        .map(|completion| matching_pending_work_for_completion(&prepared, completion))
+        .collect::<Vec<_>>();
     let report = state
         .service
         .complete_prepared_workflow_task_batch_until_host_boundary(prepared, &request, &state.host)
         .await?;
+    record_batch_activity_evidence(
+        &state,
+        &request.bpmn_path,
+        &request.instance_id,
+        pending_work,
+        &completions,
+    )?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
+        &report,
+    )))
+}
+
+async fn fail_workflow_task<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(instance_id): Path<String>,
+    Json(request): Json<QianjiBpmnWorkflowTaskFailHttpRequest>,
+) -> Result<Json<QianjiBpmnWorkflowStatusHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let instance_id = QianjiBpmnWorkflowInstanceId::from(instance_id);
+    let resume_request = request.workflow_resume_request(instance_id.clone());
+    let prepared = state
+        .service
+        .prepare_resume_workflow(&resume_request)
+        .await?;
+    let pending_work =
+        matching_pending_work_for_failure(&prepared, &request.failure).ok_or_else(|| {
+            QianjiBpmnWorkflowHttpError::bad_request(
+                "task_failure_not_pending",
+                "failure identity does not match pending host work",
+            )
+        })?;
+    record_failure_activity_evidence_for_pending(
+        &state,
+        &request.bpmn_path,
+        &instance_id,
+        &pending_work,
+        &request.failure,
+    )?;
+    let report = state
+        .service
+        .load_workflow_status(&QianjiBpmnWorkflowStatusRequest {
+            instance_id,
+            checkpoint_backend: resume_request.checkpoint_backend,
+        })
+        .await?;
+    Ok(Json(QianjiBpmnWorkflowStatusHttpResponse::from_report(
         &report,
     )))
 }
@@ -162,21 +303,100 @@ async fn complete_task_request<H>(
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
-    let resume_request = QianjiBpmnWorkflowResumeRequest {
-        bpmn_path: request.bpmn_path.clone(),
-        dmn_paths: request.dmn_paths.clone(),
-        instance_id: request.instance_id.clone(),
-        checkpoint_backend: request.checkpoint_backend.clone(),
-    };
+    let resume_request = request.workflow_resume_request();
     let prepared = state
         .service
         .prepare_resume_workflow(&resume_request)
         .await?;
+    let pending_work = matching_pending_work_for_completion(&prepared, &request.completion);
+    let completion = request.completion.clone();
+    let bpmn_path = request.bpmn_path.clone();
+    let instance_id = request.instance_id.clone();
     let report = state
         .service
         .complete_prepared_workflow_task_until_host_boundary(prepared, &request, &state.host)
         .await?;
+    record_single_activity_evidence(state, &bpmn_path, &instance_id, pending_work, &completion)?;
     Ok(report)
+}
+
+fn record_failure_activity_evidence_for_pending<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+    bpmn_path: &std::path::Path,
+    instance_id: &QianjiBpmnWorkflowInstanceId,
+    pending_work: &xiuxian_qianji_bpmn_engine::PendingHostWork,
+    failure: &QianjiBpmnWorkflowTaskFailureHttpPayload,
+) -> Result<(), QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let Some(ledger) = state.activity_evidence_ledger.as_deref() else {
+        return Ok(());
+    };
+    record_failure_activity_evidence(
+        ledger,
+        QianjiBpmnWorkflowFailureActivityEvidenceInput {
+            instance_id,
+            bpmn_path,
+            pending_work,
+            failure,
+            now_ms: now_unix_ms(),
+        },
+    )
+}
+
+fn record_single_activity_evidence<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+    bpmn_path: &std::path::Path,
+    instance_id: &QianjiBpmnWorkflowInstanceId,
+    pending_work: Option<xiuxian_qianji_bpmn_engine::PendingHostWork>,
+    completion: &QianjiBpmnWorkflowTaskCompletionPayload,
+) -> Result<(), QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    record_batch_activity_evidence(
+        state,
+        bpmn_path,
+        instance_id,
+        vec![pending_work],
+        std::slice::from_ref(completion),
+    )
+}
+
+fn record_batch_activity_evidence<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+    bpmn_path: &std::path::Path,
+    instance_id: &QianjiBpmnWorkflowInstanceId,
+    pending_work: Vec<Option<xiuxian_qianji_bpmn_engine::PendingHostWork>>,
+    completions: &[QianjiBpmnWorkflowTaskCompletionPayload],
+) -> Result<(), QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let Some(ledger) = state.activity_evidence_ledger.as_deref() else {
+        return Ok(());
+    };
+    let now_ms = now_unix_ms();
+    for (index, (pending_work, completion)) in
+        pending_work.into_iter().zip(completions.iter()).enumerate()
+    {
+        let Some(pending_work) = pending_work else {
+            continue;
+        };
+        let offset = u64::try_from(index).unwrap_or(u64::MAX).saturating_mul(3);
+        record_completion_activity_evidence(
+            ledger,
+            QianjiBpmnWorkflowCompletionActivityEvidenceInput {
+                instance_id,
+                bpmn_path,
+                pending_work: &pending_work,
+                completion,
+                now_ms: now_ms.saturating_add(offset),
+            },
+        )?;
+    }
+    Ok(())
 }
 
 async fn claim_workflow_task<H>(

@@ -10,6 +10,7 @@ async fn qianji_server_healthz_reports_valkey_default_backend() {
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     })
     .await;
 
@@ -31,12 +32,78 @@ async fn qianji_server_healthz_reports_valkey_default_backend() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+async fn qianji_server_capabilities_reports_workflow_control_routes() {
+    let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
+        bind_addr: None,
+        valkey_url: Some("not-a-valkey-url".to_string()),
+        require_valkey_ready: None,
+        flowhub_root: None,
+        control_ledger_path: None,
+    })
+    .await;
+
+    let response = reqwest::Client::new()
+        .get(format!("{base_url}/capabilities"))
+        .send()
+        .await
+        .unwrap_or_else(|error| panic!("capabilities request should send: {error}"));
+
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let body = response
+        .json::<Value>()
+        .await
+        .unwrap_or_else(|error| panic!("capabilities response should decode: {error}"));
+    assert_eq!(body["service"], "qianji-server");
+    assert_eq!(body["checkpoint_default_backend"], "valkey");
+    let capabilities = body["capabilities"]
+        .as_array()
+        .unwrap_or_else(|| panic!("capabilities should be an array: {body}"));
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "bpmn.workflow.task.complete-batch"),
+        "capabilities should include batch completion: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "bpmn.workflow.task.fail"),
+        "capabilities should include task failure evidence: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "qianji.control.history"),
+        "capabilities should include control history query: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "qianji.control.summary"),
+        "capabilities should include control summary query: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "qianji.control.recovery"),
+        "capabilities should include control recovery query: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "flowhub.scenarios"),
+        "capabilities should include Flowhub registry: {body}"
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn qianji_server_startup_readiness_gate_is_opt_in() {
     enforce_qianji_server_startup_readiness(&QianjiServerServeCommand {
         bind_addr: None,
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: Some(false),
         flowhub_root: None,
+        control_ledger_path: None,
     })
     .await
     .unwrap_or_else(|error| panic!("disabled readiness gate should not ping Valkey: {error}"));
@@ -50,6 +117,7 @@ async fn qianji_server_startup_readiness_gate_fails_fast() {
             valkey_url: Some("not-a-valkey-url".to_string()),
             require_valkey_ready: Some(true),
             flowhub_root: None,
+            control_ledger_path: None,
         })
         .await,
         "enabled readiness gate should fail on invalid Valkey URL",
@@ -68,6 +136,7 @@ async fn qianji_server_readyz_reports_valkey_probe_failure() {
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,
+        control_ledger_path: None,
     })
     .await;
 

@@ -3,8 +3,12 @@
 use std::sync::Arc;
 
 use arrow::array::{Array, BooleanArray, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, build_arrow_schema,
+    validate_record_batch_schema,
+};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_runtime::transport::{
     normalize_flight_route, validate_flight_schema_version, validate_flight_timeout_secs,
@@ -82,6 +86,7 @@ pub fn validate_julia_plugin_capability_manifest_request_batches(
     batches: &[RecordBatch],
 ) -> Result<(), RepoIntelligenceError> {
     for batch in batches {
+        validate_julia_plugin_capability_manifest_request_schema(batch)?;
         let columns = JuliaPluginCapabilityManifestRequestColumns::new(batch)?;
         validate_julia_plugin_capability_manifest_request_rows(&columns, batch.num_rows())?;
     }
@@ -376,26 +381,45 @@ fn push_decoded_manifest_rows(
 }
 
 fn julia_plugin_capability_manifest_request_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new(
-            JULIA_PLUGIN_CAPABILITY_MANIFEST_PLUGIN_ID_COLUMN,
-            DataType::Utf8,
-            false,
-        ),
-        Field::new(
-            JULIA_PLUGIN_CAPABILITY_MANIFEST_REPOSITORY_ID_COLUMN,
-            DataType::Utf8,
-            false,
-        ),
-        Field::new(
-            JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-        Field::new(
-            JULIA_PLUGIN_CAPABILITY_MANIFEST_INCLUDE_DISABLED_COLUMN,
-            DataType::Boolean,
-            false,
-        ),
-    ]))
+    Arc::new(build_arrow_schema(
+        &julia_plugin_capability_manifest_request_contract(),
+        std::collections::HashMap::new(),
+    ))
+}
+
+fn validate_julia_plugin_capability_manifest_request_schema(
+    batch: &RecordBatch,
+) -> Result<(), RepoIntelligenceError> {
+    validate_record_batch_schema(batch, &julia_plugin_capability_manifest_request_contract())
+        .map_err(|error| {
+            manifest_contract_error(
+                "request",
+                format!("capability-manifest request schema drift: {error}"),
+            )
+        })
+}
+
+fn julia_plugin_capability_manifest_request_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        "julia_plugin_capability_manifest_request",
+        true,
+        vec![
+            ArrowSchemaColumn::new(
+                JULIA_PLUGIN_CAPABILITY_MANIFEST_PLUGIN_ID_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            ArrowSchemaColumn::new(
+                JULIA_PLUGIN_CAPABILITY_MANIFEST_REPOSITORY_ID_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            ArrowSchemaColumn::nullable(
+                JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            ArrowSchemaColumn::new(
+                JULIA_PLUGIN_CAPABILITY_MANIFEST_INCLUDE_DISABLED_COLUMN,
+                ArrowSchemaDataType::Boolean,
+            ),
+        ],
+    )
 }

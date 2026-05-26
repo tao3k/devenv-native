@@ -33,7 +33,7 @@ DOCUMENT_STRUCTURE_SCHEMA_VERSION = "xiuxian_wendao.document_structure.v1"
 DOCLING_SUPPORTED_DOCUMENT_FORMATS = (
     "PDF",
     "DOCX",
-    "DOC (via legacy Office pre-conversion)",
+    "DOC (via Rust gateway legacy Office parser)",
     "XLSX",
     "PPTX",
     "Markdown",

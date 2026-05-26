@@ -1,0 +1,96 @@
+#+TITLE: Wendao Attachments Audio Org Projection Arrow Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:attachments:audio:org:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao Attachments Audio Org Projection Arrow Schema Contract [7/7] [100%] :agent:arrow:attachments:audio:org:
+CLOSED: [2026-05-26 Tue]
+:PROPERTIES:
+:ID: A63A5AF4-3920-41CB-A54B-1727B4C0EF1E
+:SDD: $PRJ_CACHE_HOME/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao-attachments/README.md
+:PACKAGE: xiuxian-db-store, xiuxian-wendao-attachments
+:SLICE: wendao-attachments-audio-org-projection-arrow-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archive after staged evidence sync.
+:GRAPH: flowchart LR;T["task:A63A5AF4-3920-41CB-A54B-1727B4C0EF1E"]-->S["sdd:db-store-arrow-schema-contract"];T-->A["xiuxian-wendao-attachments:audio-org-projection"];A-->D["xiuxian-db-store:ArrowSchemaContract"]
+:EVIDENCE: cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow audio_org_evidence_projection; cargo fmt -p xiuxian-wendao-attachments --check; cargo clippy -p xiuxian-wendao-attachments --features audio-shard-arrow --all-targets -- -D warnings; package README hidden-path scan
+:END:
+SCHEDULED: <2026-05-26 Tue>
+
+- [X] Scope and recovery anchor confirmed.
+- [X] RTK command policy confirmed.
+- [X] Task-local research complete.
+- [X] Implementation complete.
+- [X] Validation complete.
+- [X] Related package or canonical docs synced or explicitly judged unchanged.
+- [X] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+The attachments audio Org projection layer owns the stable Arrow evidence source
+and segment tables compiled from generated transcript ledgers. Those schemas
+were hand-built locally with Arrow `Field` helpers. This slice keeps Org ledger
+projection semantics, evidence status, and downstream ontology-promotion
+boundaries in attachments while moving schema construction and exact structural
+validation to the shared db-store Arrow contract surface.
+
+** Task Checklist [7/7] [100%]
+:PROPERTIES:
+:COOKIE_DATA: direct
+:END:
+
+- [X] Scope and recovery anchor confirmed.
+- [X] RTK command policy confirmed.
+- [X] Task-local research complete.
+- [X] Implementation complete.
+- [X] Validation complete.
+- [X] Related package or canonical docs synced or explicitly judged unchanged.
+- [X] Evidence, reflection questions, and archive readiness updated.
+
+** Checkpoints
+
+- 2026-05-26: Physical target check covered audio Org projection builders, the
+  feature-gated audio Org projection unit test, and package README evidence
+  projection text.
+- 2026-05-26: Audio Org evidence source/segment batch schemas now build from
+  db-store `ArrowSchemaContract` helpers and validate exact schema parity
+  before projection batch return.
+
+** Validation
+
+- [X] Audio Org projection tests pass.
+- [X] Targeted attachments clippy passes.
+- [X] Formatting checks pass.
+- [X] Org/SDD recovery surfaces are updated.
+
+** Evidence
+
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow audio_org_evidence_projection` -> 5 passed.
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo fmt -p xiuxian-wendao-attachments --check` -> passed.
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao-attachments --features audio-shard-arrow --all-targets -- -D warnings` -> no issues found.
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao-attachments/README.md` -> no matches.
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao-attachments/README.md
+- Updated: packages/rust/crates/xiuxian-wendao-attachments/README.md
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Aligned; the SDD gained a specific audio Org evidence projection scenario, fitness gate, and evidence entry. |
+| Did the task meet its expected outcome and validation target? | Yes; audio Org evidence source/segment schemas are generated through db-store and exact-validated, with targeted projection tests, fmt, and clippy passing. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; the slice preserved Org evidence projection semantics and only centralized schema mechanics. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated the xiuxian-wendao-attachments README audio evidence projection text; hidden-path link scan stayed clean. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; attachments retains Org evidence semantics and db-store owns shared schema construction and validation helpers. |
+| Does this task improve future =task-probe=, =orgid-show=, SDD graph, or agent recovery understanding? | Yes; the task evidence and SDD scenario name use the exact package and feature boundary. |
+| What should the next agent query, verify, or avoid? | Continue with another Arrow schema duplication only after task-local research; avoid moving ontology promotion or transcript evidence semantics into db-store. |
+
+** Recovery
+
+#+begin_src bash
+wendao-client orgize task-probe --cached --text 'Wendao Attachments Audio Org Projection Arrow Schema Contract' $PRJ_CACHE_HOME/agent/org
+#+end_src

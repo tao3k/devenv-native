@@ -119,6 +119,11 @@ needs a feature-gated second plugin bundle for these languages.
   enriches or executes retrieval routes through the existing Rust
   materialization path. `--serve-stdio` remains a development JSONL control
   session and is intentionally rejected with `--strategy-flow-service-base-url`.
+  The trace also carries `performancePolicy` and `timingBreakdown` sections so
+  benchmark runners can separate cold start, warm submit, materialization, and
+  LLM judgement latency. The policy keeps the production path on a managed warm
+  Julia service over Arrow Flight bundles and explicitly excludes `jlrs` or a
+  Rust-embedded Julia runtime from this service path.
 - WendaoGraph ontology read-model quality Flight binding is now admitted
   through `xiuxian-polyglot-orchestrator` before runtime transport negotiation.
   The bridge exposes a Julia route/profile reference and builds a
@@ -198,6 +203,33 @@ needs a feature-gated second plugin bundle for these languages.
   host reads side-table and candidate-input Arrow IPC files directly. The
   service request-bundle path carries `query_understanding` as Arrow IPC
   payload bytes through Arrow Flight.
+- SearchStrategyFlow candidate-input Arrow IPC keeps its existing 18-column
+  wire shape, but Rust now builds and validates that schema through the shared
+  db-store Arrow contract helpers instead of maintaining a local hand-written
+  Arrow field list.
+- WendaoSearch graph-structural rerank and constraint-filter request batches
+  now use the same db-store `ArrowSchemaContract` construction path for their
+  `Int32` and `List(Utf8)` fields. `xiuxian-julia-core` still owns the route
+  names, row semantics, list-alignment checks, and Julia transport behavior.
+- Julia and Modelica parser-summary request batches also use the db-store
+  `ArrowSchemaContract` construction and structural validation path for their
+  three-column request tables. Parser-summary response compatibility, summary
+  decoding, and language-specific row semantics remain local to this crate.
+- Julia capability-manifest request batches use that same db-store
+  `ArrowSchemaContract` path for their request table while manifest route
+  semantics, endpoint validation, and response decoding stay owned by this
+  crate.
+- WendaoGraph evidence and PageIndex reasoning table schemas are now
+  generated and structurally validated through the same db-store
+  `ArrowSchemaContract` path. `xiuxian-julia-core` still owns the evidence
+  route, table names, required-table policy, and graph/PageIndex semantics.
+- WendaoGraph ontology read-model quality and extension-proof Flight
+  request-bundle schemas also use the db-store `ArrowSchemaContract` path for
+  their Binary and Utf8 payload columns. Service metadata, payload semantics,
+  and ontology quality routing remain owned by this crate.
+- Arrow schema metadata attachment for Julia Flight request batches delegates
+  to the shared `xiuxian-db-store` Arrow IPC helper, so this crate does not
+  rebuild `Schema` values locally just to stamp route metadata.
 - The `wendaograph_search_strategy_flow` binary now exposes the same release
   gate through `--persistent-warm-samples <count>` for real Flight-backed
   profiling. Default trace output is unchanged; the flag switches the binary to
@@ -242,9 +274,10 @@ needs a feature-gated second plugin bundle for these languages.
   for the embedded local host. This is a local control-path shim, not an
   extension format. The
   Arrow service request-bundle path carries registry rows as Arrow IPC payloads
-  and keeps Gateway/Studio as the source-admission owner while
-  `WendaoGraph.jl` only consumes accepted object, link, and validation names as
-  graph-search route hints.
+  using the same db-store-backed SearchStrategyFlow request-payload contract
+  that validates service bundles, and keeps Gateway/Studio as the
+  source-admission owner while `WendaoGraph.jl` only consumes accepted object,
+  link, and validation names as graph-search route hints.
 - The ontology read-model quality bridge now exposes
   `build_wendaograph_ontology_read_model_quality_arrow_request(...)` for
   callers that already hold accepted semantic read-model `RecordBatch` tables.
@@ -277,7 +310,10 @@ needs a feature-gated second plugin bundle for these languages.
   `rdf_source_semantic_relations.parquet`, plus generated projection-state
   JSON, and rebuild the existing `semantic_objects`, `semantic_relations`, and
   `semantic_projection_state` request batches. They do not provide legacy
-  delimited-text aliases, fallbacks, or compatibility readers.
+  delimited-text aliases, fallbacks, or compatibility readers. The generated
+  request-table schemas use the shared `xiuxian-db-store`
+  `ArrowSchemaContract` helpers while artifact parsing and semantic checks stay
+  in this crate.
 - The ontology read-model quality bridge also accepts the Gateway
   dataset-ontology materialization envelope through
   `build_wendaograph_ontology_read_model_quality_request_batches_from_dataset_ontology_envelope(...)`.
@@ -287,7 +323,10 @@ needs a feature-gated second plugin bundle for these languages.
   existing WendaoGraph request tables without loading raw fixture data, RDF, or
   `wendao.toml`. Missing tables, malformed JSON payloads, unknown
   read-model table names, or field type mismatches are rejected before a graph
-  quality request is packaged.
+  quality request is packaged. The rebuilt request-table schemas are generated
+  and validated through `xiuxian-db-store`'s shared `ArrowSchemaContract`
+  helpers while this crate keeps the ontology read-model semantics local to the
+  Julia bridge.
 - The same ontology read-model quality bridge now accepts private LTC
   source-contract seed batches compiled by `xiuxian-wendao` when that crate's
   `julia` feature is enabled. The proof keeps private LTC source admission,

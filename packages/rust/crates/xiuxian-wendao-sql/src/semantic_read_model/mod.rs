@@ -47,6 +47,9 @@ pub use rows::{
     SemanticObjectReadModelRow, SemanticProjectionStateReadModelRow, SemanticReadModelRows,
     SemanticRelationReadModelRow,
 };
+pub(crate) use schema::{
+    semantic_objects_contract, semantic_projection_state_contract, semantic_relations_contract,
+};
 pub use snapshot::{
     SemanticReadModelSnapshot, SemanticReadModelSnapshotCheck, SemanticReadModelTableSnapshot,
     semantic_read_model_snapshot, semantic_read_model_snapshot_check,

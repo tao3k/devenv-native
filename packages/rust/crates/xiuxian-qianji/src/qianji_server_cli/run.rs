@@ -17,7 +17,11 @@ use crate::{
 };
 use axum::Router;
 use std::net::SocketAddr;
+#[cfg(feature = "duckdb")]
+use std::sync::Arc;
 use tokio::net::TcpListener;
+#[cfg(feature = "duckdb")]
+use xiuxian_qianji_control::DuckDbControlLedger;
 
 pub(crate) async fn run_qianji_server(command: QianjiServerCommand) -> anyhow::Result<()> {
     match command {
@@ -58,10 +62,11 @@ pub(crate) fn build_qianji_server_router(
     command: &QianjiServerServeCommand,
 ) -> anyhow::Result<Router> {
     let valkey_url = resolve_qianji_server_valkey_url(command)?;
-    let workflow_state = QianjiBpmnWorkflowHttpState::new(
+    let workflow_state = build_workflow_http_state(
         build_workflow_control_service(command),
         QianjiBpmnHostBridge::default(),
-    );
+        command,
+    )?;
     let health_state = QianjiServerHealthState::new(valkey_url);
     let flowhub_state = QianjiServerFlowhubState::new(resolve_qianji_server_flowhub_root(
         command.flowhub_root.as_deref(),
@@ -69,6 +74,32 @@ pub(crate) fn build_qianji_server_router(
     Ok(qianji_server_health_router(health_state)
         .merge(qianji_server_flowhub_router(flowhub_state))
         .merge(qianji_bpmn_workflow_router(workflow_state)))
+}
+
+fn build_workflow_http_state(
+    service: QianjiBpmnWorkflowControlService,
+    host: QianjiBpmnHostBridge,
+    command: &QianjiServerServeCommand,
+) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
+    let state = QianjiBpmnWorkflowHttpState::new(service, host);
+    let Some(ledger_path) = command.control_ledger_path.as_ref() else {
+        return Ok(state);
+    };
+    #[cfg(not(feature = "duckdb"))]
+    {
+        let _ = ledger_path;
+        anyhow::bail!("qianji-server --control-ledger requires the `duckdb` feature");
+    }
+    #[cfg(feature = "duckdb")]
+    {
+        let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| {
+            anyhow::anyhow!(
+                "failed to open qianji-server control ledger {}: {error}",
+                ledger_path.display()
+            )
+        })?;
+        Ok(state.with_activity_evidence_ledger(Arc::new(ledger)))
+    }
 }
 
 pub(crate) fn resolve_qianji_server_bind_addr(

@@ -78,7 +78,9 @@ impl CandidatePaths {
     }
 
     fn request(&self) -> CandidateReadModelDuckDbInspectionRequest {
-        let run_dir = self.objects.parent().expect("test path has a parent");
+        let Some(run_dir) = self.objects.parent() else {
+            panic!("test path has a parent");
+        };
         CandidateReadModelDuckDbInspectionRequest::from_candidate_run_dir(run_dir)
     }
 }

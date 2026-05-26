@@ -36,6 +36,11 @@ shape.
 This crate must stay independent from workflow implementations. It does not
 depend on `xiuxian-qianji`, `xiuxian-qianji-bpmn-engine`, `xiuxian-wendao`,
 `xiuxian-llm`, or `xiuxian-qianhuan`.
+It must not own BPMN `PendingHostWork`, Flowhub scenario semantics, checkpoint
+source paths, server routes, or CLI request parsing. Workflow-specific facts
+must be translated into this crate's workflow-neutral activity, ledger, queue,
+lease, evidence, cost, gate, and recovery contracts before they cross the
+control boundary.
 
 The intended split is:
 
@@ -48,9 +53,16 @@ The intended split is:
 - Qianji workflow/BPMN/Flowhub: domain execution semantics
 - Agent workers: leased executors that attach evidence and observations
 
-Qianji workflow traces are projected into control events by
+Qianji workflow traces are mapped into workflow-neutral projection records by
 [`xiuxian-qianji`](../xiuxian-qianji/README.md). This crate does not depend on
-Qianji workflow types.
+Qianji workflow types. It owns the projection journal that turns those neutral
+records into `RunCreated`, `RunAdmitted`, `PlanRecorded`, step lifecycle,
+tool-call, and terminal run events before passing them through the shared
+same-run journal batch recorder.
+It also owns the workflow-neutral step observation and managed decision helpers
+used by those adapters: required-evidence declarations, evidence attachment,
+gate-result recording, cost observation, and recovery-attempt recording are
+durable control contracts, not workflow-kernel implementation details.
 
 Execution history is represented by the same append-only `ControlLedger`.
 Checkpoint or workflow-specific state should be treated as a materialized view
@@ -224,7 +236,13 @@ directly from a `WorkerActivityTask` envelope. The helpers recover run or step
 scope and attempt from replay-derived task facts, then delegate to the
 idempotent activity journal guards. Workers therefore do not reconstruct
 scope, activity id, or retry attempt by hand, and hot-state queue delivery
-cannot become the durable authority.
+cannot become the durable authority. The same records can derive their generic
+activity journal records before append, which keeps worker-facing request
+mapping inspectable without bypassing idempotent lifecycle guards.
+`WorkerActivityFailureInput::try_new` and
+`WorkerActivityFailedRecord::try_new` provide checked failure construction for
+adapters that need to reject blank failure diagnostics before they map an
+external protocol error into the control ledger.
 `record_worker_heartbeat` records a durable Worker liveness audit fact after
 validating heartbeat TTL. `record_worker_heartbeat_with_hot_state` first
 mirrors the heartbeat into a `HotStateStore` and then appends the durable
@@ -263,6 +281,44 @@ counters, cost totals, and recovery counters into one compact management view.
 It is assembled from the append-only ledger and remains a read-only projection;
 it does not execute recovery, fire timers, claim activities, append signals, or
 mutate hot state.
+`record_run_created` records the initial durable `RunCreated` fact for one
+control run. It captures intent, optional budget, and metadata, but does not
+admit the run, schedule work, create steps, mirror hot state, or execute
+workflow logic. `RunCreatedJournalRecord::into_event` exposes the same event
+shape for pure projection paths that need to build a replayable event vector
+before appending.
+`record_run_admitted`, `record_run_plan_recorded`, and
+`record_run_terminal` complete the run-level lifecycle journal surface for
+admission, plan summaries, and terminal completed, failed, blocked, or aborted
+facts. They append run-scoped durable facts only; they do not schedule
+activities, mutate hot state, execute recovery, or interpret workflow-specific
+meaning.
+`record_step_created`, `record_step_started`, `record_step_tool_call`, and
+`record_step_terminal` provide the matching step-level lifecycle journal
+surface for declared steps, running steps, tool-call audit facts, and terminal
+succeeded, failed, blocked, or cancelled step facts. They append step-scoped
+durable facts only; they do not enqueue steps, acquire leases, execute tools,
+or interpret workflow-specific semantics.
+`record_step_evidence`, `record_step_gate_result`, and
+`record_cost_observation` provide the evidence, gate, and cost observation
+journal surface. Evidence and gate observations are step-scoped because replay
+stores them on `StepView`; cost observations may be run-scoped or step-scoped
+for budget inspection. These helpers only append durable observation facts and
+do not evaluate gates, decide recovery, mutate hot state, or execute workflow
+logic.
+`record_control_event_batch` records a validated same-run event vector and
+returns the replayed `RunView`. It rejects empty or mixed-run batches before
+append, giving projection and managed-decision helpers one control-owned batch
+boundary instead of local append/replay loops.
+`record_workflow_trace_projection` records a complete workflow-neutral trace
+projection as a durable event batch. Callers provide typed run and stage
+identity, timestamps, required evidence, tool-call metadata, and terminal
+status; this crate owns the resulting event order and records it through the
+shared batch helper. It does not depend on BPMN, Flowhub, or the concrete
+Qianji workflow-kernel trace type.
+`record_signal_received` records a durable `SignalReceived` fact for a
+run-scoped or step-scoped external input. It does not validate workflow
+meaning, wake waiting workers, or mutate hot state.
 `record_timer_fired` records a durable `TimerFired` fact for a run-scoped or
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
 `record_step_lease_released` records a durable `StepLeaseReleased` fact after
@@ -322,7 +378,8 @@ hot-state work, lease steps, or execute workers.
   `WorkerActivityHotStateMirrorOutcome`, and
   `mirror_worker_activity_tasks_to_hot_state`
 - `WorkerActivityStartRecord`, `WorkerActivityCompletedRecord`,
-  `WorkerActivityFailedRecord`, `record_worker_activity_started_idempotent`,
+  `WorkerActivityFailureInput`, `WorkerActivityFailedRecord`,
+  `record_worker_activity_started_idempotent`,
   `record_worker_activity_completed_idempotent`, and
   `record_worker_activity_failed_idempotent`
 - `WorkerHeartbeatJournalRecord`, `record_worker_heartbeat`, and
@@ -330,10 +387,26 @@ hot-state work, lease steps, or execute workers.
 - `StepLeaseReleaseJournalRecord` and `record_step_lease_released`
 - `StepQueueJournalRecord`, `record_step_queued`, and
   `record_step_queued_with_hot_state`
+- `RunCreatedJournalRecord`, `RunAdmittedJournalRecord`,
+  `RunPlanRecordedJournalRecord`, `RunTerminalJournalRecord`,
+  `RunTerminalJournalStatus`, `record_run_created`, `record_run_admitted`,
+  `record_run_plan_recorded`, and `record_run_terminal`
+- `StepCreatedJournalRecord`, `StepStartedJournalRecord`,
+  `StepToolCallJournalRecord`, `StepTerminalJournalRecord`,
+  `StepTerminalJournalStatus`, `record_step_created`, `record_step_started`,
+  `record_step_tool_call`, and `record_step_terminal`
+- `StepEvidenceJournalRecord`, `StepGateResultJournalRecord`,
+  `CostObservationJournalRecord`, `record_step_evidence`,
+  `record_step_gate_result`, and `record_cost_observation`
+- `ControlJournalBatchRecordingOutcome` and `record_control_event_batch`
+- `WorkflowTraceProjectionRecord`, `WorkflowTraceProjectionStage`,
+  `WorkflowTraceProjectionStageStatus`, and
+  `record_workflow_trace_projection`
 - `SignalInventoryProjection`, `SignalInventoryItem`, and
   `SignalInventorySummary`
 - `TimerInventoryProjection`, `TimerInventoryItem`, and
   `TimerInventorySummary`
+- `SignalReceiveJournalRecord` and `record_signal_received`
 - `TimerFireJournalRecord` and `record_timer_fired`
 - `RecoveryStartedJournalRecord` and `record_recovery_started`
 - `AdmittedLlmActivityScheduleRecord` and
@@ -344,6 +417,25 @@ hot-state work, lease steps, or execute workers.
   `RecoveryLoopActionApplication`, and `apply_recovery_plan`
 - `RecoveryActionApplicationRequest`, `RecoveryActionApplication`,
   `RecoveryActionApplicationReason`, and `apply_recovery_action`
+- `WorkflowControlEvidenceRequirements`,
+  `WorkflowStageEvidenceRecordingRequest`,
+  `WorkflowStageGateResultRecordingRequest`,
+  `WorkflowStageCostObservationRecordingRequest`,
+  `WorkflowStageRecoveryAttemptRecordingRequest`,
+  `WorkflowRunCostObservationRecordingRequest`,
+  `WorkflowRunRecoveryAttemptRecordingRequest`,
+  `record_workflow_stage_evidence`, `record_workflow_stage_gate_result`,
+  `record_workflow_stage_cost_observation`,
+  `record_workflow_stage_recovery_attempt`,
+  `record_workflow_run_cost_observation`, and
+  `record_workflow_run_recovery_attempt`
+- `WorkflowStageDecisionRecord`,
+  `WorkflowStageDecisionRecordingOutcome`,
+  `WorkflowStageDecisionRecordingRequest`,
+  `WorkflowStageRecoveryDecisionRecord`,
+  `WorkflowStageRecoveryDecisionRecordingRequest`,
+  `record_workflow_stage_decision`, and
+  `record_workflow_stage_recovery_decision`
 - `HumanApprovalRequest`, `HumanApprovalResolution`, and
   `HumanApprovalDecision`
 - `CostInventoryProjection`, `CostInventoryItem`, and

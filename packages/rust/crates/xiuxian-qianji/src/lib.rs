@@ -90,7 +90,10 @@ pub use bootcamp::{
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
 };
 pub use bpmn::{
-    BpmnAdapterError, BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,
+    BPMN_HOST_WORK_ACTIVITY_METADATA_KEY, BPMN_HOST_WORK_ACTIVITY_SCHEMA,
+    BPMN_HOST_WORK_ACTIVITY_TYPE, BPMN_HOST_WORK_COMPLETION_METADATA_KEY,
+    BPMN_HOST_WORK_COMPLETION_SCHEMA, BpmnAdapterError, BpmnHostWorkActivityScheduleInput,
+    BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, FLOWHUB_SERVICE_ACTIVITY_TYPE,
     FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput,
     FlowhubServiceActivityScheduleInput, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,
@@ -127,7 +130,9 @@ pub use bpmn::{
     QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
-    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+    QianjiControlHistoryHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+    build_bpmn_host_work_activity_result, build_bpmn_host_work_activity_schedule_record,
     build_flowhub_service_activity_schedule_record,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,

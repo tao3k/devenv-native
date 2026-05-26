@@ -144,11 +144,6 @@ pub(crate) async fn poll_workflow_events<H: BpmnHostBridge>(
     request: &QianjiBpmnWorkflowEventPollRequest,
     host: &H,
 ) -> Result<QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowControlError> {
-    let resume_request = QianjiBpmnWorkflowResumeRequest {
-        bpmn_path: request.bpmn_path.clone(),
-        dmn_paths: request.dmn_paths.clone(),
-        instance_id: request.instance_id.clone(),
-        checkpoint_backend: request.checkpoint_backend.clone(),
-    };
+    let resume_request = request.workflow_resume_request();
     resume_workflow(service, &resume_request, host).await
 }

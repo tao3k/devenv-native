@@ -1,8 +1,9 @@
+//! Flowhub service-task scheduling adapters for `qianji-server` HTTP snapshots.
+
 use xiuxian_qianji_bpmn_engine::PendingHostWork;
 use xiuxian_qianji_control::{AdmittedActivityTaskScheduleRecord, ControlResult};
 use xiuxian_qianji_runtime::{
-    FlowhubScenarioIdRef, FlowhubServiceActivityScheduleInput, QianjiRuntimeBpmnInstanceIdRef,
-    QianjiRuntimeInstantMs, build_flowhub_service_activity_schedule_record,
+    FlowhubServiceActivityScheduleInput, build_flowhub_service_activity_schedule_record,
 };
 
 use crate::bpmn::QianjiBpmnPendingHostWorkHttpResponse;
@@ -23,9 +24,9 @@ pub fn build_flowhub_service_activity_schedule_record_from_http_pending_work(
     let pending_work = pending_host_work_from_http_response(input.pending_work);
     build_flowhub_service_activity_schedule_record(FlowhubServiceActivityScheduleInput {
         run_id: input.run_id,
-        occurred_at_ms: QianjiRuntimeInstantMs::from_millis(input.occurred_at_ms),
-        scenario_id: FlowhubScenarioIdRef::new(input.scenario_id),
-        instance_id: QianjiRuntimeBpmnInstanceIdRef::new(input.instance_id),
+        occurred_at_ms: input.occurred_at_ms,
+        scenario_id: input.scenario_id,
+        instance_id: input.instance_id,
         bpmn_source: input.bpmn_source,
         pending_work: &pending_work,
     })

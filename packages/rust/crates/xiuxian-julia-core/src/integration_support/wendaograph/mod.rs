@@ -126,7 +126,9 @@ pub(crate) use probes::{
 };
 pub(crate) use probes::{resolve_existing_path, wendaograph_julia_project};
 pub(crate) use service_trace::{
-    SearchStrategyFlowServiceTraceRequest, search_strategy_flow_service_trace_json,
+    SearchStrategyFlowServiceTraceRequest, SearchStrategyFlowTimingMeasurements,
+    search_strategy_flow_service_trace_json,
+    search_strategy_flow_trace_with_materialization_timing,
 };
 
 #[cfg(test)]

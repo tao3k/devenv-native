@@ -15,7 +15,7 @@ fn ontology_candidate_inspection_report_batch_contains_summary_columns() {
         candidate_relation_count: 3,
         candidate_evidence_count: 2,
         object_kind_counts: vec![CandidateReadModelKindCount {
-            kind: "source_file".to_string(),
+            kind: "source_file".into(),
             row_count: 4,
         }],
         relation_kind_counts: Vec::new(),

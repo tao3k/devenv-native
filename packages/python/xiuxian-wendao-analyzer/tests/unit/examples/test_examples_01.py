@@ -54,7 +54,7 @@ def test_document_extraction_example_runs_fixture_mode() -> None:
     assert "mode= fixture" in result.stdout
     assert "known_docling_source= True" in result.stdout
     assert (
-        "supported_formats= PDF,DOCX,DOC (via legacy Office pre-conversion),XLSX,PPTX"
+        "supported_formats= PDF,DOCX,DOC (via Rust gateway legacy Office parser),XLSX,PPTX"
         in result.stdout
     )
     assert "common_suffixes= .pdf,.docx,.doc,.xlsx,.pptx" in result.stdout

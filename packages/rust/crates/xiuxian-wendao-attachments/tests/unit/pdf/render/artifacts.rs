@@ -1,6 +1,6 @@
 #[cfg(feature = "foyer-artifact-cache")]
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::sample_region_manifest;
 #[cfg(feature = "foyer-artifact-cache")]
@@ -23,6 +23,18 @@ use crate::pdf::render::{PdfPageRenderSelection, build_shard_manifest_batch};
 use xiuxian_db_store::artifact_cache::{
     ArtifactBlobCacheBackend, FoyerArtifactBlobCache, FoyerArtifactBlobCacheConfig,
 };
+
+#[cfg(feature = "foyer-artifact-cache")]
+struct FoyerRegionFixture {
+    temp_dir: tempfile::TempDir,
+    artifact_root: PathBuf,
+    cache: PdfRenderArtifactCache,
+    profile: PdfPageRenderProfile,
+    request: PdfPageRegionRenderRequest,
+    manifest: crate::pdf::render::PdfPageShardManifest,
+    raster_sha256: String,
+    image_path: PathBuf,
+}
 
 #[test]
 fn document_extract_pdf_render_writes_region_arrow_artifacts() -> Result<(), String> {
@@ -151,6 +163,101 @@ fn document_extract_pdf_render_restores_region_manifest_projection_from_artifact
 #[test]
 fn document_extract_pdf_render_restores_region_projection_and_crop_from_foyer() -> Result<(), String>
 {
+    let fixture = foyer_region_fixture()?;
+    let restored_projection = restore_region_manifest_projection(
+        Some(&fixture.cache),
+        "sourcehash",
+        &fixture.profile,
+        2,
+        std::slice::from_ref(&fixture.request),
+    )?
+    .ok_or_else(|| "expected Foyer projection hit".to_string())?;
+    let restored_crop = restore_requested_region_crop_identity(
+        Some(&fixture.cache),
+        "sourcehash",
+        &fixture.profile,
+        &fixture.request,
+        fixture.manifest.geometry.crop_box,
+        fixture.image_path.as_path(),
+    )?
+    .ok_or_else(|| "expected Foyer crop hit".to_string())?;
+
+    assert_eq!(restored_projection.len(), 1);
+    assert_eq!(restored_projection[0].num_rows(), 1);
+    assert_eq!(restored_crop.sha256, fixture.raster_sha256);
+    assert_eq!(
+        restored_crop.width_px,
+        fixture.manifest.geometry.raster_width_px
+    );
+    assert_eq!(
+        restored_crop.height_px,
+        fixture.manifest.geometry.raster_height_px
+    );
+    assert!(fixture.image_path.is_file());
+    let stats_after_direct_restore = fixture.cache.snapshot();
+    assert_eq!(
+        stats_after_direct_restore.backend_name.as_deref(),
+        Some("foyer")
+    );
+    assert_eq!(stats_after_direct_restore.hit_count, 2);
+    assert_eq!(stats_after_direct_restore.miss_count, 1);
+    assert!(stats_after_direct_restore.byte_count > 0);
+
+    let restore_dir = fixture.temp_dir.path().join("restored-region-manifests");
+    let context = RenderShardContext::new(
+        Path::new("/tmp/source.pdf"),
+        restore_dir.as_path(),
+        &fixture.profile,
+        PdfPageRenderSelection::RegionShards,
+    );
+    let restored_manifests = restore_document_region_manifests_from_cache(
+        &context,
+        "sourcehash",
+        std::slice::from_ref(&fixture.request),
+        Some(&fixture.cache),
+    )?
+    .ok_or_else(|| "expected full region manifest restore from Foyer".to_string())?;
+
+    assert_eq!(restored_manifests.len(), 1);
+    assert_eq!(restored_manifests[0].raster_sha256, fixture.raster_sha256);
+    let restored_image_path = restored_manifests[0].image_path.clone();
+    assert!(
+        Path::new(restored_image_path.as_str()).is_file(),
+        "restored crop path should be materialized from Foyer"
+    );
+    let stats = fixture.cache.snapshot();
+    assert_eq!(stats.backend_name.as_deref(), Some("foyer"));
+    assert_eq!(stats.hit_count, 4);
+    assert_eq!(stats.miss_count, 1);
+    assert!(stats.byte_count >= stats_after_direct_restore.byte_count);
+    drop(restored_manifests);
+    drop(fixture.cache);
+
+    fs::remove_file(restored_image_path.as_str()).map_err(|error| error.to_string())?;
+    let reopened_cache = foyer_render_cache(fixture.artifact_root.as_path())?;
+    let reopened_manifests = restore_document_region_manifests_from_cache(
+        &context,
+        "sourcehash",
+        std::slice::from_ref(&fixture.request),
+        Some(&reopened_cache),
+    )?
+    .ok_or_else(|| "expected restart region manifest restore from Foyer".to_string())?;
+    assert_eq!(reopened_manifests.len(), 1);
+    assert_eq!(reopened_manifests[0].raster_sha256, fixture.raster_sha256);
+    assert!(
+        Path::new(reopened_manifests[0].image_path.as_str()).is_file(),
+        "reopened Foyer cache should restore the crop path"
+    );
+    let reopened_stats = reopened_cache.snapshot();
+    assert_eq!(reopened_stats.backend_name.as_deref(), Some("foyer"));
+    assert_eq!(reopened_stats.hit_count, 2);
+    assert_eq!(reopened_stats.miss_count, 0);
+    assert!(reopened_stats.byte_count > 0);
+    Ok(())
+}
+
+#[cfg(feature = "foyer-artifact-cache")]
+fn foyer_region_fixture() -> Result<FoyerRegionFixture, String> {
     let temp_dir = tempfile::tempdir().map_err(|error| error.to_string())?;
     let artifact_root = temp_dir.path().join("artifacts");
     let cache = foyer_render_cache(artifact_root.as_path())?;
@@ -182,7 +289,7 @@ fn document_extract_pdf_render_restores_region_projection_and_crop_from_foyer() 
                 .map_err(|error| format!("read test region crop: {error}"))
         },
     )?;
-    manifest.raster_sha256 = raster.sha256.clone();
+    manifest.raster_sha256.clone_from(&raster.sha256);
     manifest.image_path = image_path.to_string_lossy().to_string();
     let batch = build_shard_manifest_batch(std::slice::from_ref(&manifest))?;
     write_region_manifest_projection(
@@ -201,91 +308,16 @@ fn document_extract_pdf_render_restores_region_projection_and_crop_from_foyer() 
         std::slice::from_ref(&batch),
     )?;
     fs::remove_file(image_path.as_path()).map_err(|error| error.to_string())?;
-
-    let restored_projection = restore_region_manifest_projection(
-        Some(&cache),
-        "sourcehash",
-        &profile,
-        2,
-        std::slice::from_ref(&request),
-    )?
-    .ok_or_else(|| "expected Foyer projection hit".to_string())?;
-    let restored_crop = restore_requested_region_crop_identity(
-        Some(&cache),
-        "sourcehash",
-        &profile,
-        &request,
-        manifest.geometry.crop_box,
-        image_path.as_path(),
-    )?
-    .ok_or_else(|| "expected Foyer crop hit".to_string())?;
-
-    assert_eq!(restored_projection.len(), 1);
-    assert_eq!(restored_projection[0].num_rows(), 1);
-    assert_eq!(restored_crop.sha256, raster.sha256);
-    assert_eq!(restored_crop.width_px, manifest.geometry.raster_width_px);
-    assert_eq!(restored_crop.height_px, manifest.geometry.raster_height_px);
-    assert!(image_path.is_file());
-    let stats_after_direct_restore = cache.snapshot();
-    assert_eq!(
-        stats_after_direct_restore.backend_name.as_deref(),
-        Some("foyer")
-    );
-    assert_eq!(stats_after_direct_restore.hit_count, 2);
-    assert_eq!(stats_after_direct_restore.miss_count, 1);
-    assert!(stats_after_direct_restore.byte_count > 0);
-
-    let restore_dir = temp_dir.path().join("restored-region-manifests");
-    let context = RenderShardContext::new(
-        Path::new("/tmp/source.pdf"),
-        restore_dir.as_path(),
-        &profile,
-        PdfPageRenderSelection::RegionShards,
-    );
-    let restored_manifests = restore_document_region_manifests_from_cache(
-        &context,
-        "sourcehash",
-        std::slice::from_ref(&request),
-        Some(&cache),
-    )?
-    .ok_or_else(|| "expected full region manifest restore from Foyer".to_string())?;
-
-    assert_eq!(restored_manifests.len(), 1);
-    assert_eq!(restored_manifests[0].raster_sha256, raster.sha256);
-    let restored_image_path = restored_manifests[0].image_path.clone();
-    assert!(
-        Path::new(restored_image_path.as_str()).is_file(),
-        "restored crop path should be materialized from Foyer"
-    );
-    let stats = cache.snapshot();
-    assert_eq!(stats.backend_name.as_deref(), Some("foyer"));
-    assert_eq!(stats.hit_count, 4);
-    assert_eq!(stats.miss_count, 1);
-    assert!(stats.byte_count >= stats_after_direct_restore.byte_count);
-    drop(restored_manifests);
-    drop(cache);
-
-    fs::remove_file(restored_image_path.as_str()).map_err(|error| error.to_string())?;
-    let reopened_cache = foyer_render_cache(artifact_root.as_path())?;
-    let reopened_manifests = restore_document_region_manifests_from_cache(
-        &context,
-        "sourcehash",
-        std::slice::from_ref(&request),
-        Some(&reopened_cache),
-    )?
-    .ok_or_else(|| "expected restart region manifest restore from Foyer".to_string())?;
-    assert_eq!(reopened_manifests.len(), 1);
-    assert_eq!(reopened_manifests[0].raster_sha256, raster.sha256);
-    assert!(
-        Path::new(reopened_manifests[0].image_path.as_str()).is_file(),
-        "reopened Foyer cache should restore the crop path"
-    );
-    let reopened_stats = reopened_cache.snapshot();
-    assert_eq!(reopened_stats.backend_name.as_deref(), Some("foyer"));
-    assert_eq!(reopened_stats.hit_count, 2);
-    assert_eq!(reopened_stats.miss_count, 0);
-    assert!(reopened_stats.byte_count > 0);
-    Ok(())
+    Ok(FoyerRegionFixture {
+        temp_dir,
+        artifact_root,
+        cache,
+        profile,
+        request,
+        manifest,
+        raster_sha256: raster.sha256,
+        image_path,
+    })
 }
 
 #[cfg(feature = "foyer-artifact-cache")]

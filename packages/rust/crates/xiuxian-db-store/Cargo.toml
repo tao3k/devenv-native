@@ -26,6 +26,7 @@ duckdb-types = ["dep:serde"]
 duckdb = ["duckdb-types", "dep:duckdb"]
 qianji-bpmn-workflow-state = [
   "duckdb",
+  "arrow-codec",
   "dep:xiuxian-qianji-bpmn-engine",
   "dep:serde_json",
   "dep:thiserror",

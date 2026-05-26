@@ -1,19 +1,28 @@
 //! Arrow/Parquet read-model publication for ontology candidate rows.
 
-use std::{fs::File, path::Path, sync::Arc};
+use std::{collections::HashMap, fs::File, path::Path, sync::Arc};
 
 use anyhow::{Context, Result};
 use arrow::{
     array::{ArrayRef, BooleanArray, Int64Array, StringArray},
-    datatypes::{DataType, Field, Schema, SchemaRef},
+    datatypes::SchemaRef,
     record_batch::RecordBatch,
 };
 use parquet::arrow::ArrowWriter;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use super::super::model::{
     CandidateEvidenceRow, CandidateGenerationOutputPaths, CandidateObjectRow, CandidateRelationRow,
     CandidateRows,
 };
+
+const OBJECTS_TABLE: &str = "ontology_candidate_objects";
+const RELATIONS_TABLE: &str = "ontology_candidate_relations";
+const EVIDENCE_TABLE: &str = "ontology_candidate_evidence";
 
 pub(in crate::ontology::candidates) fn write_candidate_read_model(
     paths: &CandidateGenerationOutputPaths,
@@ -29,28 +38,32 @@ pub(in crate::ontology::candidates) fn write_candidate_read_model(
 }
 
 fn object_rows_batch(rows: &[CandidateObjectRow]) -> Result<RecordBatch> {
-    let schema = schema_ref([
-        string_field("candidate_id"),
-        string_field("candidate_kind"),
-        string_field("status"),
-        string_field("label"),
-        string_field("suggested_term_key"),
-        string_field("suggested_term_label"),
-        string_field("source_file_id"),
-        string_field("source_queue_id"),
-        string_field("source_path"),
-        string_field("category"),
-        string_field("language"),
-        string_field("extraction_route"),
-        string_field("extraction_run_id"),
-        string_field("source_sha256"),
-        string_field("evidence_sha256"),
-        int64_field("text_char_count"),
-        string_field("review_status"),
-        string_field("promotion_status"),
-        bool_field("raw_to_rdf_promotion_allowed"),
-        bool_field("ontology_truth"),
-    ]);
+    let contract = ArrowSchemaContract::new(
+        OBJECTS_TABLE,
+        true,
+        vec![
+            string_column("candidate_id"),
+            string_column("candidate_kind"),
+            string_column("status"),
+            string_column("label"),
+            string_column("suggested_term_key"),
+            string_column("suggested_term_label"),
+            string_column("source_file_id"),
+            string_column("source_queue_id"),
+            string_column("source_path"),
+            string_column("category"),
+            string_column("language"),
+            string_column("extraction_route"),
+            string_column("extraction_run_id"),
+            string_column("source_sha256"),
+            string_column("evidence_sha256"),
+            int64_column("text_char_count"),
+            string_column("review_status"),
+            string_column("promotion_status"),
+            bool_column("raw_to_rdf_promotion_allowed"),
+            bool_column("ontology_truth"),
+        ],
+    );
     let text_counts = parse_text_counts(
         rows.iter()
             .map(|row| row.text_char_count.as_str())
@@ -87,23 +100,31 @@ fn object_rows_batch(rows: &[CandidateObjectRow]) -> Result<RecordBatch> {
                 .collect::<Vec<_>>(),
         )),
     ];
-    RecordBatch::try_new(schema, columns).context("failed to build candidate object read-model")
+    record_batch(
+        &contract,
+        columns,
+        "failed to build candidate object read-model",
+    )
 }
 
 fn relation_rows_batch(rows: &[CandidateRelationRow]) -> Result<RecordBatch> {
-    let schema = schema_ref([
-        string_field("candidate_id"),
-        string_field("relation_kind"),
-        string_field("source_candidate_id"),
-        string_field("target_candidate_id"),
-        string_field("source_file_id"),
-        string_field("source_queue_id"),
-        string_field("extraction_run_id"),
-        string_field("evidence_sha256"),
-        string_field("review_status"),
-        string_field("promotion_status"),
-        bool_field("ontology_truth"),
-    ]);
+    let contract = ArrowSchemaContract::new(
+        RELATIONS_TABLE,
+        true,
+        vec![
+            string_column("candidate_id"),
+            string_column("relation_kind"),
+            string_column("source_candidate_id"),
+            string_column("target_candidate_id"),
+            string_column("source_file_id"),
+            string_column("source_queue_id"),
+            string_column("extraction_run_id"),
+            string_column("evidence_sha256"),
+            string_column("review_status"),
+            string_column("promotion_status"),
+            bool_column("ontology_truth"),
+        ],
+    );
     let columns = vec![
         strings(rows.iter().map(|row| row.candidate_id.as_str())),
         strings(rows.iter().map(|row| row.relation_kind)),
@@ -121,25 +142,33 @@ fn relation_rows_batch(rows: &[CandidateRelationRow]) -> Result<RecordBatch> {
                 .collect::<Vec<_>>(),
         )),
     ];
-    RecordBatch::try_new(schema, columns).context("failed to build candidate relation read-model")
+    record_batch(
+        &contract,
+        columns,
+        "failed to build candidate relation read-model",
+    )
 }
 
 fn evidence_rows_batch(rows: &[CandidateEvidenceRow]) -> Result<RecordBatch> {
-    let schema = schema_ref([
-        string_field("evidence_id"),
-        string_field("evidence_kind"),
-        string_field("source_file_id"),
-        string_field("source_queue_id"),
-        string_field("source_path"),
-        string_field("source_sha256"),
-        string_field("extraction_run_id"),
-        string_field("cache_output_path"),
-        string_field("evidence_sha256"),
-        int64_field("text_char_count"),
-        string_field("review_status"),
-        string_field("promotion_status"),
-        bool_field("ontology_truth"),
-    ]);
+    let contract = ArrowSchemaContract::new(
+        EVIDENCE_TABLE,
+        true,
+        vec![
+            string_column("evidence_id"),
+            string_column("evidence_kind"),
+            string_column("source_file_id"),
+            string_column("source_queue_id"),
+            string_column("source_path"),
+            string_column("source_sha256"),
+            string_column("extraction_run_id"),
+            string_column("cache_output_path"),
+            string_column("evidence_sha256"),
+            int64_column("text_char_count"),
+            string_column("review_status"),
+            string_column("promotion_status"),
+            bool_column("ontology_truth"),
+        ],
+    );
     let text_counts = parse_text_counts(
         rows.iter()
             .map(|row| row.text_char_count.as_str())
@@ -165,7 +194,11 @@ fn evidence_rows_batch(rows: &[CandidateEvidenceRow]) -> Result<RecordBatch> {
                 .collect::<Vec<_>>(),
         )),
     ];
-    RecordBatch::try_new(schema, columns).context("failed to build candidate evidence read-model")
+    record_batch(
+        &contract,
+        columns,
+        "failed to build candidate evidence read-model",
+    )
 }
 
 fn write_parquet(path: &Path, batch: &RecordBatch) -> Result<()> {
@@ -182,20 +215,45 @@ fn write_parquet(path: &Path, batch: &RecordBatch) -> Result<()> {
     Ok(())
 }
 
-fn schema_ref<const N: usize>(fields: [Field; N]) -> SchemaRef {
-    Arc::new(Schema::new(fields.into_iter().collect::<Vec<_>>()))
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    build_context: &'static str,
+) -> Result<RecordBatch> {
+    let schema = schema_ref(contract);
+    let batch = RecordBatch::try_new(schema, columns).context(build_context)?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .context("candidate read-model schema validation failed")?;
+    Ok(batch)
 }
 
-fn string_field(name: &'static str) -> Field {
-    Field::new(name, DataType::Utf8, false)
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
 }
 
-fn int64_field(name: &'static str) -> Field {
-    Field::new(name, DataType::Int64, false)
+const fn string_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
 }
 
-fn bool_field(name: &'static str) -> Field {
-    Field::new(name, DataType::Boolean, false)
+const fn int64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int64)
+}
+
+const fn bool_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Boolean)
 }
 
 fn strings<'a>(values: impl Iterator<Item = &'a str>) -> ArrayRef {

@@ -26,6 +26,7 @@ inventory = { workspace = true }
 tonic = { workspace = true }
 xiuxian-memory-engine = { path = "../xiuxian-memory-engine" }
 xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence" }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
 xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"] }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"] }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }

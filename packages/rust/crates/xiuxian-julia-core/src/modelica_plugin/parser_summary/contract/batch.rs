@@ -10,6 +10,7 @@ use super::columns::ModelicaParserSummaryResponseColumns;
 use super::values::{
     modelica_parser_summary_request_schema, parser_summary_contract_error,
     parser_summary_request_error, required_utf8_values,
+    validate_modelica_parser_summary_request_schema,
 };
 use super::{
     MODELICA_PARSER_SUMMARY_REQUEST_ID_COLUMN, MODELICA_PARSER_SUMMARY_SOURCE_ID_COLUMN,
@@ -41,6 +42,7 @@ pub(crate) fn build_modelica_parser_summary_request_batch(
         ],
     )
     .map_err(|error| parser_summary_request_error(error.to_string()))?;
+    validate_modelica_parser_summary_request_schema(&batch)?;
     validate_modelica_parser_summary_request_batches(std::slice::from_ref(&batch))?;
     Ok(batch)
 }

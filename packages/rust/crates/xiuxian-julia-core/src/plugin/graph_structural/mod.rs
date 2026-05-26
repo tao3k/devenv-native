@@ -24,6 +24,7 @@ pub use columns::{
 };
 pub use route::{GraphStructuralRouteKind, graph_structural_route_kind, is_graph_structural_route};
 pub use schema::{
+    graph_structural_filter_request_schema, graph_structural_rerank_request_schema,
     validate_graph_structural_filter_request_batch,
     validate_graph_structural_filter_request_schema,
     validate_graph_structural_filter_response_batch,

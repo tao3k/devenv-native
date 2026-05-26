@@ -301,7 +301,19 @@ SELECT
   object_type AS kind,
   display_name AS title,
   'active' AS status,
-  0 AS relation_count,
+  CAST(1.0 AS DOUBLE) AS confidence_score,
+  'dataset_ontology_mapping' AS confidence_source,
+  CAST(0 AS BIGINT) AS owner_count,
+  '[]' AS owners_json,
+  source_table AS provenance_source,
+  mapping_id AS provenance_recorded_by,
+  source_hash AS provenance_recorded_at,
+  '[]' AS verification_required_json,
+  '[]' AS verification_evidence_json,
+  CAST(0 AS BIGINT) AS relation_count,
+  source_table AS source_path,
+  mapping_id AS read_model_source_revision,
+  mapping_id AS read_model_projection_revision,
   'fresh' AS read_model_projection_staleness
 FROM ontology_object_observation
 ORDER BY id
@@ -315,6 +327,9 @@ SELECT
   source_object_id AS source,
   link_type AS kind,
   target_object_id AS target,
+  source_table AS source_path,
+  mapping_id AS read_model_source_revision,
+  mapping_id AS read_model_projection_revision,
   'fresh' AS read_model_projection_staleness
 FROM ontology_link_observation
 ORDER BY source, kind, target
@@ -327,8 +342,13 @@ fn semantic_projection_state_sql() -> String {
 SELECT
   'healthcare.synthetic_care_delivery.v1' AS projection,
   'active' AS status,
+  'healthcare.synthetic_care_delivery.v1' AS source_revision,
+  'healthcare.synthetic_care_delivery.v1' AS current_source_revision,
+  'healthcare.synthetic_care_delivery.v1' AS projection_revision,
   'fresh' AS staleness,
-  count(*) AS source_object_count
+  CAST(count(*) AS BIGINT) AS source_object_count,
+  '[]' AS source_objects_json,
+  'ontology_object_observation' AS source_path
 FROM ontology_object_observation
 "
     .to_string()

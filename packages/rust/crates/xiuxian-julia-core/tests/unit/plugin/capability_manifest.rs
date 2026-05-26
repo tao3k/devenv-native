@@ -36,6 +36,10 @@ use crate::plugin::test_support::wendaosearch_services::{
     local_wendaosearch_package_available, reserve_real_service_port,
     spawn_real_wendaosearch_demo_capability_manifest_service, wait_for_service_ready_with_attempts,
 };
+use crate::{
+    JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
+    JULIA_PLUGIN_CAPABILITY_MANIFEST_PLUGIN_ID_COLUMN,
+};
 
 fn julia_plugin_capability_manifest_response_schema() -> Arc<Schema> {
     Arc::new(Schema::new(vec![

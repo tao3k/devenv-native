@@ -32,8 +32,7 @@ fn search_strategy_flow_flight_materialization_uses_orchestrator_admission() {
         wave_size,
         usize::try_from(plan.max_in_flight_recommendation)
             .unwrap_or(usize::MAX)
-            .max(1)
-            .min(32),
+            .clamp(1, 32),
         "route materialization must use the orchestrator max-in-flight recommendation"
     );
 }

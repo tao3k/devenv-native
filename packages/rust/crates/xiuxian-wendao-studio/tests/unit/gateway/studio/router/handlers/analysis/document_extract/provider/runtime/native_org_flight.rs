@@ -2,8 +2,6 @@ use std::sync::{Arc, Mutex};
 
 use xiuxian_wendao_server::transport::ANALYSIS_DOCUMENT_EXTRACT_ROUTE;
 
-use crate::studio::router::handlers::analysis::document_extract::provider::transport::DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX;
-
 use super::{
     DocumentExtractJobRegistry, StudioDocumentExtractFlightRouteProvider,
     collect_document_extract_string_values,
@@ -13,12 +11,13 @@ use super::{
     fs, test_document_resource_batch,
 };
 
+#[cfg(feature = "document-extract-legacy-office")]
 #[tokio::test]
-async fn legacy_doc_document_extract_sends_rust_selected_source_preparation() -> Result<(), String>
-{
+async fn legacy_doc_document_extract_is_handled_before_python_flight() -> Result<(), String> {
     let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
     let source = temp.path().join("legacy.doc");
-    fs::write(source.as_path(), b"legacy office").map_err(|error| error.to_string())?;
+    fs::write(source.as_path(), b"not an ole compound document")
+        .map_err(|error| error.to_string())?;
     let output = temp.path().join("output");
     let response_batch = test_document_resource_batch(
         source.to_string_lossy().as_ref(),
@@ -38,7 +37,7 @@ async fn legacy_doc_document_extract_sends_rust_selected_source_preparation() ->
             endpoint.as_str(),
         );
 
-    let _response = provider
+    let error = provider
         .sync_document_extract_batch(
             source.to_string_lossy().as_ref(),
             output.to_string_lossy().as_ref(),
@@ -46,17 +45,21 @@ async fn legacy_doc_document_extract_sends_rust_selected_source_preparation() ->
             false,
             "full",
         )
-        .await?;
+        .await
+        .expect_err("invalid legacy Office source should fail in Rust before Python Flight");
     server_handle.abort();
 
-    let observed_request = observed
-        .lock()
-        .map_err(|error| error.to_string())?
-        .clone()
-        .ok_or_else(|| "document extract request was not observed".to_owned())?;
-    assert_eq!(
-        observed_request.source_preparation.as_deref(),
-        Some(DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX),
+    assert!(
+        error.contains("legacy Word") || error.contains("Word OLE container"),
+        "legacy Office failure should come from the Rust parser path: {error}"
+    );
+    assert!(
+        observed
+            .lock()
+            .map_err(|error| error.to_string())?
+            .clone()
+            .is_none(),
+        "legacy Office sources must not fall through to Python Flight"
     );
     Ok(())
 }

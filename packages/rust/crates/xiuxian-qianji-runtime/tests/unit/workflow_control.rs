@@ -1,4 +1,8 @@
-use std::{error::Error, io, path::Path};
+use std::{
+    error::Error,
+    io,
+    path::{Path, PathBuf},
+};
 
 use async_trait::async_trait;
 use serde_json::json;
@@ -29,10 +33,17 @@ async fn workflow_control_port_round_trips_runtime_requests() -> Result<(), Box<
         })
         .await?;
 
-    assert_eq!(status.pending_host_work.len(), 1);
+    assert_eq!(status.pending_host_work_count(), 1);
     assert_eq!(
-        status.pending_host_work[0].kind,
-        PendingHostWorkKind::Service
+        status
+            .first_pending_host_work_by_kind(&PendingHostWorkKind::Service)
+            .map(|work| work.token_id),
+        Some(7)
+    );
+    assert!(
+        status
+            .first_pending_host_work_by_kind(&PendingHostWorkKind::User)
+            .is_none()
     );
 
     let prepared = port
@@ -68,6 +79,72 @@ async fn workflow_control_port_round_trips_runtime_requests() -> Result<(), Box<
 
     assert_eq!(report.completed_token_id, 7);
     Ok(())
+}
+
+#[test]
+fn workflow_status_view_frontier_helpers_select_by_kind() {
+    let service_work = service_work();
+    let mut user_work = service_work.clone();
+    user_work.token_id = 8;
+    user_work.activity_id = Some("request_approval".into());
+    user_work.kind = PendingHostWorkKind::User;
+
+    let status =
+        QianjiRuntimeWorkflowStatusView::new(vec![user_work.clone(), service_work.clone()]);
+    assert_eq!(status.pending_host_work_count(), 2);
+    assert_eq!(
+        status
+            .first_pending_host_work_by_kind(&PendingHostWorkKind::Service)
+            .and_then(|work| work.activity_id.as_deref()),
+        Some("resolve_project")
+    );
+    assert_eq!(
+        status
+            .first_pending_host_work_by_kind(&PendingHostWorkKind::User)
+            .map(|work| work.token_id),
+        Some(8)
+    );
+
+    let owned_status = QianjiRuntimeWorkflowStatusView::new(vec![user_work, service_work]);
+    let selected = owned_status.into_first_pending_host_work_by_kind(&PendingHostWorkKind::Service);
+    assert_eq!(
+        selected
+            .as_ref()
+            .and_then(|work| work.activity_id.as_deref()),
+        Some("resolve_project")
+    );
+}
+
+#[test]
+fn workflow_task_complete_request_derives_resume_request() {
+    let request = QianjiRuntimeWorkflowTaskCompleteRequest {
+        bpmn_source: QianjiRuntimeBpmnSourcePath::new("flows/agent-coding.bpmn"),
+        dmn_sources: QianjiRuntimeDmnSourcePaths::new(vec![PathBuf::from("flows/rules.dmn")]),
+        instance_id: QianjiRuntimeBpmnInstanceId::new("workflow-derive"),
+        checkpoint_backend: FakeCheckpointBackend::new("checkpoint"),
+        completion: QianjiRuntimeWorkflowTaskCompletionPayload {
+            token_id: QianjiRuntimeBpmnTokenId::new(7),
+            process_id: QianjiRuntimeBpmnProcessId::new("agent_coding"),
+            activity_id: QianjiRuntimeBpmnActivityId::new("resolve_project"),
+            kind: QianjiRuntimeWorkflowTaskCompletionKind::Service,
+            data: json!({"projectResolved": true}),
+            claimant: None,
+        },
+        continue_until_human_boundary: QianjiRuntimeContinueUntilHumanBoundary::new(false),
+    };
+
+    let resume_request = request.workflow_resume_request();
+
+    assert_eq!(
+        resume_request.bpmn_source.as_path(),
+        Path::new("flows/agent-coding.bpmn")
+    );
+    assert_eq!(
+        resume_request.dmn_sources.as_slice(),
+        [PathBuf::from("flows/rules.dmn")].as_slice()
+    );
+    assert_eq!(resume_request.instance_id.as_str(), "workflow-derive");
+    assert_eq!(resume_request.checkpoint_backend.name, "checkpoint");
 }
 
 struct FakePort;

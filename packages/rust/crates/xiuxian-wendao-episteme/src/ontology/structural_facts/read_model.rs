@@ -1,15 +1,26 @@
 //! Structural facts read-model rows for downstream graph/search consumers.
 
-use std::{collections::BTreeSet, fmt::Write as FmtWrite, fs::File, path::Path, sync::Arc};
+use std::{
+    collections::{BTreeSet, HashMap},
+    fmt::Write as FmtWrite,
+    fs::File,
+    path::Path,
+    sync::Arc,
+};
 
 use anyhow::{Context, Result};
 use arrow::{
     array::{ArrayRef, BooleanArray, StringArray},
-    datatypes::{DataType, Field, Schema, SchemaRef},
+    datatypes::SchemaRef,
     record_batch::RecordBatch,
 };
 use parquet::arrow::ArrowWriter;
 use serde::Serialize;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use super::{
     ids::stable_id,
@@ -19,6 +30,8 @@ use super::{
 
 const ACTIVE_STATUS: &str = "active";
 const FRESH_STALENESS: &str = "fresh";
+const OBJECTS_TABLE: &str = "structural_facts_read_model_objects";
+const RELATIONS_TABLE: &str = "structural_facts_read_model_relations";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -325,21 +338,26 @@ fn write_relations_tsv(path: &Path, rows: &[StructuralFactsReadModelRelationRow]
 }
 
 fn object_batch(rows: &[StructuralFactsReadModelObjectRow]) -> Result<RecordBatch> {
-    RecordBatch::try_new(
-        schema_ref([
-            string_field("id"),
-            string_field("kind"),
-            string_field("title"),
-            string_field("read_model_projection_staleness"),
-            string_field("domain_id"),
-            string_field("source_contract_id"),
-            string_field("document_id"),
-            string_field("file_id"),
-            string_field("relative_path"),
-            string_field("source_content_hash"),
-            bool_field("ontology_truth"),
-            string_field("status"),
-        ]),
+    let contract = ArrowSchemaContract::new(
+        OBJECTS_TABLE,
+        true,
+        vec![
+            string_column("id"),
+            string_column("kind"),
+            string_column("title"),
+            string_column("read_model_projection_staleness"),
+            string_column("domain_id"),
+            string_column("source_contract_id"),
+            string_column("document_id"),
+            string_column("file_id"),
+            string_column("relative_path"),
+            string_column("source_content_hash"),
+            bool_column("ontology_truth"),
+            string_column("status"),
+        ],
+    );
+    record_batch(
+        &contract,
         vec![
             strings(rows.iter().map(|row| row.id.as_str())),
             strings(rows.iter().map(|row| row.kind.as_str())),
@@ -357,24 +375,29 @@ fn object_batch(rows: &[StructuralFactsReadModelObjectRow]) -> Result<RecordBatc
             booleans(rows.iter().map(|row| row.ontology_truth)),
             strings(rows.iter().map(|row| row.status.as_str())),
         ],
+        "failed to build structural facts object read-model",
     )
-    .context("failed to build structural facts object read-model")
 }
 
 fn relation_batch(rows: &[StructuralFactsReadModelRelationRow]) -> Result<RecordBatch> {
-    RecordBatch::try_new(
-        schema_ref([
-            string_field("id"),
-            string_field("kind"),
-            string_field("source"),
-            string_field("target"),
-            string_field("read_model_projection_staleness"),
-            string_field("domain_id"),
-            string_field("source_contract_id"),
-            string_field("evidence_path"),
-            bool_field("ontology_truth"),
-            string_field("status"),
-        ]),
+    let contract = ArrowSchemaContract::new(
+        RELATIONS_TABLE,
+        true,
+        vec![
+            string_column("id"),
+            string_column("kind"),
+            string_column("source"),
+            string_column("target"),
+            string_column("read_model_projection_staleness"),
+            string_column("domain_id"),
+            string_column("source_contract_id"),
+            string_column("evidence_path"),
+            bool_column("ontology_truth"),
+            string_column("status"),
+        ],
+    );
+    record_batch(
+        &contract,
         vec![
             strings(rows.iter().map(|row| row.id.as_str())),
             strings(rows.iter().map(|row| row.kind.as_str())),
@@ -390,8 +413,8 @@ fn relation_batch(rows: &[StructuralFactsReadModelRelationRow]) -> Result<Record
             booleans(rows.iter().map(|row| row.ontology_truth)),
             strings(rows.iter().map(|row| row.status.as_str())),
         ],
+        "failed to build structural facts relation read-model",
     )
-    .context("failed to build structural facts relation read-model")
 }
 
 fn write_parquet(path: &Path, batch: &RecordBatch) -> Result<()> {
@@ -408,16 +431,41 @@ fn write_parquet(path: &Path, batch: &RecordBatch) -> Result<()> {
     Ok(())
 }
 
-fn schema_ref<const N: usize>(fields: [Field; N]) -> SchemaRef {
-    Arc::new(Schema::new(fields.into_iter().collect::<Vec<_>>()))
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    build_context: &'static str,
+) -> Result<RecordBatch> {
+    let schema = schema_ref(contract);
+    let batch = RecordBatch::try_new(schema, columns).context(build_context)?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .context("structural facts read-model schema validation failed")?;
+    Ok(batch)
 }
 
-fn string_field(name: &'static str) -> Field {
-    Field::new(name, DataType::Utf8, false)
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
 }
 
-fn bool_field(name: &'static str) -> Field {
-    Field::new(name, DataType::Boolean, false)
+const fn string_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn bool_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Boolean)
 }
 
 fn strings<'a>(values: impl Iterator<Item = &'a str>) -> ArrayRef {

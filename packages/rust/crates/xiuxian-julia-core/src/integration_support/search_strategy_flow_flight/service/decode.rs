@@ -13,12 +13,17 @@ use super::types::{
     SearchStrategyFlowFrontierRow, SearchStrategyFlowServiceCandidateRow,
     SearchStrategyFlowServicePlannerActionRow, SearchStrategyFlowServiceResponse,
 };
-use crate::integration_support::search_strategy_flow_flight::constants::{
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_RESPONSE_BUNDLE_TABLE,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_CANDIDATES_PAYLOAD_COLUMN,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_FRONTIER_PAYLOAD_COLUMN,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_PLANNER_ACTIONS_PAYLOAD_COLUMN,
-    WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_TRANSITIONS_PAYLOAD_COLUMN,
+use crate::integration_support::search_strategy_flow_flight::contract::{
+    search_strategy_flow_response_bundle_payload_columns,
+    search_strategy_flow_response_candidates_payload_column,
+    search_strategy_flow_response_frontier_payload_column,
+    search_strategy_flow_response_payload_table_name,
+    search_strategy_flow_response_planner_actions_payload_column,
+    search_strategy_flow_response_transitions_payload_column,
+    validate_search_strategy_flow_response_bundle_batch,
+    validate_search_strategy_flow_response_payload_stream,
+    validate_strategy_candidates_response_batch, validate_strategy_frontier_response_batch,
+    validate_strategy_planner_actions_response_batch,
 };
 
 /// Decode a full `SearchStrategyFlow` service response.
@@ -33,7 +38,7 @@ pub fn decode_search_strategy_flow_service_response(
     let frontier = decode_search_strategy_flow_frontier_rows(batches)?;
     let Some(candidate_batches) = response_bundle_payload_batches(
         batches,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_CANDIDATES_PAYLOAD_COLUMN,
+        search_strategy_flow_response_candidates_payload_column(),
     )?
     else {
         return Ok(SearchStrategyFlowServiceResponse {
@@ -45,12 +50,12 @@ pub fn decode_search_strategy_flow_service_response(
     };
     let transition_batches = response_bundle_payload_batches(
         batches,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_TRANSITIONS_PAYLOAD_COLUMN,
+        search_strategy_flow_response_transitions_payload_column(),
     )?
     .ok_or_else(|| "SearchStrategyFlow response bundle missing transition payloads".to_string())?;
     let planner_action_batches = response_bundle_payload_batches(
         batches,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_PLANNER_ACTIONS_PAYLOAD_COLUMN,
+        search_strategy_flow_response_planner_actions_payload_column(),
     )?
     .ok_or_else(|| {
         "SearchStrategyFlow response bundle missing planner action payloads".to_string()
@@ -94,7 +99,7 @@ fn search_strategy_flow_frontier_response_batches(
 ) -> Result<Vec<RecordBatch>, String> {
     response_bundle_payload_batches(
         batches,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_FRONTIER_PAYLOAD_COLUMN,
+        search_strategy_flow_response_frontier_payload_column(),
     )
     .map(|bundled_batches| bundled_batches.unwrap_or_else(|| batches.to_vec()))
 }
@@ -130,20 +135,29 @@ fn decode_response_bundle_payload_batches(
     column_name: &str,
 ) -> Result<Vec<RecordBatch>, String> {
     require_response_bundle_columns(batch)?;
+    let table_name = search_strategy_flow_response_payload_table_name(column_name)?;
     let column = batch
         .column_by_name(column_name)
         .ok_or_else(|| format!("SearchStrategyFlow response bundle missing `{column_name}`"))?;
     if let Some(payloads) = column.as_any().downcast_ref::<BinaryArray>() {
-        return decode_binary_response_bundle_payload_batches(payloads, column_name);
+        return decode_binary_response_bundle_payload_batches(payloads, column_name, table_name);
     }
     if let Some(payloads) = column.as_any().downcast_ref::<LargeBinaryArray>() {
-        return decode_large_binary_response_bundle_payload_batches(payloads, column_name);
+        return decode_large_binary_response_bundle_payload_batches(
+            payloads,
+            column_name,
+            table_name,
+        );
     }
     if let Some(payloads) = column.as_any().downcast_ref::<ListArray>() {
-        return decode_list_u8_response_bundle_payload_batches(payloads, column_name);
+        return decode_list_u8_response_bundle_payload_batches(payloads, column_name, table_name);
     }
     if let Some(payloads) = column.as_any().downcast_ref::<LargeListArray>() {
-        return decode_large_list_u8_response_bundle_payload_batches(payloads, column_name);
+        return decode_large_list_u8_response_bundle_payload_batches(
+            payloads,
+            column_name,
+            table_name,
+        );
     }
 
     Err(format!(
@@ -155,6 +169,7 @@ fn decode_response_bundle_payload_batches(
 fn decode_binary_response_bundle_payload_batches(
     payloads: &BinaryArray,
     column_name: &str,
+    table_name: &str,
 ) -> Result<Vec<RecordBatch>, String> {
     let mut batches = Vec::new();
     for row_index in 0..payloads.len() {
@@ -169,6 +184,7 @@ fn decode_binary_response_bundle_payload_batches(
                 "SearchStrategyFlow response bundle `{column_name}` row {row_index} is empty"
             ));
         }
+        validate_search_strategy_flow_response_payload_stream(table_name, payload)?;
         batches.extend(decode_arrow_ipc_record_batches(payload, column_name)?);
     }
     require_non_empty_batches(batches, column_name)
@@ -177,6 +193,7 @@ fn decode_binary_response_bundle_payload_batches(
 fn decode_large_binary_response_bundle_payload_batches(
     payloads: &LargeBinaryArray,
     column_name: &str,
+    table_name: &str,
 ) -> Result<Vec<RecordBatch>, String> {
     let mut batches = Vec::new();
     for row_index in 0..payloads.len() {
@@ -191,6 +208,7 @@ fn decode_large_binary_response_bundle_payload_batches(
                 "SearchStrategyFlow response bundle `{column_name}` row {row_index} is empty"
             ));
         }
+        validate_search_strategy_flow_response_payload_stream(table_name, payload)?;
         batches.extend(decode_arrow_ipc_record_batches(payload, column_name)?);
     }
     require_non_empty_batches(batches, column_name)
@@ -199,10 +217,12 @@ fn decode_large_binary_response_bundle_payload_batches(
 fn decode_list_u8_response_bundle_payload_batches(
     payloads: &ListArray,
     column_name: &str,
+    table_name: &str,
 ) -> Result<Vec<RecordBatch>, String> {
     let mut batches = Vec::new();
     for row_index in 0..payloads.len() {
         let payload = list_u8_payload(payloads, row_index, column_name)?;
+        validate_search_strategy_flow_response_payload_stream(table_name, payload.as_slice())?;
         batches.extend(decode_arrow_ipc_record_batches(&payload, column_name)?);
     }
     require_non_empty_batches(batches, column_name)
@@ -211,10 +231,12 @@ fn decode_list_u8_response_bundle_payload_batches(
 fn decode_large_list_u8_response_bundle_payload_batches(
     payloads: &LargeListArray,
     column_name: &str,
+    table_name: &str,
 ) -> Result<Vec<RecordBatch>, String> {
     let mut batches = Vec::new();
     for row_index in 0..payloads.len() {
         let payload = large_list_u8_payload(payloads, row_index, column_name)?;
+        validate_search_strategy_flow_response_payload_stream(table_name, payload.as_slice())?;
         batches.extend(decode_arrow_ipc_record_batches(&payload, column_name)?);
     }
     require_non_empty_batches(batches, column_name)
@@ -284,37 +306,13 @@ fn u8_payload_from_array(
 }
 
 fn has_response_bundle_payload_column(batch: &RecordBatch) -> bool {
-    response_bundle_payload_columns()
+    search_strategy_flow_response_bundle_payload_columns()
         .iter()
         .any(|column| batch.column_by_name(column).is_some())
 }
 
 fn require_response_bundle_columns(batch: &RecordBatch) -> Result<(), String> {
-    let expected_table = WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_RESPONSE_BUNDLE_TABLE;
-    if let Some(table_name) = batch.schema().metadata().get("wendao.table")
-        && table_name != expected_table
-    {
-        return Err(format!(
-            "SearchStrategyFlow response bundle table metadata must be `{expected_table}` but was `{table_name}`"
-        ));
-    }
-    for column in response_bundle_payload_columns() {
-        if batch.column_by_name(column).is_none() {
-            return Err(format!(
-                "SearchStrategyFlow response bundle missing `{column}`"
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn response_bundle_payload_columns() -> [&'static str; 4] {
-    [
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_CANDIDATES_PAYLOAD_COLUMN,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_TRANSITIONS_PAYLOAD_COLUMN,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_FRONTIER_PAYLOAD_COLUMN,
-        WENDAO_GRAPH_SEARCH_STRATEGY_FLOW_STRATEGY_PLANNER_ACTIONS_PAYLOAD_COLUMN,
-    ]
+    validate_search_strategy_flow_response_bundle_batch(batch)
 }
 
 fn decode_arrow_ipc_record_batches(
@@ -358,6 +356,7 @@ fn decode_candidate_batches(
 fn decode_candidate_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<SearchStrategyFlowServiceCandidateRow>, String> {
+    validate_strategy_candidates_response_batch(batch)?;
     require_columns(
         batch,
         "candidate response",
@@ -397,6 +396,7 @@ fn decode_candidate_batch(
 fn decode_frontier_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<SearchStrategyFlowFrontierRow>, String> {
+    validate_strategy_frontier_response_batch(batch)?;
     require_columns(
         batch,
         "frontier response",
@@ -444,6 +444,7 @@ fn decode_planner_action_batches(
 fn decode_planner_action_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<SearchStrategyFlowServicePlannerActionRow>, String> {
+    validate_strategy_planner_actions_response_batch(batch)?;
     require_columns(
         batch,
         "planner action response",

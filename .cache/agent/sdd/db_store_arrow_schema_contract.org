@@ -1,0 +1,378 @@
+#+TITLE: DB Store Arrow Schema Contract SDD
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:sdd:architecture:db-store:arrow:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DB Store Arrow Schema Contract :sdd:system:
+:PROPERTIES:
+:ID: 98a0e386-a8d9-414e-a021-debc9752ce02
+:SDD_KIND: system
+:SDD_STATUS: accepted
+:SDD_CONCERN: Shared Arrow table-contract ownership for data that flows through db-store.
+:SDD_SLUG: db-store-arrow-schema-contract
+:END:
+
+** Arrow Contract Surface :sdd:capability:
+:PROPERTIES:
+:ID: dcd90197-4c9e-43c5-9172-ab6d4f0d6cf6
+:SDD_KIND: capability
+:SDD_PARENT: [[id:98a0e386-a8d9-414e-a021-debc9752ce02][DB Store Arrow Schema Contract]]
+:SDD_CAPABILITY: arrow-schema-contract
+:SDD_STATUS: accepted
+:SDD_SLUG: arrow-contract-surface
+:END:
+
+*** Requirement: Contract-first Arrow schemas
+The db-store crate SHALL provide a small public interface for defining Arrow
+table contracts, constructing Arrow schemas from those contracts, and
+validating RecordBatch or Arrow IPC payloads against them.
+
+**** Scenario: Consumer builds an Arrow schema from a contract
+- WHEN a domain crate passes a table contract and metadata to db-store
+- THEN db-store SHALL return an Arrow schema with the declared columns,
+  nullability, and metadata.
+
+*** Requirement: Consumer-owned semantics
+Consumers SHALL still own domain table names and column lists. The db-store
+contract surface SHALL own only the reusable mechanics: Arrow data-type mapping,
+column order checks, required column checks, table metadata checks, and IPC
+stream decoding validation.
+
+**** Scenario: Consumer keeps domain table ownership
+- WHEN SearchStrategyFlow defines its request and response table contracts
+- THEN the table names and column names SHALL remain in `xiuxian-julia-core`
+  while db-store performs shared validation mechanics.
+
+**** Scenario: Candidate Arrow services use contract schemas
+- WHEN SearchStrategyFlow candidate discovery builds its legacy direct Arrow
+  service input table
+- THEN the candidate-service wire shape SHALL remain owned by
+  `xiuxian-julia-core` while schema construction and validation use db-store
+  Arrow contract helpers.
+
+**** Scenario: SQL read models use validation options
+- WHEN a SQL engine widens a SELECT output column from non-nullable to nullable
+- THEN the consumer SHALL use db-store validation options that allow widening
+  while preserving field order, names, and Arrow data types.
+
+**** Scenario: SQL markdown surfaces use contract schemas
+- WHEN Wendao SQL registers bounded-work markdown rows into a local relation
+  engine
+- THEN the registered Arrow schema SHALL be generated through the SQL crate
+  `ArrowTableContract` adapter instead of a local hand-written Arrow field list.
+
+**** Scenario: db-store internal retrieval payloads use the same contract
+- WHEN db-store exposes the lightweight engine retrieval result schema or
+  projected retrieval payload schemas
+- THEN those schemas SHALL be generated from `ArrowSchemaContract` instead of a
+  parallel hand-written Arrow field list.
+
+**** Scenario: Qianji append-log batches use contract schemas
+- WHEN db-store builds Qianji BPMN workflow-state append-log batches for
+  DuckDB's Arrow appender
+- THEN the append-log `RecordBatch` schema SHALL be generated from
+  `ArrowSchemaContract` and validated before ingestion while Qianji keeps
+  ownership of checkpoint semantics and table layout.
+
+**** Scenario: Ontology read-model envelope batches use contract schemas
+- WHEN Julia-core converts dataset-ontology envelope rows into WendaoGraph
+  ontology quality request batches
+- THEN `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` schemas SHALL be generated from db-store
+  `ArrowSchemaContract` helpers while Julia-core keeps ownership of read-model
+  semantics.
+
+**** Scenario: Ontology artifact adapters use contract schemas
+- WHEN Julia-core reads semantic-preview or structural-facts artifacts into
+  WendaoGraph ontology quality request batches
+- THEN the generated read-model batches SHALL use db-store `ArrowSchemaContract`
+  construction and validation while artifact parsing and semantic checks remain
+  in Julia-core.
+
+**** Scenario: SearchStrategyFlow ontology-registry IPC uses request contracts
+- WHEN Julia-core builds ontology-registry Arrow IPC from accepted
+  semantic-scope rows for SearchStrategyFlow
+- THEN the IPC schema SHALL come from the existing SearchStrategyFlow
+  request-payload table contract instead of a local hand-written field list.
+
+**** Scenario: Graph-structural request schemas use contract schemas
+- WHEN Julia-core builds graph-structural rerank or constraint-filter request
+  batches
+- THEN the request schemas SHALL be generated from db-store
+  `ArrowSchemaContract` helpers, including graph-contract `Int32` and
+  `List(Utf8)` columns, while Julia-core keeps route semantics and validators.
+
+**** Scenario: Parser-summary request schemas use contract schemas
+- WHEN Julia-core builds Julia or Modelica parser-summary request batches
+- THEN the three-column request schemas SHALL be generated and structurally
+  validated through db-store `ArrowSchemaContract` helpers while parser-summary
+  response compatibility and semantic decoding remain in Julia-core.
+
+**** Scenario: Capability-manifest request schema uses contract schemas
+- WHEN Julia-core builds Julia capability-manifest request batches
+- THEN the four-column request schema SHALL be generated and structurally
+  validated through db-store `ArrowSchemaContract` helpers while
+  capability-manifest route semantics and response validation remain in
+  Julia-core.
+
+**** Scenario: WendaoGraph evidence schemas use contract schemas
+- WHEN Julia-core materializes WendaoGraph evidence or PageIndex reasoning
+  table schemas
+- THEN schema construction and structural validation SHALL use db-store
+  `ArrowSchemaContract` helpers while WendaoGraph route ownership, table names,
+  required-table policy, and graph semantics remain in Julia-core.
+
+**** Scenario: Ontology read-model IPC bundles use contract schemas
+- WHEN Julia-core builds WendaoGraph ontology read-model quality or extension
+  proof Flight request bundles
+- THEN bundle schema construction and structural validation SHALL use db-store
+  `ArrowSchemaContract` helpers while service metadata, table names, payload
+  semantics, and ontology quality routing remain in Julia-core.
+
+**** Scenario: Julia-core metadata attachment uses db-store helper
+- WHEN Julia-core needs to attach or overwrite Arrow schema metadata on
+  existing request batches
+- THEN it SHALL delegate the record-batch schema reconstruction mechanics to
+  the shared db-store Arrow IPC helper while retaining Julia route metadata
+  ownership in Julia-core.
+
+**** Scenario: Episteme candidate read models use contract schemas
+- WHEN Episteme publishes ontology candidate object, relation, and evidence
+  read-model Parquet tables
+- THEN table schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while candidate semantics, review
+  status, promotion policy, and ontology-truth gates remain in Episteme.
+
+**** Scenario: Episteme structural facts read models use contract schemas
+- WHEN Episteme publishes deterministic structural facts object and relation
+  read-model Parquet tables
+- THEN table schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while source-contract semantics and
+  pre-truth policy remain in Episteme.
+
+**** Scenario: Attachment PDF render sidecars use contract schemas
+- WHEN attachments builds PDF render OCR shard manifest and pending-resource
+  Arrow sidecar batches
+- THEN sidecar schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while attachment shard identity,
+  provenance, ordering, cache, and precision gates remain in attachments.
+
+**** Scenario: Attachment PDF OCR worker contracts use contract schemas
+- WHEN attachments builds PDF OCR worker input, worker result, or projected
+  OCR document-resource batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while OCR shard semantics, precision
+  gates, and merge identity remain in attachments.
+
+**** Scenario: Attachment audio shard worker contracts use contract schemas
+- WHEN attachments builds audio shard worker input or worker result batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while audio shard timing, transcript
+  admission, recovery, and merge identity remain in attachments.
+
+**** Scenario: Attachment audio Org evidence projections use contract schemas
+- WHEN attachments builds audio transcript Org evidence source or segment
+  batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while Org evidence projection,
+  transcript evidence status, and downstream ontology-promotion boundaries
+  remain in attachments.
+
+*** Requirement: No truth migration
+The shared Arrow contract interface SHALL NOT move ontology truth, search
+semantics, Julia strategy logic, or gateway route ownership into db-store.
+It only reduces redundant table-schema maintenance for data that already passes
+through the db-store boundary.
+
+**** Scenario: db-store validates structure only
+- WHEN a payload is validated through the Arrow contract surface
+- THEN db-store SHALL reject structural schema drift without interpreting the
+  business meaning of the rows.
+
+** Runtime View :sdd:view:
+:PROPERTIES:
+:ID: 0a717f48-f521-4950-a901-5d77ddd32480
+:SDD_KIND: view
+:SDD_PARENT: [[id:dcd90197-4c9e-43c5-9172-ab6d4f0d6cf6][Arrow Contract Surface]]
+:SDD_VIEWPOINT: runtime
+:SDD_CONCERN: Shared Arrow schema construction and validation across storage consumers.
+:SDD_QUALITY: determinism, maintainability, schema parity
+:SDD_STATUS: accepted
+:SDD_SLUG: arrow-contract-runtime-view
+:END:
+
+*** View Description
+Domain crates define static table contracts and pass them to db-store helper
+functions. db-store returns Arrow schemas and validates decoded batches or IPC
+streams without knowing the domain semantics.
+
+#+begin_src mermaid
+flowchart LR
+  Consumer["Domain crate table contract"] --> Store["xiuxian-db-store Arrow contract API"]
+  Store --> Schema["Arrow Schema"]
+  Store --> BatchGate["RecordBatch / IPC validation"]
+  BatchGate --> ConsumerRuntime["Consumer route or service boundary"]
+#+end_src
+
+** Design Decision: Centralize Arrow schema mechanics :sdd:decision:
+:PROPERTIES:
+:ID: 23d614cc-f8a5-4568-bf4a-97160318d813
+:SDD_KIND: decision
+:SDD_PARENT: [[id:0a717f48-f521-4950-a901-5d77ddd32480][Runtime View]]
+:SDD_STATUS: accepted
+:SDD_RATIONALE: Repeated Arrow Schema and IPC validation logic in consumer crates increases drift risk. db-store is the correct shared boundary because the structured data eventually crosses storage or IPC materialization surfaces.
+:SDD_SLUG: centralize-arrow-schema-mechanics
+:END:
+
+*** Decision
+Implement a reusable `arrow_schema` module behind the db-store `arrow-codec`
+feature. The first consumer is `xiuxian-julia-core` SearchStrategyFlow Flight
+contracts. SQL read-model consumers use the same module with explicit
+nullability validation options instead of maintaining separate schema
+validation loops.
+
+*** Consequences
+- Consumers keep their domain schema declarations close to their routes.
+- db-store owns common validation behavior and error wording.
+- Future ontology, parser, and search read-model tables can reuse the same
+  contract API without importing SearchStrategyFlow-specific code.
+
+** Architecture Audit :sdd:audit:
+:PROPERTIES:
+:ID: 17d91407-613b-4c6a-bc07-7468d2159b52
+:SDD_KIND: audit
+:SDD_PARENT: [[id:dcd90197-4c9e-43c5-9172-ab6d4f0d6cf6][Arrow Contract Surface]]
+:SDD_STATUS: accepted
+:SDD_CONCERN: Evidence required before the slice is considered aligned.
+:SDD_QUALITY: correctness, maintainability
+:SDD_SLUG: arrow-contract-audit
+:END:
+
+*** Audit Questions
+- Question: Does db-store expose the reusable Arrow contract primitives instead
+  of another domain-local helper?
+- Question: Does SearchStrategyFlow consume db-store for schema construction and
+  payload validation while preserving its existing wire schema?
+- Question: Do SQL read-model consumers reuse db-store validation options for
+  nullability widening instead of owning local schema mechanics?
+
+*** Fitness Criteria
+- Gate: db-store unit tests cover schema construction, metadata checks, required
+  columns, exact order, and IPC payload validation.
+- Gate: SearchStrategyFlow targeted tests continue to pass with no Arrow wire
+  schema changes.
+- Gate: SearchStrategyFlow candidate Arrow service tests continue to pass while
+  candidate input schemas are generated through db-store contract helpers.
+- Gate: Wendao SQL dataset-ontology and semantic read-model tests pass while
+  consuming db-store schema contract helpers.
+- Gate: Wendao SQL bounded-work markdown tests pass while the registered
+  markdown table schema is generated through the shared contract adapter.
+- Gate: db-store retrieval payload tests pass while retrieval schemas and
+  projections are generated through the shared contract surface.
+- Gate: Qianji BPMN workflow-state append-log tests pass while append batches
+  are generated and validated through the shared contract surface.
+- Gate: Julia-core ontology read-model envelope tests pass while generated
+  request batches use db-store schema construction and validation helpers.
+- Gate: Julia-core semantic-preview and structural-facts ontology adapter tests
+  pass while generated read-model batches use db-store schema construction and
+  validation helpers.
+- Gate: SearchStrategyFlow ontology-registry tests pass while the generated IPC
+  stream schema is built and validated through the shared request-payload
+  contract.
+- Gate: db-store Arrow schema tests cover `Int32` and `List(Utf8)` contract
+  fields used by graph-structural request schemas.
+- Gate: Julia-core graph-structural request tests pass while request schemas
+  are generated through db-store schema construction helpers.
+- Gate: Julia-core Julia and Modelica parser-summary request tests pass while
+  request schemas are generated and validated through db-store schema
+  construction helpers.
+- Gate: Julia-core capability-manifest request tests pass while the request
+  schema is generated and validated through db-store schema construction
+  helpers.
+- Gate: Julia-core WendaoGraph evidence contract tests pass while evidence and
+  PageIndex reasoning schemas are generated and validated through db-store
+  schema construction helpers.
+- Gate: Julia-core ontology read-model IPC/bundle tests pass while Flight
+  request-bundle schemas are generated and validated through db-store schema
+  construction helpers.
+- Gate: Julia-core Arrow metadata helper tests pass while metadata attachment
+  delegates to db-store instead of rebuilding Arrow schemas locally.
+- Gate: Episteme candidate read-model tests pass while candidate Parquet table
+  schemas are generated and exact-validated through db-store schema contract
+  helpers.
+- Gate: Episteme structural facts tests pass while structural facts Parquet
+  table schemas are generated and exact-validated through db-store schema
+  contract helpers.
+- Gate: Attachment PDF render Arrow tests pass while render sidecar schemas are
+  generated and exact-validated through db-store schema contract helpers.
+- Gate: Attachment PDF OCR tests pass while OCR worker input, worker result,
+  and projected OCR resource schemas are generated and exact-validated through
+  db-store schema contract helpers.
+- Gate: Attachment audio tests pass while audio shard worker input and result
+  schemas are generated and exact-validated through db-store schema contract
+  helpers.
+- Gate: Attachment audio Org projection tests pass while audio evidence source
+  and segment schemas are generated and exact-validated through db-store
+  schema contract helpers.
+- Gate: package docs describe the db-store Arrow contract boundary without
+  linking to hidden tracking paths.
+
+*** Evidence Log
+- 2026-05-26: Graph-structural request schema adoption completed for
+  `xiuxian-db-store` and `xiuxian-julia-core`. Validation passed with db-store
+  Arrow schema tests, Julia-core graph-structural exchange tests, targeted
+  clippy for both crates, fmt check, and package README hidden-path scan.
+- 2026-05-26: Parser-summary request schema adoption completed for Julia and
+  Modelica parser-summary builders in `xiuxian-julia-core`. Validation passed
+  with Julia and Modelica parser-summary contract tests, targeted Julia-core
+  clippy, fmt check, and package README hidden-path scan; route-extended
+  Modelica request validation remains intentionally compatible with existing
+  readiness/ast-query batches.
+- 2026-05-26: Capability-manifest request schema adoption completed in
+  `xiuxian-julia-core`. Validation passed with the request-batch materialization
+  test, targeted Julia-core clippy, fmt check, and package README hidden-path
+  scan.
+- 2026-05-26: WendaoGraph evidence and PageIndex reasoning schema adoption
+  completed in `xiuxian-julia-core`. Validation passed with targeted
+  WendaoGraph evidence contract tests, targeted Julia-core clippy, fmt check,
+  and package README/docs hidden-path scan; the formerly monolithic
+  `wendao_graph_evidence.rs` was split into a feature folder so `mod.rs`
+  remains interface-only.
+- 2026-05-26: WendaoGraph ontology read-model quality and extension-proof
+  Flight request-bundle schema adoption completed in `xiuxian-julia-core`.
+  Validation passed with ontology read-model tests, direct bundle tests,
+  targeted Julia-core clippy, fmt check, and package README/docs hidden-path
+  scan.
+- 2026-05-26: Julia-core Arrow schema metadata attachment now delegates to the
+  shared db-store Arrow IPC helper instead of locally rebuilding `Schema`
+  values. Validation passed with the targeted Arrow metadata helper test,
+  targeted Julia-core clippy, fmt check, and package README/docs hidden-path
+  scan.
+- 2026-05-26: Episteme ontology candidate object, relation, and evidence
+  Parquet read-model schemas now use db-store `ArrowSchemaContract`
+  construction and exact validation. Validation passed with candidate tests,
+  targeted Episteme clippy, fmt check, and package README hidden-path scan.
+- 2026-05-26: Episteme structural facts object and relation Parquet read-model
+  schemas now use db-store `ArrowSchemaContract` construction and exact
+  validation. Validation passed with structural facts tests, targeted Episteme
+  clippy, fmt check, and package README hidden-path scan.
+- 2026-05-26: Attachment PDF render OCR shard manifest and pending-resource
+  Arrow sidecar schemas now use db-store `ArrowSchemaContract` construction
+  and exact validation. Validation passed with PDF render tests, targeted
+  attachments clippy, fmt check, and package README hidden-path scan; the same
+  clippy run also closed a long-test modularity violation in the pdf-render
+  Foyer artifact-cache test path.
+- 2026-05-26: Attachment PDF OCR worker input, worker result, and projected
+  OCR document-resource schemas now use db-store `ArrowSchemaContract`
+  construction and exact validation. Validation passed with targeted PDF OCR
+  tests, targeted attachments clippy, fmt check, and package README
+  hidden-path scan.
+- 2026-05-26: Attachment audio shard worker input and result schemas now use
+  db-store `ArrowSchemaContract` construction and exact validation. Validation
+  passed with targeted audio Arrow contract tests, broader audio tests,
+  targeted attachments clippy, fmt check, Studio audio-capacity signature
+  regression test, and package README hidden-path scan.
+- 2026-05-26: Attachment audio transcript Org evidence source and segment
+  schemas now use db-store `ArrowSchemaContract` construction and exact
+  validation. Validation passed with targeted audio Org projection tests,
+  targeted attachments clippy, fmt check, and package README hidden-path scan.

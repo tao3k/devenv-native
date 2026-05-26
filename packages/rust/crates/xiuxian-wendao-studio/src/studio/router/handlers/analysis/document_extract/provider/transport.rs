@@ -28,11 +28,6 @@ use super::{
     StudioDocumentExtractFlightRouteProvider,
 };
 
-pub(super) const WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER: &str =
-    "x-wendao-document-extract-source-preparation";
-pub(super) const DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX: &str =
-    "legacy-office-docx";
-
 impl StudioDocumentExtractFlightRouteProvider {
     pub(super) async fn acquire_document_extract_dispatch_permit(
         &self,
@@ -199,14 +194,6 @@ impl StudioDocumentExtractFlightRouteProvider {
         client
             .add_header(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER, request.profile)
             .map_err(|error| format!("invalid profile header: {error}"))?;
-        if let Some(source_preparation) = document_extract_source_preparation(request.source_path) {
-            client
-                .add_header(
-                    WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER,
-                    source_preparation,
-                )
-                .map_err(|error| format!("invalid source preparation header: {error}"))?;
-        }
         if let Some((start, end)) = request.page_range {
             let value = format!("{start}:{end}");
             client
@@ -337,14 +324,6 @@ pub(super) fn is_retryable_document_extract_endpoint_error(error: &str) -> bool 
         || error.contains("The service is currently unavailable")
         || error.contains("tcp connect error")
         || error.contains("Connection refused")
-}
-
-pub(super) fn document_extract_source_preparation(source_path: &str) -> Option<&'static str> {
-    let suffix = std::path::Path::new(source_path)
-        .extension()
-        .and_then(std::ffi::OsStr::to_str)
-        .map(str::to_ascii_lowercase)?;
-    (suffix == "doc").then_some(DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX)
 }
 
 fn add_source_path_headers(client: &mut FlightClient, source_path: &str) -> Result<(), String> {

@@ -4,9 +4,12 @@ use std::io::Cursor;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, BinaryArray, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::writer::StreamWriter;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, build_arrow_schema, validate_record_batch_schema_with_options,
+};
 
 use crate::arrow_metadata::attach_record_batch_metadata;
 
@@ -118,47 +121,10 @@ pub fn build_wendaograph_ontology_extension_proof_arrow_request(
 pub fn build_wendaograph_ontology_read_model_quality_flight_request_batch(
     request: &WendaoGraphOntologyReadModelQualityArrowRequest,
 ) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new_with_metadata(
-        vec![
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-        ],
-        [
-            (
-                SERVICE_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SERVICE.to_owned(),
-            ),
-            (
-                METHOD_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_METHOD.to_owned(),
-            ),
-            (
-                SCHEMA_VERSION_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION.to_owned(),
-            ),
-            (
-                TABLE_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE.to_owned(),
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    ));
+    let contract = ontology_read_model_quality_bundle_contract();
+    let schema = Arc::new(build_arrow_schema(&contract, request_bundle_metadata()));
 
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         schema,
         vec![
             Arc::new(BinaryArray::from(vec![
@@ -172,7 +138,35 @@ pub fn build_wendaograph_ontology_read_model_quality_flight_request_batch(
             ])) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build WendaoGraph ontology Flight request batch: {error}"))
+    .map_err(|error| format!("build WendaoGraph ontology Flight request batch: {error}"))?;
+
+    validate_bundle_batch(
+        &batch,
+        &contract,
+        "WendaoGraph ontology Flight request batch",
+    )?;
+    Ok(batch)
+}
+
+fn ontology_read_model_quality_bundle_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE,
+        true,
+        vec![
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+        ],
+    )
 }
 
 /// Build the single-table Arrow Flight request bundle for ontology extension proof.
@@ -184,67 +178,10 @@ pub fn build_wendaograph_ontology_read_model_quality_flight_request_batch(
 pub fn build_wendaograph_ontology_extension_proof_flight_request_batch(
     request: &WendaoGraphOntologyExtensionProofArrowRequest,
 ) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new_with_metadata(
-        vec![
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_PARENT_OBJECT_TYPES_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_PARENT_LINK_TYPES_PAYLOAD_COLUMN,
-                DataType::Binary,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_EXTENSION_DOMAIN_PREFIX_COLUMN,
-                DataType::Utf8,
-                false,
-            ),
-            Field::new(
-                WENDAO_GRAPH_ONTOLOGY_RDF_NAMESPACE_COLUMN,
-                DataType::Utf8,
-                false,
-            ),
-        ],
-        [
-            (
-                SERVICE_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SERVICE.to_owned(),
-            ),
-            (
-                METHOD_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_METHOD.to_owned(),
-            ),
-            (
-                SCHEMA_VERSION_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION.to_owned(),
-            ),
-            (
-                TABLE_METADATA_KEY.to_owned(),
-                WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE.to_owned(),
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    ));
+    let contract = ontology_extension_proof_bundle_contract();
+    let schema = Arc::new(build_arrow_schema(&contract, request_bundle_metadata()));
 
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         schema,
         vec![
             Arc::new(BinaryArray::from(vec![
@@ -268,7 +205,90 @@ pub fn build_wendaograph_ontology_extension_proof_flight_request_batch(
             Arc::new(StringArray::from(vec![request.rdf_namespace.as_str()])) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build WendaoGraph ontology extension Flight request batch: {error}"))
+    .map_err(|error| {
+        format!("build WendaoGraph ontology extension Flight request batch: {error}")
+    })?;
+
+    validate_bundle_batch(
+        &batch,
+        &contract,
+        "WendaoGraph ontology extension Flight request batch",
+    )?;
+    Ok(batch)
+}
+
+fn ontology_extension_proof_bundle_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE,
+        true,
+        vec![
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_OBJECTS_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_RELATIONS_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_SEMANTIC_PROJECTION_STATE_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_PARENT_OBJECT_TYPES_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_PARENT_LINK_TYPES_PAYLOAD_COLUMN,
+                ArrowSchemaDataType::Binary,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_EXTENSION_DOMAIN_PREFIX_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            ArrowSchemaColumn::new(
+                WENDAO_GRAPH_ONTOLOGY_RDF_NAMESPACE_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+        ],
+    )
+}
+
+fn request_bundle_metadata() -> std::collections::HashMap<String, String> {
+    [
+        (
+            SERVICE_METADATA_KEY.to_owned(),
+            WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SERVICE.to_owned(),
+        ),
+        (
+            METHOD_METADATA_KEY.to_owned(),
+            WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_METHOD.to_owned(),
+        ),
+        (
+            SCHEMA_VERSION_METADATA_KEY.to_owned(),
+            WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_SCHEMA_VERSION.to_owned(),
+        ),
+        (
+            TABLE_METADATA_KEY.to_owned(),
+            WENDAO_GRAPH_ONTOLOGY_READ_MODEL_QUALITY_REQUEST_BUNDLE_TABLE.to_owned(),
+        ),
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn validate_bundle_batch(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
+    context: &str,
+) -> Result<(), String> {
+    validate_record_batch_schema_with_options(
+        batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("validate {context}: {error}"))
 }
 
 fn encode_request_table(batch: &RecordBatch, table_name: &'static str) -> Result<Vec<u8>, String> {

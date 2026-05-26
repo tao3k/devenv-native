@@ -2,14 +2,18 @@ use std::fs;
 
 use tokio::time::{Duration, sleep};
 
+#[cfg(feature = "document-extract-legacy-office")]
+use super::legacy_office::{is_legacy_office_source, write_legacy_office_document_extract_output};
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::validate_successful_ocr_results_for_inputs_with_lookup;
 use super::{
     Arc, DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV,
-    DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DocumentExtractJobRegistry, EngineRecordBatch,
-    StudioDocumentExtractFlightRouteProvider, document_extract_batches_are_cacheable,
-    document_extract_conversion_concurrency_limit_with_lookup, read_arrow_file,
-    shared_document_extract_provider_runtime, write_arrow_file,
+    DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DOCUMENT_RESOURCE_ARROW_CACHE_NAME,
+    DocumentExtractJobRegistry, EngineRecordBatch, StudioDocumentExtractFlightRouteProvider,
+    document_extract_batches_are_cacheable,
+    document_extract_conversion_concurrency_limit_with_lookup,
+    gateway_document_extract_mode_for_source, gateway_document_extract_profile_for_source,
+    read_arrow_file, shared_document_extract_provider_runtime, write_arrow_file,
 };
 #[cfg(all(
     feature = "document-extract-pdf-source-range",
@@ -57,6 +61,9 @@ use super::{
 #[cfg(feature = "document-extract-audio-shards")]
 mod audio;
 mod config;
+mod image;
+#[cfg(feature = "document-extract-legacy-office")]
+mod legacy_office;
 mod routing;
 mod runtime;
 mod structure;

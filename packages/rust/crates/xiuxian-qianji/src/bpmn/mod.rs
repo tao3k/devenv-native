@@ -22,6 +22,7 @@ mod error;
 #[path = "../bpmn_runtime_execution.rs"]
 mod execution;
 pub mod flowhub_activity_adapter;
+pub mod host_work_activity_adapter;
 #[path = "http/mod.rs"]
 mod http_transport;
 mod identity;
@@ -72,9 +73,11 @@ pub use api::{
     QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
-    dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
-    load_bpmn_package_from_files, load_bpmn_package_from_files_with_options,
-    qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
+    QianjiControlHistoryHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse, dispatch_pending_host_work_request,
+    dispatch_pending_host_work_requests, load_bpmn_package_from_files,
+    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
+    resolve_pending_host_work, resolve_waiting_external_event,
 };
 #[cfg(feature = "duckdb")]
 pub use api::{
@@ -92,6 +95,12 @@ pub use flowhub_activity_adapter::{
     build_flowhub_service_task_completion_payload,
     build_flowhub_service_task_contract_activity_result,
     build_flowhub_service_task_contract_completion_data,
+};
+pub use host_work_activity_adapter::{
+    BPMN_HOST_WORK_ACTIVITY_METADATA_KEY, BPMN_HOST_WORK_ACTIVITY_SCHEMA,
+    BPMN_HOST_WORK_ACTIVITY_TYPE, BPMN_HOST_WORK_COMPLETION_METADATA_KEY,
+    BPMN_HOST_WORK_COMPLETION_SCHEMA, BpmnHostWorkActivityScheduleInput,
+    build_bpmn_host_work_activity_result, build_bpmn_host_work_activity_schedule_record,
 };
 
 #[cfg(test)]

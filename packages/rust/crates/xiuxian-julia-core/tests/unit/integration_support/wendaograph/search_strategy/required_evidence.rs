@@ -351,10 +351,10 @@ fn branch_judgements_arrow_ipc(rows: &[BranchJudgementRow<'_>]) -> Vec<u8> {
     writer
         .finish()
         .unwrap_or_else(|error| panic!("finish branch judgement Arrow stream: {error}"));
-    writer
-        .into_inner()
-        .map(Cursor::into_inner)
-        .unwrap_or_else(|error| panic!("finalize branch judgement Arrow stream: {error}"))
+    match writer.into_inner() {
+        Ok(cursor) => cursor.into_inner(),
+        Err(error) => panic!("finalize branch judgement Arrow stream: {error}"),
+    }
 }
 
 fn unique_test_dir(label: &str) -> PathBuf {

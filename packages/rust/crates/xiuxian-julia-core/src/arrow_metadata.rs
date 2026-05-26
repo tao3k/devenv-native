@@ -1,7 +1,3 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use arrow::datatypes::Schema;
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
 
@@ -22,18 +18,7 @@ where
     V: Into<String>,
     I: IntoIterator<Item = (K, V)>,
 {
-    let mut merged: HashMap<String, String> = batch.schema().metadata().clone();
-    merged.extend(
-        metadata
-            .into_iter()
-            .map(|(key, value)| (key.into(), value.into())),
-    );
-
-    let schema = Arc::new(Schema::new_with_metadata(
-        batch.schema().fields().clone(),
-        merged,
-    ));
-    RecordBatch::try_new(schema, batch.columns().to_vec())
+    xiuxian_db_store::attach_record_batch_metadata(batch, metadata)
 }
 
 #[cfg(test)]

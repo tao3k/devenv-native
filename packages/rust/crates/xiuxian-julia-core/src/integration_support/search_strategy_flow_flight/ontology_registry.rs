@@ -1,16 +1,20 @@
 //! Semantic-scope to `SearchStrategyFlow` ontology-registry bridge.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::io::Cursor;
 use std::sync::Arc;
 
 use arrow::array::{Array, BooleanArray, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::writer::StreamWriter;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
 
 use super::client::SearchStrategyFlowFlightClient;
 use super::config::SearchStrategyFlowFlightMaterializationConfig;
+use super::contract::{
+    search_strategy_flow_ontology_registry_table_name, search_strategy_flow_request_payload_schema,
+    validate_search_strategy_flow_request_payload_stream,
+};
 use super::metadata::{ANALYSIS_SEMANTIC_SCOPE_ROUTE, populate_semantic_scope_headers};
 
 /// Fetch accepted semantic-scope rows and serialize them as ontology registry
@@ -101,11 +105,14 @@ fn ontology_registry_rows_to_arrow_ipc(
     rows: BTreeSet<OntologyRegistryRow>,
 ) -> Result<Vec<u8>, String> {
     let rows = rows.into_iter().collect::<Vec<_>>();
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("resource_family", DataType::Utf8, false),
-        Field::new("api_name", DataType::Utf8, false),
-        Field::new("requires_evidence", DataType::Boolean, false),
-    ]));
+    let table_name = search_strategy_flow_ontology_registry_table_name();
+    let schema = Arc::new(search_strategy_flow_request_payload_schema(
+        table_name,
+        HashMap::from([(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            table_name.to_string(),
+        )]),
+    )?);
     let batch = RecordBatch::try_new(
         schema.clone(),
         vec![
@@ -137,12 +144,14 @@ fn ontology_registry_rows_to_arrow_ipc(
     writer.finish().map_err(|error| {
         format!("finish SearchStrategyFlow ontology registry IPC stream: {error}")
     })?;
-    writer
+    let payload = writer
         .into_inner()
         .map(Cursor::into_inner)
         .map_err(|error| {
             format!("finalize SearchStrategyFlow ontology registry IPC stream: {error}")
-        })
+        })?;
+    validate_search_strategy_flow_request_payload_stream(table_name, &payload)?;
+    Ok(payload)
 }
 
 fn resource_family_for_kind(kind: Option<&str>) -> &'static str {

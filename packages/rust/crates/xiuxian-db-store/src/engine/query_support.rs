@@ -1,13 +1,17 @@
 //! Arrow-native retrieval batch helpers shared by Wendao query-core adapters.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 
 use arrow::array::{Array, ArrayRef, Float64Array, StringArray, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
 
 use crate::VectorStoreError;
+use crate::arrow_schema::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    build_arrow_schema, validate_record_batch_schema,
+};
 
 /// Stable candidate identifier column.
 pub const RETRIEVAL_ID_COLUMN: &str = "id";
@@ -33,6 +37,23 @@ pub const RETRIEVAL_BEST_SECTION_COLUMN: &str = "best_section";
 pub const RETRIEVAL_LANGUAGE_COLUMN: &str = "language";
 /// Optional line-number column.
 pub const RETRIEVAL_LINE_COLUMN: &str = "line";
+
+const RETRIEVAL_RESULT_TABLE: &str = "retrieval_results";
+const RETRIEVAL_RESULT_PROJECTION_TABLE: &str = "retrieval_result_projection";
+const RETRIEVAL_RESULT_COLUMNS: [ArrowSchemaColumn; 12] = [
+    ArrowSchemaColumn::new(RETRIEVAL_ID_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new(RETRIEVAL_PATH_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_REPO_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_TITLE_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_SCORE_COLUMN, ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new(RETRIEVAL_SOURCE_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_SNIPPET_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_DOC_TYPE_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_MATCH_REASON_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_BEST_SECTION_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_LANGUAGE_COLUMN, ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::nullable(RETRIEVAL_LINE_COLUMN, ArrowSchemaDataType::UInt64),
+];
 
 /// Retrieval document type label.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -99,39 +120,19 @@ pub struct RetrievalRow {
 /// Return the canonical Arrow schema for retrieval candidate batches.
 #[must_use]
 pub fn retrieval_result_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new(RETRIEVAL_ID_COLUMN, DataType::Utf8, false),
-        Field::new(RETRIEVAL_PATH_COLUMN, DataType::Utf8, false),
-        Field::new(RETRIEVAL_REPO_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_TITLE_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_SCORE_COLUMN, DataType::Float64, true),
-        Field::new(RETRIEVAL_SOURCE_COLUMN, DataType::Utf8, false),
-        Field::new(RETRIEVAL_SNIPPET_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_DOC_TYPE_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_MATCH_REASON_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_BEST_SECTION_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_LANGUAGE_COLUMN, DataType::Utf8, true),
-        Field::new(RETRIEVAL_LINE_COLUMN, DataType::UInt64, true),
-    ]))
+    Arc::new(build_arrow_schema(
+        &retrieval_result_contract(),
+        HashMap::new(),
+    ))
 }
 
 /// Return the canonical retrieval payload column order.
 #[must_use]
 pub fn retrieval_result_columns() -> Vec<String> {
-    vec![
-        RETRIEVAL_ID_COLUMN.to_string(),
-        RETRIEVAL_PATH_COLUMN.to_string(),
-        RETRIEVAL_REPO_COLUMN.to_string(),
-        RETRIEVAL_TITLE_COLUMN.to_string(),
-        RETRIEVAL_SCORE_COLUMN.to_string(),
-        RETRIEVAL_SOURCE_COLUMN.to_string(),
-        RETRIEVAL_SNIPPET_COLUMN.to_string(),
-        RETRIEVAL_DOC_TYPE_COLUMN.to_string(),
-        RETRIEVAL_MATCH_REASON_COLUMN.to_string(),
-        RETRIEVAL_BEST_SECTION_COLUMN.to_string(),
-        RETRIEVAL_LANGUAGE_COLUMN.to_string(),
-        RETRIEVAL_LINE_COLUMN.to_string(),
-    ]
+    RETRIEVAL_RESULT_COLUMNS
+        .iter()
+        .map(|column| column.name().to_owned())
+        .collect()
 }
 
 /// Convert retrieval rows into a canonical Arrow record batch.
@@ -293,6 +294,8 @@ fn required_uint64_column<'a>(
 pub fn retrieval_rows_from_record_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<RetrievalRow>, VectorStoreError> {
+    validate_record_batch_schema(batch, &retrieval_result_contract())
+        .map_err(|error| retrieval_schema_error(&error))?;
     let columns = retrieval_batch_columns(batch)?;
     Ok((0..batch.num_rows())
         .map(|row_index| columns.row_at(row_index))
@@ -330,101 +333,77 @@ fn projected_retrieval_rows_to_record_batch(
     rows: &[RetrievalRow],
     columns: &[String],
 ) -> Result<RecordBatch, VectorStoreError> {
-    let mut fields = Vec::with_capacity(columns.len());
     let mut arrays = Vec::<ArrayRef>::with_capacity(columns.len());
 
     for column in columns {
-        let (field, array) = projected_retrieval_column(rows, column.as_str())?;
-        fields.push(field);
+        let array = projected_retrieval_column(rows, column.as_str())?;
         arrays.push(array);
     }
 
-    RecordBatch::try_new(Arc::new(Schema::new(fields)), arrays)
+    RecordBatch::try_new(projected_retrieval_schema(columns)?, arrays)
         .map_err(|error| VectorStoreError::General(format!("project retrieval batch: {error}")))
 }
 
 fn projected_retrieval_column(
     rows: &[RetrievalRow],
     column: &str,
-) -> Result<(Field, ArrayRef), VectorStoreError> {
+) -> Result<ArrayRef, VectorStoreError> {
     match column {
         RETRIEVAL_ID_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_ID_COLUMN,
-            false,
             rows.iter().map(|row| Some(row.id.as_str())).collect(),
         )),
         RETRIEVAL_PATH_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_PATH_COLUMN,
-            false,
             rows.iter().map(|row| Some(row.path.as_str())).collect(),
         )),
         RETRIEVAL_REPO_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_REPO_COLUMN,
-            true,
             rows.iter().map(|row| row.repo.as_deref()).collect(),
         )),
         RETRIEVAL_TITLE_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_TITLE_COLUMN,
-            true,
             rows.iter().map(|row| row.title.as_deref()).collect(),
         )),
-        RETRIEVAL_SCORE_COLUMN => Ok((
-            Field::new(RETRIEVAL_SCORE_COLUMN, DataType::Float64, true),
-            Arc::new(Float64Array::from(
-                rows.iter().map(|row| row.score).collect::<Vec<_>>(),
-            )),
-        )),
+        RETRIEVAL_SCORE_COLUMN => Ok(Arc::new(Float64Array::from(
+            rows.iter().map(|row| row.score).collect::<Vec<_>>(),
+        ))),
         RETRIEVAL_SOURCE_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_SOURCE_COLUMN,
-            false,
             rows.iter().map(|row| Some(row.source.as_str())).collect(),
         )),
         RETRIEVAL_SNIPPET_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_SNIPPET_COLUMN,
-            true,
             rows.iter().map(|row| row.snippet.as_deref()).collect(),
         )),
         RETRIEVAL_DOC_TYPE_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_DOC_TYPE_COLUMN,
-            true,
             rows.iter().map(|row| row.doc_type.as_deref()).collect(),
         )),
         RETRIEVAL_MATCH_REASON_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_MATCH_REASON_COLUMN,
-            true,
             rows.iter().map(|row| row.match_reason.as_deref()).collect(),
         )),
         RETRIEVAL_BEST_SECTION_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_BEST_SECTION_COLUMN,
-            true,
             rows.iter().map(|row| row.best_section.as_deref()).collect(),
         )),
         RETRIEVAL_LANGUAGE_COLUMN => Ok(projected_utf8_column(
-            RETRIEVAL_LANGUAGE_COLUMN,
-            true,
             rows.iter().map(|row| row.language.as_deref()).collect(),
         )),
-        RETRIEVAL_LINE_COLUMN => Ok((
-            Field::new(RETRIEVAL_LINE_COLUMN, DataType::UInt64, true),
-            Arc::new(UInt64Array::from(
-                rows.iter().map(|row| row.line).collect::<Vec<_>>(),
-            )),
-        )),
+        RETRIEVAL_LINE_COLUMN => Ok(Arc::new(UInt64Array::from(
+            rows.iter().map(|row| row.line).collect::<Vec<_>>(),
+        ))),
         other => Err(VectorStoreError::General(format!(
             "unsupported retrieval payload column `{other}`"
         ))),
     }
 }
 
-fn projected_utf8_column(
-    name: &'static str,
-    nullable: bool,
-    values: Vec<Option<&str>>,
-) -> (Field, ArrayRef) {
-    (
-        Field::new(name, DataType::Utf8, nullable),
-        Arc::new(StringArray::from(values)),
-    )
+fn projected_retrieval_schema(columns: &[String]) -> Result<SchemaRef, VectorStoreError> {
+    let projection_columns = columns
+        .iter()
+        .map(|column| retrieval_result_column(column))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(Arc::new(build_arrow_schema(
+        &ArrowSchemaContract::new(RETRIEVAL_RESULT_PROJECTION_TABLE, true, projection_columns),
+        HashMap::new(),
+    )))
+}
+
+fn projected_utf8_column(values: Vec<Option<&str>>) -> ArrayRef {
+    Arc::new(StringArray::from(values))
 }
 
 fn required_string_column<'a>(
@@ -441,14 +420,29 @@ fn required_string_column<'a>(
 
 fn validate_columns(columns: &[String]) -> Result<(), VectorStoreError> {
     for column in columns {
-        if !retrieval_result_columns()
-            .iter()
-            .any(|candidate| candidate == column)
-        {
-            return Err(VectorStoreError::General(format!(
-                "unsupported retrieval payload column `{column}`"
-            )));
-        }
+        retrieval_result_column(column)?;
     }
     Ok(())
+}
+
+fn retrieval_result_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        RETRIEVAL_RESULT_TABLE,
+        true,
+        RETRIEVAL_RESULT_COLUMNS.to_vec(),
+    )
+}
+
+fn retrieval_result_column(column: &str) -> Result<ArrowSchemaColumn, VectorStoreError> {
+    RETRIEVAL_RESULT_COLUMNS
+        .iter()
+        .copied()
+        .find(|candidate| candidate.name() == column)
+        .ok_or_else(|| {
+            VectorStoreError::General(format!("unsupported retrieval payload column `{column}`"))
+        })
+}
+
+fn retrieval_schema_error(error: &ArrowSchemaContractError) -> VectorStoreError {
+    VectorStoreError::General(format!("retrieval Arrow schema contract mismatch: {error}"))
 }

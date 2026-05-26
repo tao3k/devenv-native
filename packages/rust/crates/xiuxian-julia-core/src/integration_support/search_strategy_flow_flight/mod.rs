@@ -5,6 +5,7 @@ mod candidate_source;
 mod client;
 mod config;
 mod constants;
+mod contract;
 mod ids;
 mod ipc_file;
 mod materialization;
@@ -17,6 +18,10 @@ mod service;
 
 pub(crate) use candidate_source::search_strategy_flow_candidate_input_batch_from_repo_search;
 pub use config::SearchStrategyFlowFlightMaterializationConfig;
+#[cfg(test)]
+pub(crate) use contract::{
+    search_strategy_flow_frontier_response_schema, search_strategy_flow_response_bundle_schema,
+};
 pub(crate) use ipc_file::SearchStrategyFlowArrowIpcFile;
 pub use materialization::materialize_search_strategy_flow_routes;
 pub(crate) use ontology_registry::search_strategy_flow_ontology_registry_arrow_ipc_from_semantic_scope;

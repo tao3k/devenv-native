@@ -60,28 +60,28 @@ def document_extract_service_main() -> int:
             sys.stderr.write(f"Error: {exc}\n")
             return 1
 
-    location = f"grpc://{args.host}:{args.port}"
     try:
+        location = f"grpc://{args.host}:{args.port}"
         prewarmed_converter = prewarm_document_extract_converter_from_env(
             converter_factory=new_docling_converter_for_profile
         )
+        server = DocumentExtractFlightServer(
+            location,
+            converter=prewarmed_converter,
+            ocr_worker=build_pdf_ocr_worker(args.pdf_ocr_worker, args.pdf_ocr_workers),
+            audio_worker=build_audio_worker(args.audio_worker, args.audio_workers),
+        )
+        write_document_extract_startup_log(
+            sys.stdout,
+            args,
+            location=location,
+            prewarmed_converter_ready=prewarmed_converter is not None,
+        )
+        sys.stdout.write(f"Wendao document extraction service listening on {location}\n")
+        server.serve()
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         sys.stderr.write(f"Error: {exc}\n")
         return 1
-    server = DocumentExtractFlightServer(
-        location,
-        converter=prewarmed_converter,
-        ocr_worker=build_pdf_ocr_worker(args.pdf_ocr_worker, args.pdf_ocr_workers),
-        audio_worker=build_audio_worker(args.audio_worker, args.audio_workers),
-    )
-    write_document_extract_startup_log(
-        sys.stdout,
-        args,
-        location=location,
-        prewarmed_converter_ready=prewarmed_converter is not None,
-    )
-    sys.stdout.write(f"Wendao document extraction service listening on {location}\n")
-    server.serve()
     return 0
 
 

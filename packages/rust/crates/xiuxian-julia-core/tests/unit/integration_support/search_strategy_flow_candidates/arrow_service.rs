@@ -12,10 +12,19 @@ use super::{
 fn search_strategy_flow_candidate_rows_build_arrow_service_batch() {
     let candidates = fixture_candidates();
 
-    let batch = search_strategy_flow_candidate_inputs_arrow_record_batch(&candidates)
-        .expect("candidate rows should build Arrow batch");
+    let batch = must(
+        search_strategy_flow_candidate_inputs_arrow_record_batch(&candidates),
+        "candidate rows should build Arrow batch",
+    );
 
     assert_eq!(batch.num_rows(), 2);
+    assert_eq!(batch.schema().fields().len(), 18);
+    assert_eq!(batch.schema().fields()[0].name(), "candidate_id");
+    assert_eq!(batch.schema().fields()[17].name(), "blocked");
+    assert_eq!(
+        batch.schema().metadata().get("wendao.schema_version"),
+        Some(&"xiuxian_wendao.graph.search_strategy_flow.service.v1".to_owned())
+    );
     assert_eq!(
         string_value(&batch, "candidate_id", 0),
         "docs/30_search_strategy/30.01_search_strategy_flow.md#ownership-boundary"
@@ -26,7 +35,7 @@ fn search_strategy_flow_candidate_rows_build_arrow_service_batch() {
     );
     assert_eq!(int_value(&batch, "node_count", 0), 5);
     assert_eq!(int_value(&batch, "edge_kind_count", 0), 2);
-    assert_eq!(float_value(&batch, "authority_score", 0), 0.95);
+    assert!((float_value(&batch, "authority_score", 0) - 0.95).abs() < f64::EPSILON);
     assert!(bool_value(&batch, "blocked", 1));
 }
 
@@ -34,15 +43,20 @@ fn search_strategy_flow_candidate_rows_build_arrow_service_batch() {
 fn search_strategy_flow_candidate_rows_encode_arrow_ipc_stream() {
     let candidates = fixture_candidates();
 
-    let payload = search_strategy_flow_candidate_inputs_arrow_ipc(&candidates)
-        .expect("candidate rows should encode as Arrow IPC");
+    let payload = must(
+        search_strategy_flow_candidate_inputs_arrow_ipc(&candidates),
+        "candidate rows should encode as Arrow IPC",
+    );
     assert!(!payload.is_empty());
 
-    let reader = StreamReader::try_new(Cursor::new(payload), None)
-        .expect("candidate Arrow IPC stream should open");
-    let batches = reader
-        .collect::<Result<Vec<_>, _>>()
-        .expect("candidate Arrow IPC stream should decode");
+    let reader = must(
+        StreamReader::try_new(Cursor::new(payload), None),
+        "candidate Arrow IPC stream should open",
+    );
+    let batches = must(
+        reader.collect::<Result<Vec<_>, _>>(),
+        "candidate Arrow IPC stream should decode",
+    );
 
     assert_eq!(batches.len(), 1);
     assert_eq!(batches[0].num_rows(), 2);
@@ -54,8 +68,7 @@ fn search_strategy_flow_candidate_rows_encode_arrow_ipc_stream() {
 
 #[test]
 fn search_strategy_flow_candidate_rows_reject_empty_arrow_request() {
-    let error = search_strategy_flow_candidate_inputs_arrow_record_batch(&[])
-        .expect_err("empty candidate batch should be rejected");
+    let error = must_err(search_strategy_flow_candidate_inputs_arrow_record_batch(&[]));
     assert!(
         error.contains("must not be empty"),
         "unexpected error: {error}"
@@ -104,10 +117,10 @@ fn fixture_candidates() -> Vec<SearchStrategyFlowCandidateInput> {
 fn string_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usize) -> String {
     let array = batch
         .column_by_name(column)
-        .expect("column should exist")
+        .unwrap_or_else(|| panic!("column should exist"))
         .as_any()
         .downcast_ref::<StringArray>()
-        .expect("column should be string");
+        .unwrap_or_else(|| panic!("column should be string"));
     assert!(!array.is_null(row));
     array.value(row).to_owned()
 }
@@ -115,10 +128,10 @@ fn string_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usi
 fn int_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usize) -> i64 {
     let array = batch
         .column_by_name(column)
-        .expect("column should exist")
+        .unwrap_or_else(|| panic!("column should exist"))
         .as_any()
         .downcast_ref::<Int64Array>()
-        .expect("column should be int64");
+        .unwrap_or_else(|| panic!("column should be int64"));
     assert!(!array.is_null(row));
     array.value(row)
 }
@@ -126,10 +139,10 @@ fn int_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usize)
 fn float_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usize) -> f64 {
     let array = batch
         .column_by_name(column)
-        .expect("column should exist")
+        .unwrap_or_else(|| panic!("column should exist"))
         .as_any()
         .downcast_ref::<Float64Array>()
-        .expect("column should be float64");
+        .unwrap_or_else(|| panic!("column should be float64"));
     assert!(!array.is_null(row));
     array.value(row)
 }
@@ -137,10 +150,24 @@ fn float_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usiz
 fn bool_value(batch: &arrow::record_batch::RecordBatch, column: &str, row: usize) -> bool {
     let array = batch
         .column_by_name(column)
-        .expect("column should exist")
+        .unwrap_or_else(|| panic!("column should exist"))
         .as_any()
         .downcast_ref::<BooleanArray>()
-        .expect("column should be bool");
+        .unwrap_or_else(|| panic!("column should be bool"));
     assert!(!array.is_null(row));
     array.value(row)
+}
+
+fn must<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
+    match result {
+        Ok(value) => value,
+        Err(error) => panic!("{context}: {error}"),
+    }
+}
+
+fn must_err<T: std::fmt::Debug, E>(result: Result<T, E>) -> E {
+    match result {
+        Ok(value) => panic!("expected error, got {value:?}"),
+        Err(error) => error,
+    }
 }

@@ -10,6 +10,9 @@
 
 #[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
 mod arrow_codec;
+#[cfg(feature = "arrow-codec")]
+/// Shared Arrow table-schema contract helpers.
+pub mod arrow_schema;
 #[cfg(feature = "artifact-cache")]
 /// Attachment and document extraction artifact cache contracts.
 pub mod artifact_cache;
@@ -55,6 +58,15 @@ pub use arrow_codec::{
     not(feature = "vector-store")
 ))]
 pub use arrow_codec::{read_record_batches_ipc_artifact, write_record_batches_ipc_artifact};
+#[cfg(feature = "arrow-codec")]
+pub use arrow_schema::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    ArrowSchemaNullabilityPolicy, ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY,
+    arrow_field_for_column, arrow_fields_for_contract, build_arrow_schema,
+    validate_arrow_ipc_stream, validate_arrow_ipc_stream_with_options,
+    validate_record_batch_schema, validate_record_batch_schema_with_options,
+    validate_schema_against_contract, validate_schema_against_contract_with_options,
+};
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{
     RETRIEVAL_BEST_SECTION_COLUMN, RETRIEVAL_DOC_TYPE_COLUMN, RETRIEVAL_ID_COLUMN,

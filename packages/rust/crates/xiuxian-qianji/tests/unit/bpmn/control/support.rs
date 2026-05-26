@@ -9,10 +9,11 @@ pub(super) use crate::{
 pub(super) use crate::{
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstancesRequest,
     QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowTaskClaimPayload,
-    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteRequest,
-    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
-    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
-    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
+    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteBatchRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleasePayload,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter,
 };
 pub(super) use serde_json::json;
 use std::fs;

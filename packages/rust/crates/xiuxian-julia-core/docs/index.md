@@ -113,7 +113,12 @@ Polyglot boundary:
    CLI surface is exposed. The embedded local host now reads side-table and
    candidate-input Arrow IPC files directly. The SearchStrategyFlow
    request-bundle path carries side tables as Arrow IPC payloads through Arrow
-   Flight.
+   Flight. Service traces include `performancePolicy` and `timingBreakdown`
+   sections so benchmark runners can report cold start, warm submit,
+   materialization, and LLM judgement latency without treating unmeasured
+   segments as evidence. The policy keeps optimization on managed warm Julia
+   services, Rust-owned materialization, Arrow Flight bundles, and structured
+   candidate narrowing; it does not introduce `jlrs` or Rust-embedded Julia.
    The ontology read-model quality bridge is separate from SearchStrategyFlow:
    `build_wendaograph_ontology_read_model_quality_arrow_request(...)` packages
    accepted semantic read-model `RecordBatch` tables as Arrow IPC streams for

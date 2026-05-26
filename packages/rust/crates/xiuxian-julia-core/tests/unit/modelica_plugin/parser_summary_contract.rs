@@ -20,10 +20,70 @@ use super::{
     MODELICA_PARSER_SUMMARY_ITEM_VISIBILITY_COLUMN, MODELICA_PARSER_SUMMARY_KIND_COLUMN,
     MODELICA_PARSER_SUMMARY_PRIMARY_NAME_COLUMN, MODELICA_PARSER_SUMMARY_REQUEST_ID_COLUMN,
     MODELICA_PARSER_SUMMARY_RESTRICTION_COLUMN, MODELICA_PARSER_SUMMARY_SOURCE_ID_COLUMN,
-    MODELICA_PARSER_SUMMARY_SUCCESS_COLUMN, decode_modelica_parser_file_summary,
-    decode_modelica_parser_summary_response_rows,
+    MODELICA_PARSER_SUMMARY_SOURCE_TEXT_COLUMN, MODELICA_PARSER_SUMMARY_SUCCESS_COLUMN,
+    ModelicaParserSummaryRequestRow, build_modelica_parser_summary_request_batch,
+    decode_modelica_parser_file_summary, decode_modelica_parser_summary_response_rows,
+    validate_modelica_parser_summary_request_batches,
 };
 use crate::modelica_plugin::parser_summary::transport::ParserSummaryRouteKind;
+
+#[test]
+fn modelica_parser_summary_request_batch_materializes_rows() {
+    let batch = build_modelica_parser_summary_request_batch(&[ModelicaParserSummaryRequestRow {
+        request_id: "req-1".to_string(),
+        source_id: "Demo.mo".to_string(),
+        source_text: "model Demo\nend Demo;\n".to_string(),
+    }])
+    .unwrap_or_else(|error| panic!("request batch should build: {error}"));
+
+    assert_eq!(batch.num_rows(), 1);
+    assert_eq!(
+        batch.schema().field(0).name(),
+        MODELICA_PARSER_SUMMARY_REQUEST_ID_COLUMN
+    );
+    assert_eq!(
+        batch.schema().field(1).name(),
+        MODELICA_PARSER_SUMMARY_SOURCE_ID_COLUMN
+    );
+    assert_eq!(
+        batch.schema().field(2).name(),
+        MODELICA_PARSER_SUMMARY_SOURCE_TEXT_COLUMN
+    );
+}
+
+#[test]
+fn modelica_parser_summary_request_validation_allows_route_extended_batches() {
+    let batch = RecordBatch::try_new(
+        Arc::new(Schema::new(vec![
+            Field::new(
+                MODELICA_PARSER_SUMMARY_REQUEST_ID_COLUMN,
+                DataType::Utf8,
+                false,
+            ),
+            Field::new(
+                MODELICA_PARSER_SUMMARY_SOURCE_ID_COLUMN,
+                DataType::Utf8,
+                false,
+            ),
+            Field::new(
+                MODELICA_PARSER_SUMMARY_SOURCE_TEXT_COLUMN,
+                DataType::Utf8,
+                false,
+            ),
+            Field::new("route_kind", DataType::Utf8, false),
+        ])),
+        vec![
+            Arc::new(StringArray::from(vec![Some("req-1")])),
+            Arc::new(StringArray::from(vec![Some("Demo.mo")])),
+            Arc::new(StringArray::from(vec![Some("model Demo\nend Demo;\n")])),
+            Arc::new(StringArray::from(vec![Some("ast-query")])),
+        ],
+    )
+    .unwrap_or_else(|error| panic!("build extended request batch: {error}"));
+
+    validate_modelica_parser_summary_request_batches(&[batch])
+        .unwrap_or_else(|error| panic!("extended request batch should validate: {error}"));
+}
 
 #[test]
 fn decode_modelica_parser_summary_rows_accepts_null_optional_columns() {

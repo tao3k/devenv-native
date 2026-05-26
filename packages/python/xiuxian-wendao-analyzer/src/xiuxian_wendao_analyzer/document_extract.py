@@ -16,6 +16,10 @@ from .document_extract_inline import (
     _should_isolate_document_extract,
     _write_extract_error_timing,
 )
+from .document_image_extract import (
+    extract_image_document_resources,
+    is_hosted_vlm_image_source,
+)
 from .document_profiles import (
     DOCUMENT_EXTRACT_FULL_PROFILE,
 )
@@ -47,7 +51,6 @@ def extract_document_table(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
-    source_preparation: str | None = None,
 ) -> pa.Table:
     """Extract one document and return Arrow resource rows.
 
@@ -74,7 +77,6 @@ def extract_document_table(
             force=force,
             error_row=error_row,
             page_range=page_range,
-            source_preparation=source_preparation,
         )
     )
 
@@ -88,7 +90,6 @@ def extract_document_resources(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
-    source_preparation: str | None = None,
 ) -> list[DocumentResourceRow]:
     """Extract one local document into Arrow-friendly resource rows.
 
@@ -118,6 +119,13 @@ def extract_document_resources(
         if cached is not None:
             return cached
 
+    if page_range is None and is_hosted_vlm_image_source(source, profile):
+        return extract_image_document_resources(
+            source,
+            out,
+            error_row=error_row,
+        )
+
     if page_range is None and _should_isolate_document_extract(
         converter=converter, profile=profile
     ):
@@ -129,7 +137,6 @@ def extract_document_resources(
                 out,
                 profile=DOCUMENT_EXTRACT_FULL_PROFILE,
                 force=force,
-                source_preparation=source_preparation,
             )
             cached = _read_cached_resources(source, out)
             if cached is None:
@@ -150,7 +157,6 @@ def extract_document_resources(
         profile=profile,
         error_row=error_row,
         page_range=page_range,
-        source_preparation=source_preparation,
     )
 
 
@@ -162,7 +168,6 @@ def extract_pdf_resources(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
-    source_preparation: str | None = None,
 ) -> list[DocumentResourceRow]:
     """Compatibility wrapper for PDF callers migrating to document extraction.
 
@@ -178,7 +183,6 @@ def extract_pdf_resources(
         profile=profile,
         force=force,
         error_row=error_row,
-        source_preparation=source_preparation,
     )
 
 
@@ -190,7 +194,6 @@ def extract_pdf_table(
     profile: str | None = None,
     force: bool = False,
     error_row: bool = False,
-    source_preparation: str | None = None,
 ) -> pa.Table:
     """Compatibility wrapper for PDF callers that need an Arrow table.
 
@@ -206,5 +209,4 @@ def extract_pdf_table(
         profile=profile,
         force=force,
         error_row=error_row,
-        source_preparation=source_preparation,
     )

@@ -189,7 +189,8 @@ def test_document_extract_startup_log_writes_single_parseable_line() -> None:
 
     prefix, payload = buffer.text.strip().split(" ", 1)
     assert prefix == "WENDAO_ANALYZER_STARTUP"
-    assert json.loads(payload)["prewarm"]["converterReady"] is True
+    decoded = json.loads(payload)
+    assert decoded["prewarm"]["converterReady"] is True
     assert buffer.flushed is True
 
 

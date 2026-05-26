@@ -80,6 +80,22 @@ impl AgentProposalJournalRecord {
             proposal,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            run_id,
+            scope,
+            occurred_at_ms,
+            proposal,
+        } = self;
+        scope.into_event(
+            run_id,
+            occurred_at_ms,
+            ControlEventKind::AgentProposalRecorded { proposal },
+        )
+    }
 }
 
 /// Named request for recording one Agent decision journal fact.
@@ -111,6 +127,22 @@ impl AgentDecisionJournalRecord {
             decision,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            run_id,
+            scope,
+            occurred_at_ms,
+            decision,
+        } = self;
+        scope.into_event(
+            run_id,
+            occurred_at_ms,
+            ControlEventKind::AgentDecisionRecorded { decision },
+        )
+    }
 }
 
 /// Records one Agent proposal as an append-only control event.
@@ -128,17 +160,7 @@ where
 {
     request.proposal.validate()?;
     validate_proposal_scope(&request.scope, &request.proposal)?;
-    let AgentProposalJournalRecord {
-        run_id,
-        scope,
-        occurred_at_ms,
-        proposal,
-    } = request;
-    ledger.append_event(scope.into_event(
-        run_id,
-        occurred_at_ms,
-        ControlEventKind::AgentProposalRecorded { proposal },
-    ))
+    ledger.append_event(request.into_event())
 }
 
 /// Records one deterministic Agent decision as an append-only control event.
@@ -155,17 +177,7 @@ where
     L: ControlLedger + ?Sized,
 {
     request.decision.validate()?;
-    let AgentDecisionJournalRecord {
-        run_id,
-        scope,
-        occurred_at_ms,
-        decision,
-    } = request;
-    ledger.append_event(scope.into_event(
-        run_id,
-        occurred_at_ms,
-        ControlEventKind::AgentDecisionRecorded { decision },
-    ))
+    ledger.append_event(request.into_event())
 }
 
 fn validate_proposal_scope(

@@ -1,16 +1,25 @@
 //! OCR shard Arrow batch builders and decoders.
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use arrow::array::{Array, ArrayRef, BooleanArray, Float64Array, Int32Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use super::types::{
     OcrShardManifestSource, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
     PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult,
     PdfOcrShardResultStatus, PdfOcrWorkerProfile,
 };
+
+const OCR_SHARD_INPUT_TABLE: &str = "pdf_ocr_shard_input";
+const OCR_SHARD_RESULT_TABLE: &str = "pdf_ocr_shard_result";
+const OCR_RESULT_RESOURCE_TABLE: &str = "pdf_ocr_result_resource";
 
 /// Build OCR worker input rows from rendered shard manifests.
 #[must_use]
@@ -61,8 +70,8 @@ pub fn build_ocr_shard_inputs(
 ///
 /// Returns an error if Arrow cannot build the OCR worker input batch.
 pub fn build_ocr_shard_input_batch(inputs: &[PdfOcrShardInput]) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        ocr_shard_input_schema(),
+    record_batch(
+        &ocr_shard_input_contract(),
         vec![
             input_string_column(inputs, |input| input.contract_version.clone()),
             input_string_column(inputs, |input| input.source_path.clone()),
@@ -107,16 +116,16 @@ pub fn build_ocr_shard_input_batch(inputs: &[PdfOcrShardInput]) -> Result<Record
             input_int_column(inputs, |input| input.source_page_pixel_right),
             input_int_column(inputs, |input| input.source_page_pixel_bottom),
         ],
+        "build OCR shard input Arrow batch",
     )
-    .map_err(|error| format!("build OCR shard input Arrow batch: {error}"))
 }
 
 /// # Errors
 ///
 /// Returns an error if Arrow cannot build the OCR worker result batch.
 pub fn build_ocr_shard_result_batch(results: &[PdfOcrShardResult]) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        ocr_shard_result_schema(),
+    record_batch(
+        &ocr_shard_result_contract(),
         vec![
             result_string_column(results, |result| result.contract_version.clone()),
             result_string_column(results, |result| result.source_path.clone()),
@@ -150,8 +159,8 @@ pub fn build_ocr_shard_result_batch(results: &[PdfOcrShardResult]) -> Result<Rec
             result_string_column(results, |result| result.shard_element_id.clone()),
             result_string_column(results, |result| result.element_id.clone()),
         ],
+        "build OCR shard result Arrow batch",
     )
-    .map_err(|error| format!("build OCR shard result Arrow batch: {error}"))
 }
 
 /// Decode stable OCR worker input rows from Arrow batches.
@@ -177,11 +186,7 @@ pub fn decode_ocr_shard_input_batches(
 /// Returns an error if the batch does not match the OCR shard input schema or
 /// contains unsupported contract values.
 pub fn decode_ocr_shard_input_batch(batch: &RecordBatch) -> Result<Vec<PdfOcrShardInput>, String> {
-    validate_schema_compatible(
-        batch.schema().as_ref(),
-        ocr_shard_input_schema().as_ref(),
-        "OCR shard input",
-    )?;
+    validate_batch_schema(batch, &ocr_shard_input_contract(), "OCR shard input")?;
     let columns = OcrShardInputColumns::from_batch(batch)?;
     (0..batch.num_rows())
         .map(|row| columns.decode_row(row))
@@ -378,11 +383,7 @@ pub fn decode_ocr_shard_result_batches(
 pub fn decode_ocr_shard_result_batch(
     batch: &RecordBatch,
 ) -> Result<Vec<PdfOcrShardResult>, String> {
-    validate_schema_compatible(
-        batch.schema().as_ref(),
-        ocr_shard_result_schema().as_ref(),
-        "OCR shard result",
-    )?;
+    validate_batch_schema(batch, &ocr_shard_result_contract(), "OCR shard result")?;
 
     let columns = OcrShardResultColumns::from_batch(batch)?;
     (0..batch.num_rows())
@@ -475,8 +476,8 @@ fn decode_ocr_shard_result_row(
 pub fn build_ocr_result_resource_batch(
     results: &[PdfOcrShardResult],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        document_resource_schema(),
+    record_batch(
+        &document_resource_contract(),
         vec![
             result_string_column(results, |result| result.source_path.clone()),
             result_string_column(results, |result| resource_type(result).to_string()),
@@ -490,8 +491,8 @@ pub fn build_ocr_result_resource_batch(
             result_string_column(results, |result| result.status.as_str().to_string()),
             result_string_column(results, |result| result.element_id.clone()),
         ],
+        "build OCR result resource Arrow batch",
     )
-    .map_err(|error| format!("build OCR result resource Arrow batch: {error}"))
 }
 
 fn resource_type(result: &PdfOcrShardResult) -> &'static str {
@@ -569,34 +570,13 @@ where
     ))
 }
 
-fn validate_schema_compatible(
-    actual: &Schema,
-    expected: &Schema,
+fn validate_batch_schema(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
     label: &str,
 ) -> Result<(), String> {
-    if actual.fields().len() != expected.fields().len() {
-        return Err(format!(
-            "unexpected {label} column count: {}",
-            actual.fields().len()
-        ));
-    }
-    for (actual_field, expected_field) in actual.fields().iter().zip(expected.fields()) {
-        if actual_field.name() != expected_field.name() {
-            return Err(format!(
-                "unexpected {label} column `{}`; expected `{}`",
-                actual_field.name(),
-                expected_field.name()
-            ));
-        }
-        if actual_field.data_type() != expected_field.data_type() {
-            return Err(format!(
-                "unexpected {label} type for `{}`: {:?}",
-                expected_field.name(),
-                actual_field.data_type()
-            ));
-        }
-    }
-    Ok(())
+    validate_record_batch_schema_with_options(batch, contract, exact_schema_options())
+        .map_err(|error| format!("{label} schema validation: {error}"))
 }
 
 fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, String> {
@@ -682,74 +662,141 @@ fn optional_f64(column: &Float64Array, row: usize) -> Option<f64> {
     (!column.is_null(row)).then(|| column.value(row))
 }
 
-fn ocr_shard_input_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("contractVersion", DataType::Utf8, false),
-        Field::new("sourcePath", DataType::Utf8, false),
-        Field::new("sourceContentHash", DataType::Utf8, false),
-        Field::new("pageIndex", DataType::Int32, false),
-        Field::new("imagePath", DataType::Utf8, false),
-        Field::new("imageMimeType", DataType::Utf8, false),
-        Field::new("rasterSha256", DataType::Utf8, false),
-        Field::new("renderProfile", DataType::Utf8, false),
-        Field::new("ocrProfile", DataType::Utf8, false),
-        Field::new("ocrEngine", DataType::Utf8, false),
-        Field::new("preferredLanguages", DataType::Utf8, false),
-        Field::new("minConfidence", DataType::Float64, false),
-        Field::new("preserveLayout", DataType::Boolean, false),
-        Field::new("rasterWidthPx", DataType::Int32, false),
-        Field::new("rasterHeightPx", DataType::Int32, false),
-        Field::new("renderDpi", DataType::Int32, false),
-        Field::new("rotationDegrees", DataType::Int32, false),
-        Field::new("cropLeft", DataType::Float64, false),
-        Field::new("cropBottom", DataType::Float64, false),
-        Field::new("cropRight", DataType::Float64, false),
-        Field::new("cropTop", DataType::Float64, false),
-        Field::new("pointToPixelScaleX", DataType::Float64, false),
-        Field::new("pointToPixelScaleY", DataType::Float64, false),
-        Field::new("shardElementId", DataType::Utf8, false),
-        Field::new("shardType", DataType::Utf8, false),
-        Field::new("regionIndex", DataType::Int32, false),
-        Field::new("parentShardElementId", DataType::Utf8, false),
-        Field::new("readingOrderKey", DataType::Utf8, false),
-        Field::new("sourcePagePixelLeft", DataType::Int32, false),
-        Field::new("sourcePagePixelTop", DataType::Int32, false),
-        Field::new("sourcePagePixelRight", DataType::Int32, false),
-        Field::new("sourcePagePixelBottom", DataType::Int32, false),
-    ]))
+fn ocr_shard_input_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_SHARD_INPUT_TABLE,
+        true,
+        vec![
+            utf8_contract_column("contractVersion"),
+            utf8_contract_column("sourcePath"),
+            utf8_contract_column("sourceContentHash"),
+            int32_contract_column("pageIndex"),
+            utf8_contract_column("imagePath"),
+            utf8_contract_column("imageMimeType"),
+            utf8_contract_column("rasterSha256"),
+            utf8_contract_column("renderProfile"),
+            utf8_contract_column("ocrProfile"),
+            utf8_contract_column("ocrEngine"),
+            utf8_contract_column("preferredLanguages"),
+            float64_contract_column("minConfidence"),
+            bool_contract_column("preserveLayout"),
+            int32_contract_column("rasterWidthPx"),
+            int32_contract_column("rasterHeightPx"),
+            int32_contract_column("renderDpi"),
+            int32_contract_column("rotationDegrees"),
+            float64_contract_column("cropLeft"),
+            float64_contract_column("cropBottom"),
+            float64_contract_column("cropRight"),
+            float64_contract_column("cropTop"),
+            float64_contract_column("pointToPixelScaleX"),
+            float64_contract_column("pointToPixelScaleY"),
+            utf8_contract_column("shardElementId"),
+            utf8_contract_column("shardType"),
+            int32_contract_column("regionIndex"),
+            utf8_contract_column("parentShardElementId"),
+            utf8_contract_column("readingOrderKey"),
+            int32_contract_column("sourcePagePixelLeft"),
+            int32_contract_column("sourcePagePixelTop"),
+            int32_contract_column("sourcePagePixelRight"),
+            int32_contract_column("sourcePagePixelBottom"),
+        ],
+    )
 }
 
-fn ocr_shard_result_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("contractVersion", DataType::Utf8, false),
-        Field::new("sourcePath", DataType::Utf8, false),
-        Field::new("sourceContentHash", DataType::Utf8, false),
-        Field::new("pageIndex", DataType::Int32, false),
-        Field::new("imagePath", DataType::Utf8, false),
-        Field::new("imageMimeType", DataType::Utf8, false),
-        Field::new("rasterSha256", DataType::Utf8, false),
-        Field::new("renderProfile", DataType::Utf8, false),
-        Field::new("ocrProfile", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("text", DataType::Utf8, true),
-        Field::new("textMimeType", DataType::Utf8, false),
-        Field::new("confidence", DataType::Float64, true),
-        Field::new("errorMessage", DataType::Utf8, true),
-        Field::new("shardElementId", DataType::Utf8, false),
-        Field::new("elementId", DataType::Utf8, false),
-    ]))
+fn ocr_shard_result_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_SHARD_RESULT_TABLE,
+        true,
+        vec![
+            utf8_contract_column("contractVersion"),
+            utf8_contract_column("sourcePath"),
+            utf8_contract_column("sourceContentHash"),
+            int32_contract_column("pageIndex"),
+            utf8_contract_column("imagePath"),
+            utf8_contract_column("imageMimeType"),
+            utf8_contract_column("rasterSha256"),
+            utf8_contract_column("renderProfile"),
+            utf8_contract_column("ocrProfile"),
+            utf8_contract_column("status"),
+            nullable_utf8_contract_column("text"),
+            utf8_contract_column("textMimeType"),
+            nullable_float64_contract_column("confidence"),
+            nullable_utf8_contract_column("errorMessage"),
+            utf8_contract_column("shardElementId"),
+            utf8_contract_column("elementId"),
+        ],
+    )
 }
 
-fn document_resource_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("sourcePath", DataType::Utf8, true),
-        Field::new("resourceType", DataType::Utf8, true),
-        Field::new("resourcePath", DataType::Utf8, true),
-        Field::new("pageIndex", DataType::Int32, true),
-        Field::new("caption", DataType::Utf8, true),
-        Field::new("content", DataType::Utf8, true),
-        Field::new("mimeType", DataType::Utf8, true),
-        Field::new("status", DataType::Utf8, true),
-        Field::new("elementId", DataType::Utf8, true),
-    ]))
+fn document_resource_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_RESULT_RESOURCE_TABLE,
+        true,
+        vec![
+            nullable_utf8_contract_column("sourcePath"),
+            nullable_utf8_contract_column("resourceType"),
+            nullable_utf8_contract_column("resourcePath"),
+            nullable_int32_contract_column("pageIndex"),
+            nullable_utf8_contract_column("caption"),
+            nullable_utf8_contract_column("content"),
+            nullable_utf8_contract_column("mimeType"),
+            nullable_utf8_contract_column("status"),
+            nullable_utf8_contract_column("elementId"),
+        ],
+    )
+}
+
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    context: &'static str,
+) -> Result<RecordBatch, String> {
+    let batch = RecordBatch::try_new(schema_ref(contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_batch_schema(&batch, contract, context)?;
+    Ok(batch)
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn exact_schema_options() -> ArrowSchemaValidationOptions {
+    ArrowSchemaValidationOptions::new().with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact)
+}
+
+const fn utf8_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_utf8_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn int32_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int32)
+}
+
+const fn nullable_int32_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int32)
+}
+
+const fn float64_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Float64)
+}
+
+const fn nullable_float64_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Float64)
+}
+
+const fn bool_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Boolean)
 }

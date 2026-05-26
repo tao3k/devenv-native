@@ -28,7 +28,9 @@ pub enum QianjiBpmnWorkflowHttpCheckpointBackend {
 }
 
 impl QianjiBpmnWorkflowHttpCheckpointBackend {
-    fn into_control_backend(self) -> QianjiBpmnWorkflowCheckpointBackend {
+    pub(in crate::bpmn::http_transport) fn into_control_backend(
+        self,
+    ) -> QianjiBpmnWorkflowCheckpointBackend {
         match self {
             Self::RuntimeValkey => QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
         }
@@ -246,6 +248,59 @@ impl QianjiBpmnWorkflowTaskCompleteBatchHttpRequest {
                 })
                 .collect(),
         })
+    }
+}
+
+/// JSON payload for recording one failed pending host-work attempt.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskFailureHttpPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: QianjiBpmnProcessId,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: QianjiBpmnActivityId,
+    /// Pending host-work kind.
+    pub kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
+    /// Stable failure code for the durable `ActivityTask` event.
+    pub error_code: String,
+    /// Human-readable failure message.
+    pub message: String,
+    /// Whether the failure may be retried by a later recovery slice.
+    #[serde(default)]
+    pub retryable: bool,
+    /// Optional caller-supplied audit metadata.
+    #[serde(default)]
+    pub metadata: Value,
+}
+
+/// JSON body for checkpoint-backed BPMN task failure evidence.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskFailHttpRequest {
+    /// Filesystem path to the BPMN source.
+    pub bpmn_path: PathBuf,
+    /// Optional DMN sources loaded alongside the BPMN package.
+    #[serde(default)]
+    pub dmn_paths: Vec<PathBuf>,
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit failure payload for the pending host task.
+    pub failure: QianjiBpmnWorkflowTaskFailureHttpPayload,
+}
+
+impl QianjiBpmnWorkflowTaskFailHttpRequest {
+    pub(in crate::bpmn::http_transport) fn workflow_resume_request(
+        &self,
+        instance_id: QianjiBpmnWorkflowInstanceId,
+    ) -> QianjiBpmnWorkflowResumeRequest {
+        QianjiBpmnWorkflowResumeRequest {
+            bpmn_path: self.bpmn_path.clone(),
+            dmn_paths: self.dmn_paths.clone(),
+            instance_id,
+            checkpoint_backend: self.checkpoint_backend.clone().into_control_backend(),
+        }
     }
 }
 

@@ -85,6 +85,21 @@ shard digest as cache identity. This keeps the cache owner in `xiuxian-db-store`
 while Studio remains responsible for scheduling, row-order restoration, and
 precision validation.
 
+Legacy Office extraction uses the same shared artifact cache contract for its
+Rust parser projection. Studio writes a local projection report beside the
+resource output with source digest, parser profile, cache backend/status,
+character counts, line counts, tabular row counts, maximum visible columns, and
+Markdown fenced-block counts. These fields are diagnostics and precision-gate
+evidence only; the stable document resource Arrow schema is unchanged.
+
+Standalone image extraction stays on the primary document-extract resource
+schema. In Gateway `auto` mode, Studio keeps image files on the synchronous
+document route but rewrites the default `full` document profile to
+`hosted-vlm-image-extract-v1`, letting the analyzer call the configured
+OpenAI-compatible vision endpoint and return ordinary Markdown resource rows.
+Attachment-owned image audit and tile facts remain materialization inputs, not
+a separate public Flight schema.
+
 Full document extraction artifact directories are still mirrored by the hybrid
 route because resource-path rewriting depends on directory context. Moving that
 directory mirror behind the L2 byte-cache contract requires a separate manifest
@@ -827,6 +842,12 @@ explicit comparator, not the managed default.
 The current source-range auto policy targets seven source PDF pages per worker
 before clamping to the adaptive budget, machine cap, remaining permits, and
 shard count; diagnostic worker overrides remain benchmark-only.
+For legacy Microsoft Office inputs, Studio routes `.doc`, `.xls`, and `.ppt`
+through the attachment-owned Rust parser feature before Python analyzer
+dispatch. The default managed gateway feature set includes
+`document-extract-legacy-office` together with PDF render and audio shards, so
+legacy Office support is a Rust gateway capability rather than a Python
+source-preparation header.
 Studio also owns the opt-in source-range OCR profile planner exposed through
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER` and the benchmark flag
 `--rust-pdf-ocr-profile-planner`. The proven `fast-risk-window` mode uses
@@ -1179,6 +1200,10 @@ OpenRouter aliases for Qianfan OCR returned no live endpoints, while
 `baidu/qianfan-ocr-fast` produced one queue-keyed OCR JSONL row that the Rust
 source-contract cache bridge consumed with attempted 1, succeeded 1, and
 failed 0.
+The live Gateway route now uses the same hosted VLM configuration family through
+`hosted-vlm-image-extract-v1` on `/analysis/document-extract`, so chat
+attachments are converted into resource evidence before a non-vision chat model
+sees the conversation context.
 Within that opt-in pipeline, the benchmark can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD` above `1`, or pass
 `--rust-pdf-hosted-vlm-region-render-ahead`, to pre-render multiple page-region

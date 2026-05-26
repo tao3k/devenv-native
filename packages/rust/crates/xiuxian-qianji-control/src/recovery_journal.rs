@@ -34,6 +34,20 @@ impl RecoveryStartedJournalRecord {
             occurred_at_ms,
         }
     }
+
+    /// Converts this request into the corresponding control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let kind = ControlEventKind::RecoveryStarted {
+            attempt: self.attempt,
+        };
+        match self.scope {
+            RecoveryItemScope::Run => ControlEvent::run(self.run_id, self.occurred_at_ms, kind),
+            RecoveryItemScope::Step { step_id } => {
+                ControlEvent::step(self.run_id, step_id, self.occurred_at_ms, kind)
+            }
+        }
+    }
 }
 
 /// Records one recovery start fact as an append-only control event.
@@ -48,18 +62,5 @@ pub fn record_recovery_started<L>(
 where
     L: ControlLedger + ?Sized,
 {
-    let RecoveryStartedJournalRecord {
-        run_id,
-        scope,
-        attempt,
-        occurred_at_ms,
-    } = request;
-    let kind = ControlEventKind::RecoveryStarted { attempt };
-    let event = match scope {
-        RecoveryItemScope::Run => ControlEvent::run(run_id, occurred_at_ms, kind),
-        RecoveryItemScope::Step { step_id } => {
-            ControlEvent::step(run_id, step_id, occurred_at_ms, kind)
-        }
-    };
-    ledger.append_event(event)
+    ledger.append_event(request.into_event())
 }

@@ -9,7 +9,7 @@ use crate::bpmn::identity::{
     QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec,
     BpmnHumanTaskLifecycleEvent, BpmnInstanceState, BpmnLaneMembershipSpec, BpmnTaskIoSpec,
@@ -17,8 +17,13 @@ use xiuxian_qianji_bpmn_engine::{
     PendingHostWorkKind, PendingHostWorkRequest, RepeatExecutionContext,
     build_pending_host_work_requests,
 };
+use xiuxian_qianji_control::{ControlEventRecord, RunOperatorSummary, RunRecoverySnapshot};
 
-/// Pending host-work item embedded in HTTP workflow snapshots.
+/// Raw DTO boundary: pending host-work item embedded in HTTP workflow
+/// snapshots.
+///
+/// Primitive fields mirror the public JSON wire contract; typed identity is
+/// restored before durable control-ledger scheduling.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QianjiBpmnPendingHostWorkHttpResponse {
     /// Runtime token identifier for the pending host work.
@@ -120,7 +125,7 @@ impl Default for PendingHostWorkHttpDispatchDetails {
         Self {
             node_id: None,
             variables: Value::Null,
-            inputs: Value::Object(Default::default()),
+            inputs: Value::Object(Map::default()),
             output_bindings: Vec::new(),
             repeat: None,
         }
@@ -200,6 +205,67 @@ fn pending_host_work_request_token_id(request: &PendingHostWorkRequest) -> u64 {
         PendingHostWorkRequest::User(request) => request.token_id.get(),
         PendingHostWorkRequest::Manual(request) => request.token_id.get(),
         PendingHostWorkRequest::BusinessRule(request) => request.token_id,
+    }
+}
+
+/// HTTP response for one control-ledger run history query.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiControlHistoryHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Number of control event records returned.
+    pub event_count: usize,
+    /// Append-only control event records for the run.
+    #[serde(default)]
+    pub events: Vec<ControlEventRecord>,
+}
+
+impl QianjiControlHistoryHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        run_id: String,
+        events: Vec<ControlEventRecord>,
+    ) -> Self {
+        Self {
+            run_id,
+            event_count: events.len(),
+            events,
+        }
+    }
+}
+
+/// HTTP response for one control-ledger operator summary query.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiControlRunSummaryHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Replay-derived operator-safe run summary.
+    pub summary: RunOperatorSummary,
+}
+
+impl QianjiControlRunSummaryHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(summary: RunOperatorSummary) -> Self {
+        Self {
+            run_id: summary.run_id.as_str().to_owned(),
+            summary,
+        }
+    }
+}
+
+/// HTTP response for one control-ledger recovery snapshot query.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiControlRecoveryHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Replay-derived recovery snapshot and ordered recovery actions.
+    pub recovery: RunRecoverySnapshot,
+}
+
+impl QianjiControlRecoveryHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(recovery: RunRecoverySnapshot) -> Self {
+        Self {
+            run_id: recovery.run_id.as_str().to_owned(),
+            recovery,
+        }
     }
 }
 

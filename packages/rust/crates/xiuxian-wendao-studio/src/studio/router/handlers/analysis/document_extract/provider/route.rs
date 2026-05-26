@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use xiuxian_wendao_server::transport::{
+    DOCUMENT_EXTRACT_FULL_PROFILE, DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
     DocumentExtractFlightRequest, DocumentExtractFlightRouteProvider,
     DocumentExtractFlightRouteResponse, DocumentExtractMode,
 };
@@ -197,12 +198,16 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
         match gateway_document_extract_mode(request) {
             DocumentExtractMode::Sync => {
+                let profile = gateway_document_extract_profile_for_source(
+                    request.source_path.as_str(),
+                    request.profile.as_str(),
+                );
                 self.document_extract_batch(
                     request.source_path.as_str(),
                     request.output_dir.as_str(),
                     request.force,
                     request.error_row,
-                    request.profile.as_str(),
+                    profile.as_str(),
                 )
                 .await
             }
@@ -259,11 +264,23 @@ fn gateway_document_extract_mode(request: &DocumentExtractFlightRequest) -> Docu
     }
 }
 
-fn gateway_document_extract_mode_for_source(source_path: &str) -> DocumentExtractMode {
+pub(crate) fn gateway_document_extract_mode_for_source(source_path: &str) -> DocumentExtractMode {
     if is_audio_source_path(Path::new(source_path)) {
         return DocumentExtractMode::AudioShards;
     }
     DocumentExtractMode::Sync
+}
+
+pub(crate) fn gateway_document_extract_profile_for_source(
+    source_path: &str,
+    requested_profile: &str,
+) -> String {
+    if requested_profile == DOCUMENT_EXTRACT_FULL_PROFILE
+        && is_image_source_path(Path::new(source_path))
+    {
+        return DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE.to_string();
+    }
+    requested_profile.to_string()
 }
 
 fn is_audio_source_path(source_path: &Path) -> bool {
@@ -276,5 +293,18 @@ fn is_audio_source_path(source_path: &Path) -> bool {
     matches!(
         extension.to_ascii_lowercase().as_str(),
         "aac" | "flac" | "m4a" | "mp3" | "ogg" | "wav"
+    )
+}
+
+fn is_image_source_path(source_path: &Path) -> bool {
+    let Some(extension) = source_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+    else {
+        return false;
+    };
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "bmp" | "gif" | "jpeg" | "jpg" | "png" | "tif" | "tiff" | "webp"
     )
 }

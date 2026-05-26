@@ -1,11 +1,15 @@
 //! Dataset-ontology envelope conversion for `WendaoGraph` ontology read-model checks.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use serde_json::{Map, Value};
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    WENDAO_TABLE_METADATA_KEY, build_arrow_schema, validate_record_batch_schema,
+};
 
 use super::types::WendaoGraphOntologyReadModelQualityRequestBatches;
 
@@ -16,6 +20,46 @@ const DATASET_ONTOLOGY_SEMANTIC_READ_MODEL_KIND: &str = "semantic_read_model";
 const SEMANTIC_OBJECTS_TABLE: &str = "semantic_objects";
 const SEMANTIC_RELATIONS_TABLE: &str = "semantic_relations";
 const SEMANTIC_PROJECTION_STATE_TABLE: &str = "semantic_projection_state";
+const SEMANTIC_OBJECTS_COLUMNS: [ArrowSchemaColumn; 18] = [
+    ArrowSchemaColumn::new("id", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("kind", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("title", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("status", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("confidence_score", ArrowSchemaDataType::Float64),
+    ArrowSchemaColumn::new("confidence_source", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("owner_count", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("owners_json", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("provenance_source", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("provenance_recorded_by", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("provenance_recorded_at", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("verification_required_json", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("verification_evidence_json", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("relation_count", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("source_path", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("read_model_source_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("read_model_projection_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("read_model_projection_staleness", ArrowSchemaDataType::Utf8),
+];
+const SEMANTIC_RELATIONS_COLUMNS: [ArrowSchemaColumn; 7] = [
+    ArrowSchemaColumn::new("source", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("kind", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("target", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("source_path", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("read_model_source_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("read_model_projection_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("read_model_projection_staleness", ArrowSchemaDataType::Utf8),
+];
+const SEMANTIC_PROJECTION_STATE_COLUMNS: [ArrowSchemaColumn; 9] = [
+    ArrowSchemaColumn::new("projection", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("status", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("source_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("current_source_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("projection_revision", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("staleness", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("source_object_count", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("source_objects_json", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("source_path", ArrowSchemaDataType::Utf8),
+];
 
 /// Extract `WendaoGraph` quality request tables from the Gateway dataset-ontology envelope.
 ///
@@ -139,29 +183,9 @@ fn payload_json_object(payload_json: &str, table_name: &str) -> Result<Map<Strin
 }
 
 fn semantic_objects_batch(rows: &[Map<String, Value>]) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("id", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("confidence_score", DataType::Float64, false),
-        Field::new("confidence_source", DataType::Utf8, false),
-        Field::new("owner_count", DataType::Int64, false),
-        Field::new("owners_json", DataType::Utf8, false),
-        Field::new("provenance_source", DataType::Utf8, false),
-        Field::new("provenance_recorded_by", DataType::Utf8, false),
-        Field::new("provenance_recorded_at", DataType::Utf8, false),
-        Field::new("verification_required_json", DataType::Utf8, false),
-        Field::new("verification_evidence_json", DataType::Utf8, false),
-        Field::new("relation_count", DataType::Int64, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]));
-
-    RecordBatch::try_new(
-        schema,
+    let contract = semantic_objects_contract();
+    let batch = RecordBatch::try_new(
+        read_model_schema(&contract),
         vec![
             string_array(rows, "id", SEMANTIC_OBJECTS_TABLE)?,
             string_array(rows, "kind", SEMANTIC_OBJECTS_TABLE)?,
@@ -191,22 +215,15 @@ fn semantic_objects_batch(rows: &[Map<String, Value>]) -> Result<RecordBatch, St
             )?,
         ],
     )
-    .map_err(|error| format!("build `{SEMANTIC_OBJECTS_TABLE}` request batch: {error}"))
+    .map_err(|error| format!("build `{SEMANTIC_OBJECTS_TABLE}` request batch: {error}"))?;
+    validate_read_model_batch_schema(&batch, &contract)?;
+    Ok(batch)
 }
 
 fn semantic_relations_batch(rows: &[Map<String, Value>]) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("source", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("target", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]));
-
-    RecordBatch::try_new(
-        schema,
+    let contract = semantic_relations_contract();
+    let batch = RecordBatch::try_new(
+        read_model_schema(&contract),
         vec![
             string_array(rows, "source", SEMANTIC_RELATIONS_TABLE)?,
             string_array(rows, "kind", SEMANTIC_RELATIONS_TABLE)?,
@@ -225,24 +242,15 @@ fn semantic_relations_batch(rows: &[Map<String, Value>]) -> Result<RecordBatch, 
             )?,
         ],
     )
-    .map_err(|error| format!("build `{SEMANTIC_RELATIONS_TABLE}` request batch: {error}"))
+    .map_err(|error| format!("build `{SEMANTIC_RELATIONS_TABLE}` request batch: {error}"))?;
+    validate_read_model_batch_schema(&batch, &contract)?;
+    Ok(batch)
 }
 
 fn semantic_projection_state_batch(rows: &[Map<String, Value>]) -> Result<RecordBatch, String> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("projection", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("source_revision", DataType::Utf8, false),
-        Field::new("current_source_revision", DataType::Utf8, false),
-        Field::new("projection_revision", DataType::Utf8, false),
-        Field::new("staleness", DataType::Utf8, false),
-        Field::new("source_object_count", DataType::Int64, false),
-        Field::new("source_objects_json", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-    ]));
-
-    RecordBatch::try_new(
-        schema,
+    let contract = semantic_projection_state_contract();
+    let batch = RecordBatch::try_new(
+        read_model_schema(&contract),
         vec![
             string_array(rows, "projection", SEMANTIC_PROJECTION_STATE_TABLE)?,
             string_array(rows, "status", SEMANTIC_PROJECTION_STATE_TABLE)?,
@@ -259,7 +267,53 @@ fn semantic_projection_state_batch(rows: &[Map<String, Value>]) -> Result<Record
             string_array(rows, "source_path", SEMANTIC_PROJECTION_STATE_TABLE)?,
         ],
     )
-    .map_err(|error| format!("build `{SEMANTIC_PROJECTION_STATE_TABLE}` request batch: {error}"))
+    .map_err(|error| format!("build `{SEMANTIC_PROJECTION_STATE_TABLE}` request batch: {error}"))?;
+    validate_read_model_batch_schema(&batch, &contract)?;
+    Ok(batch)
+}
+
+fn semantic_objects_contract() -> ArrowSchemaContract {
+    read_model_contract(SEMANTIC_OBJECTS_TABLE, &SEMANTIC_OBJECTS_COLUMNS)
+}
+
+fn semantic_relations_contract() -> ArrowSchemaContract {
+    read_model_contract(SEMANTIC_RELATIONS_TABLE, &SEMANTIC_RELATIONS_COLUMNS)
+}
+
+fn semantic_projection_state_contract() -> ArrowSchemaContract {
+    read_model_contract(
+        SEMANTIC_PROJECTION_STATE_TABLE,
+        &SEMANTIC_PROJECTION_STATE_COLUMNS,
+    )
+}
+
+fn read_model_contract(
+    table_name: &'static str,
+    columns: &[ArrowSchemaColumn],
+) -> ArrowSchemaContract {
+    ArrowSchemaContract::new(table_name, true, columns.to_vec())
+}
+
+fn read_model_schema(contract: &ArrowSchemaContract) -> Arc<arrow::datatypes::Schema> {
+    Arc::new(build_arrow_schema(
+        contract,
+        HashMap::from([(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]),
+    ))
+}
+
+fn validate_read_model_batch_schema(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
+) -> Result<(), String> {
+    validate_record_batch_schema(batch, contract)
+        .map_err(|error| read_model_schema_error(contract.table_name(), &error))
+}
+
+fn read_model_schema_error(table_name: &str, error: &ArrowSchemaContractError) -> String {
+    format!("build `{table_name}` request batch produced invalid schema: {error}")
 }
 
 fn string_array(

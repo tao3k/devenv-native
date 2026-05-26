@@ -3,11 +3,10 @@ use super::{
     StudioDocumentExtractFlightRouteProvider,
 };
 use crate::studio::router::handlers::analysis::document_extract::provider::transport::{
-    DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX,
     document_extract_default_endpoint_with_lookup,
     document_extract_endpoint_attempt_order_for_request,
-    document_extract_endpoint_urls_with_lookup, document_extract_source_preparation,
-    endpoint_index_for_request, is_retryable_document_extract_endpoint_error,
+    document_extract_endpoint_urls_with_lookup, endpoint_index_for_request,
+    is_retryable_document_extract_endpoint_error,
 };
 
 #[test]
@@ -90,19 +89,6 @@ fn document_extract_endpoint_retry_filter_only_matches_transport_failures() {
     assert!(!is_retryable_document_extract_endpoint_error(
         "converter failed to parse page range",
     ));
-}
-
-#[test]
-fn document_extract_source_preparation_is_rust_selected_for_legacy_doc() {
-    assert_eq!(
-        document_extract_source_preparation("/tmp/legacy.DOC"),
-        Some(DOCUMENT_EXTRACT_SOURCE_PREPARATION_LEGACY_OFFICE_DOCX),
-    );
-    assert_eq!(
-        document_extract_source_preparation("/tmp/manual.docx"),
-        None
-    );
-    assert_eq!(document_extract_source_preparation("/tmp/scan.png"), None);
 }
 
 #[test]

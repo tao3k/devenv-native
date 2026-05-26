@@ -13,7 +13,6 @@ from .document_cache import (
     _write_cached_structure,
     _write_document_timing_sidecar,
 )
-from .document_legacy_office import prepare_docling_source
 from .document_metrics import DocumentTimingRecorder
 from .document_profiles import (
     DOCUMENT_EXTRACT_FULL_PROFILE,
@@ -37,7 +36,6 @@ def _extract_document_resources_inline(
     profile: str | None = None,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
-    source_preparation: str | None = None,
 ) -> list[DocumentResourceRow]:
     output_dir.mkdir(parents=True, exist_ok=True)
     timing = DocumentTimingRecorder(source)
@@ -47,17 +45,9 @@ def _extract_document_resources_inline(
         else:
             with timing.phase("doclingConverterInit"):
                 resolved_converter = _document_extract_converter_factory()(profile)
-        docling_source = source
-        if source_preparation is not None:
-            with timing.phase("sourcePreparation"):
-                docling_source = prepare_docling_source(
-                    source,
-                    output_dir,
-                    mode=source_preparation,
-                )
         with timing.phase("doclingConvert"):
             convert_kwargs = {"page_range": page_range} if page_range else {}
-            document = resolved_converter.convert(docling_source, **convert_kwargs).document
+            document = resolved_converter.convert(source, **convert_kwargs).document
         with timing.phase("doclingMarkdownExport"):
             markdown_text = document.export_to_markdown()
         page_range_slug = _page_range_slug(page_range)

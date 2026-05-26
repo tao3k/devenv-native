@@ -13,7 +13,11 @@ use xiuxian_wendao_core::repo_intelligence::{
 
 use crate::{
     GraphStructuralKeywordOverlapCandidateMetadataInput, GraphStructuralKeywordOverlapQueryInput,
-    GraphStructuralKeywordOverlapRawCandidateInput,
+    GraphStructuralKeywordOverlapRawCandidateInput, GRAPH_STRUCTURAL_ACCEPTED_COLUMN,
+    GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN, GRAPH_STRUCTURAL_EXPLANATION_COLUMN,
+    GRAPH_STRUCTURAL_FEASIBLE_COLUMN, GRAPH_STRUCTURAL_FINAL_SCORE_COLUMN,
+    GRAPH_STRUCTURAL_PIN_ASSIGNMENT_COLUMN, GRAPH_STRUCTURAL_REJECTION_REASON_COLUMN,
+    GRAPH_STRUCTURAL_STRUCTURAL_SCORE_COLUMN,
     graph_structural_pair_candidate_id,
     integration_support::{
         WendaoSearchGraphStructuralStabilizationLimits,
@@ -35,16 +39,10 @@ use crate::{
 };
 
 use super::{
-    GRAPH_STRUCTURAL_ACCEPTED_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN,
-    GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN, GRAPH_STRUCTURAL_EXPLANATION_COLUMN,
-    GRAPH_STRUCTURAL_FEASIBLE_COLUMN, GRAPH_STRUCTURAL_FINAL_SCORE_COLUMN,
-    GRAPH_STRUCTURAL_PIN_ASSIGNMENT_COLUMN, GRAPH_STRUCTURAL_QUERY_ID_COLUMN,
-    GRAPH_STRUCTURAL_REJECTION_REASON_COLUMN, GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
-    GRAPH_STRUCTURAL_STRUCTURAL_SCORE_COLUMN, GraphStructuralFilterRequestRow,
-    GraphStructuralFilterScoreRow, GraphStructuralRerankRequestRow, GraphStructuralRerankScoreRow,
-    build_graph_structural_filter_request_batch, build_graph_structural_rerank_request_batch,
-    decode_graph_structural_filter_score_rows, decode_graph_structural_rerank_score_rows,
-    fetch_graph_structural_filter_rows_for_repository,
+    GraphStructuralFilterRequestRow, GraphStructuralFilterScoreRow, GraphStructuralRerankRequestRow,
+    GraphStructuralRerankScoreRow, build_graph_structural_filter_request_batch,
+    build_graph_structural_rerank_request_batch, decode_graph_structural_filter_score_rows,
+    decode_graph_structural_rerank_score_rows, fetch_graph_structural_filter_rows_for_repository,
     fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository,
     fetch_graph_structural_keyword_overlap_pair_rerank_rows_for_repository_from_raw_candidates,
     fetch_graph_structural_rerank_rows_for_repository,

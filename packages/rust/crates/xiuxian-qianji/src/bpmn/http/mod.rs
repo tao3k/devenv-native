@@ -2,6 +2,7 @@
 //!
 //! Start with `api`; request, response, and error DTOs stay leaf-owned.
 
+mod activity_evidence;
 mod api;
 #[path = "error/api.rs"]
 mod error_api;
@@ -23,5 +24,7 @@ pub use api::{
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    qianji_bpmn_workflow_router,
 };

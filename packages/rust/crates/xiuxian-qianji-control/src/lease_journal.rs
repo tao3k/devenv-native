@@ -22,6 +22,21 @@ impl StepLeaseReleaseJournalRecord {
             occurred_at_ms,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            lease,
+            occurred_at_ms,
+        } = self;
+        ControlEvent::step(
+            lease.run_id.clone(),
+            lease.step_id.clone(),
+            occurred_at_ms,
+            ControlEventKind::StepLeaseReleased { lease },
+        )
+    }
 }
 
 /// Records one step lease release fact as an append-only control event.
@@ -36,14 +51,5 @@ pub fn record_step_lease_released<L>(
 where
     L: ControlLedger + ?Sized,
 {
-    let StepLeaseReleaseJournalRecord {
-        lease,
-        occurred_at_ms,
-    } = request;
-    ledger.append_event(ControlEvent::step(
-        lease.run_id.clone(),
-        lease.step_id.clone(),
-        occurred_at_ms,
-        ControlEventKind::StepLeaseReleased { lease },
-    ))
+    ledger.append_event(request.into_event())
 }

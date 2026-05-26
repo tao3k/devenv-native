@@ -152,7 +152,7 @@ fn scheduled_audio_worker_budget(
         0,
         false,
     );
-    let plan = audio_shard_schedule_plan(AudioShardScheduleRequest {
+    let plan = audio_shard_schedule_plan(&AudioShardScheduleRequest {
         pressure,
         adaptive_worker_budget: Some(saturating_usize_to_u32(current_worker_budget)),
         diagnostic_worker_override: None,

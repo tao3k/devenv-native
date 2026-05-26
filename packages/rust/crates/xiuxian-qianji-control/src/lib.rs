@@ -33,10 +33,12 @@ mod event;
 mod gate;
 mod heartbeat_journal;
 mod identity;
+mod journal_batch;
 mod lease_journal;
 mod llm_inventory;
 mod memory;
 mod model;
+mod observation_journal;
 mod operator_summary;
 mod policy;
 mod recovery;
@@ -45,7 +47,10 @@ mod recovery_journal;
 mod recovery_loop;
 mod recovery_plan;
 mod recovery_snapshot;
+mod run_journal;
 mod signal_inventory;
+mod signal_journal;
+mod step_lifecycle_journal;
 mod step_queue_journal;
 mod timer_inventory;
 mod timer_journal;
@@ -55,6 +60,9 @@ mod traits;
 mod valkey_hot_state;
 mod view;
 mod worker_lifecycle;
+mod workflow_decision;
+mod workflow_observation;
+mod workflow_trace_journal;
 
 #[cfg(feature = "duckdb")]
 pub use duckdb_ledger::DuckDbControlLedger;
@@ -111,6 +119,7 @@ pub use {
         IdempotencyKey, LeaseId, LlmModelId, PermissionScope, RunId, SignalName, StepId, TaskQueue,
         TimerId, TokenId, ToolName, VersionKey, WorkerId,
     },
+    journal_batch::{ControlJournalBatchRecordingOutcome, record_control_event_batch},
     lease_journal::{StepLeaseReleaseJournalRecord, record_step_lease_released},
     llm_inventory::{
         LlmActivityInventoryItem, LlmActivityInventoryProjection, LlmActivityInventorySummary,
@@ -123,6 +132,10 @@ pub use {
         HotStateSnapshot, LlmActivityRequest, LlmActivityTask, RecoveryPolicy, RunStatus,
         RunnableActivityTask, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
         VersionPin, WaitReason, WorkerHeartbeat, WorkerRef,
+    },
+    observation_journal::{
+        CostObservationJournalRecord, StepEvidenceJournalRecord, StepGateResultJournalRecord,
+        record_cost_observation, record_step_evidence, record_step_gate_result,
     },
     operator_summary::RunOperatorSummary,
     policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequest},
@@ -141,7 +154,18 @@ pub use {
     },
     recovery_plan::{RecoveryPlanAction, RunRecoveryPlan, RunRecoveryPlanSummary},
     recovery_snapshot::RunRecoverySnapshot,
+    run_journal::{
+        RunAdmittedJournalRecord, RunCreatedJournalRecord, RunPlanRecordedJournalRecord,
+        RunTerminalJournalRecord, RunTerminalJournalStatus, record_run_admitted,
+        record_run_created, record_run_plan_recorded, record_run_terminal,
+    },
     signal_inventory::{SignalInventoryItem, SignalInventoryProjection, SignalInventorySummary},
+    signal_journal::{SignalReceiveJournalRecord, record_signal_received},
+    step_lifecycle_journal::{
+        StepCreatedJournalRecord, StepStartedJournalRecord, StepTerminalJournalRecord,
+        StepTerminalJournalStatus, StepToolCallJournalRecord, record_step_created,
+        record_step_started, record_step_terminal, record_step_tool_call,
+    },
     step_queue_journal::{
         StepQueueJournalRecord, record_step_queued, record_step_queued_with_hot_state,
     },
@@ -159,5 +183,24 @@ pub use {
         WorkerActivityCompletedRecord, WorkerActivityFailedRecord, WorkerActivityFailureInput,
         WorkerActivityStartRecord, record_worker_activity_completed_idempotent,
         record_worker_activity_failed_idempotent, record_worker_activity_started_idempotent,
+    },
+    workflow_decision::{
+        WorkflowStageDecisionRecord, WorkflowStageDecisionRecordingOutcome,
+        WorkflowStageDecisionRecordingRequest, WorkflowStageRecoveryDecisionRecord,
+        WorkflowStageRecoveryDecisionRecordingRequest, record_workflow_stage_decision,
+        record_workflow_stage_recovery_decision,
+    },
+    workflow_observation::{
+        WorkflowControlEvidenceRequirements, WorkflowRunCostObservationRecordingRequest,
+        WorkflowRunRecoveryAttemptRecordingRequest, WorkflowStageCostObservationRecordingRequest,
+        WorkflowStageEvidenceRecordingRequest, WorkflowStageGateResultRecordingRequest,
+        WorkflowStageRecoveryAttemptRecordingRequest, record_workflow_run_cost_observation,
+        record_workflow_run_recovery_attempt, record_workflow_stage_cost_observation,
+        record_workflow_stage_evidence, record_workflow_stage_gate_result,
+        record_workflow_stage_recovery_attempt,
+    },
+    workflow_trace_journal::{
+        WorkflowTraceProjectionRecord, WorkflowTraceProjectionStage,
+        WorkflowTraceProjectionStageStatus, record_workflow_trace_projection,
     },
 };

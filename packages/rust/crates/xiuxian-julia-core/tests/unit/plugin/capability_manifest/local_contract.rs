@@ -69,6 +69,15 @@ fn capability_manifest_request_batch_materializes_rows() {
 
     assert_eq!(batch.num_rows(), 1);
     assert_eq!(batch.schema().fields().len(), 4);
+    assert_eq!(
+        batch.schema().field(0).name(),
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_PLUGIN_ID_COLUMN
+    );
+    assert_eq!(
+        batch.schema().field(2).name(),
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN
+    );
+    assert!(batch.schema().field(2).is_nullable());
 }
 
 #[test]

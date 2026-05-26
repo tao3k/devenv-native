@@ -7,8 +7,12 @@ runtime code.
 ## Feature Surfaces
 
 - `engine`: exposes Arrow/DataFusion engine record batches, IPC helpers,
-  retrieval result schemas, and Parquet write helpers without compiling
-  `xiuxian-vector` or LanceDB.
+  retrieval result schemas generated through the shared Arrow table-contract
+  surface, and Parquet write helpers without compiling `xiuxian-vector` or
+  LanceDB.
+- `arrow-codec`: exposes shared Arrow IPC encode/decode helpers plus reusable
+  Arrow table-schema contracts for consumers that need deterministic
+  `RecordBatch` and IPC payload validation.
 - `artifact-cache`: exposes attachment, document extraction, ontology, and
   agent artifact cache contracts plus the content-addressed filesystem
   baseline. This feature does not enable Foyer, Moka, DuckDB, or Valkey by
@@ -36,6 +40,18 @@ Generic DuckDB and DuckLake storage primitives belong here. Wendao may still
 own search-specific runtime resolution, Flight-facing behavior, event-lake
 schemas, and query routing, but it should consume the generic connection,
 catalog attach, and Arrow appender helper surface from this crate.
+
+Reusable Arrow schema mechanics also belong here. Domain crates still own their
+table names, column names, and semantic contracts, but db-store provides the
+shared `ArrowSchemaContract` surface for constructing Arrow schemas and
+validating `RecordBatch` or Arrow IPC payloads against required columns,
+logical data types, exact-order contracts, nullability validation policies, and
+`wendao.table` metadata. The logical vocabulary covers the scalar and list
+shapes needed by graph-structural request contracts, including `Int32` and
+`List(Utf8)`, while route-specific semantics remain in the owning bridge
+crate. The lightweight engine retrieval payloads also use this surface
+internally so projected result schemas and canonical result schemas share the
+same field vocabulary.
 
 Attachment, document extraction, ontology, and agent evidence artifact cache
 contracts also belong here behind `artifact-cache`. The contract is
@@ -212,4 +228,6 @@ from batch snapshot ingestion. The local runtime facade uses append-only
 durable checkpoint events plus its own same-process latest cache for hot
 save/load loops. Cold recovery can rebuild a compacted latest-checkpoint table
 from the append log and hydrate the same-process cache in one batch. Batch
-replay and audit flows use DuckDB's Arrow appender.
+replay and audit flows use DuckDB's Arrow appender, and the append-log
+`RecordBatch` schema is generated and validated through the shared
+`ArrowSchemaContract` surface before ingestion.

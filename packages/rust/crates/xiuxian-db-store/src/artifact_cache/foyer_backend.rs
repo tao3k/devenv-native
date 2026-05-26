@@ -16,9 +16,9 @@ use foyer::{
 use tokio::runtime::{Builder as TokioRuntimeBuilder, Runtime};
 
 use crate::artifact_cache::{
-    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobFetchStatus,
-    ArtifactBlobRead, ArtifactBlobReadStatus, ArtifactBlobWrite, ArtifactBlobWriteOutcome,
-    ArtifactBytes, ArtifactCacheError, ArtifactKey,
+    ArtifactBlobCache, ArtifactBlobFetch, ArtifactBlobFetchBuilder, ArtifactBlobFetchParts,
+    ArtifactBlobFetchStatus, ArtifactBlobRead, ArtifactBlobReadStatus, ArtifactBlobWrite,
+    ArtifactBlobWriteOutcome, ArtifactBytes, ArtifactCacheError, ArtifactKey,
 };
 
 const FOYER_BACKEND_NAME: &str = "foyer";
@@ -448,17 +448,16 @@ impl ArtifactBlobCache for FoyerArtifactBlobCache {
         } else {
             None
         };
-        Ok(ArtifactBlobFetch::from_shared(
-            entry.value().clone(),
-            status,
-            write,
-            elapsed,
-            if status.is_hit() {
-                std::time::Duration::ZERO
-            } else {
-                elapsed
-            },
-            std::time::Duration::ZERO,
+        let build_elapsed = if status.is_hit() {
+            std::time::Duration::ZERO
+        } else {
+            elapsed
+        };
+        Ok(ArtifactBlobFetch::from_parts(
+            ArtifactBlobFetchParts::from_shared_bytes(entry.value().clone(), status)
+                .with_write(write)
+                .with_read_elapsed(elapsed)
+                .with_build_elapsed(build_elapsed),
         ))
     }
 

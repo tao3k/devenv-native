@@ -1,0 +1,97 @@
+#+TITLE: Wendao Attachments Audio Arrow Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:attachments:audio:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao Attachments Audio Arrow Schema Contract [7/7] [100%] :agent:arrow:attachments:audio:
+CLOSED: [2026-05-26 Tue]
+:PROPERTIES:
+:ID: 2E1A1F95-5D5E-441A-A1DE-AC542F832B99
+:SDD: $PRJ_CACHE_HOME/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao-attachments/README.md
+:PACKAGE: xiuxian-db-store, xiuxian-wendao-attachments
+:SLICE: wendao-attachments-audio-arrow-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archive after staged evidence sync.
+:GRAPH: flowchart LR;T["task:2E1A1F95-5D5E-441A-A1DE-AC542F832B99"]-->S["sdd:db-store-arrow-schema-contract"];T-->A["xiuxian-wendao-attachments:audio-batches"];A-->D["xiuxian-db-store:ArrowSchemaContract"]
+:EVIDENCE: cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow audio_shard_arrow; cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow audio; cargo clippy -p xiuxian-wendao-attachments --features audio-shard-arrow --all-targets -- -D warnings; cargo fmt -p xiuxian-wendao-attachments -p xiuxian-wendao-studio --check; cargo test -p xiuxian-wendao-studio --features "zhenfa-router document-extract-audio-shards" audio_capacity
+:END:
+SCHEDULED: <2026-05-26 Tue>
+
+- [X] Scope and recovery anchor confirmed.
+- [X] RTK command policy confirmed.
+- [X] Task-local research complete.
+- [X] Implementation complete.
+- [X] Validation complete.
+- [X] Related package or canonical docs synced or explicitly judged unchanged.
+- [X] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+The attachments audio shard layer owns the stable Arrow-only worker input and
+worker result tables. Those schemas were hand-built locally with Arrow `Field`
+helpers. This slice keeps audio shard semantics, transcript admission,
+recovery, and merge identity in attachments while moving schema construction
+and exact structural validation to the shared db-store Arrow contract surface.
+
+** Task Checklist [7/7] [100%]
+:PROPERTIES:
+:COOKIE_DATA: direct
+:END:
+
+- [X] Scope and recovery anchor confirmed.
+- [X] RTK command policy confirmed.
+- [X] Task-local research complete.
+- [X] Implementation complete.
+- [X] Validation complete.
+- [X] Related package or canonical docs synced or explicitly judged unchanged.
+- [X] Evidence, reflection questions, and archive readiness updated.
+
+** Checkpoints
+
+- 2026-05-26: Physical target check covered audio batch builders/decoder,
+  audio Arrow contract unit test, feature dependencies, and package README
+  audio contract text.
+- 2026-05-26: Audio shard input/result batch schemas now build from db-store
+  `ArrowSchemaContract` helpers and validate exact schema parity before result
+  decode.
+
+** Validation
+
+- [X] Audio Arrow contract tests pass.
+- [X] Targeted attachments clippy passes.
+- [X] Formatting checks pass.
+- [X] Org/SDD recovery surfaces are updated.
+
+** Evidence
+
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow audio_shard_arrow` -> 2 passed.
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao-attachments --features audio-shard-arrow audio` -> 59 passed.
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo fmt -p xiuxian-wendao-attachments -p xiuxian-wendao-studio --check` -> passed.
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao-attachments --features audio-shard-arrow --all-targets -- -D warnings` -> no issues found.
+- `DIRENV_LOG_FORMAT= direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao-studio --features "zhenfa-router document-extract-audio-shards" audio_capacity` -> 6 passed.
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao-attachments/README.md` -> no matches.
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao-attachments/README.md
+- Updated: packages/rust/crates/xiuxian-wendao-attachments/README.md
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Aligned; the SDD gained a specific audio shard worker contract scenario, fitness gate, and evidence entry. |
+| Did the task meet its expected outcome and validation target? | Yes; audio input/result schemas are generated through db-store and exact-validated, with targeted audio tests, fmt, clippy, and Studio capacity regression passing. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; the slice preserved audio shard semantics and only centralized schema mechanics. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated the xiuxian-wendao-attachments README audio contract text; hidden-path link scan stayed clean. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; attachments retains audio ownership and db-store owns shared schema construction and validation helpers. |
+| Does this task improve future =task-probe=, =orgid-show=, SDD graph, or agent recovery understanding? | Yes; the task evidence and SDD scenario name use the exact package and feature boundary. |
+| What should the next agent query, verify, or avoid? | Continue with another Arrow schema duplication only after task-local research; avoid moving transcript admission, recovery, or merge policy into db-store. |
+
+** Recovery
+
+#+begin_src bash
+wendao-client orgize task-probe --cached --text 'Wendao Attachments Audio Arrow Schema Contract' $PRJ_CACHE_HOME/agent/org
+#+end_src

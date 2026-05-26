@@ -128,6 +128,23 @@ def test_wendao_gateway_entrypoint_uses_auto_build_mode() -> None:
     assert "if command -v cargo >/dev/null 2>&1; then\n      build_wendao_gateway" in entrypoint
 
 
+def test_process_healthchecks_have_short_internal_retries() -> None:
+    gateway_healthcheck = (PROJECT_ROOT / "scripts/runtime/wendao-gateway-healthcheck.sh").read_text(
+        encoding="utf-8"
+    )
+    analyzer_healthcheck = (
+        PROJECT_ROOT / "scripts/runtime/wendao-analyzer-healthcheck.sh"
+    ).read_text(encoding="utf-8")
+
+    assert 'TIMEOUT_SECS="${WENDAO_GATEWAY_HEALTH_TIMEOUT_SECS:-0.5}"' in gateway_healthcheck
+    assert 'ATTEMPTS="${WENDAO_GATEWAY_HEALTH_ATTEMPTS:-3}"' in gateway_healthcheck
+    assert "--attempts \"$ATTEMPTS\"" in gateway_healthcheck
+    assert "--retry-delay-secs \"$RETRY_DELAY_SECS\"" in gateway_healthcheck
+    assert 'TIMEOUT_SECS="${WENDAO_ANALYZER_HEALTH_TIMEOUT_SECS:-0.5}"' in analyzer_healthcheck
+    assert 'ATTEMPTS="${WENDAO_ANALYZER_HEALTH_ATTEMPTS:-3}"' in analyzer_healthcheck
+    assert "after {attempts} attempt(s)" in analyzer_healthcheck
+
+
 def test_wendao_gateway_entrypoint_builds_full_attachment_surface() -> None:
     gateway_entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(
         encoding="utf-8"

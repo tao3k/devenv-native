@@ -27,8 +27,10 @@ fn semantic_scope_batches_convert_to_ontology_registry_arrow_ipc() {
     )
     .unwrap_or_else(|error| panic!("semantic scope fixture batch should build: {error}"));
 
-    let payload = semantic_scope_batches_to_ontology_registry_arrow_ipc(&[batch])
-        .expect("ontology registry Arrow IPC should build");
+    let payload = must(
+        semantic_scope_batches_to_ontology_registry_arrow_ipc(&[batch]),
+        "ontology registry Arrow IPC should build",
+    );
     let rows = ontology_registry_rows_from_arrow_ipc(&payload);
 
     assert!(rows.contains(&("action_type".to_owned(), "postTransaction".to_owned(), true)));
@@ -56,36 +58,25 @@ fn semantic_scope_batches_skip_empty_object_ids() {
     )
     .unwrap_or_else(|error| panic!("empty object fixture batch should build: {error}"));
 
-    let payload = semantic_scope_batches_to_ontology_registry_arrow_ipc(&[batch])
-        .expect("empty ontology registry Arrow IPC should build");
+    let payload = must(
+        semantic_scope_batches_to_ontology_registry_arrow_ipc(&[batch]),
+        "empty ontology registry Arrow IPC should build",
+    );
     let rows = ontology_registry_rows_from_arrow_ipc(&payload);
     assert!(rows.is_empty());
 }
 
 fn ontology_registry_rows_from_arrow_ipc(payload: &[u8]) -> Vec<(String, String, bool)> {
-    let reader = StreamReader::try_new(Cursor::new(payload), None)
-        .expect("ontology registry Arrow IPC should decode");
+    let reader = must(
+        StreamReader::try_new(Cursor::new(payload), None),
+        "ontology registry Arrow IPC should decode",
+    );
     let mut rows = Vec::new();
     for batch in reader {
-        let batch = batch.expect("ontology registry batch should read");
-        let families = batch
-            .column_by_name("resource_family")
-            .expect("resource family column")
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .expect("resource family StringArray");
-        let names = batch
-            .column_by_name("api_name")
-            .expect("api name column")
-            .as_any()
-            .downcast_ref::<StringArray>()
-            .expect("api name StringArray");
-        let requires = batch
-            .column_by_name("requires_evidence")
-            .expect("requires evidence column")
-            .as_any()
-            .downcast_ref::<BooleanArray>()
-            .expect("requires evidence BooleanArray");
+        let batch = must(batch, "ontology registry batch should read");
+        let families = string_column(&batch, "resource_family");
+        let names = string_column(&batch, "api_name");
+        let requires = bool_column(&batch, "requires_evidence");
         for row_index in 0..batch.num_rows() {
             assert!(!families.is_null(row_index));
             assert!(!names.is_null(row_index));
@@ -98,4 +89,29 @@ fn ontology_registry_rows_from_arrow_ipc(payload: &[u8]) -> Vec<(String, String,
         }
     }
     rows
+}
+
+fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> &'a StringArray {
+    batch
+        .column_by_name(name)
+        .unwrap_or_else(|| panic!("{name} column"))
+        .as_any()
+        .downcast_ref::<StringArray>()
+        .unwrap_or_else(|| panic!("{name} StringArray"))
+}
+
+fn bool_column<'a>(batch: &'a RecordBatch, name: &str) -> &'a BooleanArray {
+    batch
+        .column_by_name(name)
+        .unwrap_or_else(|| panic!("{name} column"))
+        .as_any()
+        .downcast_ref::<BooleanArray>()
+        .unwrap_or_else(|| panic!("{name} BooleanArray"))
+}
+
+fn must<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
+    match result {
+        Ok(value) => value,
+        Err(error) => panic!("{context}: {error}"),
+    }
 }

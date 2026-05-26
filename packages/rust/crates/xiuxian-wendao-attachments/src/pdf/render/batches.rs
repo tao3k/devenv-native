@@ -1,13 +1,19 @@
 //! Arrow batch builders and IPC sidecar writers for render shard artifacts.
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use crate::pdf::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
 
@@ -16,6 +22,8 @@ use super::types::{PdfOcrShardType, PdfPageShardManifest};
 const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
 const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
+const OCR_SHARD_MANIFEST_TABLE: &str = "pdf_ocr_shard_manifest";
+const OCR_PENDING_RESOURCE_TABLE: &str = "pdf_ocr_pending_resource";
 
 /// # Errors
 ///
@@ -23,8 +31,8 @@ const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 pub fn build_shard_manifest_batch(
     manifests: &[PdfPageShardManifest],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        shard_manifest_schema(),
+    record_batch(
+        &shard_manifest_contract(),
         vec![
             string_manifest_column(manifests, |manifest| manifest.source_path.clone()),
             string_manifest_column(manifests, |manifest| manifest.source_content_hash.clone()),
@@ -70,8 +78,8 @@ pub fn build_shard_manifest_batch(
             int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.right),
             int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.bottom),
         ],
+        "build OCR shard manifest Arrow batch",
     )
-    .map_err(|error| format!("build OCR shard manifest Arrow batch: {error}"))
 }
 
 /// Decode a typed shard manifest batch into manifest DTO rows.
@@ -172,8 +180,8 @@ pub(super) fn shard_manifests_from_batch(
 pub fn build_ocr_pending_resource_batch(
     manifests: &[PdfPageShardManifest],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        document_resource_schema(),
+    record_batch(
+        &document_resource_contract(),
         vec![
             Arc::new(StringArray::from(
                 manifests
@@ -229,8 +237,8 @@ pub fn build_ocr_pending_resource_batch(
                     .collect::<Vec<_>>(),
             )),
         ],
+        "build OCR pending resource Arrow batch",
     )
-    .map_err(|error| format!("build OCR pending resource Arrow batch: {error}"))
 }
 fn pending_caption(manifest: &PdfPageShardManifest) -> String {
     match manifest.shard_type {
@@ -332,53 +340,110 @@ pub(super) fn write_shard_artifact_batches(
     ))
 }
 
-fn shard_manifest_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("sourcePath", DataType::Utf8, false),
-        Field::new("sourceContentHash", DataType::Utf8, false),
-        Field::new("pageIndex", DataType::Int32, false),
-        Field::new("renderProfile", DataType::Utf8, false),
-        Field::new("imagePath", DataType::Utf8, false),
-        Field::new("imageMimeType", DataType::Utf8, false),
-        Field::new("rasterSha256", DataType::Utf8, false),
-        Field::new("rasterWidthPx", DataType::Int32, false),
-        Field::new("rasterHeightPx", DataType::Int32, false),
-        Field::new("renderDpi", DataType::Int32, false),
-        Field::new("rotationDegrees", DataType::Int32, false),
-        Field::new("mediaLeft", DataType::Float64, false),
-        Field::new("mediaBottom", DataType::Float64, false),
-        Field::new("mediaRight", DataType::Float64, false),
-        Field::new("mediaTop", DataType::Float64, false),
-        Field::new("cropLeft", DataType::Float64, false),
-        Field::new("cropBottom", DataType::Float64, false),
-        Field::new("cropRight", DataType::Float64, false),
-        Field::new("cropTop", DataType::Float64, false),
-        Field::new("pointToPixelScaleX", DataType::Float64, false),
-        Field::new("pointToPixelScaleY", DataType::Float64, false),
-        Field::new("elementId", DataType::Utf8, false),
-        Field::new("shardType", DataType::Utf8, false),
-        Field::new("regionIndex", DataType::Int32, false),
-        Field::new("parentShardElementId", DataType::Utf8, false),
-        Field::new("readingOrderKey", DataType::Utf8, false),
-        Field::new("sourcePagePixelLeft", DataType::Int32, false),
-        Field::new("sourcePagePixelTop", DataType::Int32, false),
-        Field::new("sourcePagePixelRight", DataType::Int32, false),
-        Field::new("sourcePagePixelBottom", DataType::Int32, false),
-    ]))
+fn shard_manifest_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_SHARD_MANIFEST_TABLE,
+        true,
+        vec![
+            utf8_column("sourcePath"),
+            utf8_column("sourceContentHash"),
+            int32_column("pageIndex"),
+            utf8_column("renderProfile"),
+            utf8_column("imagePath"),
+            utf8_column("imageMimeType"),
+            utf8_column("rasterSha256"),
+            int32_column("rasterWidthPx"),
+            int32_column("rasterHeightPx"),
+            int32_column("renderDpi"),
+            int32_column("rotationDegrees"),
+            float64_column("mediaLeft"),
+            float64_column("mediaBottom"),
+            float64_column("mediaRight"),
+            float64_column("mediaTop"),
+            float64_column("cropLeft"),
+            float64_column("cropBottom"),
+            float64_column("cropRight"),
+            float64_column("cropTop"),
+            float64_column("pointToPixelScaleX"),
+            float64_column("pointToPixelScaleY"),
+            utf8_column("elementId"),
+            utf8_column("shardType"),
+            int32_column("regionIndex"),
+            utf8_column("parentShardElementId"),
+            utf8_column("readingOrderKey"),
+            int32_column("sourcePagePixelLeft"),
+            int32_column("sourcePagePixelTop"),
+            int32_column("sourcePagePixelRight"),
+            int32_column("sourcePagePixelBottom"),
+        ],
+    )
 }
 
-fn document_resource_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("sourcePath", DataType::Utf8, true),
-        Field::new("resourceType", DataType::Utf8, true),
-        Field::new("resourcePath", DataType::Utf8, true),
-        Field::new("pageIndex", DataType::Int32, true),
-        Field::new("caption", DataType::Utf8, true),
-        Field::new("content", DataType::Utf8, true),
-        Field::new("mimeType", DataType::Utf8, true),
-        Field::new("status", DataType::Utf8, true),
-        Field::new("elementId", DataType::Utf8, true),
-    ]))
+fn document_resource_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_PENDING_RESOURCE_TABLE,
+        true,
+        vec![
+            nullable_utf8_column("sourcePath"),
+            nullable_utf8_column("resourceType"),
+            nullable_utf8_column("resourcePath"),
+            nullable_int32_column("pageIndex"),
+            nullable_utf8_column("caption"),
+            nullable_utf8_column("content"),
+            nullable_utf8_column("mimeType"),
+            nullable_utf8_column("status"),
+            nullable_utf8_column("elementId"),
+        ],
+    )
+}
+
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    context: &'static str,
+) -> Result<RecordBatch, String> {
+    let batch = RecordBatch::try_new(schema_ref(contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("{context} schema validation: {error}"))?;
+    Ok(batch)
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int32)
+}
+
+const fn nullable_int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int32)
+}
+
+const fn float64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Float64)
 }
 
 fn write_arrow_file(path: &Path, batches: &[RecordBatch]) -> Result<(), String> {

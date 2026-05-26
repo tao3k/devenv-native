@@ -8,7 +8,7 @@ license.workspace = true
 publish = false
 
 [features]
-foyer-artifact-cache = ["dep:xiuxian-db-store", "xiuxian-db-store/foyer-artifact-cache"]
+foyer-artifact-cache = ["xiuxian-db-store/foyer-artifact-cache"]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -21,7 +21,7 @@ quick-xml = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 toml = { workspace = true }
-xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 
 [lints]

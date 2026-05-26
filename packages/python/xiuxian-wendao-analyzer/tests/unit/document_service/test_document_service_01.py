@@ -22,7 +22,6 @@ from .support import (
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER,
-    WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER,
     WENDAO_SCHEMA_VERSION_HEADER,
     DocumentExtractFlightServer,
     FakeDoclingConverter,
@@ -135,45 +134,6 @@ def test_document_extract_table_uses_page_range_header(tmp_path: Path) -> None:
     assert row["pageIndex"] == 1
     assert row["elementId"] == "page-range-00002-00003:_main"
     assert row["resourcePath"] == str(output_dir / "manual.pages-00002-00003.md")
-
-
-def test_document_extract_table_uses_rust_selected_source_preparation(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    source = tmp_path / "legacy.doc"
-    source.write_bytes(b"legacy office fixture")
-    output_dir = tmp_path / "out"
-    converted = output_dir / "converted.docx"
-
-    def fake_prepare_docling_source(original: Path, out: Path, *, mode: str) -> Path:
-        assert original == source
-        assert out == output_dir
-        assert mode == "legacy-office-docx"
-        converted.parent.mkdir(parents=True, exist_ok=True)
-        converted.write_bytes(b"converted")
-        return converted
-
-    monkeypatch.setattr(
-        "xiuxian_wendao_analyzer.document_extract_inline.prepare_docling_source",
-        fake_prepare_docling_source,
-    )
-    converter = FakeDoclingConverter("# Legacy\n")
-
-    table = build_document_extract_table(
-        {
-            WENDAO_SCHEMA_VERSION_HEADER: EXPECTED_SCHEMA_VERSION,
-            WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER: str(source),
-            WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER: str(output_dir),
-            WENDAO_DOCUMENT_EXTRACT_SOURCE_PREPARATION_HEADER: "legacy-office-docx",
-        },
-        converter=converter,
-    )
-
-    assert converter.calls == [converted]
-    row = table.to_pylist()[0]
-    assert row["sourcePath"] == str(source)
-    assert row["content"] == "# Legacy\n"
 
 
 def test_document_flight_server_warms_arrow_runtime(

@@ -8,6 +8,8 @@ use xiuxian_wendao_server::transport::{
 };
 
 use super::StudioDocumentExtractFlightRouteProvider;
+#[cfg(feature = "document-extract-legacy-office")]
+use super::legacy_office::is_legacy_office_source;
 use super::native_org::is_native_org_source;
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
@@ -42,6 +44,13 @@ impl StudioDocumentExtractFlightRouteProvider {
                     force,
                     error_row,
                 )
+                .await;
+        }
+        #[cfg(feature = "document-extract-legacy-office")]
+        if source.exists() && is_legacy_office_source(source.as_path()) {
+            let _permit = self.acquire_document_extract_dispatch_permit().await?;
+            return self
+                .sync_legacy_office_document_extract_batch(source.as_path(), output.as_path())
                 .await;
         }
         if source.exists() && !force {
@@ -304,6 +313,29 @@ impl StudioDocumentExtractFlightRouteProvider {
                     false,
                 )
                 .await?;
+            write_arrow_file(
+                artifact_dir
+                    .join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME)
+                    .as_path(),
+                batches.as_slice(),
+            )?;
+            tokio::fs::File::create(artifact_dir.join("_complete.marker"))
+                .await
+                .map_err(|error| format!("touch document extract artifact marker: {error}"))?;
+            mirror_artifact_to_output(
+                artifact_dir.as_path(),
+                Path::new(status.output_dir.as_str()),
+            )?;
+            let _registry_guard = self.registry_lock();
+            return self.registry()?.mark_succeeded(job_id);
+        }
+        #[cfg(feature = "document-extract-legacy-office")]
+        if is_legacy_office_source(Path::new(status.source_path.as_str())) {
+            let batches = super::legacy_office::write_legacy_office_document_extract_output(
+                Path::new(status.source_path.as_str()),
+                artifact_dir.as_path(),
+            )
+            .await?;
             write_arrow_file(
                 artifact_dir
                     .join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME)

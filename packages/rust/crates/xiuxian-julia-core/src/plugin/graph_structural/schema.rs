@@ -1,12 +1,14 @@
-//! Schema and batch validators for the Julia graph-structural Arrow contract.
-
 //! Schema and batch validators for the `WendaoSearch.jl` graph-structural contract.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 use arrow::array::{Array, BooleanArray, Float64Array, Int32Array, ListArray, StringArray};
 use arrow::datatypes::{DataType, Schema};
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, build_arrow_schema,
+    validate_schema_against_contract,
+};
 
 use super::columns::{
     GRAPH_STRUCTURAL_ACCEPTED_COLUMN, GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN,
@@ -28,6 +30,12 @@ use super::columns::{
     GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
 };
 
+/// Build the staged structural-rerank request Arrow schema.
+#[must_use]
+pub fn graph_structural_rerank_request_schema() -> Schema {
+    build_arrow_schema(&graph_structural_rerank_request_contract(), HashMap::new())
+}
+
 /// Validate the staged structural-rerank request schema.
 ///
 /// # Errors
@@ -35,6 +43,8 @@ use super::columns::{
 /// Returns an error when the schema does not match the staged structural-rerank
 /// request contract.
 pub fn validate_graph_structural_rerank_request_schema(schema: &Schema) -> Result<(), String> {
+    validate_schema_against_contract(schema, &graph_structural_rerank_request_contract())
+        .map_err(|error| format!("graph structural rerank request {error}"))?;
     validate_utf8_fields(schema, GRAPH_STRUCTURAL_RERANK_REQUEST_UTF8_COLUMNS)?;
     validate_int32_fields(schema, GRAPH_STRUCTURAL_RERANK_REQUEST_INT32_COLUMNS)?;
     validate_float64_fields(schema, GRAPH_STRUCTURAL_RERANK_REQUEST_FLOAT64_COLUMNS)?;
@@ -149,10 +159,18 @@ pub fn validate_graph_structural_rerank_response_batch(batch: &RecordBatch) -> R
 /// Returns an error when the schema does not match the staged constraint-filter
 /// request contract.
 pub fn validate_graph_structural_filter_request_schema(schema: &Schema) -> Result<(), String> {
+    validate_schema_against_contract(schema, &graph_structural_filter_request_contract())
+        .map_err(|error| format!("graph structural filter request {error}"))?;
     validate_utf8_fields(schema, GRAPH_STRUCTURAL_FILTER_REQUEST_UTF8_COLUMNS)?;
     validate_int32_fields(schema, GRAPH_STRUCTURAL_FILTER_REQUEST_INT32_COLUMNS)?;
     validate_list_utf8_fields(schema, GRAPH_STRUCTURAL_FILTER_REQUEST_LIST_UTF8_COLUMNS)?;
     Ok(())
+}
+
+/// Build the staged constraint-filter request Arrow schema.
+#[must_use]
+pub fn graph_structural_filter_request_schema() -> Schema {
+    build_arrow_schema(&graph_structural_filter_request_contract(), HashMap::new())
 }
 
 /// Validate one staged constraint-filter request batch.
@@ -178,6 +196,134 @@ fn validate_graph_structural_filter_request_scalar_columns(
     require_non_blank_utf8_column(batch, GRAPH_STRUCTURAL_CONSTRAINT_KIND_COLUMN, false)?;
     require_int32_column(batch, GRAPH_STRUCTURAL_REQUIRED_BOUNDARY_SIZE_COLUMN, 0)?;
     Ok(())
+}
+
+fn graph_structural_rerank_request_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        "graph_structural_rerank_request",
+        true,
+        vec![
+            column(GRAPH_STRUCTURAL_QUERY_ID_COLUMN, ArrowSchemaDataType::Utf8),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            column(
+                GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN,
+                ArrowSchemaDataType::Int32,
+            ),
+            column(
+                GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN,
+                ArrowSchemaDataType::Int32,
+            ),
+            column(
+                GRAPH_STRUCTURAL_SEMANTIC_SCORE_COLUMN,
+                ArrowSchemaDataType::Float64,
+            ),
+            column(
+                GRAPH_STRUCTURAL_DEPENDENCY_SCORE_COLUMN,
+                ArrowSchemaDataType::Float64,
+            ),
+            column(
+                GRAPH_STRUCTURAL_KEYWORD_SCORE_COLUMN,
+                ArrowSchemaDataType::Float64,
+            ),
+            column(
+                GRAPH_STRUCTURAL_TAG_SCORE_COLUMN,
+                ArrowSchemaDataType::Float64,
+            ),
+            column(
+                GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_EDGE_CONSTRAINT_KINDS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_NODE_IDS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_EDGE_SOURCES_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+        ],
+    )
+}
+
+fn graph_structural_filter_request_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        "graph_structural_filter_request",
+        true,
+        vec![
+            column(GRAPH_STRUCTURAL_QUERY_ID_COLUMN, ArrowSchemaDataType::Utf8),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            column(
+                GRAPH_STRUCTURAL_RETRIEVAL_LAYER_COLUMN,
+                ArrowSchemaDataType::Int32,
+            ),
+            column(
+                GRAPH_STRUCTURAL_QUERY_MAX_LAYERS_COLUMN,
+                ArrowSchemaDataType::Int32,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CONSTRAINT_KIND_COLUMN,
+                ArrowSchemaDataType::Utf8,
+            ),
+            column(
+                GRAPH_STRUCTURAL_REQUIRED_BOUNDARY_SIZE_COLUMN,
+                ArrowSchemaDataType::Int32,
+            ),
+            column(
+                GRAPH_STRUCTURAL_ANCHOR_PLANES_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_ANCHOR_VALUES_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_EDGE_CONSTRAINT_KINDS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_NODE_IDS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_EDGE_SOURCES_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_EDGE_DESTINATIONS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+            column(
+                GRAPH_STRUCTURAL_CANDIDATE_EDGE_KINDS_COLUMN,
+                ArrowSchemaDataType::Utf8List,
+            ),
+        ],
+    )
+}
+
+fn column(name: &'static str, data_type: ArrowSchemaDataType) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, data_type)
 }
 
 /// Validate the staged constraint-filter response schema.

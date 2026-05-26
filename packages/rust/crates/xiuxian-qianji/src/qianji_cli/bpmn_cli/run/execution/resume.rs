@@ -68,7 +68,7 @@ pub(crate) async fn run_bpmn_task_complete_command_with_runtime_env(
 ) -> Result<BpmnCliOutput, Box<dyn std::error::Error>> {
     let control_service = workflow_control_service(runtime_env, scheduler_identity);
     let task_complete_request = build_bpmn_workflow_task_complete_request(command)?;
-    let resume_request = build_bpmn_workflow_task_complete_resume_request(command);
+    let resume_request = task_complete_request.workflow_resume_request();
 
     match control_service
         .prepare_resume_workflow(&resume_request)
@@ -137,17 +137,6 @@ async fn run_prepared_bpmn_task_complete_command(
             Ok(render::render_bpmn_task_complete_missing_output(command))
         }
         Err(error) => Err(error.into()),
-    }
-}
-
-fn build_bpmn_workflow_task_complete_resume_request(
-    command: &BpmnTaskCompleteCliCommand,
-) -> crate::qianji_cli::bpmn_cli::deps::QianjiBpmnWorkflowResumeRequest {
-    crate::qianji_cli::bpmn_cli::deps::QianjiBpmnWorkflowResumeRequest {
-        bpmn_path: command.bpmn_path.clone(),
-        dmn_paths: command.dmn_paths.clone(),
-        instance_id: command.instance_id.clone().into(),
-        checkpoint_backend: command.checkpoint_backend.clone(),
     }
 }
 

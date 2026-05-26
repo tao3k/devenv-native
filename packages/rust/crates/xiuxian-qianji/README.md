@@ -67,18 +67,20 @@ still own the shard payloads, cache rules, and precision gates.
 
 Workflow traces can also be projected into the independent Qianji control
 plane through the workflow-kernel control adapter. The adapter maps
-`WorkflowTrace` rows into `xiuxian-qianji-control` events for replay,
+`WorkflowTrace` rows into workflow-neutral projection records for replay,
 evidence, cost, lease, and recovery management. This is a one-way boundary:
-Qianji still owns workflow/BPMN/Flowhub semantics, while
+Qianji still owns workflow/BPMN/Flowhub semantics and trace-to-projection
+mapping, while
 [`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md) owns generic
-run and step control state. Explicit recording returns the normal workflow
-report, the appended control records, and the ledger-replayed run view so
-callers can inspect recoverable management state without making recording the
-default finish path. Topology-bound callers can use checked control recording
-to validate required stages and dependency order before any control events are
-appended. Callers that must retain typed workflow output after a control ledger
-failure can use the recoverable recording path, which returns the completed
-workflow report with the control error for retry or manual recovery. The
+run and step control state, durable event construction, and append batching.
+Explicit recording returns the normal workflow report, the appended control
+records, and the ledger-replayed run view so callers can inspect recoverable
+management state without making recording the default finish path.
+Topology-bound callers can use checked control recording to validate required
+stages and dependency order before any control events are appended. Callers
+that must retain typed workflow output after a control ledger failure can use
+the recoverable recording path, which returns the completed workflow report
+with the control error for retry or manual recovery. The
 checked recoverable path combines both protections for topology-bound runs:
 validate structure first, then preserve the report if only control persistence
 fails. Recoverable control failures are directly retryable from the retained
@@ -101,9 +103,12 @@ evidence, gate results, and cost observations in a stable order and returns the
 replayed control view for inspection. The managed recovery decision helper
 extends that order with a final recovery attempt and requires a failed gate
 result, keeping lifecycle mutation explicit and gate-driven.
-Internally, the adapter is split into recording, projection, and decision
-modules so the public control surface can grow without flattening unrelated
-responsibilities.
+Those projection, observation, and decision helpers now live in
+[`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md) because they
+only operate on workflow-neutral run, step, stage projection, evidence, gate,
+cost, and recovery contracts. The local workflow-kernel control adapter keeps
+only the semantic mapping from Qianji's concrete `WorkflowTrace` type into
+that neutral projection record.
 Workflow callers can also opt into required-evidence projection when recording
 a trace. The default projection keeps `StepCreated.required_evidence` empty,
 while the opt-in contract lets a caller attach deterministic stage evidence
@@ -164,8 +169,14 @@ strict scheduler-agent lease ownership. The lib service mirrors those
 operator intents with `poll_workflow_events(...)`,
 `complete_workflow_task(...)`, `claim_workflow_task(...)`,
 `release_workflow_task(...)`, and `list_workflow_worklist(...)`, so later
-HTTP/API adapters can call the control-plane actions directly instead of
-routing through CLI-specific names.
+HTTP/API adapters can call the BPMN workflow-control actions directly instead
+of routing through CLI-specific names. These are concrete workflow-control
+service actions in this crate, not workflow-neutral
+`xiuxian-qianji-control` ledger APIs.
+Concrete event-poll, task-complete, and batch-complete request types derive
+their matching resume requests through `workflow_resume_request(...)`, keeping
+service, HTTP, and CLI adapters thin while checkpoint backend resolution stays
+inside this crate.
 The pending-host stream exposes Rust-owned `process_id`, BPMN `activity_id`,
 optional parsed `form` metadata, and optional standard BPMN `assignment`
 metadata for `userTask` and `manualTask` entries, so UI adapters can render,
@@ -216,18 +227,45 @@ otherwise. The service bind address resolves from `[server].bind_addr` unless
 `--bind` is supplied. `[server].require_valkey_ready` or
 `--require-valkey-ready` can make startup fail before socket bind when Valkey
 does not answer `PING`; `--no-require-valkey-ready` explicitly disables that
-gate. `GET /healthz` reports service liveness, and `GET /readyz` verifies
-that the effective Valkey checkpoint backend responds to `PING`. Local
-no-server CLI/control workflow state defaults to
+gate. `GET /healthz` reports service liveness, `GET /readyz` verifies
+that the effective Valkey checkpoint backend responds to `PING`, and
+`GET /capabilities` reports the stable server capability ids exposed by the
+running process. Workflow-control clients should use `/capabilities` to reject
+stale qianji-server processes before relying on recently added routes such as
+`bpmn.workflow.task.complete-batch`, `bpmn.workflow.task.fail`, or
+`bpmn.workflow.activity-evidence`, or `qianji.control.history`.
+`--control-ledger <path>` enables an optional DuckDB-backed append-only control
+ledger for server-owned host-work ActivityTask evidence. With that ledger
+configured, `GET /control/runs/{run_id}/history` returns the in-process
+append-only event timeline for one control run, and
+`GET /control/runs/{run_id}/summary` returns the replay-derived
+`RunOperatorSummary` projection for operators that need activity, timer,
+signal, cost, and recovery counters without parsing raw events.
+`GET /control/runs/{run_id}/recovery` returns the replay-derived
+`RunRecoverySnapshot`, including ordered recovery actions, without applying
+those actions. Omitted ledgers keep existing HTTP behavior unchanged and make
+these read routes return service-unavailable.
+The `qianji-server` test suite is mounted through the library test tree because
+it exercises private server adapters under `src/qianji_server_cli/`. Use
+`direnv exec . rtk --ultra-compact cargo test -p xiuxian-qianji --lib
+qianji_server` for the full server surface, and use focused `--lib` filters
+such as `qianji_server_http_completion_records_host_work_activity_evidence`
+when validating durable host-work evidence. The `unit_test` target covers the
+external unit aggregate and intentionally does not run these private server
+adapter tests.
+The checkpoint backend remains Valkey-only for qianji-server workflow state.
+Local no-server CLI/control workflow state defaults to
 `$PRJ_DATA_HOME/xiuxian-qianji/duckdb/workflow-state.duckdb` unless
 `qianji.toml` or `QIANJI_WORKFLOW_STATE_DUCKDB_PATH` provides an explicit
-override; HTTP remains Valkey-only.
+override.
 The generic Qianji control ledger has its own operator surfaces.
 `qianji control run-create --ledger <path> --run-id <id>
 --occurred-at-ms <ms> --intent <text> [--json]` appends the explicit
 `RunCreated` fact required before later run-scoped control events can be
-admitted. It does not schedule activities, create steps, mirror hot state, or
-execute workflow logic. `qianji control history --ledger <path> --run-id <id> [--json]` renders the
+admitted. The concrete CLI parses operator input and delegates the durable
+append to `xiuxian-qianji-control`'s workflow-neutral run journal helper. It
+does not schedule activities, create steps, mirror hot state, or execute
+workflow logic. `qianji control history --ledger <path> --run-id <id> [--json]` renders the
 append-only event timeline for one run. `qianji control heartbeat --ledger
 <path> --run-id <id> --worker-id <id> --observed-at-ms <ms> --expires-at-ms
 <ms> [--valkey-url <url>] [--namespace <ns>] [--metadata <json>] [--json]`
@@ -464,7 +502,9 @@ enqueueing work, or mutating hot scheduler state.
 `qianji control signal --ledger <path> --run-id <id> --signal-name <name>
 --payload <json> --received-at-ms <ms> [--step-id <id>] [--json]` appends one
 durable external signal event. The payload JSON is stored in signal metadata so
-the existing control event schema remains unchanged. `qianji control signals
+the existing control event schema remains unchanged; the CLI delegates the
+append to `xiuxian-qianji-control`'s workflow-neutral signal journal helper
+instead of constructing the durable event locally. `qianji control signals
 --ledger <path> --run-id <id> [--json]` renders the replayed run and step
 signal inventory with event sequence, received timestamp, and scope counts,
 without appending signals or mutating hot state.
@@ -575,10 +615,13 @@ from `--flowhub-root`, then `QIANJI_FLOWHUB_ROOT`, then
 Flowhub BPMN `serviceTask` boundaries can now be converted into the generic
 Qianji control-plane `ActivityTask` schedule contract through
 `build_flowhub_service_activity_schedule_record`, which is owned by
-[`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md). The adapter
-preserves BPMN instance, process, activity, token, source path, and declared
-task-output metadata in the scheduled task and routes work to
-`flowhub.<scenario-id>`. The same runtime crate owns the deterministic
+[`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md). That runtime
+adapter preserves BPMN instance, process, activity, token, source path, and
+declared task-output metadata in the scheduled task and routes work to
+`flowhub.<scenario-id>`, while
+[`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md) owns the
+workflow-neutral durable activity, queue, lease, retry, and replay semantics
+behind the scheduled task. The same runtime crate owns the deterministic
 completion contract helpers that validate required task-output fields and
 derive bounded worker output. `build_flowhub_service_task_completion_payload`
 wraps that runtime-neutral completion contract into the typed BPMN service
@@ -589,19 +632,56 @@ events, mutate hot state, or complete the BPMN task. The companion
 HTTP completion request from the same replay-derived `WorkerActivityTask`
 metadata, so worker bridges can post through the existing qianji-server
 `/workflows/{instance_id}/tasks/complete` route instead of mutating BPMN state
-directly. For server-owned execution,
-`run_qianji_server_flowhub_service_worker_completion_loop` now performs the
-bounded loop over the existing authorities: it reads the BPMN checkpoint
-frontier, records the Flowhub service `ActivityTask` in the control ledger,
-mirrors replay-derived work into hot state, claims and executes the
-deterministic `flowhub-service` contract worker, records the durable terminal
-activity event, then completes the BPMN service task through the workflow
-control service through the runtime-owned `QianjiRuntimeWorkflowControlPort`.
+directly. For server-backed execution,
+`run_qianji_server_flowhub_service_worker_completion_loop` is now a thin
+wrapper over the runtime-owned bounded loop. The runtime loop reads the BPMN
+checkpoint frontier through `QianjiRuntimeWorkflowControlPort`, records the
+Flowhub service `ActivityTask` in the control ledger, mirrors replay-derived
+work into hot state, claims and executes the deterministic `flowhub-service`
+contract worker, records the durable terminal activity event, completes the
+BPMN service task through the same port, and releases the lease. qianji-server
+still owns concrete HTTP/checkpoint state assembly and passes its service/host
+pair into the runtime loop.
 Worker bridges that only have qianji-server HTTP snapshots can still use
 `build_flowhub_service_activity_schedule_record_from_http_pending_work` to turn
 pending service-work DTOs back into the same durable schedule contract.
 The current server proof completes the full linear `agent-coding` service
 chain through the reusable server worker completion loop.
+Generic BPMN host work now uses the runtime-owned BPMN-to-ActivityTask
+evidence adapter in
+[`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md) for native
+host-tool completions that are not Flowhub service contracts. `xiuxian-qianji`
+keeps HTTP request parsing and maps typed server payloads into the
+runtime-neutral completion and failure facts. Durable ledger semantics are
+still owned by
+[`xiuxian-qianji-control`](../xiuxian-qianji-control/README.md): qianji-server
+supplies the run id, pending work, worker id, timestamps, and HTTP-derived
+facts, while the runtime adapter composes control-owned run creation, activity
+schedule, worker start, and terminal completion or failure helpers. When
+qianji-server starts with
+`--control-ledger <path>`, successful single-task and batch task-completion
+routes match the submitted completion ids against the checkpoint's pending host
+work through the runtime-owned `BpmnHostWorkIdentity` matcher and append the
+replayable
+`RunCreated` -> `ActivityScheduled` -> `ActivityStarted` -> `ActivityCompleted`
+chain to the control ledger. The adapter records BPMN instance, process,
+activity, token, host-work kind, input reference, and completion hash metadata
+without changing the HTTP task-completion payloads, the BPMN checkpoint schema,
+or pi-wendao's `Agent` / `get_subagent_result` host-tool contract.
+`POST /workflows/{instance_id}/tasks/fail` uses the same checkpoint-backed host
+work identity guard to append `RunCreated` -> `ActivityScheduled` ->
+`ActivityStarted` -> `ActivityFailed` for native host-work failures. The failure
+route is evidence-only: it does not complete the BPMN task, advance tokens,
+or mutate checkpoint state. `GET /control/runs/{run_id}/history` exposes that
+same durable event chain through qianji-server while the process owns the
+DuckDB ledger connection, avoiding a separate external ledger reader.
+`GET /control/runs/{run_id}/summary` projects the same ledger stream into an
+operator-safe summary, including failed activity counters for recovery UI and
+subagent-runner status checks. `GET /control/runs/{run_id}/recovery` exposes
+the read-only recovery plan derived from the same event stream, such as retry
+review or terminal escalation actions, but does not enqueue work, retry
+activities, fire timers, reclaim leases, or mutate hot state.
+delete checkpoints, or change the completion payload schemas.
 The same `workdir` surface now also exposes a thin bounded markdown query
 wrapper over Wendao SQL, so library callers can execute exact SQL retrieval
 against `blueprint/` plus `plan/` without changing the `qianji` CLI surface.

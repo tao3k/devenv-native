@@ -1,6 +1,6 @@
 use crate::qianji_cli::bpmn_cli::deps::{
     QianjiBpmnPreparedWorkflowStart, QianjiBpmnWorkflowControlError,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowResumeRequest, SchedulerAgentIdentity,
+    QianjiBpmnWorkflowControlService, SchedulerAgentIdentity,
 };
 use crate::qianji_cli::bpmn_cli::host;
 use crate::qianji_cli::bpmn_cli::render;
@@ -55,12 +55,7 @@ impl BpmnHostSessionRuntime {
     ) -> Result<BpmnHostSessionStepResult, Box<dyn std::error::Error>> {
         let task_command = build_task_complete_command(session_command, request)?;
         let task_request = build_bpmn_workflow_task_complete_request(&task_command)?;
-        let resume_request = QianjiBpmnWorkflowResumeRequest {
-            bpmn_path: task_command.bpmn_path.clone(),
-            dmn_paths: task_command.dmn_paths.clone(),
-            instance_id: task_command.instance_id.clone().into(),
-            checkpoint_backend: task_command.checkpoint_backend.clone(),
-        };
+        let resume_request = task_request.workflow_resume_request();
         match self
             .control_service
             .prepare_resume_workflow_from_prepared_start(&resume_request, &self.prepared_source)

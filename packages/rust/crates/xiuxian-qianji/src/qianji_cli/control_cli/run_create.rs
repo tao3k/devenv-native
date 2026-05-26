@@ -86,23 +86,17 @@ pub(super) struct RunCreateRunRequest<'a> {
 #[cfg(feature = "duckdb")]
 pub(super) fn run(request: RunCreateRunRequest<'_>) -> io::Result<ControlCliOutput> {
     use xiuxian_qianji_control::{
-        ControlEvent, ControlEventKind, ControlLedger, DuckDbControlLedger, RunId,
+        DuckDbControlLedger, RunCreatedJournalRecord, RunId, record_run_created,
     };
 
     let run_id = RunId::new(request.run_id).map_err(|error| control_error(&error))?;
     let ledger =
         DuckDbControlLedger::open(request.ledger_path).map_err(|error| control_error(&error))?;
-    let record = ledger
-        .append_event(ControlEvent::run(
-            run_id,
-            request.occurred_at_ms,
-            ControlEventKind::RunCreated {
-                intent: request.intent.to_owned(),
-                budget: None,
-                metadata: serde_json::Value::Null,
-            },
-        ))
-        .map_err(|error| control_error(&error))?;
+    let record = record_run_created(
+        &ledger,
+        RunCreatedJournalRecord::new(run_id, request.intent, request.occurred_at_ms),
+    )
+    .map_err(|error| control_error(&error))?;
     let rendered = if request.json {
         serde_json::to_string_pretty(&record).map_err(io::Error::other)?
     } else {

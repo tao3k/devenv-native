@@ -200,7 +200,7 @@ pub fn audio_shard_pressure_evidence(
 /// Returns an inert audio shard scheduling plan from attachment-owned facts.
 #[cfg(feature = "audio-shard-arrow")]
 #[must_use]
-pub fn audio_shard_schedule_plan(request: AudioShardScheduleRequest) -> AudioSchedulePlan {
+pub fn audio_shard_schedule_plan(request: &AudioShardScheduleRequest) -> AudioSchedulePlan {
     AudioSchedulingInput::audio_shards(request.pressure)
         .with_adaptive_worker_budget(request.adaptive_worker_budget)
         .with_worker_request(request.diagnostic_worker_override, request.max_worker_cap)

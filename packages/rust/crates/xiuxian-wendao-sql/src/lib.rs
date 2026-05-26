@@ -6,6 +6,8 @@
 //! - put small bounded downstream SQL helpers here when they should not drag
 //!   the full Wendao feature graph into their callers
 
+/// Arrow schema contracts for bounded SQL data-plane tables.
+mod arrow_contract;
 /// Bounded-work markdown SQL helper surface for workdir-local retrieval.
 pub mod bounded_work_markdown;
 /// DuckDB inspection surface for Episteme candidate Parquet read models.

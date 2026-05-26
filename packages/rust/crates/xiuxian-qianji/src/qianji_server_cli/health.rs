@@ -20,6 +20,7 @@ pub(crate) fn qianji_server_health_router(state: QianjiServerHealthState) -> Rou
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
+        .route("/capabilities", get(capabilities))
         .with_state(state)
 }
 
@@ -29,6 +30,32 @@ async fn healthz() -> Json<QianjiServerHealthResponse> {
         service: "qianji-server",
         checkpoint_default_backend: "valkey",
         valkey_configured: true,
+    })
+}
+
+async fn capabilities() -> Json<QianjiServerCapabilitiesResponse> {
+    Json(QianjiServerCapabilitiesResponse {
+        service: "qianji-server",
+        checkpoint_default_backend: "valkey",
+        capabilities: &[
+            "health.healthz",
+            "health.readyz",
+            "flowhub.scenarios",
+            "bpmn.workflow.start",
+            "bpmn.workflow.resume",
+            "bpmn.workflow.status",
+            "bpmn.workflow.cancel",
+            "bpmn.workflow.events.poll",
+            "bpmn.workflow.task.complete",
+            "bpmn.workflow.task.complete-batch",
+            "bpmn.workflow.task.fail",
+            "bpmn.workflow.activity-evidence",
+            "bpmn.workflow.task.claim",
+            "bpmn.workflow.task.release",
+            "qianji.control.history",
+            "qianji.control.summary",
+            "qianji.control.recovery",
+        ],
     })
 }
 
@@ -87,6 +114,13 @@ struct QianjiServerHealthResponse {
     service: &'static str,
     checkpoint_default_backend: &'static str,
     valkey_configured: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct QianjiServerCapabilitiesResponse {
+    service: &'static str,
+    checkpoint_default_backend: &'static str,
+    capabilities: &'static [&'static str],
 }
 
 #[derive(Debug, Serialize)]

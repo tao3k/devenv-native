@@ -1,10 +1,10 @@
 use super::resume::prepare_resume_workflow;
 use crate::bpmn::control::{
     QianjiBpmnPreparedWorkflowResume, QianjiBpmnWorkflowControlError,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowResumeRequest,
-    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
-    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
-    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowTaskCompleteBatchReport,
+    QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload,
 };
 use crate::bpmn::driver::QianjiBpmnPendingHostCompletion;
 use crate::bpmn::error::BpmnOrchestrationError;
@@ -19,12 +19,7 @@ pub(crate) async fn complete_workflow_task<H: BpmnHostBridge>(
     request: &QianjiBpmnWorkflowTaskCompleteRequest,
     host: &H,
 ) -> Result<QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowControlError> {
-    let resume_request = QianjiBpmnWorkflowResumeRequest {
-        bpmn_path: request.bpmn_path.clone(),
-        dmn_paths: request.dmn_paths.clone(),
-        instance_id: request.instance_id.clone(),
-        checkpoint_backend: request.checkpoint_backend.clone(),
-    };
+    let resume_request = request.workflow_resume_request();
     let prepared = prepare_resume_workflow(service, &resume_request).await?;
     complete_prepared_workflow_task(service, prepared, request, host).await
 }

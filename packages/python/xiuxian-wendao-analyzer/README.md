@@ -77,9 +77,11 @@ The current beta exports:
 29. `DoclingPdfOcrShardWorker` for opt-in page-shard OCR
 30. `/analysis/audio-shards` as the internal Flight/Arrow route for Rust-owned
     audio shard processing
-31. `wendao-image-ocr-jsonl` and `wendao-docling-document-jsonl` as
+31. `hosted-vlm-image-extract-v1` as the model-backed standalone image
+    extraction profile on the primary document resource schema
+32. `wendao-image-ocr-jsonl` and `wendao-docling-document-jsonl` as
     queue-keyed source-contract evidence adapters
-32. summary helpers over the same rows, table, query, and repo-search runs
+33. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
 Docling's XBRL support so the documented XML/XBRL coverage is real, not only a
@@ -386,6 +388,12 @@ uv run wendao-document-extract --host 0.0.0.0 --port 50051 --pdf-ocr-worker docl
 uv run wendao-document-extract --host 0.0.0.0 --port 50051 --pdf-ocr-worker docling --pdf-ocr-workers auto
 ```
 
+Legacy `.doc`, `.xls`, and `.ppt` inputs are owned by the Rust attachment
+pipeline before analyzer dispatch. The analyzer service receives only formats
+that should be handled by Docling or model-backed workers; it does not start an
+office conversion sidecar and does not accept a source-preparation metadata
+contract.
+
 The Arrow Flight route is `/analysis/document-extract`. Request metadata uses:
 
 1. `x-wendao-schema-version`
@@ -427,6 +435,16 @@ Wendao analyzer service passes `--pdf-ocr-worker docling` by default, enabling
 the Docling image worker for rendered shards; failed or empty shard OCR rows
 remain table-shaped failures so the Rust hybrid provider can fall back to full
 Docling when coverage is incomplete.
+
+Standalone image attachments can use the same primary document route with the
+`hosted-vlm-image-extract-v1` profile. The analyzer sends the image to the
+configured OpenAI-compatible hosted VLM endpoint, normalizes the response into
+one Markdown `document` resource row, writes the usual `_resources.arrow` and
+`_structure.arrow` sidecars, and returns table-shaped error rows for missing
+configuration, malformed responses, request failures, unsupported image
+formats, or empty recognized text. Rust Gateway remains responsible for source
+classification and default profile selection; Python only performs model
+invocation and resource-row normalization.
 
 For source-contract image evidence tasks that are not PDF page shards, the
 package also exposes `wendao-image-ocr-jsonl`. It reads a Rust-written

@@ -20,7 +20,8 @@ pub use super::response_api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
 };
 pub use super::state::QianjiBpmnWorkflowHttpState;
 
