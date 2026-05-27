@@ -6,6 +6,13 @@ means the parser accepts one explicit shape, the runtime executes that same
 shape deterministically, and lint reports unsupported shapes with repair
 guidance.
 
+Qianji recognizes the standard BPMN 2.0 model namespace by URI:
+`http://www.omg.org/spec/BPMN/20100524/MODEL`. XML prefixes are interchange
+aliases only, so `bpmn:`, a default namespace, or another prefix bound to that
+URI are all the same BPMN 2.0 model surface. Camunda, Zeebe, and other vendor
+namespaces remain extension metadata unless a later bounded slice promotes a
+specific extension contract.
+
 ## Registry Source Of Truth
 
 The Rust API `bpmn_conformance_registry()` is the machine-checkable source of
@@ -33,13 +40,13 @@ registry, so new milestones must update both surfaces together.
 | BPMN family               | Current status     | Current boundary                                                                                                                                                                                                                                                  |
 | ------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Linear process flow       | bounded executable | Start/end events, bounded start waits, sequence flow, and deterministic tokens.                                                                                                                                                                                   |
-| Host-dispatched tasks     | bounded executable | Service, send, script, business-rule, user, and manual task families.                                                                                                                                                                                             |
+| Host-dispatched tasks     | bounded executable | Generic task plus service, send, receive, script, business-rule, user, and manual task families.                                                                                                                                                                  |
 | Human interaction         | bounded executable | Native BPMN documentation and IO metadata feed Rust-owned host-work forms.                                                                                                                                                                                        |
 | Parallel gateway          | bounded executable | Split and join with deterministic active-token and join-buffer behavior.                                                                                                                                                                                          |
 | Exclusive gateway         | bounded executable | Default flow plus simple boolean-path and numeric condition expressions.                                                                                                                                                                                          |
 | Inclusive gateway         | bounded executable | Structured split and one matching linear join fragment.                                                                                                                                                                                                           |
 | Event-based gateway       | bounded executable | Exclusive competition over message, signal, timer, or conditional catches.                                                                                                                                                                                        |
-| Complex gateway           | lint-deferred      | Activation/fan-in/fan-out semantics remain deferred; unsupported usage has a specific repair diagnostic.                                                                                                                                                          |
+| Complex gateway           | metadata-only      | Standard `complexGateway` nodes are parsed and preserved; activation/fan-in/fan-out runtime semantics remain deferred.                                                                                                                                             |
 | Intermediate catch events | bounded executable | Message, signal, timer, and bounded conditional waits.                                                                                                                                                                                                            |
 | Boundary events           | bounded executable | Bounded task owners plus interrupting subprocess-like external boundaries.                                                                                                                                                                                        |
 | Error and cancel events   | bounded executable | Bounded subprocess, call-activity, transaction, and top-level error paths.                                                                                                                                                                                        |
@@ -72,10 +79,10 @@ registry, so new milestones must update both surfaces together.
 | Lanes                     | metadata-only      | Preserved for passive routing/display; no scheduling or authorization.                                                                                                                                                                                            |
 | Item definitions          | metadata-only      | Top-level item catalogs are preserved; schema validation remains deferred.                                                                                                                                                                                        |
 | Data objects              | bounded executable | Process-level data object/reference ids can be used as bounded task data-association variable bindings.                                                                                                                                                           |
-| Data stores               | lint-deferred      | Data store/reference metadata and direct `dataState` are preserved; data-store-reference bindings have explicit deferred diagnostics.                                                                                                                             |
+| Data stores               | metadata-only      | Data store/reference metadata and direct `dataState` are preserved passively; executable storage semantics remain deferred.                                                                                                                                        |
 | IO specification          | bounded executable | Human-task form IO and bounded host-task Data/IO metadata are executable; IO sets are preserved passively.                                                                                                                                                        |
 | Data associations         | bounded executable | Bounded host-task source/target mapping is executable; transformation and assignment payloads are preserved.                                                                                                                                                      |
-| BPMN DI                   | metadata-only      | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata is preserved; DI namespaces, topology, anchor presence/kind, links, ids, minimum layout payloads, required geometry/font payloads, and lexical enum/boolean/numeric metadata are audited. |
+| BPMN DI                   | supported          | Diagram, plane, shape, edge, bounds, waypoint, label, and font metadata are native BPMN interchange surfaces; DI namespaces, topology, anchor presence/kind, links, ids, minimum layout payloads, required geometry/font payloads, and lexical enum/boolean/numeric metadata are audited. |
 | DMN links                 | bounded executable | Business-rule tasks can execute local bounded DMN decisions when available.                                                                                                                                                                                       |
 
 ## Completed M1 Milestone
@@ -94,10 +101,11 @@ workflow variable. A task `dataOutputAssociation/targetRef` may point at the
 same standard BPMN data object/reference surface, and completion writes back
 through that canonical variable binding.
 
-`dataStore` and `dataStoreReference` remain lint-deferred because executable
-persistence still needs an explicit storage and transaction policy. Direct
-standard data associations that bind through `dataStoreReference` ids are
-reported as data-store binding diagnostics, not as executable Data/IO support.
+`dataStore` and `dataStoreReference` are recognized as standard BPMN metadata
+and preserved in the document snapshot. They are not promoted to executable
+persistent storage semantics until a storage and transaction policy exists.
+Direct standard data associations that bind through `dataStoreReference` ids
+therefore remain importable metadata, not Data/IO storage execution.
 
 ## Completed M4.2 Event Subprocess Milestone
 
@@ -151,9 +159,9 @@ resolution, event subscription registries, correlation
 matching, correlation subscription matching, correlation-key evaluation,
 retrieval expression evaluation, and schema validation deferred.
 
-For BPMN DI specifically, metadata-only preservation includes Rust-owned
-audits for standard BPMN DI/DC/DI XML namespace bindings, direct `BPMNDiagram`
-to `BPMNPlane` topology, required `bpmnElement` anchors on planes, shapes, and
+For BPMN DI specifically, native interchange support includes Rust-owned audits
+for standard BPMN DI/DC/DI XML namespace bindings, direct `BPMNDiagram` to
+`BPMNPlane` topology, required `bpmnElement` anchors on planes, shapes, and
 edges, conservative anchor-kind checks for obvious plane/shape/edge semantic
 mismatches, semantic `bpmnElement` references, DI-local edge endpoint and
 label-style references, duplicate DI identifiers, direct `dc:Bounds` on
@@ -310,9 +318,10 @@ layout metadata. It verifies that parse, lint evidence, host-work request
 materialization, strict output mapping, and runtime completion work without a
 custom XML namespace or custom moddle descriptor.
 
-BPMN DI remains metadata-only. The compatibility proof may report the standard
-DI metadata lint issue while executable process semantics still parse and run
-through the bounded runtime contract.
+BPMN DI is now a native interchange surface. Standard DI blocks must parse,
+snapshot, and lint cleanly while executable process semantics still come from
+process flow, events, tasks, gateways, data mappings, and host dispatch rather
+than layout coordinates.
 
 Generated and imported BPMN DI is also referentially audited. `BPMNPlane`,
 `BPMNShape`, and `BPMNEdge` `bpmnElement` values must point at semantic BPMN ids
@@ -320,41 +329,39 @@ declared in the same source. `BPMNEdge` `sourceElement` and `targetElement`
 values must point at DI element ids in the same plane. `BPMNShape`
 `choreographyActivityShape` values must point at `BPMNShape` ids in the same
 plane, and `BPMNLabel` `labelStyle` values must point at label-style ids in the
-same diagram. Missing references report a specific lint diagnostic before the
-generic metadata-only DI guidance.
+same diagram. Missing references report a specific lint diagnostic.
 
 DI structural completeness is also audited for stable interchange. `BPMNShape`
 entries should carry direct `dc:Bounds`, and `BPMNEdge` entries should carry at
 least two direct `di:waypoint` entries. `BPMNLabelStyle` entries should carry a
 direct `dc:Font` child. Missing minimum interchange payloads report a specific
-lint diagnostic before the generic metadata-only DI guidance. The audit does
+lint diagnostic. The audit does
 not execute layout, validate coordinate geometry, validate visual font
 availability, or infer runtime behavior from diagram coordinates or labels.
 
 DI required geometry attributes are audited before lexical numeric checks.
 Every `dc:Bounds` element must carry `x`, `y`, `width`, and `height`, and every
 `di:waypoint` element must carry `x` and `y`. Missing required geometry
-attributes report a specific lint diagnostic before generic metadata-only DI
-guidance.
+attributes report a specific lint diagnostic.
 
 DI enum-valued display hints are audited against the standard BPMNDI
 enumerations. `BPMNShape` `participantBandKind` values must use the standard
 participant-band literals, and `BPMNEdge` `messageVisibleKind` values must use
 the standard message-visibility literals. Invalid enum values report a specific
-lint diagnostic before the generic metadata-only DI guidance.
+lint diagnostic.
 
 DI boolean-valued display hints are audited against XML Schema boolean lexical
 values before snapshot normalization. `BPMNShape` flags such as `isHorizontal`
 and `isExpanded`, plus `dc:Font` style flags such as `isBold`, must use `true`,
 `false`, `1`, or `0`. Invalid boolean values report a specific lint diagnostic
-before the generic metadata-only DI guidance.
+for malformed native DI.
 
-DI numeric metadata is audited before generic metadata-only DI guidance.
-`BPMNDiagram` `resolution`, `dc:Bounds` coordinates and dimensions,
-`di:waypoint` coordinates, and `dc:Font` `size` must be finite numeric values.
-Invalid numeric values report a specific lint diagnostic. The audit does not
-interpret coordinate geometry, require positive dimensions, or make layout
-coordinates executable.
+DI numeric metadata is audited as native interchange metadata. `BPMNDiagram`
+`resolution`, `dc:Bounds` coordinates and dimensions, `di:waypoint`
+coordinates, and `dc:Font` `size` must be finite numeric values. Invalid
+numeric values report a specific lint diagnostic. The audit does not interpret
+coordinate geometry, require positive dimensions, or make layout coordinates
+executable.
 
 ## Completed M4.6 Global Task Binding Diagnostics Milestone
 
@@ -370,29 +377,26 @@ another executable process in the same BPMN package. Global-task execution,
 interface-operation invocation, and host dispatch inferred from top-level
 global-task metadata remain deferred.
 
-## Completed M4.7 Data Store Binding Diagnostics Milestone
+## Completed M4.7 Data Store Metadata Milestone
 
-The data-store binding diagnostics slice keeps `dataStore` and
-`dataStoreReference` persistence lint-deferred, but makes executable binding
-misuse precise. A standard `dataInputAssociation/sourceRef` or
-`dataOutputAssociation/targetRef` that points at a process-level
-`dataStoreReference` reports `bpmn.unsupported_data_store_binding` with
-snapshot evidence for the process id, association kind, association id, usage
-site, data-store-reference id, and referenced data-store id.
+The data-store metadata slice recognizes `dataStore` and `dataStoreReference`
+as native standard BPMN metadata. A standard `dataInputAssociation/sourceRef`
+or `dataOutputAssociation/targetRef` that points at a process-level
+`dataStoreReference` is preserved in the document snapshot with process id,
+association kind, association id, usage site, data-store-reference id, and
+referenced data-store id evidence.
 
 Runtime semantics remain unchanged. Persistent data-store reads and writes
 require a future storage and transaction policy; current executable BPMN should
 use workflow variables, bounded `dataObjectReference` mappings, or explicit
-host-dispatched task payloads instead.
+host-dispatched task payloads when it needs actual storage access.
 
-## Completed M4.8 Complex Gateway Diagnostics Milestone
+## Completed M4.8 Complex Gateway Metadata Milestone
 
-The complex-gateway diagnostics slice keeps `complexGateway` lint-deferred, but
-replaces the generic unsupported-element fallback with
-`bpmn.unsupported_complex_gateway`. The diagnostic states that activation,
-fan-in, and fan-out semantics remain deferred, and guides BPMN authors toward
-bounded `exclusiveGateway`, `inclusiveGateway`, `parallelGateway`, or
-`eventBasedGateway` rewrites.
+The complex-gateway metadata slice recognizes `complexGateway` as a native
+standard BPMN gateway node during import and lint. This keeps bpmn-js and other
+standard interchange diagrams portable without pretending that custom
+activation, fan-in, or fan-out behavior is executable.
 
 Runtime semantics remain unchanged. Complex gateway activation conditions and
 unstructured synchronization still require a future advanced-control-flow
@@ -416,7 +420,7 @@ endpoint binding, and external callable contract validation remain deferred.
 The resource-role diagnostics slice keeps direct process and global-task
 `resourceRole`, `performer`, `humanPerformer`, and `potentialOwner`
 declarations metadata-only, but makes the deferred assignment boundary explicit
-instead of reporting the surface through generic collaboration diagnostics.
+instead of treating passive collaboration metadata as an executable blocker.
 
 Runtime semantics remain unchanged. Human-task local `humanPerformer` and
 `potentialOwner` declarations continue to provide bounded routing hints, but
@@ -428,7 +432,7 @@ escalation, and resource-parameter binding execution remain deferred.
 The flow-element diagnostics slice keeps direct BPMN `auditing`, `monitoring`,
 and `categoryValueRef` declarations on process flow elements metadata-only,
 but makes the deferred audit, monitoring, and classification boundary explicit
-instead of reporting the surface through generic collaboration diagnostics.
+instead of treating passive collaboration metadata as an executable blocker.
 
 Runtime semantics remain unchanged. Executable behavior still comes from
 supported process flow, events, tasks, gateways, and bounded data mappings;

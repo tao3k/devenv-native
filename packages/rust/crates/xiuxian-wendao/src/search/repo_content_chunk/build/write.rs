@@ -21,7 +21,7 @@ use crate::search::repo_content_chunk::build::partitions::{
 use crate::search::repo_content_chunk::build::types::RepoContentChunkMutationWriteProfile;
 use crate::search::repo_content_chunk::schema::{
     path_column, repo_content_chunk_batches, repo_content_chunk_engine_schema,
-    repo_content_chunk_schema, rows_from_documents,
+    repo_content_chunk_schema, rows_from_documents, validate_repo_content_chunk_engine_batch,
 };
 use crate::search::repo_publication_parquet::{
     ParquetPublicationStats, inspect_repo_publication_parquet,
@@ -597,7 +597,10 @@ fn normalize_repo_content_batch(
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
-    EngineRecordBatch::try_new(target_schema, columns).map_err(VectorStoreError::Arrow)
+    let normalized_batch =
+        EngineRecordBatch::try_new(target_schema, columns).map_err(VectorStoreError::Arrow)?;
+    validate_repo_content_chunk_engine_batch(&normalized_batch)?;
+    Ok(normalized_batch)
 }
 
 fn copy_untouched_partitions(

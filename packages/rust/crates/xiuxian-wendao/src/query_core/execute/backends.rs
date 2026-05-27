@@ -1,11 +1,16 @@
 //! `query_core::execute::backends` owns Wendao query core execute backends behavior.
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use arrow::array::{ArrayRef, StringArray, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use crate::link_graph::{LinkGraphDirection, LinkGraphIndex};
 use crate::query_core::context::{GraphBackend, RetrievalBackend};
@@ -15,6 +20,8 @@ use crate::query_core::operators::{
 use crate::query_core::types::{WendaoQueryCoreError, WendaoRelation};
 use crate::search::SearchPlaneService;
 use crate::search::contracts::SearchHit;
+
+const GRAPH_NEIGHBORS_RELATION_TABLE: &str = "query_core_graph_neighbors";
 
 /// Retrieval backend that delegates to the existing Wendao search plane.
 pub struct SearchPlaneRetrievalBackend {
@@ -155,13 +162,8 @@ impl GraphBackend for LinkGraphNeighborsBackend {
             .map(|(_, _, _, _, direction)| direction.clone())
             .collect::<Vec<_>>();
 
-        let schema = Arc::new(Schema::new(vec![
-            Field::new("node_id", DataType::Utf8, false),
-            Field::new("path", DataType::Utf8, false),
-            Field::new("title", DataType::Utf8, true),
-            Field::new("distance", DataType::UInt64, false),
-            Field::new("direction", DataType::Utf8, false),
-        ]));
+        let contract = graph_neighbors_relation_contract();
+        let schema = graph_neighbors_relation_schema_ref(&contract);
         let batch = RecordBatch::try_new(
             Arc::clone(&schema),
             vec![
@@ -172,8 +174,61 @@ impl GraphBackend for LinkGraphNeighborsBackend {
                 Arc::new(StringArray::from(directions)) as ArrayRef,
             ],
         )?;
+        validate_graph_neighbors_relation_batch(&batch, &contract)?;
         Ok(WendaoRelation::new(schema, vec![batch]))
     }
+}
+
+fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        GRAPH_NEIGHBORS_RELATION_TABLE,
+        true,
+        vec![
+            utf8_column("node_id"),
+            utf8_column("path"),
+            nullable_utf8_column("title"),
+            uint64_column("distance"),
+            utf8_column("direction"),
+        ],
+    )
+}
+
+fn graph_neighbors_relation_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        WENDAO_TABLE_METADATA_KEY.to_string(),
+        contract.table_name().to_string(),
+    );
+    Arc::new(build_arrow_schema(contract, metadata))
+}
+
+fn validate_graph_neighbors_relation_batch(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
+) -> Result<(), WendaoQueryCoreError> {
+    validate_record_batch_schema_with_options(
+        batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| {
+        WendaoQueryCoreError::InvalidRelation(format!(
+            "validate query-core graph-neighbor relation schema contract: {error}"
+        ))
+    })
+}
+
+fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+fn uint64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::UInt64)
 }
 
 fn retrieval_row_from_search_hit(hit: &SearchHit, repo_id: &str) -> xiuxian_db_store::RetrievalRow {
@@ -208,5 +263,29 @@ fn graph_direction_label(direction: GraphDirection) -> &'static str {
         GraphDirection::Incoming => "incoming",
         GraphDirection::Outgoing => "outgoing",
         GraphDirection::Both => "both",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        GRAPH_NEIGHBORS_RELATION_TABLE, graph_neighbors_relation_contract,
+        graph_neighbors_relation_schema_ref,
+    };
+    use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
+
+    #[test]
+    fn graph_neighbors_relation_schema_uses_db_store_table_metadata() {
+        let contract = graph_neighbors_relation_contract();
+        let schema = graph_neighbors_relation_schema_ref(&contract);
+
+        assert_eq!(
+            schema
+                .metadata()
+                .get(WENDAO_TABLE_METADATA_KEY)
+                .map(String::as_str),
+            Some(GRAPH_NEIGHBORS_RELATION_TABLE)
+        );
+        assert_eq!(schema.field(0).name(), "node_id");
     }
 }

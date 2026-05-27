@@ -25,6 +25,7 @@ fn audio_materialization_report_records_artifact_backend_and_byte_sources() -> R
     let config = AudioDocumentExtractConfig {
         backend_profile: "hosted-audio-transcript-v1".to_owned(),
         route_provider: None,
+        route_model: "qwen/qwen3-asr-flash-2026-02-10".to_owned(),
         model_routing_mode: WendaoModelRoutingMode::Deterministic,
         vllm_sr_base_url: DEFAULT_WENDAO_VLLM_SR_BASE_URL.to_owned(),
         chunk_duration_ms: 30_000,
@@ -220,6 +221,7 @@ fn audio_cache_manifest_records_speech_sidecar_hash() -> Result<(), String> {
     let config = AudioDocumentExtractConfig {
         backend_profile: "hosted-audio-transcript-v1".to_owned(),
         route_provider: None,
+        route_model: "qwen/qwen3-asr-flash-2026-02-10".to_owned(),
         model_routing_mode: WendaoModelRoutingMode::Deterministic,
         vllm_sr_base_url: DEFAULT_WENDAO_VLLM_SR_BASE_URL.to_owned(),
         chunk_duration_ms: 30_000,

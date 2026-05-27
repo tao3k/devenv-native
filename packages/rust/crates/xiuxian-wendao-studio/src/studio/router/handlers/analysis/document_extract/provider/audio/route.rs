@@ -7,8 +7,8 @@ use std::time::{Duration, Instant};
 
 use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
 use xiuxian_llm::model_routing::{
-    VllmSrRouteDecisionClient, WendaoModelDecision, WendaoModelRoutingMode, WendaoRouteIntent,
-    WendaoRouteSourceKind, WendaoRouteTaskKind,
+    WendaoAttachmentRouteConfig, WendaoAttachmentRouteInput, WendaoModelDecision,
+    WendaoModelRoutingMode, WendaoRouteIntent, wendao_attachment_model_route_decision,
 };
 use xiuxian_qianji::WorkflowTrace;
 use xiuxian_wendao_attachments::audio::{
@@ -19,10 +19,9 @@ use xiuxian_wendao_attachments::audio::{
 };
 use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
-    WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
 };
 
-use super::config::{AUDIO_ROUTE_PROVIDER_ENV, AudioDocumentExtractConfig};
+use super::config::AudioDocumentExtractConfig;
 use super::plan::{
     audio_materialization_input, build_full_coverage_audio_plan, probe_audio_duration_ms,
     source_sha256_hex,
@@ -79,9 +78,24 @@ impl StudioDocumentExtractFlightRouteProvider {
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let model_routing_config = self.model_routing_config()?;
         self.audio_shards_document_extract_batch_with_config(
             request,
-            AudioDocumentExtractConfig::from_env()?,
+            AudioDocumentExtractConfig::from_model_routing_config(model_routing_config.as_ref())?,
+        )
+        .await
+    }
+
+    pub(crate) async fn audio_shards_document_extract_batch_for_source_hash(
+        &self,
+        request: &DocumentExtractFlightRequest,
+        source_hash: &str,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let model_routing_config = self.model_routing_config()?;
+        self.audio_shards_document_extract_batch_with_config_and_source_hash(
+            request,
+            AudioDocumentExtractConfig::from_model_routing_config(model_routing_config.as_ref())?,
+            source_hash,
         )
         .await
     }
@@ -92,9 +106,25 @@ impl StudioDocumentExtractFlightRouteProvider {
         config: AudioDocumentExtractConfig,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
         let source = PathBuf::from(request.source_path.as_str());
+        let source_hash = source_sha256_hex(source.as_path())?;
+        self.audio_shards_document_extract_batch_with_config_and_source_hash(
+            request,
+            config,
+            source_hash.as_str(),
+        )
+        .await
+    }
+
+    pub(crate) async fn audio_shards_document_extract_batch_with_config_and_source_hash(
+        &self,
+        request: &DocumentExtractFlightRequest,
+        config: AudioDocumentExtractConfig,
+        source_hash: &str,
+    ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        let source = PathBuf::from(request.source_path.as_str());
         let output = document_extract_audio_output_dir(&source, request.output_dir.as_str());
         let duration_ms = probe_audio_duration_ms(source.as_path(), config.ffprobe_path.as_path())?;
-        let source_hash = source_sha256_hex(source.as_path())?;
+        let source_hash = normalized_source_hash(source_hash)?;
         let full_coverage_plan = build_full_coverage_audio_plan(
             source.as_path(),
             source_hash.clone(),
@@ -317,49 +347,35 @@ async fn audio_model_route_decision_for_document_extract(
     source_hash: &str,
     duration_ms: u64,
 ) -> Result<Option<(WendaoRouteIntent, WendaoModelDecision)>, String> {
-    match config.model_routing_mode {
-        WendaoModelRoutingMode::Deterministic => Ok(None),
-        WendaoModelRoutingMode::VllmSr => {
-            let provider = audio_route_provider_hint(request, config)?;
-            let intent =
-                audio_route_intent_for_document_extract(config, plan, source_hash, duration_ms);
-            let decision = VllmSrRouteDecisionClient::new(config.vllm_sr_base_url.as_str())
-                .decide(&intent, provider.as_str(), config.backend_profile.as_str())
-                .await
-                .map_err(|error| format!("audio model route admission failed: {error}"))?;
-            Ok(Some((intent, decision)))
-        }
-    }
-}
-
-fn audio_route_provider_hint(
-    request: &DocumentExtractFlightRequest,
-    config: &AudioDocumentExtractConfig,
-) -> Result<String, String> {
-    request
+    let route_provider = request
         .audio_hosted_provider
-        .as_deref()
-        .or(config.route_provider.as_deref())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_owned)
-        .ok_or_else(|| {
-            format!(
-                "WENDAO_MODEL_ROUTING_MODE=vllm-sr requires {AUDIO_ROUTE_PROVIDER_ENV} or `{WENDAO_AUDIO_HOSTED_PROVIDER_HEADER}`"
-            )
-        })
+        .as_ref()
+        .or(config.route_provider.as_ref())
+        .cloned();
+    let route_config = WendaoAttachmentRouteConfig {
+        route_provider,
+        route_model: config.route_model.clone(),
+        backend_profile: config.backend_profile.clone(),
+        model_routing_mode: config.model_routing_mode,
+        vllm_sr_base_url: config.vllm_sr_base_url.clone(),
+    };
+    let route_input =
+        audio_route_input_for_document_extract(config, plan, source_hash, duration_ms);
+    wendao_attachment_model_route_decision(&route_config, &route_input)
+        .await
+        .map(Some)
 }
 
-fn audio_route_intent_for_document_extract(
+fn audio_route_input_for_document_extract(
     config: &AudioDocumentExtractConfig,
     plan: &AudioShardPlan,
     source_hash: &str,
     duration_ms: u64,
-) -> WendaoRouteIntent {
-    WendaoRouteIntent {
-        task_kind: WendaoRouteTaskKind::new(AUDIO_ROUTE_TASK_KIND),
+) -> WendaoAttachmentRouteInput {
+    WendaoAttachmentRouteInput {
+        task_kind: AUDIO_ROUTE_TASK_KIND.to_owned(),
         modality: AUDIO_ROUTE_MODALITY.to_owned(),
-        source_kind: WendaoRouteSourceKind::new(AUDIO_ROUTE_SOURCE_KIND),
+        source_kind: AUDIO_ROUTE_SOURCE_KIND.to_owned(),
         precision_tier: AUDIO_ROUTE_PRECISION_TIER.to_owned(),
         privacy_tier: AUDIO_ROUTE_PRIVACY_TIER.to_owned(),
         latency_budget_ms: audio_route_latency_budget_ms(duration_ms),
@@ -376,6 +392,15 @@ fn audio_route_intent_for_document_extract(
 
 fn audio_route_latency_budget_ms(duration_ms: u64) -> u64 {
     AUDIO_ROUTE_MIN_LATENCY_BUDGET_MS.max(duration_ms.saturating_mul(2))
+}
+
+fn normalized_source_hash(source_hash: &str) -> Result<String, String> {
+    let normalized = source_hash.trim();
+    if normalized.is_empty() {
+        Err("audio source sha256 must be non-empty".to_owned())
+    } else {
+        Ok(normalized.to_owned())
+    }
 }
 
 fn duration_to_ms(duration: Duration) -> u64 {

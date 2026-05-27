@@ -8,8 +8,8 @@ use crate::studio::router::state::types::{
     StudioSearchColdStartTelemetryState, StudioState,
 };
 use crate::studio::router::{
-    load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path,
-    resolve_studio_config_root,
+    load_model_routing_config_from_wendao_toml, load_ui_config_from_wendao_toml,
+    load_ui_config_from_wendao_toml_path, resolve_studio_config_root,
 };
 use crate::studio::symbol_index::SymbolIndexCoordinator;
 use xiuxian_wendao::analyzers::PluginRegistry;
@@ -124,9 +124,13 @@ impl StudioState {
             config_root.clone(),
             search_plane.clone(),
         ));
+        let model_routing_config = Arc::new(load_model_routing_config_from_wendao_toml(
+            config_root.as_path(),
+        ));
         let state = Self {
             project_root,
             config_root,
+            model_routing_config,
             bootstrap_background_indexing,
             cold_start_process_started_at: crate::studio::symbol_index::timestamp_now(),
             cold_start_process_started_instant: std::time::Instant::now(),

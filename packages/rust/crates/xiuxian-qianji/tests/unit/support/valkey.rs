@@ -26,6 +26,21 @@ impl TestValkey {
             });
         }
 
+        let mut last_bind_conflict = None;
+        for _attempt in 0..8 {
+            match Self::spawn_local().await {
+                Ok(server) => return Ok(server),
+                Err(error) if is_valkey_bind_conflict(&error) => {
+                    last_bind_conflict = Some(error);
+                    sleep(Duration::from_millis(20)).await;
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        Err(last_bind_conflict.expect("bind conflict retry should retain the last error"))
+    }
+
+    async fn spawn_local() -> Result<Self> {
         let port = reserve_local_port()?;
         let temp_dir = tempfile::tempdir().context("failed to create temp dir for valkey")?;
         let dir = temp_dir.path();
@@ -107,6 +122,11 @@ impl TestValkey {
             .map(|log| format!("; valkey log: {log}"))
             .unwrap_or_default()
     }
+}
+
+fn is_valkey_bind_conflict(error: &anyhow::Error) -> bool {
+    let message = error.to_string();
+    message.contains("bind: Address already in use") || message.contains("os error 48")
 }
 
 impl Drop for TestValkey {

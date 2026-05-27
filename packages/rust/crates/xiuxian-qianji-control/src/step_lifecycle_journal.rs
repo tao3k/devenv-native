@@ -234,6 +234,29 @@ pub enum StepTerminalJournalStatus {
     },
 }
 
+/// Failure payload for a terminal step journal record.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct StepFailureJournalInput {
+    /// Stable error code.
+    pub error_code: String,
+    /// Human-readable failure message.
+    pub message: String,
+    /// Whether the failure is retryable.
+    pub retryable: bool,
+}
+
+impl StepFailureJournalInput {
+    /// Creates a step failure payload.
+    #[must_use]
+    pub fn new(error_code: impl Into<String>, message: impl Into<String>, retryable: bool) -> Self {
+        Self {
+            error_code: error_code.into(),
+            message: message.into(),
+            retryable,
+        }
+    }
+}
+
 /// Named request for recording one terminal step fact.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct StepTerminalJournalRecord {
@@ -264,18 +287,16 @@ impl StepTerminalJournalRecord {
     pub fn failed(
         run_id: RunId,
         step_id: StepId,
-        error_code: impl Into<String>,
-        message: impl Into<String>,
-        retryable: bool,
+        failure: StepFailureJournalInput,
         occurred_at_ms: u64,
     ) -> Self {
         Self {
             run_id,
             step_id,
             status: StepTerminalJournalStatus::Failed {
-                error_code: error_code.into(),
-                message: message.into(),
-                retryable,
+                error_code: failure.error_code,
+                message: failure.message,
+                retryable: failure.retryable,
             },
             occurred_at_ms,
         }

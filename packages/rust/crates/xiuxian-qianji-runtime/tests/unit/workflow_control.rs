@@ -10,7 +10,8 @@ use xiuxian_qianji_bpmn_engine::{
     BpmnHostBridge, BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome,
     EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest, PendingHostWork,
     PendingHostWorkKind, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
-    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    ServiceTaskOutcome, ServiceTaskRequest, TaskOutcome, TaskRequest, UserTaskOutcome,
+    UserTaskRequest,
 };
 use xiuxian_qianji_runtime::{
     QianjiRuntimeBpmnActivityId, QianjiRuntimeBpmnInstanceId, QianjiRuntimeBpmnProcessId,
@@ -173,6 +174,10 @@ struct FakeHost;
 
 #[async_trait]
 impl BpmnHostBridge for FakeHost {
+    async fn dispatch_task(&self, _request: TaskRequest) -> Result<TaskOutcome, HostBridgeError> {
+        Err(unsupported("task"))
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

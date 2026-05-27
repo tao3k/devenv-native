@@ -4,6 +4,7 @@
 
 mod activity_evidence;
 mod api;
+mod control_trace;
 #[path = "error/api.rs"]
 mod error_api;
 #[path = "request/api.rs"]
@@ -13,6 +14,11 @@ mod response_api;
 mod routes;
 mod state;
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub use api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowHttpCheckpointBackend,
@@ -24,8 +30,10 @@ pub use api::{
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlDiagnosticsHttpResponse,
-    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
-    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceHttpResponse,
+    QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
+    QianjiControlHistoryHttpResponse, QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest,
+    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    qianji_bpmn_workflow_router,
 };

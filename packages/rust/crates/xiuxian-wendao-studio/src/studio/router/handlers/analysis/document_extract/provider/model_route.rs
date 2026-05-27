@@ -5,16 +5,14 @@ use std::path::Path;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use xiuxian_llm::model_routing::{
-    VllmSrRouteDecisionClient, WendaoModelDecision, WendaoModelRoutingMode, WendaoRouteIntent,
-    WendaoRouteSourceKind, WendaoRouteTaskKind, wendao_model_routing_mode_with_lookup,
-    wendao_vllm_sr_base_url_with_lookup,
+    WendaoAttachmentRouteConfig, WendaoAttachmentRouteInput, WendaoModelDecision,
+    WendaoModelRoutingMode, WendaoModelRoutingTomlConfig, WendaoRouteIntent,
+    wendao_attachment_model_route_decision,
+    wendao_image_extract_route_config_with_model_routing_config,
 };
 use xiuxian_wendao_server::transport::DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE;
 
 use super::route::is_image_source_path;
-
-pub(super) const DOCUMENT_EXTRACT_IMAGE_ROUTE_PROVIDER_ENV: &str =
-    "WENDAO_DOCUMENT_EXTRACT_IMAGE_ROUTE_PROVIDER";
 
 const DOCUMENT_EXTRACT_ROUTE_MANIFEST_NAME: &str = "_document_extract_model_route_manifest.json";
 const DOCUMENT_EXTRACT_ROUTE_MANIFEST_SCHEMA: &str =
@@ -32,41 +30,45 @@ pub(super) struct DocumentExtractModelRoute {
     pub(super) intent: WendaoRouteIntent,
     pub(super) decision: WendaoModelDecision,
     pub(super) source_sha256: String,
+    pub(super) model_routing_mode: WendaoModelRoutingMode,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(super) struct DocumentExtractRouteSourceIdentity<'a> {
+    pub(super) path: &'a Path,
+    pub(super) sha256: &'a str,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct ImageDocumentExtractRouteConfig {
     pub(super) route_provider: Option<String>,
+    pub(super) route_model: String,
     pub(super) model_routing_mode: WendaoModelRoutingMode,
     pub(super) vllm_sr_base_url: String,
 }
 
 impl ImageDocumentExtractRouteConfig {
-    pub(super) fn from_env() -> Result<Self, String> {
-        image_document_extract_route_config(&|key| std::env::var(key).ok())
+    pub(super) fn from_model_routing_config(
+        model_routing: Option<&WendaoModelRoutingTomlConfig>,
+    ) -> Result<Self, String> {
+        image_document_extract_route_config_with_model_routing(model_routing, &|key| {
+            std::env::var(key).ok()
+        })
     }
 }
 
-pub(super) fn image_document_extract_route_config(
+pub(super) fn image_document_extract_route_config_with_model_routing(
+    model_routing: Option<&WendaoModelRoutingTomlConfig>,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<ImageDocumentExtractRouteConfig, String> {
+    let shared =
+        wendao_image_extract_route_config_with_model_routing_config(model_routing, lookup)?;
     Ok(ImageDocumentExtractRouteConfig {
-        route_provider: optional_string_value(lookup, DOCUMENT_EXTRACT_IMAGE_ROUTE_PROVIDER_ENV),
-        model_routing_mode: wendao_model_routing_mode_with_lookup(lookup)?,
-        vllm_sr_base_url: wendao_vllm_sr_base_url_with_lookup(lookup),
+        route_provider: shared.route_provider,
+        route_model: shared.route_model,
+        model_routing_mode: shared.model_routing_mode,
+        vllm_sr_base_url: shared.vllm_sr_base_url,
     })
-}
-
-pub(super) async fn image_document_extract_model_route(
-    source: &Path,
-    profile: &str,
-) -> Result<Option<DocumentExtractModelRoute>, String> {
-    image_document_extract_model_route_with_config(
-        source,
-        profile,
-        ImageDocumentExtractRouteConfig::from_env()?,
-    )
-    .await
 }
 
 pub(super) async fn image_document_extract_model_route_with_config(
@@ -77,27 +79,45 @@ pub(super) async fn image_document_extract_model_route_with_config(
     if !is_image_route_candidate(source, profile) {
         return Ok(None);
     }
-    match config.model_routing_mode {
-        WendaoModelRoutingMode::Deterministic => Ok(None),
-        WendaoModelRoutingMode::VllmSr => {
-            let provider = image_route_provider_hint(&config)?;
-            let source_sha256 = source_sha256_hex(source)?;
-            let intent = image_route_intent(profile, source, source_sha256.as_str());
-            let decision = VllmSrRouteDecisionClient::new(config.vllm_sr_base_url.as_str())
-                .decide(
-                    &intent,
-                    provider.as_str(),
-                    DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
-                )
-                .await
-                .map_err(|error| format!("image model route admission failed: {error}"))?;
-            Ok(Some(DocumentExtractModelRoute {
-                intent,
-                decision,
-                source_sha256,
-            }))
-        }
+    let source_sha256 = source_sha256_hex(source)
+        .map_err(|error| format!("image route source hash resolution failed: {error}"))?;
+    image_document_extract_model_route_for_source_identity(
+        DocumentExtractRouteSourceIdentity {
+            path: source,
+            sha256: source_sha256.as_str(),
+        },
+        profile,
+        config,
+    )
+    .await
+}
+
+pub(super) async fn image_document_extract_model_route_for_source_identity(
+    source: DocumentExtractRouteSourceIdentity<'_>,
+    profile: &str,
+    config: ImageDocumentExtractRouteConfig,
+) -> Result<Option<DocumentExtractModelRoute>, String> {
+    if !is_image_route_candidate(source.path, profile) {
+        return Ok(None);
     }
+    let source_sha256 = normalized_source_sha256(source.sha256)?;
+    let route_config = WendaoAttachmentRouteConfig {
+        route_provider: config.route_provider.clone(),
+        route_model: config.route_model.clone(),
+        backend_profile: DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE.to_owned(),
+        model_routing_mode: config.model_routing_mode,
+        vllm_sr_base_url: config.vllm_sr_base_url.clone(),
+    };
+    let route_input = image_route_input(profile, source.path, source_sha256.as_str());
+    let (intent, decision) = wendao_attachment_model_route_decision(&route_config, &route_input)
+        .await
+        .map_err(|error| format!("image model route admission failed: {error}"))?;
+    Ok(Some(DocumentExtractModelRoute {
+        intent,
+        decision,
+        source_sha256,
+        model_routing_mode: config.model_routing_mode,
+    }))
 }
 
 pub(super) fn document_extract_route_manifest_matches(
@@ -143,30 +163,20 @@ fn is_image_route_candidate(source: &Path, profile: &str) -> bool {
         && is_image_source_path(source)
 }
 
-fn image_route_provider_hint(config: &ImageDocumentExtractRouteConfig) -> Result<String, String> {
-    config
-        .route_provider
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_owned)
-        .ok_or_else(|| {
-            format!(
-                "WENDAO_MODEL_ROUTING_MODE=vllm-sr requires {DOCUMENT_EXTRACT_IMAGE_ROUTE_PROVIDER_ENV}"
-            )
-        })
-}
-
-fn image_route_intent(profile: &str, source: &Path, source_sha256: &str) -> WendaoRouteIntent {
+fn image_route_input(
+    profile: &str,
+    source: &Path,
+    source_sha256: &str,
+) -> WendaoAttachmentRouteInput {
     let source_suffix = source
         .extension()
         .and_then(|extension| extension.to_str())
-        .map(|extension| extension.to_ascii_lowercase())
+        .map(str::to_ascii_lowercase)
         .unwrap_or_default();
-    WendaoRouteIntent {
-        task_kind: WendaoRouteTaskKind::new(IMAGE_ROUTE_TASK_KIND),
+    WendaoAttachmentRouteInput {
+        task_kind: IMAGE_ROUTE_TASK_KIND.to_owned(),
         modality: IMAGE_ROUTE_MODALITY.to_owned(),
-        source_kind: WendaoRouteSourceKind::new(IMAGE_ROUTE_SOURCE_KIND),
+        source_kind: IMAGE_ROUTE_SOURCE_KIND.to_owned(),
         precision_tier: IMAGE_ROUTE_PRECISION_TIER.to_owned(),
         privacy_tier: IMAGE_ROUTE_PRIVACY_TIER.to_owned(),
         latency_budget_ms: IMAGE_ROUTE_LATENCY_BUDGET_MS,
@@ -187,7 +197,7 @@ fn document_extract_route_manifest(
         "schema": DOCUMENT_EXTRACT_ROUTE_MANIFEST_SCHEMA,
         "sourceSha256": model_route.source_sha256.as_str(),
         "profile": profile,
-        "modelRoutingMode": "vllm-sr",
+        "modelRoutingMode": image_model_routing_mode_name(model_route.model_routing_mode),
         "routeSelectedProvider": model_route.decision.selected_provider.as_str(),
         "routeSelectedModel": model_route.decision.selected_model.as_str(),
         "routeSelectedBackendProfile": model_route.decision.selected_backend_profile.as_str(),
@@ -200,6 +210,15 @@ fn source_sha256_hex(source: &Path) -> Result<String, String> {
     Ok(hex_lower(&Sha256::digest(bytes.as_slice())))
 }
 
+fn normalized_source_sha256(source_sha256: &str) -> Result<String, String> {
+    let normalized = source_sha256.trim();
+    if normalized.is_empty() {
+        Err("image route source sha256 must be non-empty".to_owned())
+    } else {
+        Ok(normalized.to_owned())
+    }
+}
+
 fn hex_lower(bytes: &[u8]) -> String {
     let mut out = String::with_capacity(bytes.len() * 2);
     for byte in bytes {
@@ -209,11 +228,9 @@ fn hex_lower(bytes: &[u8]) -> String {
     out
 }
 
-fn optional_string_value(
-    lookup: &dyn Fn(&str) -> Option<String>,
-    key: &'static str,
-) -> Option<String> {
-    lookup(key)
-        .map(|value| value.trim().to_owned())
-        .filter(|value| !value.is_empty())
+fn image_model_routing_mode_name(mode: WendaoModelRoutingMode) -> &'static str {
+    match mode {
+        WendaoModelRoutingMode::VllmSr => "vllm-sr",
+        WendaoModelRoutingMode::Deterministic => "deterministic",
+    }
 }

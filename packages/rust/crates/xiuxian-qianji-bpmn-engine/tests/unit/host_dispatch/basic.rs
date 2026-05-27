@@ -7,9 +7,29 @@ use xiuxian_qianji_bpmn_engine::{
     BpmnHumanTaskFormSpec, BpmnHumanTaskResourceRoleSpec, BpmnInstanceInit, BpmnNodeKind,
     BpmnNodeSpec, BpmnPackage, BpmnProcessSpec, BusinessRuleTaskRequest, DmnDecisionRef,
     DmnEvaluationRequest, ManualTaskRequest, PendingHostWorkRequest, ProcessKey, ScriptTaskRequest,
-    SendTaskRequest, ServiceTaskRequest, UserTaskRequest, advance_instance,
+    SendTaskRequest, ServiceTaskRequest, TaskRequest, UserTaskRequest, advance_instance,
     build_pending_host_work_request, create_instance,
 };
+
+#[tokio::test(flavor = "current_thread")]
+async fn host_dispatch_generic_task_request_materializes_from_blocked_instance() {
+    assert_dispatch_request(
+        BpmnNodeKind::Task,
+        PendingHostWorkRequest::Task(TaskRequest {
+            instance_id: "wf_dispatch".into(),
+            process_id: "dispatch".into(),
+            token_id: 0.into(),
+            node_index: 1,
+            activity_id: "task".into(),
+            variables: json!({ "amount": 7 }),
+            inputs: json!({}),
+            output_bindings: vec![],
+            repeat: None,
+            lane: None,
+        }),
+    )
+    .await;
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn host_dispatch_send_request_materializes_from_blocked_instance() {

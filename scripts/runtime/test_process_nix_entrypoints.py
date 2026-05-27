@@ -12,6 +12,7 @@ ENTRYPOINT_PROCESSES = (
     "valkey",
     "vllm-sr",
     "wendao-analyzer",
+    "wendao-ai",
     "wendao-frontend",
     "wendao-gateway",
     "wendao-sentinel",
@@ -23,6 +24,7 @@ HEALTHCHECK_PROCESSES = (
     "valkey",
     "vllm-sr",
     "wendao-analyzer",
+    "wendao-ai",
     "wendao-frontend",
     "wendao-gateway",
     "wendao-sentinel",
@@ -68,6 +70,19 @@ def test_process_healthchecks_are_owned_by_process_directories() -> None:
 
         assert healthcheck.is_file()
         assert os.access(healthcheck, os.X_OK)
+
+
+def test_vllm_sr_entrypoint_preflights_required_runtime() -> None:
+    entrypoint = (PROCESS_ROOT / "vllm-sr" / "entrypoint.sh").read_text(encoding="utf-8")
+
+    assert 'TARGET="${WENDAO_VLLM_SR_TARGET:-docker}"' in entrypoint
+    assert "block_vllm_sr_infra()" in entrypoint
+    assert "while :; do sleep 3600; done" in entrypoint
+    assert "vLLM-SR local Docker target requires Docker" in entrypoint
+    assert "docker info" in entrypoint
+    assert 'vllm-sr validate --config "$CONFIG_PATH"' in entrypoint
+    assert 'SERVE_ARGS=(serve --config "$CONFIG_PATH" --target "$TARGET"' in entrypoint
+    assert "WENDAO_VLLM_SR_MINIMAL" in entrypoint
 
 
 def test_wendao_analyzer_launch_cleans_legacy_document_extract_listener() -> None:
@@ -119,6 +134,31 @@ def test_wendao_gateway_entrypoint_uses_production_flight_timeout_budget() -> No
     entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(encoding="utf-8")
 
     assert "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-600" in entrypoint
+
+
+def test_wendao_gateway_entrypoint_sets_attachment_route_defaults() -> None:
+    entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(encoding="utf-8")
+    audio_provider_export = (
+        'export WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER="'
+        '${WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER:-'
+        '${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"'
+    )
+    image_provider_export = (
+        'export WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER="'
+        '${WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER:-'
+        '${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"'
+    )
+
+    assert audio_provider_export in entrypoint
+    assert (
+        'export WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL="${WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL:-qwen/qwen3-asr-flash-2026-02-10}"'
+        in entrypoint
+    )
+    assert image_provider_export in entrypoint
+    assert (
+        'export WENDAO_IMAGE_EXTRACT_ROUTE_MODEL="${WENDAO_IMAGE_EXTRACT_ROUTE_MODEL:-qwen/qwen3-vl-8b-instruct}"'
+        in entrypoint
+    )
 
 
 def test_wendao_gateway_entrypoint_uses_auto_build_mode() -> None:
@@ -189,19 +229,40 @@ def test_process_nix_exposes_vllm_sr_model_routing_plane() -> None:
     assert 'exec = processEntrypoint "vllm-sr";' in process_nix
     assert 'exec.command = processHealthcheck "vllm-sr";' in process_nix
     assert 'vllm-sr.condition = "process_healthy";' in process_nix
+    assert 'restart = "no";' in process_nix
+
+
+def test_wendao_gateway_readiness_budget_allows_local_cold_builds() -> None:
+    process_nix = PROCESS_NIX.read_text(encoding="utf-8")
+    gateway_block = process_nix.split("wendao-gateway = {", maxsplit=1)[1].split(
+        "};\n    };",
+        maxsplit=1,
+    )[0]
+
+    assert "initial_delay_seconds = 30;" in gateway_block
+    assert "period_seconds = 5;" in gateway_block
+    assert "failure_threshold = 120;" in gateway_block
 
 
 def test_vllm_sr_entrypoint_uses_required_mode_gate() -> None:
     entrypoint = (PROCESS_ROOT / "vllm-sr" / "entrypoint.sh").read_text(encoding="utf-8")
     healthcheck = (PROCESS_ROOT / "vllm-sr" / "healthcheck.sh").read_text(encoding="utf-8")
 
-    assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-vllm-sr}"' in entrypoint
+    assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"' in entrypoint
     assert "unsupported WENDAO_MODEL_ROUTING_MODE" in entrypoint
-    assert "vllm-sr serve --config" in entrypoint
+    assert 'SERVE_ARGS=(serve --config "$CONFIG_PATH"' in entrypoint
     assert 'CONFIG_PATH="${WENDAO_VLLM_SR_CONFIG_PATH:-$PROJECT_CONFIG_ROOT/vllm-sr/config.yaml}"' in entrypoint
     assert "Wendao model routing mode is deterministic" in entrypoint
-    assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-vllm-sr}"' in healthcheck
+    assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"' in healthcheck
     assert "socket.create_connection" in healthcheck
+
+
+def test_wendao_gateway_entrypoint_defaults_to_local_gateway_routing() -> None:
+    entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(encoding="utf-8")
+
+    assert 'WENDAO_MODEL_ROUTING_MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"' in entrypoint
+    assert 'WENDAO_CHAT_ROUTE_MODEL="${WENDAO_CHAT_ROUTE_MODEL:-${WENDAO_VLLM_SR_DEFAULT_MODEL:-deepseek/deepseek-v4-pro}}"' in entrypoint
+    assert 'WENDAO_CHAT_ROUTE_PROVIDER="${WENDAO_CHAT_ROUTE_PROVIDER:-${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"' in entrypoint
 
 
 def test_code_parser_summary_entrypoint_targets_wendaocodeparser_runtime() -> None:

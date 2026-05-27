@@ -1,4 +1,5 @@
 use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
+use xiuxian_qianji_bpmn_engine::snapshot_bpmn_source;
 
 #[test]
 fn bpmn_linter_accepts_process_data_object_execution_surface() {
@@ -10,82 +11,99 @@ fn bpmn_linter_accepts_process_data_object_execution_surface() {
 }
 
 #[test]
-fn bpmn_linter_reports_data_state_metadata_surface_with_llm_guidance() {
-    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-data-state.bpmn"));
+fn bpmn_linter_accepts_data_state_metadata_surface() {
+    let source = bpmn_fixture_source("metadata-data-state.bpmn");
+    let report = lint_bpmn_source(&source);
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_data_surface");
-    assert_eq!(issue.evidence["snapshot_available"], true);
-    assert_eq!(issue.evidence["snapshot"]["data_store_count"], 1);
+    assert!(report.ok, "data metadata should lint cleanly: {report:?}");
+    assert!(report.issues.is_empty());
+
+    let snapshot = snapshot_bpmn_source(&source)
+        .unwrap_or_else(|error| panic!("data-state fixture should snapshot: {error}"));
+    assert_eq!(snapshot.root.data_store_count, 1);
     assert_eq!(
-        issue.evidence["snapshot"]["data_stores"][0]["data_state"]["name"],
-        "archived"
+        snapshot.root.data_stores[0]
+            .data_state
+            .as_ref()
+            .and_then(|state| state.name.as_deref()),
+        Some("archived")
+    );
+    let process = &snapshot.processes[0];
+    assert_eq!(
+        process.data_objects[0]
+            .data_state
+            .as_ref()
+            .and_then(|state| state.data_state_id.as_deref()),
+        Some("DataState_ObjectDraft")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_data"][0]["data_objects"][0]["data_state"]["data_state_id"],
-        "DataState_ObjectDraft"
+        process.data_object_references[0]
+            .data_state
+            .as_ref()
+            .and_then(|state| state.name.as_deref()),
+        Some("submitted")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_data"][0]["data_object_references"][0]["data_state"]["name"],
-        "submitted"
+        process.data_store_references[0]
+            .data_state
+            .as_ref()
+            .and_then(|state| state.name.as_deref()),
+        Some("available")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_data"][0]["data_store_references"][0]["data_state"]["name"],
-        "available"
+        process.io_specifications[0].data_inputs[0]
+            .data_state
+            .as_ref()
+            .and_then(|state| state.name.as_deref()),
+        Some("received")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_data"][0]["io_specifications"][0]["data_inputs"][0]["data_state"]
-            ["name"],
-        "received"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_data"][0]["io_specifications"][0]["data_outputs"][0]["data_state"]
-            ["name"],
-        "approved"
+        process.io_specifications[0].data_outputs[0]
+            .data_state
+            .as_ref()
+            .and_then(|state| state.name.as_deref()),
+        Some("approved")
     );
 }
 
 #[test]
-fn bpmn_linter_reports_data_store_reference_bindings_with_evidence() {
-    let report = lint_bpmn_source(&bpmn_fixture_source("invalid-data-store-binding.bpmn"));
+fn bpmn_linter_accepts_data_store_reference_binding_metadata() {
+    let source = bpmn_fixture_source("invalid-data-store-binding.bpmn");
+    let report = lint_bpmn_source(&source);
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_data_store_binding");
-    assert_eq!(issue.evidence["snapshot_available"], true);
-    assert_eq!(issue.evidence["snapshot"]["data_store_count"], 1);
-    assert_eq!(issue.evidence["snapshot"]["data_store_binding_count"], 2);
-
-    let bindings = issue.evidence["snapshot"]["data_store_bindings"]
-        .as_array()
-        .unwrap_or_else(|| panic!("data-store binding evidence should be an array"));
-    assert_eq!(bindings.len(), 2);
-    assert_eq!(bindings[0]["process_id"], "Process_DataStoreBinding");
-    assert_eq!(bindings[0]["association_kind"], "dataInputAssociation");
-    assert_eq!(bindings[0]["association_id"], "Association_ReadStore");
-    assert_eq!(bindings[0]["usage"], "sourceRef");
-    assert_eq!(
-        bindings[0]["data_store_reference_id"],
-        "DataStoreReference_Orders"
-    );
-    assert_eq!(bindings[0]["data_store_ref"], "DataStore_Orders");
-    assert_eq!(bindings[1]["association_kind"], "dataOutputAssociation");
-    assert_eq!(bindings[1]["association_id"], "Association_WriteStore");
-    assert_eq!(bindings[1]["usage"], "targetRef");
-    assert_eq!(
-        bindings[1]["data_store_reference_id"],
-        "DataStoreReference_Orders"
-    );
     assert!(
-        issue.why_it_failed.contains("persistent read or write"),
-        "{issue:#?}"
+        report.ok,
+        "standard data-store bindings should import as metadata: {report:?}"
     );
-    assert!(issue.llm_fix_prompt.contains("workflow variables"));
+    assert!(report.issues.is_empty());
+
+    let snapshot = snapshot_bpmn_source(&source)
+        .unwrap_or_else(|error| panic!("data-store binding fixture should snapshot: {error}"));
+    assert_eq!(snapshot.root.data_store_count, 1);
+    let process = &snapshot.processes[0];
+    assert_eq!(process.data_store_reference_count, 1);
+    assert_eq!(process.data_input_association_count, 1);
+    assert_eq!(process.data_output_association_count, 1);
+    assert_eq!(
+        process.data_store_references[0]
+            .data_store_reference_id
+            .as_deref(),
+        Some("DataStoreReference_Orders")
+    );
+    assert_eq!(
+        process.data_store_references[0].data_store_ref.as_deref(),
+        Some("DataStore_Orders")
+    );
+    assert_eq!(
+        process.data_input_associations[0].source_refs,
+        vec!["DataStoreReference_Orders".to_string()]
+    );
+    assert_eq!(
+        process.data_output_associations[0].target_ref.as_deref(),
+        Some("DataStoreReference_Orders")
+    );
 }
 
 #[test]

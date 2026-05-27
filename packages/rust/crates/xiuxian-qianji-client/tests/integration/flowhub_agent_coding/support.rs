@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use tempfile::TempDir;
 use xiuxian_qianji_client::{
@@ -14,27 +14,40 @@ pub(super) struct FlowhubTestProject {
 
 impl FlowhubTestProject {
     pub(super) fn live() -> Self {
+        Self::new(true)
+    }
+
+    pub(super) fn isolated_flowhub() -> Self {
+        Self::new(false)
+    }
+
+    fn new(write_default_fixture: bool) -> Self {
         let temp_dir =
             TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
         let project_root = temp_dir.path().join("downstream");
         let cache_home = project_root.join(".cache");
-        let flowhub_root = repo_root().join("qianji-flowhub");
+        let flowhub_root = temp_dir.path().join("flowhub");
+        if write_default_fixture {
+            write_source_pair(&flowhub_root, "plan", "agent-coding", "agent_coding");
+            write_source_pair(
+                &flowhub_root,
+                "research/paper",
+                "deep_read",
+                "paper_deep_read",
+            );
+            write_source_pair(
+                &flowhub_root,
+                "wendao",
+                "wendao-client-plan-policy",
+                "wendao_client_plan_policy",
+            );
+        }
         Self {
             _temp_dir: temp_dir,
             project_root,
             cache_home,
             flowhub_root,
         }
-    }
-
-    pub(super) fn isolated_flowhub() -> Self {
-        let mut project = Self::live();
-        project.flowhub_root = project
-            .project_root
-            .parent()
-            .unwrap_or_else(|| panic!("project root should have a parent"))
-            .join("flowhub");
-        project
     }
 
     pub(super) fn init_args(&self, scenario: &str, slug: Option<&str>, json: bool) -> Vec<String> {
@@ -100,14 +113,6 @@ impl FlowhubTestProject {
     }
 }
 
-pub(super) fn repo_root() -> PathBuf {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    match manifest_dir.ancestors().nth(4) {
-        Some(root) => root.to_path_buf(),
-        None => panic!("workspace root should be four ancestors above qianji-client crate"),
-    }
-}
-
 pub(super) fn run(args: &[String], label: &str) -> FlowhubCliOutput {
     run_xiuxian_qianji_client_cli_with_args(args)
         .unwrap_or_else(|error| panic!("{label} should render a report: {error}"))
@@ -126,17 +131,68 @@ pub(super) fn rendered_json(output: &FlowhubCliOutput) -> serde_json::Value {
 }
 
 pub(super) fn copy_agent_coding_pair(project: &FlowhubTestProject, relative_dir: &str) {
-    let source_root = project.flowhub_root.join(relative_dir);
+    write_source_pair(
+        &project.flowhub_root,
+        relative_dir,
+        "agent-coding",
+        "agent_coding",
+    );
+}
+
+fn write_source_pair(flowhub_root: &Path, relative_dir: &str, scenario: &str, process_id: &str) {
+    let source_root = flowhub_root.join(relative_dir);
     std::fs::create_dir_all(&source_root)
         .unwrap_or_else(|error| panic!("Flowhub source root should be created: {error}"));
-    std::fs::copy(
-        repo_root().join("qianji-flowhub/plan/agent-coding.org"),
-        source_root.join("agent-coding.org"),
+    let stem = match scenario {
+        "deep_read" => "paper-deep-read",
+        "wendao-client-plan-policy" => "wendao-client-plan-policy",
+        _ => scenario,
+    };
+    let org_name = format!("{stem}.org");
+    let bpmn_name = format!("{stem}.bpmn");
+    std::fs::write(
+        source_root.join(&org_name),
+        minimal_flowhub_org(scenario, process_id, &bpmn_name),
     )
-    .unwrap_or_else(|error| panic!("Org source should copy: {error}"));
-    std::fs::copy(
-        repo_root().join("qianji-flowhub/plan/agent-coding.bpmn"),
-        source_root.join("agent-coding.bpmn"),
+    .unwrap_or_else(|error| panic!("Org source should write: {error}"));
+    std::fs::write(source_root.join(&bpmn_name), minimal_bpmn(process_id))
+        .unwrap_or_else(|error| panic!("BPMN source should write: {error}"));
+}
+
+fn minimal_flowhub_org(scenario: &str, process_id: &str, bpmn_name: &str) -> String {
+    format!(
+        r#"#+TITLE: {scenario} Flowhub Source
+
+* Scenario
+:PROPERTIES:
+:FLOWHUB_SCENARIO_ID: {scenario}
+:CANONICAL_SOURCE: org+bpmn
+:BPMN_SOURCE: {bpmn_name}
+:BPMN_PROCESS_ID: {process_id}
+:END:
+
+#+begin_src mermaid
+flowchart LR
+  Start["Start"] --> Done["Done"]
+#+end_src
+"#
     )
-    .unwrap_or_else(|error| panic!("BPMN source should copy: {error}"));
+}
+
+fn minimal_bpmn(process_id: &str) -> String {
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="pkg_{process_id}" targetNamespace="https://example.test/qianji-client-flowhub">
+  <bpmn:process id="{process_id}" isExecutable="true">
+    <bpmn:startEvent id="start">
+      <bpmn:outgoing>flow_start_done</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:endEvent id="done">
+      <bpmn:incoming>flow_start_done</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="flow_start_done" sourceRef="start" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>
+"#
+    )
 }

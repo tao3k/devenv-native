@@ -14,6 +14,8 @@ pub const BPMN_HOST_WORK_COMPLETION_SCHEMA: &str = "xiuxian_qianji.bpmn.host_wor
 /// Runtime-neutral BPMN host-work completion kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BpmnHostWorkCompletionKind {
+    /// Completion for BPMN generic task work.
+    Task,
     /// Completion for BPMN send work.
     Send,
     /// Completion for BPMN service work.
@@ -83,6 +85,7 @@ fn sha256_digest(content: &[u8]) -> String {
 
 fn completion_kind_name(kind: BpmnHostWorkCompletionKind) -> &'static str {
     match kind {
+        BpmnHostWorkCompletionKind::Task => "task",
         BpmnHostWorkCompletionKind::Send => "send",
         BpmnHostWorkCompletionKind::Service => "service",
         BpmnHostWorkCompletionKind::Script => "script",

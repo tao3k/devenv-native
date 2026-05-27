@@ -40,7 +40,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_identity_issue(
         format!(
             "Source '{source_id}' contains duplicate BPMN DI identifiers that make diagram interchange ambiguous."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but DI identifiers must remain unique so diagram elements, labels, styles, and local references can be traced without ambiguity.",
+        "Native BPMN DI preserves standard diagram interchange, and DI identifiers must remain unique so diagram elements, labels, styles, and local references can be traced without ambiguity.",
         vec![
             "Give each BPMN DI `BPMNDiagram`, `BPMNPlane`, `BPMNShape`, `BPMNEdge`, `BPMNLabel`, and `BPMNLabelStyle` a unique `id` value.".to_string(),
             "Retarget DI-local references after renaming duplicated shape, edge, label, or label-style ids.".to_string(),

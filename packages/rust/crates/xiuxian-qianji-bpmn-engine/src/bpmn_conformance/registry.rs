@@ -9,7 +9,6 @@ const EVENT_SUBPROCESS: &str = "M4.2 event subprocess v1";
 const COLLABORATION_ENVELOPE: &str = "M4.4 collaboration host envelope";
 const COMPATIBILITY_SUITE: &str = "M4.5 compatibility suite";
 const ADVANCED_CONTROL_FLOW: &str = "M4 advanced control flow";
-const STORAGE_POLICY: &str = "Deferred storage policy";
 
 macro_rules! entry {
     (
@@ -109,10 +108,10 @@ pub(crate) const BPMN_CONFORMANCE_REGISTRY: &[BpmnConformanceEntry] = &[
     ),
     entry!(
         "Complex gateway",
-        LintDeferred,
-        LintDeferred,
         MetadataOnly,
-        LintDeferred,
+        Supported,
+        MetadataOnly,
+        Supported,
         LintDeferred,
         MetadataOnly,
         ADVANCED_CONTROL_FLOW
@@ -439,13 +438,13 @@ pub(crate) const BPMN_CONFORMANCE_REGISTRY: &[BpmnConformanceEntry] = &[
     ),
     entry!(
         "Data stores",
-        LintDeferred,
         MetadataOnly,
         MetadataOnly,
-        LintDeferred,
-        LintDeferred,
         MetadataOnly,
-        STORAGE_POLICY
+        Supported,
+        MetadataOnly,
+        MetadataOnly,
+        MAINTAIN_METADATA
     ),
     entry!(
         "IO specification",
@@ -469,12 +468,12 @@ pub(crate) const BPMN_CONFORMANCE_REGISTRY: &[BpmnConformanceEntry] = &[
     ),
     entry!(
         "BPMN DI",
-        MetadataOnly,
-        MetadataOnly,
-        MetadataOnly,
+        Supported,
+        Supported,
+        Supported,
         Supported,
         MetadataOnly,
-        MetadataOnly,
+        Supported,
         COMPATIBILITY_SUITE
     ),
     entry!(

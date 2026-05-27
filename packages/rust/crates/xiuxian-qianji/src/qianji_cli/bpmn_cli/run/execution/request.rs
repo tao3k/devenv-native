@@ -45,6 +45,7 @@ pub(crate) fn build_bpmn_workflow_task_complete_request(
             process_id: command.process_id.clone().into(),
             activity_id: command.activity_id.clone().into(),
             kind: match command.kind {
+                BpmnTaskCompleteCliKind::Task => QianjiBpmnWorkflowTaskCompletionKind::Task,
                 BpmnTaskCompleteCliKind::Send => QianjiBpmnWorkflowTaskCompletionKind::Send,
                 BpmnTaskCompleteCliKind::Service => QianjiBpmnWorkflowTaskCompletionKind::Service,
                 BpmnTaskCompleteCliKind::Script => QianjiBpmnWorkflowTaskCompletionKind::Script,

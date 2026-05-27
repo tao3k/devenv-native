@@ -33,13 +33,7 @@ fn control_ledger_appends_stay_inside_journal_modules() {
         ".append_event(",
     ];
 
-    let violations = collect_violations(&source_roots, &forbidden_patterns, |path| {
-        let name = path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or("");
-        name.ends_with("_journal.rs") || name == "journal_batch.rs"
-    });
+    let violations = collect_violations(&source_roots, &forbidden_patterns, is_journal_owner_file);
 
     assert!(
         violations.is_empty(),
@@ -47,6 +41,19 @@ fn control_ledger_appends_stay_inside_journal_modules() {
          modules or the control-owned batch helper:\n{}",
         violations.join("\n")
     );
+}
+
+fn is_journal_owner_file(path: &Path) -> bool {
+    let name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    let parent_name = path
+        .parent()
+        .and_then(Path::file_name)
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    name.ends_with("_journal.rs") || name == "journal_batch.rs" || parent_name == "activity_journal"
 }
 
 fn collect_violations<F>(

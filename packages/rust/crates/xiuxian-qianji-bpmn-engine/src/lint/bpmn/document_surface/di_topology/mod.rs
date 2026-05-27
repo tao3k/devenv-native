@@ -1,4 +1,4 @@
-//! BPMN DI diagram-plane topology audit for metadata-only diagram surfaces.
+//! BPMN DI diagram-plane topology audit for native diagram interchange surfaces.
 
 mod api;
 mod model;

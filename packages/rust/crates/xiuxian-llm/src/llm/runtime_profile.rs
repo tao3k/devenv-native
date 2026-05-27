@@ -4,7 +4,13 @@ use super::client::OpenAIWireApi;
 use super::error::{LlmError, LlmResult};
 #[cfg(feature = "model-routing")]
 use crate::model_routing::WendaoModelDecision;
+use crate::resource;
+use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::collections::HashMap;
+
+/// System-level Wendao LLM runtime defaults shipped by `xiuxian-llm`.
+pub const WENDAO_LLM_SYSTEM_DEFAULT_TOML: &str = resource::WENDAO_LLM_SYSTEM_DEFAULT_TOML;
 
 /// Provider-scoped runtime fields used to resolve an OpenAI-compatible profile.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -40,6 +46,70 @@ pub struct LlmRuntimeProfileInput {
     pub default_provider: Option<String>,
     /// Named providers by provider key.
     pub providers: HashMap<String, LlmProviderProfileInput>,
+}
+
+/// Root `[llm]` configuration from `wendao.toml`.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+pub struct LlmRuntimeProfileTomlConfig {
+    /// Runtime backend hint, for example `litellm`.
+    #[serde(default)]
+    pub backend: Option<String>,
+    /// Flat model override.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Global default model alias.
+    #[serde(default)]
+    pub default_model: Option<String>,
+    /// Flat base URL override.
+    #[serde(default)]
+    pub base_url: Option<String>,
+    /// Flat API key env token.
+    #[serde(default)]
+    pub api_key_env: Option<String>,
+    /// Flat API key value or env-key token.
+    #[serde(default)]
+    pub api_key: Option<String>,
+    /// Flat wire mode.
+    #[serde(default)]
+    pub wire_api: Option<String>,
+    /// Selected default provider key.
+    #[serde(default)]
+    pub default_provider: Option<String>,
+    /// Named providers by provider key.
+    #[serde(default)]
+    pub providers: BTreeMap<String, LlmProviderProfileTomlConfig>,
+    /// Forward-compatible extension fields.
+    #[serde(default, flatten)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+/// One provider entry from `[llm.providers.<name>]`.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+pub struct LlmProviderProfileTomlConfig {
+    /// Provider model override.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Provider base URL.
+    #[serde(default)]
+    pub base_url: Option<String>,
+    /// Provider API key value or env-key reference token.
+    #[serde(default)]
+    pub api_key: Option<String>,
+    /// Provider API key env name.
+    #[serde(default)]
+    pub api_key_env: Option<String>,
+    /// Provider wire mode override.
+    #[serde(default)]
+    pub wire_api: Option<String>,
+    /// Forward-compatible extension fields.
+    #[serde(default, flatten)]
+    pub extra: BTreeMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct LlmRuntimeProfileTomlRoot {
+    #[serde(default)]
+    llm: LlmRuntimeProfileTomlConfig,
 }
 
 /// Runtime overrides and explicit env map for deterministic resolution/testing.
@@ -83,6 +153,124 @@ impl Default for LlmRuntimeDefaults {
             api_key_env: "OPENAI_API_KEY".to_string(),
             wire_api: OpenAIWireApi::ChatCompletions,
         }
+    }
+}
+
+/// Parse `[llm]` from a full `wendao.toml` string.
+///
+/// # Errors
+///
+/// Returns an error when TOML parsing or deserialization fails.
+pub fn llm_runtime_profile_toml_config_from_str(
+    raw: &str,
+) -> Result<LlmRuntimeProfileTomlConfig, String> {
+    let value = toml::from_str::<toml::Value>(raw)
+        .map_err(|error| format!("parse LLM runtime profile TOML: {error}"))?;
+    llm_runtime_profile_toml_config_from_value(value)
+}
+
+/// Parse `[llm]` from a full `wendao.toml` value.
+///
+/// # Errors
+///
+/// Returns an error when deserialization fails.
+pub fn llm_runtime_profile_toml_config_from_value(
+    value: toml::Value,
+) -> Result<LlmRuntimeProfileTomlConfig, String> {
+    let mut config = llm_runtime_profile_system_default_config()?;
+    let overlay = parse_llm_runtime_profile_without_defaults(value)?;
+    merge_llm_runtime_profile_config(&mut config, overlay);
+    Ok(config)
+}
+
+/// Return the source-owned Wendao LLM runtime defaults.
+///
+/// # Errors
+///
+/// Returns an error if the embedded default TOML is malformed.
+pub fn llm_runtime_profile_system_default_config() -> Result<LlmRuntimeProfileTomlConfig, String> {
+    let value = resource::load_llm_system_default_toml_value()?;
+    parse_llm_runtime_profile_without_defaults(value)
+}
+
+fn parse_llm_runtime_profile_without_defaults(
+    value: toml::Value,
+) -> Result<LlmRuntimeProfileTomlConfig, String> {
+    value
+        .try_into::<LlmRuntimeProfileTomlRoot>()
+        .map(|root| root.llm)
+        .map_err(|error| format!("deserialize LLM runtime profile TOML: {error}"))
+}
+
+fn merge_llm_runtime_profile_config(
+    base: &mut LlmRuntimeProfileTomlConfig,
+    overlay: LlmRuntimeProfileTomlConfig,
+) {
+    replace_if_some(&mut base.backend, overlay.backend);
+    replace_if_some(&mut base.model, overlay.model);
+    replace_if_some(&mut base.default_model, overlay.default_model);
+    replace_if_some(&mut base.base_url, overlay.base_url);
+    replace_if_some(&mut base.api_key_env, overlay.api_key_env);
+    replace_if_some(&mut base.api_key, overlay.api_key);
+    replace_if_some(&mut base.wire_api, overlay.wire_api);
+    replace_if_some(&mut base.default_provider, overlay.default_provider);
+    for (provider_name, provider) in overlay.providers {
+        base.providers
+            .entry(provider_name)
+            .and_modify(|existing| merge_llm_provider_profile_config(existing, provider.clone()))
+            .or_insert(provider);
+    }
+    base.extra.extend(overlay.extra);
+}
+
+fn merge_llm_provider_profile_config(
+    base: &mut LlmProviderProfileTomlConfig,
+    overlay: LlmProviderProfileTomlConfig,
+) {
+    replace_if_some(&mut base.model, overlay.model);
+    replace_if_some(&mut base.base_url, overlay.base_url);
+    replace_if_some(&mut base.api_key, overlay.api_key);
+    replace_if_some(&mut base.api_key_env, overlay.api_key_env);
+    replace_if_some(&mut base.wire_api, overlay.wire_api);
+    base.extra.extend(overlay.extra);
+}
+
+fn replace_if_some<T>(slot: &mut Option<T>, value: Option<T>) {
+    if value.is_some() {
+        *slot = value;
+    }
+}
+
+/// Convert a TOML LLM runtime profile into the resolver input shape.
+#[must_use]
+pub fn llm_runtime_profile_input_from_toml_config(
+    config: LlmRuntimeProfileTomlConfig,
+) -> LlmRuntimeProfileInput {
+    let providers = config
+        .providers
+        .into_iter()
+        .map(|(name, provider)| {
+            (
+                name,
+                LlmProviderProfileInput {
+                    model: provider.model,
+                    base_url: provider.base_url,
+                    api_key: provider.api_key,
+                    api_key_env: provider.api_key_env,
+                    wire_api: provider.wire_api,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
+    LlmRuntimeProfileInput {
+        model: config.model,
+        default_model: config.default_model,
+        base_url: config.base_url,
+        api_key_env: config.api_key_env,
+        api_key: config.api_key,
+        wire_api: config.wire_api,
+        default_provider: config.default_provider,
+        providers,
     }
 }
 

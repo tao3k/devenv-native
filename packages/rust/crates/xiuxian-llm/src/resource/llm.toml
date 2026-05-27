@@ -1,0 +1,23 @@
+[llm]
+backend = "litellm"
+default_provider = "deepseek"
+default_model = "deepseek-chat"
+wire_api = "chat_completions"
+
+[llm.providers.deepseek]
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/v1"
+api_key_env = "DEEPSEEK_API_KEY"
+wire_api = "chat_completions"
+
+[llm.providers.openrouter]
+model = "deepseek/deepseek-v4-pro"
+base_url = "https://openrouter.ai/api/v1"
+api_key_env = "OPENROUTER_API_KEY"
+wire_api = "chat_completions"
+
+[llm.providers.local_openai]
+model = "local-chat"
+base_url = "http://127.0.0.1:8000/v1"
+api_key = "EMPTY"
+wire_api = "chat_completions"

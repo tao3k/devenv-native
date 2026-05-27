@@ -1,11 +1,11 @@
 use std::error::Error;
 
 use xiuxian_qianji_control::{
-    ACTIVITY_SCHEDULE_ADMISSION_KIND, ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS,
     ACTIVITY_SCHEDULE_ADMISSION_PLAN_CONTRACT, ActivityId, ActivityJournalWriteStatus,
     ActivityScheduleAdmissionExecutionFlags, ActivityScheduleAdmissionInputExecutionFlags,
-    ActivityScheduleAdmissionPlanItem, ActivityScheduleAdmissionRuntimeExecutionFlags,
-    ActivityScheduleAdmissionSafetyFlags, ActivitySchedulePlanAdmissionRequest, ControlEvent,
+    ActivityScheduleAdmissionKind, ActivityScheduleAdmissionPlanItem,
+    ActivityScheduleAdmissionRuntimeExecutionFlags, ActivityScheduleAdmissionSafetyFlags,
+    ActivityScheduleAdmissionStatus, ActivitySchedulePlanAdmissionRequest, ControlEvent,
     ControlEventKind, ControlLedger, InMemoryControlLedger, RunId, admit_activity_schedule_plan,
     parse_activity_schedule_plan_json,
 };
@@ -125,7 +125,7 @@ fn plan_item(
     Ok(ActivityScheduleAdmissionPlanItem {
         schedule_item_id: schedule_item_id.to_owned(),
         schedule_contract: ACTIVITY_SCHEDULE_ADMISSION_PLAN_CONTRACT.to_owned(),
-        admission_kind: ACTIVITY_SCHEDULE_ADMISSION_KIND.to_owned(),
+        admission_kind: ActivityScheduleAdmissionKind::QianjiActivityScheduleAdmissionCandidate,
         qianji_run_id: run_id.as_str().to_owned(),
         activity_task: activity_task(activity_id)?,
         execution: ActivityScheduleAdmissionExecutionFlags {
@@ -144,6 +144,6 @@ fn plan_item(
             rdf_mutation_allowed: false,
             ontology_truth: false,
         },
-        status: ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS.to_owned(),
+        status: ActivityScheduleAdmissionStatus::PendingQianjiAdmission,
     })
 }

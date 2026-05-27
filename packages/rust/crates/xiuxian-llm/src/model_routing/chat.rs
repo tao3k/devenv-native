@@ -1,17 +1,23 @@
 //! Chat-specific model route helpers.
 
+use super::config::model_routing_config_lookup_value;
 use super::{
-    VllmSrRouteDecisionClient, WendaoModelDecision, WendaoModelRoutingMode, WendaoRouteIntent,
-    WendaoRouteSourceKind, WendaoRouteTaskKind, wendao_model_routing_mode_with_lookup,
-    wendao_vllm_sr_base_url_with_lookup,
+    VllmSrRouteDecisionClient, WendaoModelDecision, WendaoModelRoutingMode,
+    WendaoModelRoutingTomlConfig, WendaoRouteIntent, WendaoRouteSourceKind, WendaoRouteTaskKind,
+    wendao_model_routing_mode_with_lookup, wendao_vllm_sr_base_url_with_lookup,
 };
 
 /// Provider hint used for chat route admission.
 pub const WENDAO_CHAT_ROUTE_PROVIDER_ENV: &str = "WENDAO_CHAT_ROUTE_PROVIDER";
+/// Model selected by the Gateway-owned deterministic local route policy.
+pub const WENDAO_CHAT_ROUTE_MODEL_ENV: &str = "WENDAO_CHAT_ROUTE_MODEL";
 /// Backend profile hint used for chat route admission.
 pub const WENDAO_CHAT_ROUTE_BACKEND_PROFILE_ENV: &str = "WENDAO_CHAT_ROUTE_BACKEND_PROFILE";
+/// Default local chat model selected by deterministic Gateway policy.
+pub const DEFAULT_WENDAO_CHAT_ROUTE_MODEL: &str = "deepseek-chat";
 /// Default Gateway backend profile for OpenAI-compatible chat execution.
 pub const DEFAULT_WENDAO_CHAT_ROUTE_BACKEND_PROFILE: &str = "openai-compatible-chat-v1";
+const DEFAULT_WENDAO_CHAT_ROUTE_PROVIDER: &str = "deepseek";
 
 const CHAT_ROUTE_TASK_KIND: &str = "chat";
 const CHAT_ROUTE_MODALITY: &str = "text";
@@ -26,6 +32,8 @@ const CHAT_ROUTE_LATENCY_BUDGET_MS: u64 = 60_000;
 pub struct WendaoChatRouteConfig {
     /// Provider hint required by the current vLLM-SR probe integration.
     pub route_provider: Option<String>,
+    /// Model selected by deterministic local Gateway policy.
+    pub route_model: String,
     /// Gateway backend profile selected for chat execution.
     pub backend_profile: String,
     /// Active routing mode.
@@ -71,6 +79,11 @@ pub fn wendao_chat_route_config_with_lookup(
 ) -> Result<WendaoChatRouteConfig, String> {
     Ok(WendaoChatRouteConfig {
         route_provider: optional_string_value(lookup, WENDAO_CHAT_ROUTE_PROVIDER_ENV),
+        route_model: string_value(
+            lookup,
+            WENDAO_CHAT_ROUTE_MODEL_ENV,
+            DEFAULT_WENDAO_CHAT_ROUTE_MODEL,
+        ),
         backend_profile: string_value(
             lookup,
             WENDAO_CHAT_ROUTE_BACKEND_PROFILE_ENV,
@@ -78,6 +91,20 @@ pub fn wendao_chat_route_config_with_lookup(
         ),
         model_routing_mode: wendao_model_routing_mode_with_lookup(lookup)?,
         vllm_sr_base_url: wendao_vllm_sr_base_url_with_lookup(lookup),
+    })
+}
+
+/// Resolve chat route config from `wendao.toml` first, then env/runtime lookup.
+///
+/// # Errors
+///
+/// Returns an error when shared model-routing mode parsing fails.
+pub fn wendao_chat_route_config_with_model_routing_config(
+    model_routing: Option<&WendaoModelRoutingTomlConfig>,
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<WendaoChatRouteConfig, String> {
+    wendao_chat_route_config_with_lookup(&|key| {
+        model_routing_config_lookup_value(model_routing, lookup, key)
     })
 }
 
@@ -105,9 +132,13 @@ pub fn wendao_chat_route_intent(input: &WendaoChatRouteInput) -> WendaoRouteInte
 pub async fn wendao_chat_model_route_decision(
     config: &WendaoChatRouteConfig,
     input: &WendaoChatRouteInput,
-) -> Result<Option<(WendaoRouteIntent, WendaoModelDecision)>, String> {
+) -> Result<(WendaoRouteIntent, WendaoModelDecision), String> {
     match config.model_routing_mode {
-        WendaoModelRoutingMode::Deterministic => Ok(None),
+        WendaoModelRoutingMode::Deterministic => {
+            let intent = wendao_chat_route_intent(input);
+            let decision = deterministic_chat_route_decision(config)?;
+            Ok((intent, decision))
+        }
         WendaoModelRoutingMode::VllmSr => {
             let provider = chat_route_provider_hint(config)?;
             let intent = wendao_chat_route_intent(input);
@@ -115,9 +146,51 @@ pub async fn wendao_chat_model_route_decision(
                 .decide(&intent, provider.as_str(), config.backend_profile.as_str())
                 .await
                 .map_err(|error| format!("chat model route admission failed: {error}"))?;
-            Ok(Some((intent, decision)))
+            Ok((intent, decision))
         }
     }
+}
+
+fn deterministic_chat_route_decision(
+    config: &WendaoChatRouteConfig,
+) -> Result<WendaoModelDecision, String> {
+    let selected_provider = chat_route_provider_or_default(config);
+    let selected_model = config.route_model.trim();
+    if selected_model.is_empty() {
+        return Err(format!(
+            "{WENDAO_CHAT_ROUTE_MODEL_ENV} must be non-empty in deterministic routing mode"
+        ));
+    }
+    let selected_backend_profile = config.backend_profile.trim();
+    if selected_backend_profile.is_empty() {
+        return Err(format!(
+            "{WENDAO_CHAT_ROUTE_BACKEND_PROFILE_ENV} must be non-empty in deterministic routing mode"
+        ));
+    }
+    Ok(WendaoModelDecision {
+        route_id: format!(
+            "deterministic:chat:{}:{}",
+            sanitize_route_id_part(selected_provider.as_str()),
+            sanitize_route_id_part(selected_model),
+        ),
+        selected_provider,
+        selected_model: selected_model.to_owned(),
+        selected_backend_profile: selected_backend_profile.to_owned(),
+        reasoning_policy: None,
+        route_trace: Some("gateway deterministic local route policy".to_owned()),
+    })
+}
+
+fn chat_route_provider_or_default(config: &WendaoChatRouteConfig) -> String {
+    config
+        .route_provider
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map_or_else(
+            || DEFAULT_WENDAO_CHAT_ROUTE_PROVIDER.to_owned(),
+            str::to_owned,
+        )
 }
 
 fn chat_route_provider_hint(config: &WendaoChatRouteConfig) -> Result<String, String> {
@@ -130,6 +203,23 @@ fn chat_route_provider_hint(config: &WendaoChatRouteConfig) -> Result<String, St
         .ok_or_else(|| {
             format!("WENDAO_MODEL_ROUTING_MODE=vllm-sr requires {WENDAO_CHAT_ROUTE_PROVIDER_ENV}")
         })
+}
+
+fn sanitize_route_id_part(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
+            out.push(ch);
+        } else {
+            out.push('-');
+        }
+    }
+    let normalized = out.trim_matches('-');
+    if normalized.is_empty() {
+        "unknown".to_owned()
+    } else {
+        normalized.to_owned()
+    }
 }
 
 fn string_value(

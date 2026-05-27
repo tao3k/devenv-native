@@ -24,6 +24,21 @@ fn parser_linear_service_task_materializes_dense_ir() {
 }
 
 #[test]
+fn parser_accepts_start_only_top_level_process() {
+    let package = parse_fixture_package("start-only-process.bpmn");
+    assert_eq!(package.package_id.as_ref(), "pkg_start_only");
+
+    let process = package
+        .find_process("start_only")
+        .must("process should be discoverable by BPMN id");
+    assert_eq!(process.nodes.len(), 1);
+    assert!(process.edges.is_empty());
+    assert_eq!(process.nodes[0].kind, BpmnNodeKind::StartEvent);
+    assert!(process.outgoing_edge_indices(0).is_empty());
+    assert!(process.incoming_edge_indices(0).is_empty());
+}
+
+#[test]
 fn parser_business_rule_task_keeps_dmn_placeholder() {
     let package = parse_fixture_package("linear-business-rule-placeholder.bpmn");
     let process = package

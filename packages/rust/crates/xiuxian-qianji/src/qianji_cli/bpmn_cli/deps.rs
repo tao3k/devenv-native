@@ -34,8 +34,8 @@ pub(crate) use xiuxian_qianji_bpmn_engine::{
     BusinessRuleTaskRequest, DmnEvaluationResult, EventPollOutcome, EventPollRequest,
     HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest, NodeRuntimeStatus,
     PendingHostWorkKind, PendingHostWorkRequest, SendTaskOutcome, SendTaskRequest,
-    ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, UserTaskOutcome, UserTaskRequest,
-    WaitKind, build_pending_host_work_requests,
+    ServiceTaskOutcome, ServiceTaskRequest, SuspendReason, TaskOutcome, TaskRequest,
+    UserTaskOutcome, UserTaskRequest, WaitKind, build_pending_host_work_requests,
 };
 
 pub(crate) use crate::qianji_cli::input::{

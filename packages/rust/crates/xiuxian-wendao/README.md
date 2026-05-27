@@ -146,9 +146,18 @@ Use `xiuxian-wendao` for:
   event-lake Arrow batches use the shared db-store schema contract helpers for
   exact structural validation while Wendao keeps event semantics and query
   ownership;
+  link-graph Arrow snapshot caches and core-stream performance probes use the
+  same shared schema contract helpers while link-graph keeps index and
+  benchmark semantics;
   Flight-host projected page-index, retrieval-context, and graph-neighbor
   response batches use the same shared schema contract helpers while Wendao
   keeps projection semantics and route ownership;
+  search-index status diagnostics relation inputs also use the shared schema
+  contract helpers before DataFusion or DuckDB summary queries run, while
+  Wendao keeps status response semantics and local engine selection;
+  query-core graph-neighbor relation batches use the same shared schema
+  contract helpers while graph traversal, explain telemetry, and projection
+  semantics stay in Wendao;
   `WendaoEventLakeLocalConfig`
   resolves the local embedded path convention under
   `$PRJ_DATA_HOME/wendao/event_lake/`
@@ -757,6 +766,9 @@ registers repo corpora under stable repo table names such as
 `SearchPlaneService::repo_content_chunk_table_name(repo_id)` and
 `SearchPlaneService::repo_entity_table_name(repo_id)`, while the catalog keeps
 the publication-derived `engine_table_name` for traceability.
+Repo-content chunk publication keeps the Lance index schema separate, but its
+engine-facing Arrow schema for Parquet/DuckDB normalization is built and
+validated through the db-store `ArrowSchemaContract` helper.
 
 The request-scoped repo logical views now also expose their source composition
 through `wendao_sql_view_sources`, ordered by `repo_id`, so clients can

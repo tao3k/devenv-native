@@ -247,6 +247,60 @@ pub async fn execute_openai_responses_request(
     }
 }
 
+/// Execute a custom-base `OpenAI` `/chat/completions` request and return the
+/// raw provider JSON body.
+///
+/// # Errors
+///
+/// Returns an error when HTTP transport, status validation, or JSON decoding fails.
+#[cfg(feature = "provider-litellm")]
+pub async fn execute_openai_chat_completions_request(
+    client: &reqwest::Client,
+    endpoint: &str,
+    api_key: Option<&str>,
+    request: &LiteChatRequest,
+) -> LlmResult<String> {
+    let response =
+        send_openai_chat_completions_request_once(client, endpoint, api_key, request).await?;
+    let (status, content_type, body) = read_openai_responses_http_body(response).await?;
+    if !status.is_success() {
+        return Err(LlmError::RequestFailed {
+            status,
+            content_type: HttpContentType::new(content_type),
+            reason: sanitize_user_visible(&body),
+        });
+    }
+    serde_json::from_str::<serde_json::Value>(&body).map_err(|source| {
+        LlmError::ResponseDecodingFailed {
+            status,
+            content_type: HttpContentType::new(content_type),
+            body_preview: sanitize_user_visible(&body),
+            source,
+        }
+    })?;
+    Ok(body)
+}
+
+#[cfg(feature = "provider-litellm")]
+async fn send_openai_chat_completions_request_once(
+    client: &reqwest::Client,
+    endpoint: &str,
+    api_key: Option<&str>,
+    request: &LiteChatRequest,
+) -> LlmResult<reqwest::Response> {
+    let mut response = client
+        .post(endpoint)
+        .header(CONTENT_TYPE, "application/json")
+        .json(request);
+    if let Some(key) = api_key {
+        response = response.header("Authorization", format!("Bearer {key}"));
+    }
+    response
+        .send()
+        .await
+        .map_err(|source| LlmError::ConnectionFailed { source })
+}
+
 #[cfg(feature = "provider-litellm")]
 async fn send_openai_responses_request_once(
     client: &reqwest::Client,

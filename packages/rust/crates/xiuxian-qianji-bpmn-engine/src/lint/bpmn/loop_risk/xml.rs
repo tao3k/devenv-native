@@ -13,7 +13,8 @@ pub(super) fn outgoing_edge_indices(
 pub(super) fn is_task_tag(tag: &str) -> bool {
     matches!(
         tag,
-        "serviceTask"
+        "task"
+            | "serviceTask"
             | "userTask"
             | "manualTask"
             | "businessRuleTask"

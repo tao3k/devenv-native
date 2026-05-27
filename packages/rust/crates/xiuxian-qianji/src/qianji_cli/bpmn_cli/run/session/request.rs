@@ -73,13 +73,14 @@ pub(super) fn build_task_complete_command(
 
 fn parse_session_task_complete_kind(raw: &str) -> io::Result<BpmnTaskCompleteCliKind> {
     match raw {
+        "task" => Ok(BpmnTaskCompleteCliKind::Task),
         "send" => Ok(BpmnTaskCompleteCliKind::Send),
         "service" => Ok(BpmnTaskCompleteCliKind::Service),
         "script" => Ok(BpmnTaskCompleteCliKind::Script),
         "user" => Ok(BpmnTaskCompleteCliKind::User),
         "manual" => Ok(BpmnTaskCompleteCliKind::Manual),
         other => Err(invalid_input(format!(
-            "unsupported BPMN host-session task kind `{other}`; expected `send`, `service`, `script`, `user`, or `manual`"
+            "unsupported BPMN host-session task kind `{other}`; expected `task`, `send`, `service`, `script`, `user`, or `manual`"
         ))),
     }
 }

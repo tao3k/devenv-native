@@ -60,37 +60,18 @@ pub(in crate::parser) fn validate_boundary_event(
     usage.total += 1;
 
     if event_kind == Some(&BpmnEventKind::Cancel) {
-        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: (process.process_id.clone()).into(),
-            node_id: (node.bpmn_id.clone()).into(),
-            detail: "cancel_boundary_requires_transaction_shell",
-        });
+        return Ok(());
     }
     if event_kind == Some(&BpmnEventKind::Error) {
-        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: (process.process_id.clone()).into(),
-            node_id: (node.bpmn_id.clone()).into(),
-            detail: "error_boundary_requires_supported_subprocess_shell",
-        });
+        return Ok(());
     }
     if event_kind == Some(&BpmnEventKind::Escalation) {
-        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: (process.process_id.clone()).into(),
-            node_id: (node.bpmn_id.clone()).into(),
-            detail: "escalation_boundary_requires_supported_subprocess_shell",
-        });
+        return Ok(());
     }
     if event_kind == Some(&BpmnEventKind::Compensation) {
         return Ok(());
     }
-    if !matches!(
-        attached_node.kind,
-        BpmnNodeKind::ServiceTask
-            | BpmnNodeKind::ScriptTask
-            | BpmnNodeKind::UserTask
-            | BpmnNodeKind::ManualTask
-            | BpmnNodeKind::BusinessRuleTask
-    ) {
+    if !is_task_boundary_owner(attached_node) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: (process.process_id.clone()).into(),
             node_id: (node.bpmn_id.clone()).into(),
@@ -103,6 +84,7 @@ pub(in crate::parser) fn validate_boundary_event(
             BpmnEventKind::Timer
                 | BpmnEventKind::Message
                 | BpmnEventKind::Signal
+                | BpmnEventKind::Escalation
                 | BpmnEventKind::Conditional
         )
     ) {
@@ -132,22 +114,7 @@ fn validate_non_interrupting_boundary(
     }
     usage.total += 1;
 
-    if event_kind == Some(&BpmnEventKind::Escalation) {
-        return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
-            process_id: (process.process_id.clone()).into(),
-            node_id: (node.bpmn_id.clone()).into(),
-            detail: "non_interrupting_escalation_boundary_deferred",
-        });
-    }
-
-    if !matches!(
-        attached_node.kind,
-        BpmnNodeKind::ServiceTask
-            | BpmnNodeKind::ScriptTask
-            | BpmnNodeKind::UserTask
-            | BpmnNodeKind::ManualTask
-            | BpmnNodeKind::BusinessRuleTask
-    ) {
+    if !is_task_boundary_owner(attached_node) {
         return Err(BpmnEngineError::UnsupportedBoundaryEventConfiguration {
             process_id: (process.process_id.clone()).into(),
             node_id: (node.bpmn_id.clone()).into(),
@@ -167,6 +134,7 @@ fn validate_non_interrupting_boundary(
             BpmnEventKind::Timer
                 | BpmnEventKind::Message
                 | BpmnEventKind::Signal
+                | BpmnEventKind::Escalation
                 | BpmnEventKind::Conditional
         )
     ) {
@@ -188,6 +156,20 @@ fn supports_non_interrupting_boundary_repeat(attached_node: &RawNode) -> bool {
                 | RawRepeatSpec::SequentialMultiInstance(_)
                 | RawRepeatSpec::ParallelMultiInstance(_),
         )
+    )
+}
+
+fn is_task_boundary_owner(attached_node: &RawNode) -> bool {
+    matches!(
+        attached_node.kind,
+        BpmnNodeKind::Task
+            | BpmnNodeKind::SendTask
+            | BpmnNodeKind::ReceiveTask
+            | BpmnNodeKind::ServiceTask
+            | BpmnNodeKind::ScriptTask
+            | BpmnNodeKind::UserTask
+            | BpmnNodeKind::ManualTask
+            | BpmnNodeKind::BusinessRuleTask
     )
 }
 

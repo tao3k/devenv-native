@@ -62,6 +62,9 @@ pub fn build_flowhub_service_task_complete_http_request(
             process_id: completion.process_id,
             activity_id: completion.activity_id,
             kind: match completion.kind {
+                QianjiBpmnWorkflowTaskCompletionKind::Task => {
+                    QianjiBpmnWorkflowTaskCompletionHttpKind::Task
+                }
                 QianjiBpmnWorkflowTaskCompletionKind::Send => {
                     QianjiBpmnWorkflowTaskCompletionHttpKind::Send
                 }

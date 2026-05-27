@@ -13,6 +13,16 @@ use xiuxian_wendao_server::transport::{DocumentExtractFlightRequest, DocumentExt
 
 use super::audio_model_route_decision_for_document_extract;
 
+#[test]
+fn audio_route_normalizes_source_hash_identity() -> Result<(), String> {
+    assert_eq!(
+        super::normalized_source_hash(" sourcehash ")?,
+        "sourcehash".to_owned()
+    );
+    assert!(super::normalized_source_hash("   ").is_err());
+    Ok(())
+}
+
 #[tokio::test]
 async fn audio_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
     let observed_payload = Arc::new(Mutex::new(None));
@@ -21,7 +31,7 @@ async fn audio_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
     let config = super::super::document_extract_audio_config(&|key| match key {
         "WENDAO_MODEL_ROUTING_MODE" => Some("vllm-sr".to_owned()),
         "WENDAO_VLLM_SR_BASE_URL" => Some(vllm_sr_base_url.clone()),
-        "WENDAO_DOCUMENT_EXTRACT_AUDIO_ROUTE_PROVIDER" => Some("openrouter".to_owned()),
+        "WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER" => Some("openrouter".to_owned()),
         _ => None,
     })?;
     let request = audio_route_request();
@@ -71,6 +81,7 @@ async fn audio_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
 async fn audio_route_admission_requires_provider_hint() -> Result<(), String> {
     let config = super::super::document_extract_audio_config(&|key| match key {
         "WENDAO_MODEL_ROUTING_MODE" => Some("vllm-sr".to_owned()),
+        "WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER" => Some(" ".to_owned()),
         _ => None,
     })?;
     let error = audio_model_route_decision_for_document_extract(
@@ -83,7 +94,41 @@ async fn audio_route_admission_requires_provider_hint() -> Result<(), String> {
     .await
     .expect_err("vLLM-SR route admission should require a provider hint");
 
-    assert!(error.contains("WENDAO_DOCUMENT_EXTRACT_AUDIO_ROUTE_PROVIDER"));
+    assert!(error.contains("requires a route provider"));
+    Ok(())
+}
+
+#[tokio::test]
+async fn audio_route_deterministic_mode_returns_gateway_decision() -> Result<(), String> {
+    let config = super::super::document_extract_audio_config(&|key| match key {
+        "WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER" => Some("openrouter".to_owned()),
+        "WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL" => Some("qwen/qwen3-asr-flash-2026-02-10".to_owned()),
+        _ => None,
+    })?;
+
+    let Some((intent, decision)) = audio_model_route_decision_for_document_extract(
+        &audio_route_request(),
+        &config,
+        &audio_route_plan(),
+        "sourcehash",
+        61_000,
+    )
+    .await?
+    else {
+        return Err("deterministic mode should produce a route decision".to_owned());
+    };
+
+    assert_eq!(intent.modality, "audio");
+    assert_eq!(
+        decision.route_id,
+        "deterministic:attachment-extract:audio:openrouter:qwen-qwen3-asr-flash-2026-02-10"
+    );
+    assert_eq!(decision.selected_provider, "openrouter");
+    assert_eq!(decision.selected_model, "qwen/qwen3-asr-flash-2026-02-10");
+    assert_eq!(
+        decision.selected_backend_profile,
+        "hosted-audio-transcript-v1"
+    );
     Ok(())
 }
 

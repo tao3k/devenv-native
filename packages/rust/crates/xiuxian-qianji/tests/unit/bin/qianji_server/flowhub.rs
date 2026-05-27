@@ -600,15 +600,150 @@ fn copy_agent_coding_pair(flowhub_root: &Path) {
     let source_root = flowhub_root.join("plan");
     write_file(
         &source_root.join("agent-coding.org"),
-        &std::fs::read_to_string(repo_root().join("qianji-flowhub/plan/agent-coding.org"))
-            .unwrap_or_else(|error| panic!("Org source fixture should read: {error}")),
+        r#"#+TITLE: Agent Coding Flowhub Source
+
+* Scenario
+:PROPERTIES:
+:FLOWHUB_SCENARIO_ID: agent-coding
+:CANONICAL_SOURCE: org+bpmn
+:BPMN_SOURCE: agent-coding.bpmn
+:BPMN_PROCESS_ID: agent_coding
+:END:
+
+#+begin_src mermaid
+flowchart LR
+  Start["start"] --> Done["done"]
+#+end_src
+"#,
     );
-    write_file(
-        &source_root.join("agent-coding.bpmn"),
-        &std::fs::read_to_string(repo_root().join("qianji-flowhub/plan/agent-coding.bpmn"))
-            .unwrap_or_else(|error| panic!("BPMN source fixture should read: {error}")),
-    );
+    write_file(&source_root.join("agent-coding.bpmn"), AGENT_CODING_BPMN);
 }
+
+const AGENT_CODING_BPMN: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="defs_agent_coding">
+  <bpmn:process id="agent_coding" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="resolve_project">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="resolve_project_output_projectResolved" name="projectResolved" />
+        <bpmn:outputSet id="resolve_project_output_set">
+          <bpmn:dataOutputRefs>resolve_project_output_projectResolved</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>resolve_project_output_projectResolved</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.resolveProject</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="validate_contract">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="validate_contract_output_validateContract" name="validateContract" />
+        <bpmn:outputSet id="validate_contract_output_set">
+          <bpmn:dataOutputRefs>validate_contract_output_validateContract</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>validate_contract_output_validateContract</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.validateContract</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="materialize_sdd">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="materialize_sdd_output_materializeSdd" name="materializeSdd" />
+        <bpmn:outputSet id="materialize_sdd_output_set">
+          <bpmn:dataOutputRefs>materialize_sdd_output_materializeSdd</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>materialize_sdd_output_materializeSdd</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.materializeSdd</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="materialize_org_task">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="materialize_org_task_output_materializeOrgTask" name="materializeOrgTask" />
+        <bpmn:outputSet id="materialize_org_task_output_set">
+          <bpmn:dataOutputRefs>materialize_org_task_output_materializeOrgTask</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>materialize_org_task_output_materializeOrgTask</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.materializeOrgTask</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="materialize_execplan">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="materialize_execplan_output_materializeExecPlan" name="materializeExecPlan" />
+        <bpmn:outputSet id="materialize_execplan_output_set">
+          <bpmn:dataOutputRefs>materialize_execplan_output_materializeExecPlan</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>materialize_execplan_output_materializeExecPlan</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.materializeExecPlan</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="lint_generated_org">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="lint_generated_org_output_lintGeneratedOrg" name="lintGeneratedOrg" />
+        <bpmn:outputSet id="lint_generated_org_output_set">
+          <bpmn:dataOutputRefs>lint_generated_org_output_lintGeneratedOrg</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>lint_generated_org_output_lintGeneratedOrg</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.lintGeneratedOrg</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="bounded_implementation">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="bounded_implementation_output_boundedImplementation" name="boundedImplementation" />
+        <bpmn:outputSet id="bounded_implementation_output_set">
+          <bpmn:dataOutputRefs>bounded_implementation_output_boundedImplementation</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>bounded_implementation_output_boundedImplementation</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.boundedImplementation</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="record_evidence">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="record_evidence_output_recordEvidence" name="recordEvidence" />
+        <bpmn:outputSet id="record_evidence_output_set">
+          <bpmn:dataOutputRefs>record_evidence_output_recordEvidence</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>record_evidence_output_recordEvidence</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.recordEvidence</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="lint_generated_surface">
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="lint_generated_surface_output_lintGeneratedSurface" name="lintGeneratedSurface" />
+        <bpmn:outputSet id="lint_generated_surface_output_set">
+          <bpmn:dataOutputRefs>lint_generated_surface_output_lintGeneratedSurface</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>lint_generated_surface_output_lintGeneratedSurface</bpmn:sourceRef>
+        <bpmn:targetRef>flowhub.lintGeneratedSurface</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start_resolve" sourceRef="start" targetRef="resolve_project" />
+    <bpmn:sequenceFlow id="flow_resolve_validate" sourceRef="resolve_project" targetRef="validate_contract" />
+    <bpmn:sequenceFlow id="flow_validate_materialize_sdd" sourceRef="validate_contract" targetRef="materialize_sdd" />
+    <bpmn:sequenceFlow id="flow_materialize_sdd_org_task" sourceRef="materialize_sdd" targetRef="materialize_org_task" />
+    <bpmn:sequenceFlow id="flow_materialize_org_task_execplan" sourceRef="materialize_org_task" targetRef="materialize_execplan" />
+    <bpmn:sequenceFlow id="flow_materialize_execplan_lint_org" sourceRef="materialize_execplan" targetRef="lint_generated_org" />
+    <bpmn:sequenceFlow id="flow_lint_org_implementation" sourceRef="lint_generated_org" targetRef="bounded_implementation" />
+    <bpmn:sequenceFlow id="flow_implementation_evidence" sourceRef="bounded_implementation" targetRef="record_evidence" />
+    <bpmn:sequenceFlow id="flow_evidence_lint_surface" sourceRef="record_evidence" targetRef="lint_generated_surface" />
+    <bpmn:sequenceFlow id="flow_lint_surface_done" sourceRef="lint_generated_surface" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#;
 
 fn write_wait_flowhub_pair(flowhub_root: &Path) {
     let source_root = flowhub_root.join("server");
@@ -685,12 +820,4 @@ fn write_mapped_service_boundary_bpmn(root: &Path) -> PathBuf {
 </bpmn:definitions>"#,
     );
     bpmn_path
-}
-
-fn repo_root() -> PathBuf {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    match manifest_dir.ancestors().nth(4) {
-        Some(root) => root.to_path_buf(),
-        None => panic!("workspace root should be four ancestors above xiuxian-qianji crate"),
-    }
 }

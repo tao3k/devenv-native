@@ -76,6 +76,7 @@ pub(in crate::qianji_cli::bpmn_cli::render) fn bpmn_pending_host_work_kind_label
     kind: &PendingHostWorkKind,
 ) -> &'static str {
     match kind {
+        PendingHostWorkKind::Task => "task",
         PendingHostWorkKind::Send => "send",
         PendingHostWorkKind::Service => "service",
         PendingHostWorkKind::Script => "script",
@@ -97,6 +98,7 @@ pub(in crate::qianji_cli::bpmn_cli::render) fn bpmn_event_kind_label(
         BpmnEventKind::Cancel => "cancel",
         BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",
+        BpmnEventKind::Link => "link",
         BpmnEventKind::Terminate => "terminate",
     }
 }
@@ -144,6 +146,7 @@ pub(in crate::qianji_cli::bpmn_cli::render) fn bpmn_node_kind_label(
         BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
         BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
         BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::Task => "task",
         BpmnNodeKind::SendTask => "send_task",
         BpmnNodeKind::ReceiveTask => "receive_task",
         BpmnNodeKind::ServiceTask => "service_task",

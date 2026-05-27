@@ -9,8 +9,8 @@ use xiuxian_qianji_bpmn_engine::{
     DmnDecisionDefinition, DmnDecisionRef, DmnDecisionServiceDefinition, DmnInputDataDefinition,
     DmnSourceFile, EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome,
     ManualTaskRequest, ProcessKey, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome,
-    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
-    parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, TaskOutcome, TaskRequest,
+    UserTaskOutcome, UserTaskRequest, parse_dmn_decision, parse_dmn_decisions, snapshot_dmn_source,
 };
 
 mod boundary;
@@ -29,6 +29,15 @@ mod wait;
 
 fn start_end_process() -> BpmnProcessSpec {
     start_end_process_with_id("complete")
+}
+
+fn start_only_process() -> BpmnProcessSpec {
+    BpmnProcessSpec::new(
+        ProcessKey::new("pkg_runtime", "start_only", "digest_start_only"),
+        vec![BpmnNodeSpec::new(0, "start", BpmnNodeKind::StartEvent)],
+        Vec::new(),
+        Vec::new(),
+    )
 }
 
 fn start_end_process_with_id(process_id: &str) -> BpmnProcessSpec {
@@ -1006,6 +1015,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_task(
+        &self,
+        _request: TaskRequest,
+    ) -> std::result::Result<TaskOutcome, HostBridgeError> {
+        panic!("runtime kernel should not dispatch host work in the blocking slice");
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

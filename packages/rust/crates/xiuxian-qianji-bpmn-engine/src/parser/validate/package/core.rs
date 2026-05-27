@@ -74,7 +74,7 @@ fn ensure_unique_process_id<'a>(
 fn collect_node_ids(process: &RawProcess) -> Result<HashSet<&str>> {
     let scan = scan_node_ids(process)?;
     validate_start_event_count(process, scan.start_event_count)?;
-    validate_has_end_event(process, scan.has_end_event)?;
+    validate_has_end_event(process, scan.start_event_count, scan.has_end_event)?;
     Ok(scan.node_ids)
 }
 
@@ -122,6 +122,9 @@ fn validate_start_event_count(process: &RawProcess, start_event_count: usize) ->
             owner_node_id,
             kind,
         } => {
+            if is_empty_embedded_metadata_process(process, *kind) {
+                return Ok(());
+            }
             if start_event_count != 1 {
                 return Err(BpmnEngineError::UnsupportedSubProcessConfiguration {
                     process_id: (owner_process_id.clone()).into(),
@@ -134,7 +137,20 @@ fn validate_start_event_count(process: &RawProcess, start_event_count: usize) ->
     Ok(())
 }
 
-fn validate_has_end_event(process: &RawProcess, has_end_event: bool) -> Result<()> {
+fn validate_has_end_event(
+    process: &RawProcess,
+    start_event_count: usize,
+    has_end_event: bool,
+) -> Result<()> {
+    if !has_end_event && is_top_level_start_only_process(process, start_event_count) {
+        return Ok(());
+    }
+    if !has_end_event && is_empty_embedded_metadata_shell(process) {
+        return Ok(());
+    }
+    if !has_end_event && matches!(process.scope, RawProcessScope::TopLevel) {
+        return Ok(());
+    }
     if !has_end_event {
         return Err(match &process.scope {
             RawProcessScope::TopLevel => BpmnEngineError::MissingRequiredProcessElement {
@@ -153,6 +169,33 @@ fn validate_has_end_event(process: &RawProcess, has_end_event: bool) -> Result<(
         });
     }
     Ok(())
+}
+
+fn is_top_level_start_only_process(process: &RawProcess, start_event_count: usize) -> bool {
+    matches!(process.scope, RawProcessScope::TopLevel)
+        && start_event_count == 1
+        && process.nodes.len() == 1
+        && process.flows.is_empty()
+        && process.associations.is_empty()
+}
+
+fn is_empty_embedded_metadata_shell(process: &RawProcess) -> bool {
+    match process.scope {
+        RawProcessScope::NestedShell {
+            kind: NestedShellKind::EmbeddedSubProcess,
+            ..
+        } => {
+            process.nodes.is_empty() && process.flows.is_empty() && process.associations.is_empty()
+        }
+        _ => false,
+    }
+}
+
+fn is_empty_embedded_metadata_process(process: &RawProcess, kind: NestedShellKind) -> bool {
+    kind == NestedShellKind::EmbeddedSubProcess
+        && process.nodes.is_empty()
+        && process.flows.is_empty()
+        && process.associations.is_empty()
 }
 
 fn nested_shell_start_event_detail(kind: NestedShellKind) -> &'static str {

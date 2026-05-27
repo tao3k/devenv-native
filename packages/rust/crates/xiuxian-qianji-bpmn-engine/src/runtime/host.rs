@@ -1,17 +1,21 @@
 //! Runtime helpers for host-boundary request materialization.
 
 use super::{
-    BpmnInstanceState, PendingHostWork, parallel_multi_instance_iteration_variables,
-    sequential_multi_instance_iteration_variables,
+    BpmnInstanceState, PendingHostWork, PendingHostWorkClaim,
+    parallel_multi_instance_iteration_variables, sequential_multi_instance_iteration_variables,
 };
 use crate::dmn_model_api::DmnEvaluationRequest;
 use crate::error::{BpmnEngineError, Result};
 use crate::host_types_api::{
-    BusinessRuleTaskRequest, ManualTaskRequest, ParallelMultiInstanceContext,
-    PendingHostWorkRequest, RepeatExecutionContext, ScriptTaskRequest, SendTaskRequest,
-    SequentialMultiInstanceContext, ServiceTaskRequest, UserTaskRequest,
+    BpmnHostActivityId, BpmnHostProcessId, BusinessRuleTaskRequest, ManualTaskRequest,
+    ParallelMultiInstanceContext, PendingHostWorkRequest, RepeatExecutionContext,
+    ScriptTaskRequest, SendTaskRequest, SequentialMultiInstanceContext, ServiceTaskRequest,
+    TaskRequest, UserTaskRequest,
 };
-use crate::ir_node_api::{BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding};
+use crate::ir_node_api::{
+    BpmnHumanTaskAssignmentSpec, BpmnHumanTaskFormSpec, BpmnLaneMembershipSpec,
+    BpmnTaskInputSource, BpmnTaskIoSpec, BpmnTaskOutputBinding,
+};
 use serde_json::{Map, Value};
 
 /// Builds a typed host-dispatch request from the currently blocked BPMN
@@ -65,106 +69,122 @@ fn build_pending_host_work_request_for_entry(
     instance: &BpmnInstanceState,
     pending: &PendingHostWork,
 ) -> Result<PendingHostWorkRequest> {
-    let instance_id = instance.instance_id.to_string();
-    let token_id = pending.token_id;
-    let node_index = pending.node_index;
-    let process_id = pending
-        .process_id
-        .as_deref()
-        .unwrap_or(instance.process.process_id.as_ref())
-        .to_string();
-    let activity_id = pending
-        .activity_id
-        .clone()
-        .unwrap_or_else(|| format!("node#{node_index}").into());
-    let form = pending.human_task_form.clone();
-    let assignment = pending.human_task_assignment.clone();
-    let lane = pending.lane.clone();
-    let claim = pending.claim.clone();
-    let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
-    let inputs = resolve_task_inputs(pending, &variables)?;
-    let output_bindings = task_output_bindings(pending);
+    let envelope = build_host_task_request_envelope(instance, pending)?;
 
     Ok(match pending.kind {
+        super::PendingHostWorkKind::Task => PendingHostWorkRequest::Task(TaskRequest {
+            instance_id: envelope.instance_id.into(),
+            process_id: envelope.process_id,
+            token_id: envelope.token_id.into(),
+            node_index: envelope.node_index,
+            activity_id: envelope.activity_id,
+            variables: envelope.variables,
+            inputs: envelope.inputs,
+            output_bindings: envelope.output_bindings,
+            repeat: envelope.repeat,
+            lane: envelope.lane,
+        }),
         super::PendingHostWorkKind::Send => PendingHostWorkRequest::Send(SendTaskRequest {
-            instance_id,
-            token_id,
-            node_index,
+            instance_id: envelope.instance_id,
+            token_id: envelope.token_id,
+            node_index: envelope.node_index,
             message_reference: pending.event_reference.clone().ok_or(
                 BpmnEngineError::UnsupportedOperation {
                     operation: "build_pending_send_task_request_missing_message_reference",
                 },
             )?,
             message_name: pending.event_name.clone(),
-            variables,
-            inputs,
-            output_bindings,
+            variables: envelope.variables,
+            inputs: envelope.inputs,
+            output_bindings: envelope.output_bindings,
         }),
         super::PendingHostWorkKind::Service => {
             PendingHostWorkRequest::Service(ServiceTaskRequest {
-                instance_id,
-                token_id,
-                node_index,
-                variables,
-                inputs,
-                output_bindings,
-                repeat,
+                instance_id: envelope.instance_id,
+                token_id: envelope.token_id,
+                node_index: envelope.node_index,
+                variables: envelope.variables,
+                inputs: envelope.inputs,
+                output_bindings: envelope.output_bindings,
+                repeat: envelope.repeat,
             })
         }
         super::PendingHostWorkKind::Script => PendingHostWorkRequest::Script(ScriptTaskRequest {
-            instance_id,
-            token_id,
-            node_index,
+            instance_id: envelope.instance_id,
+            token_id: envelope.token_id,
+            node_index: envelope.node_index,
             script_format: pending.script_format.clone(),
             script_body: pending.script_body.clone(),
-            variables,
-            inputs,
-            output_bindings,
-            repeat,
+            variables: envelope.variables,
+            inputs: envelope.inputs,
+            output_bindings: envelope.output_bindings,
+            repeat: envelope.repeat,
         }),
         super::PendingHostWorkKind::User => PendingHostWorkRequest::User(UserTaskRequest {
-            instance_id: instance_id.into(),
-            process_id: process_id.into(),
-            token_id: token_id.into(),
-            node_index,
-            activity_id,
-            variables,
-            inputs,
-            output_bindings,
-            repeat,
-            lane,
-            form,
-            assignment,
-            claim,
+            instance_id: envelope.instance_id.into(),
+            process_id: envelope.process_id,
+            token_id: envelope.token_id.into(),
+            node_index: envelope.node_index,
+            activity_id: envelope.activity_id,
+            variables: envelope.variables,
+            inputs: envelope.inputs,
+            output_bindings: envelope.output_bindings,
+            repeat: envelope.repeat,
+            lane: envelope.lane,
+            form: envelope.form,
+            assignment: envelope.assignment,
+            claim: envelope.claim,
         }),
         super::PendingHostWorkKind::Manual => PendingHostWorkRequest::Manual(ManualTaskRequest {
-            instance_id: instance_id.into(),
-            process_id: process_id.into(),
-            token_id: token_id.into(),
-            node_index,
-            activity_id,
-            variables,
-            inputs,
-            output_bindings,
-            repeat,
-            lane,
-            form,
-            assignment,
-            claim,
+            instance_id: envelope.instance_id.into(),
+            process_id: envelope.process_id,
+            token_id: envelope.token_id.into(),
+            node_index: envelope.node_index,
+            activity_id: envelope.activity_id,
+            variables: envelope.variables,
+            inputs: envelope.inputs,
+            output_bindings: envelope.output_bindings,
+            repeat: envelope.repeat,
+            lane: envelope.lane,
+            form: envelope.form,
+            assignment: envelope.assignment,
+            claim: envelope.claim,
         }),
-        super::PendingHostWorkKind::BusinessRule => build_business_rule_task_request(
-            instance,
-            pending,
-            HostTaskRequestEnvelope {
-                instance_id,
-                token_id,
-                node_index,
-                variables,
-                inputs,
-                output_bindings,
-                repeat,
-            },
-        )?,
+        super::PendingHostWorkKind::BusinessRule => {
+            build_business_rule_task_request(instance, pending, envelope)?
+        }
+    })
+}
+
+fn build_host_task_request_envelope(
+    instance: &BpmnInstanceState,
+    pending: &PendingHostWork,
+) -> Result<HostTaskRequestEnvelope> {
+    let node_index = pending.node_index;
+    let process_id = pending
+        .process_id
+        .clone()
+        .unwrap_or_else(|| instance.process.process_id.as_ref().to_string().into());
+    let activity_id = pending
+        .activity_id
+        .clone()
+        .unwrap_or_else(|| format!("node#{node_index}").into());
+    let (variables, repeat) = resolve_pending_host_work_execution_context(instance, pending)?;
+    let inputs = resolve_task_inputs(pending, &variables)?;
+    Ok(HostTaskRequestEnvelope {
+        instance_id: instance.instance_id.to_string(),
+        process_id,
+        token_id: pending.token_id,
+        node_index,
+        activity_id,
+        variables,
+        inputs,
+        output_bindings: task_output_bindings(pending),
+        repeat,
+        lane: pending.lane.clone(),
+        form: pending.human_task_form.clone(),
+        assignment: pending.human_task_assignment.clone(),
+        claim: pending.claim.clone(),
     })
 }
 
@@ -224,12 +244,18 @@ fn resolve_pending_host_work_execution_context(
 
 struct HostTaskRequestEnvelope {
     instance_id: String,
+    process_id: BpmnHostProcessId,
     token_id: u64,
     node_index: u32,
+    activity_id: BpmnHostActivityId,
     variables: Value,
     inputs: Value,
     output_bindings: Vec<BpmnTaskOutputBinding>,
     repeat: Option<RepeatExecutionContext>,
+    lane: Option<BpmnLaneMembershipSpec>,
+    form: Option<BpmnHumanTaskFormSpec>,
+    assignment: Option<BpmnHumanTaskAssignmentSpec>,
+    claim: Option<PendingHostWorkClaim>,
 }
 
 fn build_business_rule_task_request(

@@ -25,7 +25,8 @@ pub(super) use super::di_reference::diagram_reference_issue;
 pub(super) use super::di_required::diagram_required_attribute_issue;
 pub(super) use super::di_topology::diagram_topology_issue;
 pub(super) use super::issue::{
-    flow_element_metadata_issue, issue_for_tag, resource_role_metadata_issue,
+    flow_element_metadata_issue, io_set_lifecycle_issue, issue_for_tag,
+    resource_role_metadata_issue,
 };
 pub(super) use super::metadata::{
     flow_element_metadata_summary, process_callable_summary, resource_role_summary,

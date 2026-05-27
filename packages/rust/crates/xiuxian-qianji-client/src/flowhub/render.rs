@@ -57,7 +57,7 @@ fn render_markdown(input: &RenderInput, passed: bool) -> String {
         input.cache_agent_root.display()
     );
     let flowhub_contract = input.flowhub_root.as_deref().map_or_else(
-        || "embedded agent-coding contract".to_string(),
+        || "not configured".to_string(),
         |path| path.display().to_string(),
     );
     let _ = writeln!(rendered, "- Flowhub contract: {flowhub_contract}");

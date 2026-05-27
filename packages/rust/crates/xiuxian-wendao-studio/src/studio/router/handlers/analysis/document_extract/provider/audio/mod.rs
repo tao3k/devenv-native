@@ -9,7 +9,10 @@ mod speech;
 
 pub(crate) use capacity::AudioShardCapacityController;
 #[cfg(test)]
-pub(super) use config::{audio_worker_budget_with_lookup, document_extract_audio_config};
+pub(crate) use config::{
+    AudioDocumentExtractConfig, audio_worker_budget_with_lookup, document_extract_audio_config,
+    document_extract_audio_config_with_model_routing,
+};
 #[cfg(test)]
 pub(super) use plan::{build_full_coverage_audio_plan, parse_ffprobe_duration_ms};
 #[cfg(test)]

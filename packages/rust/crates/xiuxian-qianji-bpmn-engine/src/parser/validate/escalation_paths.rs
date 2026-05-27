@@ -63,6 +63,9 @@ pub(in crate::parser) fn validate_supported_escalation_throw_paths(
 
     let owner_requirements = resolve_supported_escalation_owners(process, call_activity_owners);
     if owner_requirements.is_empty() {
+        if matches!(process.scope, RawProcessScope::TopLevel) {
+            return Ok(());
+        }
         return Err(BpmnEngineError::UnsupportedEventConfiguration {
             process_id: (process.process_id.clone()).into(),
             node_id: (escalation_throw_nodes[0].bpmn_id.clone()).into(),

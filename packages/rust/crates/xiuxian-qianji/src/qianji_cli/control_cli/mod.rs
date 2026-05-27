@@ -30,17 +30,18 @@ mod run;
 mod run_create;
 mod types;
 
-#[cfg(test)]
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 pub(crate) use activity_args::ActivitySettleOutcomeArg;
 #[cfg(test)]
 pub(crate) use activity_claim::{WorkerActivityClaimStoreRequest, claim_with_hot_state};
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) use activity_executor::ActivityExecutorKindArg;
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 pub(crate) use activity_executor::ActivityExecutorOutcome;
 #[cfg(test)]
-pub(crate) use activity_executor::{
-    ActivityExecutionRequest, ActivityExecutorAdapterKind, ActivityExecutorKindArg,
-    ActivityExecutorRegistry,
-};
+pub(crate) use activity_executor::ActivityExecutorRegistry;
+#[cfg(test)]
+pub(crate) use activity_executor::{ActivityExecutionRequest, ActivityExecutorAdapterKind};
 #[cfg(test)]
 pub(crate) use activity_mirror::{WorkerActivityMirrorStoreRequest, mirror_with_hot_state};
 #[cfg(test)]
@@ -52,7 +53,11 @@ pub(crate) use activity_settle::{WorkerActivitySettleStoreRequest, settle_with_h
 #[cfg(test)]
 pub(crate) use activity_take::{WorkerActivityTakeStoreRequest, take_with_hot_state};
 #[cfg(test)]
-pub(crate) use activity_worker_loop::{ActivityWorkerLoopStoreRequest, worker_loop_with_hot_state};
+pub(crate) use activity_worker_loop::worker_loop_with_hot_state;
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) use activity_worker_loop::{
+    ActivityWorkerLoopStoreRequest, worker_loop_output_with_hot_state,
+};
 #[cfg(test)]
 pub(crate) use activity_worker_once::{ActivityWorkerOnceStoreRequest, worker_once_with_hot_state};
 #[cfg(test)]

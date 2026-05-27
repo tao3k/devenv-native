@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(crate) struct RawTaskIoSpec {
     pub(crate) declarations: Vec<RawTaskIoDeclaration>,
+    pub(crate) property_ids: Vec<String>,
     pub(crate) inputs: Vec<RawTaskInputBinding>,
     pub(crate) outputs: Vec<RawTaskOutputBinding>,
     pub(crate) active_association: Option<RawTaskIoAssociation>,

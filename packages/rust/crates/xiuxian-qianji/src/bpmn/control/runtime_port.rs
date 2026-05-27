@@ -96,6 +96,7 @@ fn runtime_completion_kind(
     kind: QianjiRuntimeWorkflowTaskCompletionKind,
 ) -> QianjiBpmnWorkflowTaskCompletionKind {
     match kind {
+        QianjiRuntimeWorkflowTaskCompletionKind::Task => QianjiBpmnWorkflowTaskCompletionKind::Task,
         QianjiRuntimeWorkflowTaskCompletionKind::Send => QianjiBpmnWorkflowTaskCompletionKind::Send,
         QianjiRuntimeWorkflowTaskCompletionKind::Service => {
             QianjiBpmnWorkflowTaskCompletionKind::Service

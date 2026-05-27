@@ -3,7 +3,9 @@
 use std::collections::HashMap;
 use xiuxian_llm::llm::{
     LlmProviderProfileInput, LlmRuntimeDefaults, LlmRuntimeProfileEnv, LlmRuntimeProfileInput,
-    OpenAIWireApi, resolve_openai_runtime_profile, runtime_profile_env_with_model_decision,
+    OpenAIWireApi, llm_runtime_profile_input_from_toml_config,
+    llm_runtime_profile_system_default_config, llm_runtime_profile_toml_config_from_str,
+    resolve_openai_runtime_profile, runtime_profile_env_with_model_decision,
 };
 use xiuxian_llm::model_routing::WendaoModelDecision;
 
@@ -61,6 +63,75 @@ fn runtime_profile_resolves_default_provider_and_responses_wire() {
     assert_eq!(resolved.api_key_env, "CRS_OAI_KEY");
     assert_eq!(resolved.api_key, "crs-secret");
     assert_eq!(resolved.wire_api, OpenAIWireApi::Responses);
+}
+
+#[test]
+fn runtime_profile_system_defaults_use_direct_deepseek_provider() {
+    let config =
+        llm_runtime_profile_system_default_config().expect("source LLM defaults should parse");
+    assert_eq!(config.backend.as_deref(), Some("litellm"));
+    assert_eq!(config.default_provider.as_deref(), Some("deepseek"));
+    assert_eq!(config.default_model.as_deref(), Some("deepseek-chat"));
+    assert!(config.providers.contains_key("deepseek"));
+    assert!(config.providers.contains_key("openrouter"));
+    assert!(config.providers.contains_key("local_openai"));
+
+    let profile = llm_runtime_profile_input_from_toml_config(config);
+    let env = LlmRuntimeProfileEnv {
+        env_vars: vec![(
+            "DEEPSEEK_API_KEY".to_string(),
+            "deepseek-secret".to_string(),
+        )],
+        ..LlmRuntimeProfileEnv::default()
+    };
+    let resolved = resolve_openai_runtime_profile(&profile, &env, &LlmRuntimeDefaults::default())
+        .expect("DeepSeek provider should resolve from source defaults");
+
+    assert_eq!(resolved.provider_name, "deepseek");
+    assert_eq!(resolved.model, "deepseek-chat");
+    assert_eq!(resolved.base_url, "https://api.deepseek.com/v1");
+    assert_eq!(resolved.api_key_env, "DEEPSEEK_API_KEY");
+    assert_eq!(resolved.wire_api, OpenAIWireApi::ChatCompletions);
+}
+
+#[test]
+fn runtime_profile_project_toml_can_select_openrouter_provider() {
+    let toml = r#"
+        [llm]
+        backend = "litellm"
+        default_provider = "openrouter"
+        default_model = "deepseek/deepseek-v4-pro"
+        wire_api = "chat_completions"
+
+        [llm.providers.openrouter]
+        model = "deepseek/deepseek-v4-pro"
+        base_url = "https://openrouter.ai/api/v1"
+        api_key_env = "OPENROUTER_API_KEY"
+        wire_api = "chat_completions"
+    "#;
+
+    let config = llm_runtime_profile_toml_config_from_str(toml)
+        .expect("wendao.toml LLM config should parse");
+    assert_eq!(config.backend.as_deref(), Some("litellm"));
+    assert_eq!(config.default_provider.as_deref(), Some("openrouter"));
+    assert!(config.providers.contains_key("deepseek"));
+
+    let profile = llm_runtime_profile_input_from_toml_config(config);
+    let env = LlmRuntimeProfileEnv {
+        env_vars: vec![(
+            "OPENROUTER_API_KEY".to_string(),
+            "openrouter-secret".to_string(),
+        )],
+        ..LlmRuntimeProfileEnv::default()
+    };
+    let resolved = resolve_openai_runtime_profile(&profile, &env, &LlmRuntimeDefaults::default())
+        .expect("OpenRouter provider should resolve from wendao.toml");
+
+    assert_eq!(resolved.provider_name, "openrouter");
+    assert_eq!(resolved.model, "deepseek/deepseek-v4-pro");
+    assert_eq!(resolved.base_url, "https://openrouter.ai/api/v1");
+    assert_eq!(resolved.api_key_env, "OPENROUTER_API_KEY");
+    assert_eq!(resolved.wire_api, OpenAIWireApi::ChatCompletions);
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! BPMN DI reference audit for metadata-only diagram interchange surfaces.
+//! BPMN DI reference audit for native diagram interchange surfaces.
 
 mod api;
 mod local;

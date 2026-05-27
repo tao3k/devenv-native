@@ -2,9 +2,9 @@ use std::error::Error;
 
 use xiuxian_qianji_control::{
     ControlEventKind, ControlLedger, InMemoryControlLedger, RunCreatedJournalRecord, RunId,
-    RunStatus, StepCreatedJournalRecord, StepId, StepStartedJournalRecord, StepStatus,
-    StepTerminalJournalRecord, StepToolCallJournalRecord, record_run_created, record_step_created,
-    record_step_started, record_step_terminal, record_step_tool_call,
+    RunStatus, StepCreatedJournalRecord, StepFailureJournalInput, StepId, StepStartedJournalRecord,
+    StepStatus, StepTerminalJournalRecord, StepToolCallJournalRecord, record_run_created,
+    record_step_created, record_step_started, record_step_terminal, record_step_tool_call,
 };
 
 #[test]
@@ -66,9 +66,7 @@ fn step_lifecycle_journal_records_terminal_statuses() -> Result<(), Box<dyn Erro
     let failed = StepTerminalJournalRecord::failed(
         RunId::new("step-lifecycle-failed")?,
         StepId::new("failed")?,
-        "failed_code",
-        "failed",
-        false,
+        StepFailureJournalInput::new("failed_code", "failed", false),
         22,
     )
     .into_event();

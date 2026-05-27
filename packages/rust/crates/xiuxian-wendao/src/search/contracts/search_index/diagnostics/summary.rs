@@ -5,8 +5,9 @@ use super::decode::{
     decode_status_reason_summary, decode_status_rollup,
 };
 use super::relations::{
-    query_telemetry_relation, repo_read_pressure_relation, status_reason_relation,
-    status_snapshot_relation,
+    QUERY_TELEMETRY_DIAGNOSTICS_TABLE, REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
+    STATUS_DIAGNOSTICS_TABLE, STATUS_REASON_DIAGNOSTICS_TABLE, query_telemetry_relation,
+    repo_read_pressure_relation, status_reason_relation, status_snapshot_relation,
 };
 use super::sql::{
     QUERY_TELEMETRY_SCOPE_SQL, QUERY_TELEMETRY_SUMMARY_SQL, REPO_READ_PRESSURE_SUMMARY_SQL,
@@ -21,11 +22,6 @@ use crate::duckdb::{
 use crate::duckdb::{DuckDbLocalRelationEngine, resolve_search_duckdb_runtime};
 use crate::search::SearchPlaneStatusSnapshot;
 use crate::search::contracts::search_index::definitions as search_index;
-
-const STATUS_DIAGNOSTICS_TABLE: &str = "status_rollup_rows";
-const STATUS_REASON_DIAGNOSTICS_TABLE: &str = "status_reason_rows";
-const QUERY_TELEMETRY_DIAGNOSTICS_TABLE: &str = "query_telemetry_rows";
-const REPO_READ_PRESSURE_DIAGNOSTICS_TABLE: &str = "repo_read_pressure_rows";
 
 pub(crate) struct SearchIndexDiagnosticsSummary {
     pub(crate) rollup: SearchIndexDiagnosticsRollup,

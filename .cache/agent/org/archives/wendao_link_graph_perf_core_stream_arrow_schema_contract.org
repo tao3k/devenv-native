@@ -1,0 +1,76 @@
+#+TITLE: Wendao Link Graph Perf Core Stream Arrow Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:wendao:link-graph:perf:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao link-graph perf core-stream Arrow schema contract :agent:
+:PROPERTIES:
+:ID: B271FAA8-1C3A-4D6F-B89F-5926628D3BF2
+:SDD: .cache/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao/README.md
+:PACKAGE: packages/rust/crates/xiuxian-wendao
+:SLICE: wendao-link-graph-perf-core-stream-arrow-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archived after link-graph performance core-stream Arrow schemas moved to db-store ArrowSchemaContract helpers and targeted validation passed.
+:GRAPH: flowchart LR;T["task:B271FAA8-1C3A-4D6F-B89F-5926628D3BF2"]-->S["sdd:db-store-arrow-schema-contract"];T-->P["xiuxian-wendao:link-graph-perf-core-streams"]
+:EVIDENCE: targeted link-graph perf-support tests, targeted performance-feature Wendao clippy, fmt check, README hidden-path scan, Org lint, SDD status
+:END:
+SCHEDULED: <2026-05-26 Tue>
+CLOSED: [2026-05-26 Tue 18:08]
+
+- [x] Scope and recovery anchor confirmed.
+- [x] RTK command policy confirmed.
+- [x] Task-local research complete.
+- [x] Implementation complete.
+- [x] Validation complete.
+- [x] Related package or canonical docs synced or explicitly judged unchanged.
+- [x] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+The link-graph local DuckDB cache performance gate emits Arrow IPC core streams
+for document, edge, and alias rows. This slice moves those performance-probe
+schemas into db-store Arrow schema contracts and validates decoded IPC payloads
+against the same contracts. Link-graph indexing, cache identity, and benchmark
+budgets remain unchanged.
+
+** Validation
+
+- [x] Targeted link-graph perf-support tests pass.
+- [x] Targeted Wendao fmt/check or clippy scope passes.
+- [x] Package docs and hidden-path scan pass.
+- [x] Tracking surfaces pass Org lint and SDD status.
+
+** Evidence
+
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao --features performance link_graph_arrow_core_stream`
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao --check`
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao/README.md`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao --features performance --all-targets -- -D warnings`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize lint --format compact .cache/agent/org/archives/wendao_link_graph_perf_core_stream_arrow_schema_contract.org`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize sdd status .cache/agent/sdd/db_store_arrow_schema_contract.org`
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao/README.md
+- Updated: link-graph Arrow core-stream performance probes now document the
+  shared db-store `ArrowSchemaContract` helper.
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Yes; the SDD scenario, gate, and evidence log were updated for the link-graph perf core-stream slice. |
+| Did the task meet its expected outcome and validation target? | Yes; feature-gated schema metadata and roundtrip tests, performance-feature clippy, fmt, docs scan, Org lint, and SDD status passed. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; only link-graph performance core-stream schema construction and IPC validation moved to db-store ArrowSchema contracts. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated packages/rust/crates/xiuxian-wendao/README.md. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; performance core-stream contract helpers are scoped to link_graph::perf_support. |
+| Does this task improve future task-probe, orgid-show, SDD graph, or agent recovery understanding? | Yes; the task records the package, SDD, slice, and exact validation evidence. |
+| What should the next agent query, verify, or avoid? | Query db-store ArrowSchema adoption, verify the next concrete Arrow IPC or relation owner, and avoid replacing domain-owned Lance index schemas. |
+
+** Recovery
+
+Use `wendao-link-graph-perf-core-stream-arrow-schema-contract` as the
+task-local recovery anchor.

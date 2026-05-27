@@ -19,6 +19,7 @@ pub mod model_routing;
 /// Model-slot execution runtime and bus primitives.
 #[path = "runtime/mod.rs"]
 pub mod model_runtime;
+mod resource;
 #[doc(hidden)]
 pub mod test_support;
 /// Web crawling helpers used by LLM-facing retrieval flows.

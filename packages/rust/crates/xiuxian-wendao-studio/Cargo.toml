@@ -17,6 +17,7 @@ studio = [
   "flight-transport",
   "local-runtime",
   "dep:xiuxian-llm",
+  "xiuxian-llm/provider-litellm",
 ]
 zhenfa-router = [
   "studio",

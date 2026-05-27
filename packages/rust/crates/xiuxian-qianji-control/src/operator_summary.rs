@@ -64,14 +64,14 @@ impl RunOperatorSummary {
         let event_count = records.len();
         let view = replay_run_view(records.to_owned())?;
         let recovery = RunRecoverySnapshot::from_view(view.recovery_view(observed_at_ms)?);
-        Self::from_parts(
+        Ok(Self::from_parts(
             run_id,
             event_count,
             records,
             &view,
             observed_at_ms,
             recovery.summary,
-        )
+        ))
     }
 
     fn from_parts(
@@ -81,7 +81,7 @@ impl RunOperatorSummary {
         view: &RunView,
         observed_at_ms: u64,
         recovery: RunRecoveryPlanSummary,
-    ) -> ControlResult<Self> {
+    ) -> Self {
         let activities = ActivityQueueProjection::from_view(view, None).summary;
         let timers = TimerInventoryProjection::from_view(view).summary;
         let signals = SignalInventoryProjection::from_records(run_id.clone(), records).summary;
@@ -92,7 +92,7 @@ impl RunOperatorSummary {
             .filter(|step| step.active_lease.is_some())
             .count();
 
-        Ok(Self {
+        Self {
             run_id,
             observed_at_ms,
             event_count,
@@ -105,7 +105,7 @@ impl RunOperatorSummary {
             signals,
             costs,
             recovery,
-        })
+        }
     }
 }
 
@@ -131,7 +131,7 @@ impl RunOperatorDiagnostics {
             &view,
             observed_at_ms,
             recovery.summary.clone(),
-        )?;
+        );
         Ok(Self {
             run_id,
             observed_at_ms,

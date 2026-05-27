@@ -51,7 +51,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_enum_issue(
         format!(
             "Source '{source_id}' contains BPMN DI enum-valued attributes outside the standard BPMNDI schema values."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but enum-valued diagram attributes must stay inside the standard BPMNDI vocabulary so interchange tools can round-trip them.",
+        "Native BPMN DI preserves standard diagram interchange, and enum-valued diagram attributes must stay inside the standard BPMNDI vocabulary so interchange tools can round-trip them.",
         vec![
             format!(
                 "Use one of `{}` for `BPMNShape` `participantBandKind`.",

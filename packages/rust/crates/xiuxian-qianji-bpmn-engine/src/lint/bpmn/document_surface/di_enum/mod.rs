@@ -1,4 +1,4 @@
-//! BPMN DI enum-value audit for metadata-only diagram surfaces.
+//! BPMN DI enum-value audit for native diagram interchange surfaces.
 
 mod api;
 mod model;

@@ -40,7 +40,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_completeness_issue(
         format!(
             "Source '{source_id}' contains BPMN DI elements without the minimum layout payload needed for stable interchange."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but shapes, edges, and label styles should carry their direct interchange payloads so editors can round-trip the diagram without deriving runtime behavior from coordinates or labels.",
+        "Native BPMN DI preserves standard diagram interchange, and shapes, edges, and label styles should carry their direct interchange payloads so editors can round-trip the diagram without deriving runtime behavior from coordinates or labels.",
         vec![
             "Add direct `dc:Bounds` metadata to every BPMN DI `BPMNShape`.".to_string(),
             "Add at least two direct `di:waypoint` entries to every BPMN DI `BPMNEdge`.".to_string(),

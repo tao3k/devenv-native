@@ -43,6 +43,9 @@ pub(super) fn advance_gateway(
             )?;
             Ok(None)
         }
+        BpmnGatewayKind::Complex => Err(BpmnEngineError::UnsupportedOperation {
+            operation: "advance_instance_complex_gateway",
+        }),
     }
 }
 

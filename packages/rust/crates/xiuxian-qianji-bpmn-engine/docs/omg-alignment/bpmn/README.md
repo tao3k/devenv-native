@@ -43,8 +43,8 @@ The current package owns bounded support for:
   `dataInputAssociation`, and `dataOutputAssociation` mappings
 - bounded process-level data-object copy-in/copy-out through standard task
   data associations
-- explicit data-store binding diagnostics that keep `dataStoreReference`
-  persistence out of executable task IO until a storage policy exists
+- native `dataStore` and `dataStoreReference` metadata preservation, while
+  leaving actual persistent storage execution to a future policy-bound slice
 - a Rust-owned callable registry for process/global-task metadata, callable
   IO metadata, and existing same-package process-target callActivity bindings
 - explicit global-task callActivity diagnostics that keep top-level

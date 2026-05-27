@@ -93,7 +93,7 @@
 //! mutations, and route through every matching parent error boundary
 //! including one catch-all boundary, while normal completion and either
 //! supported interrupting winner cancel the non-selected sibling boundaries,
-//! plus bounded `standardLoopCharacteristics` on one serviceTask,
+//! plus bounded `standardLoopCharacteristics` on one task, serviceTask,
 //! userTask, manualTask, or businessRuleTask, plus bounded
 //! sequential `multiInstanceLoopCharacteristics isSequential="true"` plus
 //! bounded parallel `multiInstanceLoopCharacteristics` with omitted or
@@ -302,12 +302,12 @@ pub use facade::{
     PendingHumanTaskReleaseOutcome, PendingHumanTaskReleaseRequest, ProcessKey,
     RepeatExecutionContext, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
     SequentialMultiInstanceContext, SequentialMultiInstanceState, ServiceTaskOutcome,
-    ServiceTaskRequest, StandardLoopState, SuspendReason, TokenRecord, UserTaskOutcome,
-    UserTaskRequest, WaitKind, WaitRegistration, advance_instance, apply_event_poll_outcome,
-    apply_pending_host_work_result, bpmn_conformance_registry, build_event_poll_request,
-    build_pending_host_work_request, build_pending_host_work_requests, claim_pending_human_task,
-    collect_frontier_proposals, create_instance, decode_checkpoint_json, encode_checkpoint_json,
-    evaluate_dmn_decision, lease_key, lint_bpmn_source, lint_dmn_source,
+    ServiceTaskRequest, StandardLoopState, SuspendReason, TaskOutcome, TaskRequest, TokenRecord,
+    UserTaskOutcome, UserTaskRequest, WaitKind, WaitRegistration, advance_instance,
+    apply_event_poll_outcome, apply_pending_host_work_result, bpmn_conformance_registry,
+    build_event_poll_request, build_pending_host_work_request, build_pending_host_work_requests,
+    claim_pending_human_task, collect_frontier_proposals, create_instance, decode_checkpoint_json,
+    encode_checkpoint_json, evaluate_dmn_decision, lease_key, lint_bpmn_source, lint_dmn_source,
     merge_frontier_execution_steps, parse_bpmn_bundle, parse_bpmn_package, parse_dmn_decision,
     parse_dmn_decisions, parse_gateway_condition_summary, plan_frontier_step, reduce_frontier_plan,
     release_pending_human_task, snapshot_bpmn_source, snapshot_dmn_source, snapshot_frontier,

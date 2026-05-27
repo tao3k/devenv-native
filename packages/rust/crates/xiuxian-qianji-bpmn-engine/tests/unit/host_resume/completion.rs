@@ -4,9 +4,21 @@ use std::sync::Arc;
 use xiuxian_qianji_bpmn_engine::{
     BpmnHumanTaskLifecycleEventKind, BpmnNodeKind, BpmnPackage, BusinessRuleTaskOutcome,
     DmnEvaluationResult, ManualTaskOutcome, PendingHostWorkKind, PendingHostWorkResult,
-    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, UserTaskOutcome,
+    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, TaskOutcome, UserTaskOutcome,
     claim_pending_human_task,
 };
+
+#[tokio::test(flavor = "current_thread")]
+async fn host_resume_generic_task_result_advances_and_then_completes() {
+    assert_host_resume(
+        BpmnNodeKind::Task,
+        PendingHostWorkKind::Task,
+        PendingHostWorkResult::Task(TaskOutcome {
+            data: json!({ "approved": true }),
+        }),
+    )
+    .await;
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn host_resume_send_result_advances_and_then_completes() {

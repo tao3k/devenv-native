@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use xiuxian_llm::model_routing::WendaoModelRoutingTomlConfig;
 
 /// Root configuration structure for `wendao.toml`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -11,6 +12,8 @@ pub(crate) struct WendaoTomlConfig {
     pub(crate) gateway: WendaoTomlGatewayConfig,
     #[serde(default)]
     pub(crate) document_extract: WendaoTomlDocumentExtractConfig,
+    #[serde(default)]
+    pub(crate) model_routing: WendaoModelRoutingTomlConfig,
     #[serde(default)]
     pub(crate) episteme: WendaoTomlEpistemeConfig,
     #[serde(default)]

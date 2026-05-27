@@ -11,6 +11,8 @@ use crate::ir_node_api::{
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PendingHostWorkKind {
+    /// Generic BPMN task dispatch.
+    Task,
     /// Send-task dispatch.
     Send,
     /// Service-task dispatch.

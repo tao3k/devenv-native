@@ -73,6 +73,12 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
     assert!(
         capabilities
             .iter()
+            .any(|capability| capability == "qianji.control.bpmn-source"),
+        "capabilities should include server-owned BPMN source query: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
             .any(|capability| capability == "qianji.control.history"),
         "capabilities should include control history query: {body}"
     );
@@ -100,6 +106,13 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
             .iter()
             .any(|capability| capability == "qianji.control.recovery.apply"),
         "capabilities should include control recovery apply when Valkey hot-state is compiled: {body}"
+    );
+    #[cfg(all(feature = "duckdb", feature = "valkey", feature = "qianji-full"))]
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "qianji.control.worker.openai-compatible-llm.run"),
+        "capabilities should include server LLM worker route when the full Valkey server worker is compiled: {body}"
     );
     #[cfg(not(feature = "valkey"))]
     assert!(

@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 use std::time::{Instant, SystemTime};
 
 use serde::Serialize;
+use xiuxian_llm::model_routing::WendaoModelRoutingTomlConfig;
 
 use crate::studio::symbol_index::{SymbolIndexCoordinator, timestamp_now};
 use crate::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
@@ -147,6 +148,7 @@ pub(crate) struct LocalCorpusScanCoalescingState {
 pub struct StudioState {
     pub(crate) project_root: PathBuf,
     pub(crate) config_root: PathBuf,
+    pub(crate) model_routing_config: Arc<Result<Option<WendaoModelRoutingTomlConfig>, String>>,
     pub(crate) bootstrap_background_indexing: bool,
     pub(crate) cold_start_process_started_at: String,
     pub(crate) cold_start_process_started_instant: Instant,
@@ -170,6 +172,12 @@ impl StudioState {
     #[must_use]
     pub fn search_plane_service(&self) -> SearchPlaneService {
         self.search_plane.clone()
+    }
+
+    pub(crate) fn model_routing_config(
+        &self,
+    ) -> Result<Option<WendaoModelRoutingTomlConfig>, String> {
+        (*self.model_routing_config).clone()
     }
 
     /// Returns whether bootstrap-time background indexing is enabled for this state instance.

@@ -135,7 +135,8 @@ pub(super) fn sorted_set_values(values: &BTreeSet<String>) -> Vec<String> {
 pub(super) fn is_host_task(kind: &BpmnNodeKind) -> bool {
     matches!(
         kind,
-        BpmnNodeKind::ServiceTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask
             | BpmnNodeKind::UserTask
             | BpmnNodeKind::ManualTask
@@ -160,6 +161,7 @@ pub(super) fn is_gateway(kind: Option<&BpmnGatewayKind>) -> bool {
                 | BpmnGatewayKind::Inclusive
                 | BpmnGatewayKind::Parallel
                 | BpmnGatewayKind::EventBased
+                | BpmnGatewayKind::Complex
         )
     )
 }

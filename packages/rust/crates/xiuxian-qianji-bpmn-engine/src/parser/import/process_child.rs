@@ -121,13 +121,7 @@ fn push_process_child_node(
         None
     };
     let called_process_ref = if tag == "callActivity" {
-        Some(required_attribute(
-            source,
-            reader,
-            event,
-            tag,
-            "calledElement",
-        )?)
+        attribute_value(reader, event, "calledElement")?
     } else {
         None
     };
@@ -277,6 +271,7 @@ fn supported_node_kind(tag: &str) -> Option<(BpmnNodeKind, Option<BpmnGatewayKin
         "intermediateCatchEvent" => Some((BpmnNodeKind::IntermediateCatchEvent, None)),
         "boundaryEvent" => Some((BpmnNodeKind::BoundaryEvent, None)),
         "callActivity" => Some((BpmnNodeKind::SubProcess, None)),
+        "task" => Some((BpmnNodeKind::Task, None)),
         "sendTask" => Some((BpmnNodeKind::SendTask, None)),
         "receiveTask" => Some((BpmnNodeKind::ReceiveTask, None)),
         "serviceTask" => Some((BpmnNodeKind::ServiceTask, None)),
@@ -288,6 +283,7 @@ fn supported_node_kind(tag: &str) -> Option<(BpmnNodeKind, Option<BpmnGatewayKin
         "exclusiveGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::Exclusive))),
         "inclusiveGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::Inclusive))),
         "eventBasedGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::EventBased))),
+        "complexGateway" => Some((BpmnNodeKind::Gateway, Some(BpmnGatewayKind::Complex))),
         _ => None,
     }
 }
@@ -347,8 +343,10 @@ fn is_ignored_process_child(tag: &str) -> bool {
             | "correlationSubscription"
             | "ioSpecification"
             | "ioBinding"
+            | "dataStoreReference"
             | "dataInputAssociation"
             | "dataOutputAssociation"
             | "textAnnotation"
+            | "group"
     )
 }

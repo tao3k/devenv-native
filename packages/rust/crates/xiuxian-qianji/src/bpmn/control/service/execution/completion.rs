@@ -11,7 +11,7 @@ use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::execution::QianjiBpmnExecutionFacade;
 use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHostBridge, ManualTaskOutcome, PendingHostWorkResult,
-    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, UserTaskOutcome,
+    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, TaskOutcome, UserTaskOutcome,
 };
 
 pub(crate) async fn complete_workflow_task<H: BpmnHostBridge>(
@@ -229,6 +229,9 @@ fn pending_host_work_result_from_completion(
     completion: &QianjiBpmnWorkflowTaskCompletionPayload,
 ) -> PendingHostWorkResult {
     match completion.kind {
+        QianjiBpmnWorkflowTaskCompletionKind::Task => PendingHostWorkResult::Task(TaskOutcome {
+            data: completion.data.clone(),
+        }),
         QianjiBpmnWorkflowTaskCompletionKind::Send => {
             PendingHostWorkResult::Send(SendTaskOutcome {
                 data: completion.data.clone(),

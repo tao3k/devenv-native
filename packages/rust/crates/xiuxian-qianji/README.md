@@ -233,12 +233,18 @@ that the effective Valkey checkpoint backend responds to `PING`, and
 running process. Workflow-control clients should use `/capabilities` to reject
 stale qianji-server processes before relying on recently added routes such as
 `bpmn.workflow.task.complete-batch`, `bpmn.workflow.task.fail`, or
-`bpmn.workflow.activity-evidence`, `qianji.control.history`, or
-`qianji.control.recovery.apply`.
+`bpmn.workflow.activity-evidence`, `qianji.control.bpmn-source`,
+`qianji.control.history`, `qianji.control.recovery.apply`, or
+`qianji.control.worker.openai-compatible-llm.run`.
 `--control-ledger <path>` enables an optional DuckDB-backed append-only control
-ledger for server-owned host-work ActivityTask evidence. With that ledger
-configured, `GET /control/runs/{run_id}/history` returns the in-process
-append-only event timeline for one control run, and
+ledger for server-owned BPMN execution trace and host-work ActivityTask
+evidence. With that ledger configured, `GET /control/runs/{run_id}/history`
+returns the in-process append-only event timeline for one control run, and
+`GET /control/runs/{run_id}/bpmn-source` returns the BPMN XML read by
+qianji-server from the source reference recorded on the run-created event. This
+source route is for UI canvases and inspectors that need true BPMN element ids;
+old clients may still render their own projection, but promotion-grade BPMN
+markers should bind to the server-owned XML.
 `GET /control/runs/{run_id}/summary` returns the replay-derived
 `RunOperatorSummary` projection for operators that need activity, timer,
 signal, cost, and recovery counters without parsing raw events.
@@ -394,15 +400,42 @@ object-model `targetContract` schema so the provider receives a deterministic
 review-only `ObjectType` or `LinkType` candidate contract. The contract must
 declare object-model compatibility, RDF source authority, disabled runtime
 mutation, disabled RDF mutation, and allowed object-model patch kinds. It
-performs one HTTP request with no internal retry, writes successful provider
-responses to the output artifact, and stores a canonical `episteme_review` JSON
-object after accepting either raw JSON or fenced JSON provider content.
+delegates raw OpenAI-compatible `/chat/completions` transport to
+`xiuxian-llm`, writes successful provider responses to the output artifact,
+and stores a canonical `episteme_review` JSON object after accepting either raw
+JSON or fenced JSON provider content. Qianji still owns the worker claim,
+request-audit validation, durable terminal event, and retry/failure policy;
+`xiuxian-llm` owns provider HTTP transport and wire-level response validation.
 Episteme review content must match the expected schema, fill item id, target
 ledger field group, allowed patch kind, `candidatePatchCount`, candidate
 evidence, and `rdfMutation=false` contract before completion. The durable
 completion event records only the derived claim-check, while HTTP, malformed
 response, contract, or input materialization failures are recorded as durable
 activity failures.
+BPMN host-work that should become an LLM activity is configured through
+Qianji-owned workflow/task profiles under
+`packages/rust/crates/xiuxian-qianji/resources/config/workflows/`; user
+overlays live under `workflows/` next to the user `qianji.toml`. The default
+profile is `bpmn-host-work-llm`, which maps stable BPMN pending-host identity
+to an admitted `LlmActivityTask` with `llm.plan`, `llm.openrouter`, retry,
+timeout, and prompt claim-check requirements. `qianji.toml` remains the
+server/global runtime default surface; task-level workflow routing is not
+stored in `xiuxian-llm` model-routing config.
+For server-backed execution, `qianji-server` exposes a bounded
+`run_qianji_server_openai_compatible_llm_worker_loop` facade. The facade
+mirrors replay-derived `llm.*` activities into hot state, claims leases,
+records durable start and terminal events, delegates raw provider transport to
+`xiuxian-llm`, writes deterministic response artifacts, and releases leases.
+It is intentionally explicit and finite; always-on background supervision is a
+separate server process concern rather than a task-profile or `xiuxian-llm`
+model-routing concern. When the server is built with the full Valkey worker
+features and has both a control ledger and hot-state store, the same bounded
+worker is available over
+`POST /control/runs/{run_id}/workers/openai-compatible-llm/run`. Provider
+base URL, API key, model, and wire API resolve from `qianji.toml` and process
+environment through the Qianji runtime config; the HTTP request supplies only
+worker bounds, queue selection, timestamps, timeout, and the local artifact
+output directory.
 The `flowhub-service` executor is the deterministic worker path for BPMN
 service tasks materialized from Flowhub Org+BPMN scenarios. It admits only
 `flowhub.service` tasks on `flowhub.*` queues, requires the replay-derived
@@ -665,10 +698,14 @@ supplies the run id, pending work, worker id, timestamps, and HTTP-derived
 facts, while the runtime adapter composes control-owned run creation, activity
 schedule, worker start, and terminal completion or failure helpers. When
 qianji-server starts with
-`--control-ledger <path>`, successful single-task and batch task-completion
-routes match the submitted completion ids against the checkpoint's pending host
-work through the runtime-owned `BpmnHostWorkIdentity` matcher and append the
-replayable
+`--control-ledger <path>`, workflow start, resume, poll, and task-completion
+routes project BPMN node status into the durable control run
+`bpmn.workflow.{instance_id}`. The trace projection records run creation,
+admission, plan summary, BPMN element-id step events, and terminal blocked,
+completed, or failed run status from the checkpointed workflow session.
+Successful single-task and batch task-completion routes additionally match the
+submitted completion ids against the checkpoint's pending host work through the
+runtime-owned `BpmnHostWorkIdentity` matcher and append the replayable
 `RunCreated` -> `ActivityScheduled` -> `ActivityStarted` -> `ActivityCompleted`
 chain to the control ledger. The adapter records BPMN instance, process,
 activity, token, host-work kind, input reference, and completion hash metadata
@@ -681,6 +718,9 @@ route is evidence-only: it does not complete the BPMN task, advance tokens,
 or mutate checkpoint state. `GET /control/runs/{run_id}/history` exposes that
 same durable event chain through qianji-server while the process owns the
 DuckDB ledger connection, avoiding a separate external ledger reader.
+`GET /control/runs/{run_id}/bpmn-source` exposes the BPMN XML from the
+server-recorded source reference so browser canvases can align markers with
+real BPMN ids instead of a registry projection.
 `GET /control/runs/{run_id}/summary` projects the same ledger stream into an
 operator-safe summary, including failed activity counters for recovery UI and
 subagent-runner status checks. `GET /control/runs/{run_id}/recovery` exposes

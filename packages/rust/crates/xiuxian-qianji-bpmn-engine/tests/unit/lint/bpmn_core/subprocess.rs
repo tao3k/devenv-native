@@ -16,6 +16,34 @@ fn bpmn_linter_reports_missing_called_process_with_llm_guidance() {
 }
 
 #[test]
+fn bpmn_linter_accepts_call_activity_without_called_element_as_metadata() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "metadata-call-activity-missing-called-element.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "callActivity without calledElement should lint as metadata-only: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_empty_embedded_subprocess_as_metadata() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "metadata-empty-embedded-subprocess.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "empty embedded subprocess should lint as metadata-only: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+}
+
+#[test]
 fn bpmn_linter_reports_embedded_subprocess_missing_end_with_llm_guidance() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
         "invalid-embedded-subprocess-missing-end.bpmn",

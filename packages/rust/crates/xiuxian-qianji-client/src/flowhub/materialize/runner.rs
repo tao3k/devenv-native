@@ -24,11 +24,6 @@ use super::template::{render_execplan, render_org_task, render_sdd};
 use super::types::AgentPlanSourceMetadata;
 use crate::QianjiClientError;
 
-const EMBEDDED_AGENT_CODING_ORG: &str =
-    include_str!("../../../../../../../qianji-flowhub/plan/agent-coding.org");
-const EMBEDDED_AGENT_CODING_BPMN: &str =
-    include_str!("../../../../../../../qianji-flowhub/plan/agent-coding.bpmn");
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct GeneratedFileGroup {
     slug: String,
@@ -144,40 +139,25 @@ fn source_metadata_for_scenario(
     command: &FlowhubCommand,
     scenario: &str,
 ) -> Result<AgentPlanSourceMetadata, QianjiClientError> {
-    if let Some(flowhub_root) = command.flowhub_root.as_deref() {
-        let mut diagnostics = Vec::new();
-        if let Some(source_pair) =
-            resolve_flowhub_source_pair(flowhub_root, scenario, &mut diagnostics)?
-        {
-            return Ok(AgentPlanSourceMetadata {
-                scenario_id: source_pair.scenario_id,
-                org_source: source_pair.org_source.display().to_string(),
-                org_sha256: sha256_file(&source_pair.org_source, "Flowhub Org source")?,
-                bpmn_source: source_pair.bpmn_source.display().to_string(),
-                bpmn_sha256: sha256_file(&source_pair.bpmn_source, "Flowhub BPMN source")?,
-                bpmn_process_id: source_pair.bpmn_process_id,
-            });
-        }
-    }
-
-    if scenario == "agent-coding" {
-        return Ok(AgentPlanSourceMetadata {
-            scenario_id: "agent-coding".to_string(),
-            org_source: "qianji-flowhub/plan/agent-coding.org".to_string(),
-            org_sha256: sha256_text(EMBEDDED_AGENT_CODING_ORG),
-            bpmn_source: "qianji-flowhub/plan/agent-coding.bpmn".to_string(),
-            bpmn_sha256: sha256_text(EMBEDDED_AGENT_CODING_BPMN),
-            bpmn_process_id: "agent_coding".to_string(),
-        });
-    }
-
+    let Some(flowhub_root) = command.flowhub_root.as_deref() else {
+        return Err(missing_flowhub_root_error(scenario));
+    };
+    let mut diagnostics = Vec::new();
+    let Some(source_pair) = resolve_flowhub_source_pair(flowhub_root, scenario, &mut diagnostics)?
+    else {
+        return Err(QianjiClientError::message(format!(
+            "Flowhub root `{}` has no source pair for scenario `{scenario}`{}",
+            flowhub_root.display(),
+            diagnostic_suffix(&diagnostics)
+        )));
+    };
     Ok(AgentPlanSourceMetadata {
-        scenario_id: scenario.to_string(),
-        org_source: "unresolved".to_string(),
-        org_sha256: "unresolved".to_string(),
-        bpmn_source: "unresolved".to_string(),
-        bpmn_sha256: "unresolved".to_string(),
-        bpmn_process_id: "unresolved".to_string(),
+        scenario_id: source_pair.scenario_id,
+        org_source: source_pair.org_source.display().to_string(),
+        org_sha256: sha256_file(&source_pair.org_source, "Flowhub Org source")?,
+        bpmn_source: source_pair.bpmn_source.display().to_string(),
+        bpmn_sha256: sha256_file(&source_pair.bpmn_source, "Flowhub BPMN source")?,
+        bpmn_process_id: source_pair.bpmn_process_id,
     })
 }
 
@@ -188,13 +168,7 @@ fn sha256_file(path: &Path, label: &str) -> Result<String, QianjiClientError> {
             path.display()
         ))
     })?;
-    Ok(sha256_text(&source))
-}
-
-fn sha256_text(source: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(source.as_bytes());
-    format!("{:x}", hasher.finalize())
+    Ok(format!("{:x}", Sha256::digest(source.as_bytes())))
 }
 
 fn create_agent_dirs(agent_root: &Path) -> Result<(), QianjiClientError> {
@@ -384,7 +358,7 @@ fn list_flowhub_contract(
 ) -> Result<bool, QianjiClientError> {
     let Some(flowhub_root) = flowhub_root else {
         diagnostics
-            .push("flowhub scenarios requires --flowhub-root or QIANJI_FLOWHUB_ROOT".to_string());
+            .push("flowhub scenarios require --flowhub-root or QIANJI_FLOWHUB_ROOT".to_string());
         return Ok(false);
     };
     let pairs = list_flowhub_source_pairs(flowhub_root, diagnostics)?;
@@ -446,19 +420,9 @@ fn validate_flowhub_contract(
     scenario: &str,
     diagnostics: &mut Vec<String>,
 ) -> Result<bool, QianjiClientError> {
-    if flowhub_root.is_none() && scenario != "agent-coding" {
-        diagnostics.push(format!(
-            "scenario `{scenario}` requires --flowhub-root because only `agent-coding` is embedded"
-        ));
-        return Ok(false);
-    }
-    if !embedded_agent_coding_contract_is_valid() {
-        diagnostics.push("embedded agent-coding contract is incomplete".to_string());
-        return Ok(false);
-    }
-
     let Some(flowhub_root) = flowhub_root else {
-        return Ok(true);
+        diagnostics.push(missing_flowhub_root_message(scenario));
+        return Ok(false);
     };
     let mut passed = validate_flowhub_module_policy_entries(flowhub_root, diagnostics)?;
     passed &= validate_flowhub_source_pair_contract(flowhub_root, scenario, diagnostics)?;
@@ -470,27 +434,29 @@ fn validate_flowhub_source_contract(
     scenario: &str,
     diagnostics: &mut Vec<String>,
 ) -> Result<bool, QianjiClientError> {
-    if flowhub_root.is_none() && scenario != "agent-coding" {
-        diagnostics.push(format!(
-            "scenario `{scenario}` requires --flowhub-root because only `agent-coding` is embedded"
-        ));
-        return Ok(false);
-    }
-    if !embedded_agent_coding_contract_is_valid() {
-        diagnostics.push("embedded agent-coding contract is incomplete".to_string());
-        return Ok(false);
-    }
-
     let Some(flowhub_root) = flowhub_root else {
-        return Ok(true);
+        diagnostics.push(missing_flowhub_root_message(scenario));
+        return Ok(false);
     };
     validate_flowhub_source_pair_contract(flowhub_root, scenario, diagnostics)
 }
 
-fn embedded_agent_coding_contract_is_valid() -> bool {
-    EMBEDDED_AGENT_CODING_ORG.contains(":BPMN_SOURCE: agent-coding.bpmn")
-        && EMBEDDED_AGENT_CODING_ORG.contains("#+begin_src mermaid")
-        && EMBEDDED_AGENT_CODING_BPMN.contains("agent_coding")
+fn missing_flowhub_root_error(scenario: &str) -> QianjiClientError {
+    QianjiClientError::message(missing_flowhub_root_message(scenario))
+}
+
+fn missing_flowhub_root_message(scenario: &str) -> String {
+    format!(
+        "scenario `{scenario}` requires --flowhub-root or QIANJI_FLOWHUB_ROOT; Flowhub scenarios are external repositories and are not embedded in qianji-client"
+    )
+}
+
+fn diagnostic_suffix(diagnostics: &[String]) -> String {
+    if diagnostics.is_empty() {
+        String::new()
+    } else {
+        format!(": {}", diagnostics.join("; "))
+    }
 }
 
 fn validate_generated_files(

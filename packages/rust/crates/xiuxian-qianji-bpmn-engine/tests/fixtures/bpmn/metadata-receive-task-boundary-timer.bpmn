@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_metadata_receive_task_boundary_timer"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="metadata_receive_task_boundary_timer">
+    <bpmn:startEvent id="start" />
+    <bpmn:receiveTask id="wait_message" />
+    <bpmn:boundaryEvent id="wait_timeout" attachedToRef="wait_message">
+      <bpmn:timerEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="wait_message" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="wait_message" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>

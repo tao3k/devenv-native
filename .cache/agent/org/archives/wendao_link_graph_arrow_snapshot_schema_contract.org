@@ -1,0 +1,77 @@
+#+TITLE: Wendao Link-Graph Arrow Snapshot Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:wendao:link-graph:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao link-graph Arrow snapshot schema contract :agent:
+:PROPERTIES:
+:ID: AE2B4A25-548D-433E-B285-C22668E60259
+:SDD: .cache/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao/README.md
+:PACKAGE: packages/rust/crates/xiuxian-wendao
+:SLICE: wendao-link-graph-arrow-snapshot-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archived after link-graph DuckDB-local Arrow snapshot schemas moved to db-store ArrowSchemaContract helpers and targeted validation passed.
+:GRAPH: flowchart LR;T["task:AE2B4A25-548D-433E-B285-C22668E60259"]-->S["sdd:db-store-arrow-schema-contract"];T-->P["xiuxian-wendao:link-graph-arrow-snapshot"]
+:EVIDENCE: targeted link-graph DuckDB cache tests, targeted Wendao clippy, fmt check, README hidden-path scan, Org lint, SDD status
+:END:
+SCHEDULED: <2026-05-26 Tue>
+CLOSED: [2026-05-26 Tue 17:36]
+
+- [x] Scope and recovery anchor confirmed.
+- [x] RTK command policy confirmed.
+- [x] Task-local research complete.
+- [x] Implementation complete.
+- [x] Validation complete.
+- [x] Related package or canonical docs synced or explicitly judged unchanged.
+- [x] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+Link-graph DuckDB-local cache payloads persist docs, sections, edges, and aliases
+as Arrow IPC streams. This slice moves only those snapshot table schemas into
+db-store Arrow schema contracts and keeps link-graph indexing, cache identity,
+residual JSON payloads, and schema fingerprint ownership unchanged.
+
+** Validation
+
+- [x] Link-graph DuckDB cache tests pass.
+- [x] Targeted Wendao fmt/check or clippy scope passes.
+- [x] Package docs and hidden-path scan pass.
+- [x] Tracking surfaces pass Org lint and SDD status.
+
+** Evidence
+
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao link_graph::index::build::cache::duckdb`
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao --check`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao --all-targets -- -D warnings`
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao/README.md`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize lint --format compact .cache/agent/org/archives/wendao_link_graph_arrow_snapshot_schema_contract.org`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize sdd status .cache/agent/sdd/db_store_arrow_schema_contract.org`
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao/README.md
+- Updated: link-graph local DuckDB cache docs now state that snapshot Arrow IPC
+  streams are built and decoded through db-store `ArrowSchemaContract` helpers.
+- Unchanged rationale: link-graph index semantics, cache identity, residual
+  JSON payloads, and schema fingerprint ownership are unchanged.
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Yes; the SDD scenario, gate, and evidence log were updated for the link-graph snapshot slice. |
+| Did the task meet its expected outcome and validation target? | Yes; targeted cache tests, fmt, clippy, docs scan, Org lint, and SDD status passed. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; only link-graph Arrow snapshot table schemas moved to db-store ArrowSchema contracts. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated packages/rust/crates/xiuxian-wendao/README.md. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; schema contract helpers are isolated in arrow_snapshot/schema.rs. |
+| Does this task improve future task-probe, orgid-show, SDD graph, or agent recovery understanding? | Yes; the task records the package, SDD, slice, and exact validation evidence. |
+| What should the next agent query, verify, or avoid? | Query db-store ArrowSchema adoption, verify the next concrete batch owner, and avoid changing link-graph cache fingerprint semantics without a separate migration slice. |
+
+** Recovery
+
+Use `wendao-link-graph-arrow-snapshot-schema-contract` as the task-local
+recovery anchor.

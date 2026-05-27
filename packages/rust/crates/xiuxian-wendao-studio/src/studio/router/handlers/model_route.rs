@@ -1,13 +1,16 @@
 //! Gateway model-route admission handlers.
 
-use axum::Json;
+use std::sync::Arc;
+
+use axum::{Json, extract::State};
 use serde::{Deserialize, Serialize};
 use xiuxian_llm::model_routing::{
     WendaoChatRouteConfig, WendaoChatRouteInput, WendaoModelDecision, WendaoModelRoutingMode,
-    WendaoRouteIntent, wendao_chat_model_route_decision, wendao_chat_route_config_with_lookup,
+    WendaoRouteIntent, wendao_chat_model_route_decision,
+    wendao_chat_route_config_with_model_routing_config,
 };
 
-use crate::studio::router::StudioApiError;
+use crate::studio::router::{GatewayState, StudioApiError};
 
 /// Gateway route used by UI consumers to admit chat model routing.
 pub const MODEL_ROUTE_CHAT_ROUTE: &str = "/api/model-route/chat";
@@ -44,10 +47,8 @@ pub struct ChatModelRouteResponse {
     pub model_routing_mode: &'static str,
     /// Gateway route intent sent to the routing plane.
     pub intent: WendaoRouteIntent,
-    /// Selected model decision. `None` is only possible in explicit
-    /// deterministic mode.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub decision: Option<WendaoModelDecision>,
+    /// Gateway-selected model decision.
+    pub decision: WendaoModelDecision,
 }
 
 /// Admit a chat model route through Gateway-owned routing.
@@ -57,10 +58,16 @@ pub struct ChatModelRouteResponse {
 /// Returns an admission error when routing configuration is invalid or the
 /// configured routing plane cannot produce a model decision.
 pub async fn admit_chat_route(
+    State(state): State<Arc<GatewayState>>,
     Json(payload): Json<ChatModelRouteRequest>,
 ) -> Result<Json<ChatModelRouteResponse>, StudioApiError> {
-    let config = wendao_chat_route_config_with_lookup(&env_lookup)
+    let model_routing = state
+        .studio
+        .model_routing_config()
         .map_err(|error| StudioApiError::bad_request("MODEL_ROUTE_CONFIG_INVALID", error))?;
+    let config =
+        wendao_chat_route_config_with_model_routing_config(model_routing.as_ref(), &env_lookup)
+            .map_err(|error| StudioApiError::bad_request("MODEL_ROUTE_CONFIG_INVALID", error))?;
     admit_chat_model_route_with_config(config, payload)
         .await
         .map(Json)
@@ -71,11 +78,11 @@ pub(crate) async fn admit_chat_model_route_with_config(
     request: ChatModelRouteRequest,
 ) -> Result<ChatModelRouteResponse, StudioApiError> {
     let input = WendaoChatRouteInput {
-        precision_tier: normalized_or_default(request.precision_tier, default_precision_tier()),
-        privacy_tier: normalized_or_default(request.privacy_tier, default_privacy_tier()),
+        precision_tier: normalized_or_default(&request.precision_tier, default_precision_tier()),
+        privacy_tier: normalized_or_default(&request.privacy_tier, default_privacy_tier()),
         latency_budget_ms: request.latency_budget_ms,
         evidence_profile: normalized_or_default(
-            request.evidence_profile,
+            &request.evidence_profile,
             default_evidence_profile(),
         ),
         artifact_refs: request.artifact_refs,
@@ -83,13 +90,7 @@ pub(crate) async fn admit_chat_model_route_with_config(
     let decision = wendao_chat_model_route_decision(&config, &input)
         .await
         .map_err(|error| StudioApiError::unavailable("MODEL_ROUTE_ADMISSION_FAILED", error))?;
-    let (intent, decision) = match decision {
-        Some((intent, decision)) => (intent, Some(decision)),
-        None => (
-            xiuxian_llm::model_routing::wendao_chat_route_intent(&input),
-            None,
-        ),
-    };
+    let (intent, decision) = decision;
     Ok(ChatModelRouteResponse {
         schema_version: MODEL_ROUTE_CHAT_SCHEMA,
         model_routing_mode: model_routing_mode_label(config.model_routing_mode),
@@ -109,7 +110,7 @@ fn model_routing_mode_label(mode: WendaoModelRoutingMode) -> &'static str {
     }
 }
 
-fn normalized_or_default(value: String, default: String) -> String {
+fn normalized_or_default(value: &str, default: String) -> String {
     let normalized = value.trim();
     if normalized.is_empty() {
         default

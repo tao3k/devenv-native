@@ -1,0 +1,18 @@
+[model_routing]
+mode = "deterministic"
+vllm_sr_base_url = "http://127.0.0.1:8888"
+default_provider = "deepseek"
+
+[model_routing.chat]
+model = "deepseek-chat"
+backend_profile = "openai-compatible-chat-v1"
+
+[model_routing.audio_transcript]
+provider = "openrouter"
+model = "qwen/qwen3-asr-flash-2026-02-10"
+backend_profile = "hosted-audio-transcript-v1"
+
+[model_routing.image_extract]
+provider = "openrouter"
+model = "qwen/qwen3-vl-8b-instruct"
+backend_profile = "hosted-vlm-image-extract-v1"

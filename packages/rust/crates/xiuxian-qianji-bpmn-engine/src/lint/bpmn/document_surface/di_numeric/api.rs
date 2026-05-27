@@ -35,7 +35,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_numeric_issue(
         format!(
             "Source '{source_id}' contains BPMN DI, DC, or DI numeric attributes that are not finite numeric values."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but numeric diagram attributes must remain finite numeric values so interchange tools can round-trip coordinates, resolution, and font size without non-standard coercion.",
+        "Native BPMN DI preserves standard diagram interchange, and numeric diagram attributes must remain finite numeric values so interchange tools can round-trip coordinates, resolution, and font size without non-standard coercion.",
         vec![
             "Use finite numeric values for BPMN DI, DC, and DI numeric attributes.".to_string(),
             "Check `BPMNDiagram` `resolution`.".to_string(),

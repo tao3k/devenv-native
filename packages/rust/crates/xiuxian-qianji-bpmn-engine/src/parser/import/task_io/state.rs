@@ -31,10 +31,23 @@ pub(super) fn last_node_is_task_io_owner(process: &RawProcess) -> bool {
         .is_some_and(|node| is_task_io_owner(&node.kind))
 }
 
+pub(super) fn record_task_property_id(
+    source: &BpmnSourceFile,
+    process: &mut RawProcess,
+    property_id: String,
+) -> Result<()> {
+    let io = task_io_mut(source, process)?;
+    if !io.property_ids.iter().any(|id| id == &property_id) {
+        io.property_ids.push(property_id);
+    }
+    Ok(())
+}
+
 fn is_task_io_owner(kind: &BpmnNodeKind) -> bool {
     matches!(
         kind,
-        BpmnNodeKind::SendTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::SendTask
             | BpmnNodeKind::ReceiveTask
             | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask

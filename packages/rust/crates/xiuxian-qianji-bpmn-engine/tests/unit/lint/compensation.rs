@@ -23,6 +23,18 @@ fn bpmn_linter_reports_missing_compensation_handler_marker_with_llm_guidance() {
 }
 
 #[test]
+fn bpmn_linter_accepts_standalone_compensation_boundary_as_metadata() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-compensation-boundary.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "standalone compensation boundary palette elements should lint as metadata: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+}
+
+#[test]
 fn bpmn_linter_reports_throw_compensation_end_event_with_llm_guidance() {
     let report = lint_bpmn_source(&bpmn_fixture_source("invalid-throw-compensation-end.bpmn"));
 

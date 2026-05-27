@@ -692,7 +692,8 @@ fn validate_pending_host_work_identity(
 fn start_at_node_kind_is_supported(kind: &BpmnNodeKind) -> bool {
     matches!(
         kind,
-        BpmnNodeKind::SendTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::SendTask
             | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask
             | BpmnNodeKind::UserTask
@@ -708,6 +709,7 @@ fn start_at_node_kind_label(kind: &BpmnNodeKind) -> &'static str {
         BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
         BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
         BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::Task => "task",
         BpmnNodeKind::SendTask => "send_task",
         BpmnNodeKind::ServiceTask => "service_task",
         BpmnNodeKind::ScriptTask => "script_task",

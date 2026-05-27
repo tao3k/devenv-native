@@ -92,9 +92,11 @@ fn run_template_command_renders_native_bpmn_with_standard_di() {
         .unwrap_or_else(|| panic!("BPMN template should preserve a BPMNPlane"));
     assert_eq!(plane.shapes.len(), 3);
     assert_eq!(plane.edges.len(), 2);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    assert_eq!(report.issues[0].code, "bpmn.metadata_di_surface");
+    assert!(
+        report.ok,
+        "BPMN template should lint clean with native BPMNDI: {report:?}"
+    );
+    assert!(report.issues.is_empty());
 }
 
 #[test]

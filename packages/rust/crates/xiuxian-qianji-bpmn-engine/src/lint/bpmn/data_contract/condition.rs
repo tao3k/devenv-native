@@ -3,7 +3,13 @@ use super::{GatewayConditionSummary, HashSet, parse_gateway_condition_summary};
 pub(super) fn is_task_tag(tag: &str) -> bool {
     matches!(
         tag,
-        "sendTask" | "serviceTask" | "userTask" | "manualTask" | "businessRuleTask" | "scriptTask"
+        "task"
+            | "sendTask"
+            | "serviceTask"
+            | "userTask"
+            | "manualTask"
+            | "businessRuleTask"
+            | "scriptTask"
     )
 }
 

@@ -8,12 +8,6 @@ use super::binding::data_store_binding_evidence;
 use super::process::process_data_evidence;
 use super::state::data_state_evidence;
 
-pub(in crate::lint::bpmn::document_surface) fn data_store_binding_count_from_evidence(
-    evidence: &Value,
-) -> u64 {
-    super::binding::data_store_binding_count_from_evidence(evidence)
-}
-
 pub(in crate::lint::bpmn::document_surface) fn data_snapshot_summary(
     snapshot: &BpmnDocumentSnapshot,
 ) -> Value {

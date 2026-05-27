@@ -20,3 +20,9 @@ pub(in crate::lint::bpmn::document_surface) fn flow_element_metadata_issue(
 ) -> Option<LintIssue> {
     super::metadata::flow_element_metadata_issue(source)
 }
+
+pub(in crate::lint::bpmn::document_surface) fn io_set_lifecycle_issue(
+    source: &BpmnSourceFile,
+) -> Option<LintIssue> {
+    super::data::io_set_lifecycle_issue(source)
+}

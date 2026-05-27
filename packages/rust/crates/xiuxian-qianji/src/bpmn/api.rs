@@ -33,6 +33,11 @@ pub use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 pub use super::execution::{
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
 };
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub use super::http_transport::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use super::http_transport::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowHttpCheckpointBackend,
@@ -44,10 +49,12 @@ pub use super::http_transport::{
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlDiagnosticsHttpResponse,
-    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
-    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, qianji_bpmn_workflow_router,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceHttpResponse,
+    QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
+    QianjiControlHistoryHttpResponse, QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest,
+    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    qianji_bpmn_workflow_router,
 };
 pub use super::identity::{
     QianjiBpmnActivityId, QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId,

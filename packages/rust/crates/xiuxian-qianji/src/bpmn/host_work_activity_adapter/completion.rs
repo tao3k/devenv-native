@@ -43,6 +43,7 @@ fn runtime_completion_kind(
     kind: QianjiBpmnWorkflowTaskCompletionKind,
 ) -> BpmnHostWorkCompletionKind {
     match kind {
+        QianjiBpmnWorkflowTaskCompletionKind::Task => BpmnHostWorkCompletionKind::Task,
         QianjiBpmnWorkflowTaskCompletionKind::Send => BpmnHostWorkCompletionKind::Send,
         QianjiBpmnWorkflowTaskCompletionKind::Service => BpmnHostWorkCompletionKind::Service,
         QianjiBpmnWorkflowTaskCompletionKind::Script => BpmnHostWorkCompletionKind::Script,

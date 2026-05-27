@@ -32,10 +32,16 @@ pub(super) fn validate_process_topology(
     )?;
     for node in &process.nodes {
         validate_node_event_shape(process, node)?;
-        if node.kind == BpmnNodeKind::SubProcess {
+        if node.kind == BpmnNodeKind::SubProcess
+            && !(node.subprocess_kind == Some(RawSubProcessKind::CallActivity)
+                && node.called_process_ref.is_none())
+        {
             validate_called_process_reference(process, node, all_process_ids)?;
         }
         if node.kind == BpmnNodeKind::BoundaryEvent {
+            if is_boundary_attached_to_empty_embedded_metadata_shell(process, node, process_by_id) {
+                continue;
+            }
             crate::parser::validate::boundary::validate_boundary_event(
                 process,
                 node,
@@ -45,6 +51,33 @@ pub(super) fn validate_process_topology(
         }
     }
     Ok(())
+}
+
+fn is_boundary_attached_to_empty_embedded_metadata_shell(
+    process: &RawProcess,
+    boundary: &RawNode,
+    process_by_id: &HashMap<&str, &RawProcess>,
+) -> bool {
+    let Some(attached_to_ref) = boundary.attached_to_ref.as_deref() else {
+        return false;
+    };
+    let Some(owner) = process
+        .nodes
+        .iter()
+        .find(|node| node.bpmn_id == attached_to_ref)
+    else {
+        return false;
+    };
+    if owner.subprocess_kind != Some(RawSubProcessKind::EmbeddedSubProcess) {
+        return false;
+    }
+    owner
+        .called_process_ref
+        .as_deref()
+        .and_then(|process_id| process_by_id.get(process_id).copied())
+        .is_some_and(|child| {
+            child.nodes.is_empty() && child.flows.is_empty() && child.associations.is_empty()
+        })
 }
 
 fn validate_event_subprocesses(
@@ -224,30 +257,15 @@ fn validate_node_event_shape(process: &RawProcess, node: &RawNode) -> Result<()>
     }
 
     if let Some(event) = &node.event
-        && event.kind == BpmnEventKind::Timer
-        && event
-            .timer
-            .as_ref()
-            .is_none_or(|timer| timer.expression.trim().is_empty())
-    {
-        return Err(BpmnEngineError::MissingRequiredNodeElement {
-            process_id: (process.process_id.clone()).into(),
-            node_id: (node.bpmn_id.clone()).into(),
-            element: "timer_expression",
-        });
-    }
-
-    if let Some(event) = &node.event
         && event.kind == BpmnEventKind::Conditional
     {
-        let Some(condition_expression) = event.condition_expression.as_deref() else {
-            return Err(BpmnEngineError::MissingRequiredNodeElement {
-                process_id: (process.process_id.clone()).into(),
-                node_id: (node.bpmn_id.clone()).into(),
-                element: "conditional_expression",
-            });
-        };
-        if !is_supported_gateway_condition(condition_expression) {
+        let condition_expression = event
+            .condition_expression
+            .as_deref()
+            .map(str::trim)
+            .filter(|condition| !condition.is_empty());
+        if condition_expression.is_some_and(|condition| !is_supported_gateway_condition(condition))
+        {
             return Err(BpmnEngineError::UnsupportedEventConfiguration {
                 process_id: (process.process_id.clone()).into(),
                 node_id: (node.bpmn_id.clone()).into(),
@@ -311,11 +329,7 @@ fn validate_message_task_shape(process: &RawProcess, node: &RawNode) -> Result<(
         return Ok(());
     }
 
-    Err(BpmnEngineError::MissingRequiredNodeElement {
-        process_id: (process.process_id.clone()).into(),
-        node_id: (node.bpmn_id.clone()).into(),
-        element: "message_binding",
-    })
+    Ok(())
 }
 
 fn validate_called_process_reference(

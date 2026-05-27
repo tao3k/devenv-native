@@ -108,6 +108,11 @@ fn append_node_digest(material: &mut String, node: &RawNode) {
 }
 
 fn append_task_io_digest(material: &mut String, task_io: &RawTaskIoSpec) {
+    for property_id in &task_io.property_ids {
+        material.push(':');
+        material.push_str("task_property=");
+        material.push_str(property_id);
+    }
     for input in &task_io.inputs {
         material.push(':');
         material.push_str("task_input=");
@@ -368,6 +373,7 @@ fn node_kind_name(kind: &BpmnNodeKind) -> &'static str {
         BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
         BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
         BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::Task => "task",
         BpmnNodeKind::SendTask => "send_task",
         BpmnNodeKind::ReceiveTask => "receive_task",
         BpmnNodeKind::ServiceTask => "service_task",
@@ -390,6 +396,7 @@ fn event_kind_name(kind: &BpmnEventKind) -> &'static str {
         BpmnEventKind::Cancel => "cancel",
         BpmnEventKind::Compensation => "compensation",
         BpmnEventKind::Conditional => "conditional",
+        BpmnEventKind::Link => "link",
         BpmnEventKind::Terminate => "terminate",
     }
 }
@@ -431,6 +438,7 @@ fn gateway_kind_name(kind: &BpmnGatewayKind) -> &'static str {
         BpmnGatewayKind::Exclusive => "exclusive",
         BpmnGatewayKind::Inclusive => "inclusive",
         BpmnGatewayKind::EventBased => "event_based",
+        BpmnGatewayKind::Complex => "complex",
     }
 }
 

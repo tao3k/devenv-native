@@ -9,8 +9,9 @@ The field-level user/manual task contract is tracked in the
 
 ## Accepted Task Shapes
 
-- `serviceTask`, `userTask`, `manualTask`, and `businessRuleTask` remain
-  host-blocking task owners in the bounded runtime slice.
+- Generic `task`, `serviceTask`, `userTask`, `manualTask`, and
+  `businessRuleTask` remain host-blocking task owners in the bounded runtime
+  slice.
 - `sendTask` is accepted when it carries exactly one message binding through
   task-level `messageRef` or one nested `messageEventDefinition`.
 - `receiveTask` is accepted when it carries exactly one message binding
@@ -26,6 +27,9 @@ The field-level user/manual task contract is tracked in the
   message metadata in the pending request.
 - `scriptTask` reuses that same host-dispatch shell family and preserves
   bounded script metadata in the pending request.
+- Generic `task` reuses the same typed host-dispatch shell with `TaskRequest`
+  and `TaskOutcome`; it does not imply service, script, human, or business-rule
+  semantics beyond host-visible work.
 - Supported host-dispatched tasks may carry bounded native BPMN task Data/IO:
   `dataInputAssociation` resolves request `inputs`, and
   `dataOutputAssociation` declares completion fields plus target workflow

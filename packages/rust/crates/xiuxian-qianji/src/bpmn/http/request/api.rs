@@ -149,10 +149,80 @@ pub struct QianjiControlRecoveryApplyHttpRequest {
     pub priority: i64,
 }
 
+/// JSON body for one bounded qianji-server OpenAI-compatible LLM worker run.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest {
+    /// Server worker identity used for activity-task claims.
+    #[serde(default = "default_openai_compatible_llm_worker_id")]
+    pub worker_id: String,
+    /// Optional `llm.*` task queue filter.
+    #[serde(default)]
+    pub task_queue: Option<String>,
+    /// Logical poll timestamp for the first worker attempt.
+    pub now_ms: u64,
+    /// Per-poll logical timestamp increment.
+    #[serde(default = "default_openai_compatible_llm_worker_step_ms")]
+    pub now_step_ms: u64,
+    /// Hot-state lease TTL.
+    #[serde(default = "default_openai_compatible_llm_worker_lease_ttl_ms")]
+    pub lease_ttl_ms: u64,
+    /// Optional heartbeat TTL.
+    #[serde(default)]
+    pub heartbeat_ttl_ms: Option<u64>,
+    /// Maximum poll attempts for this bounded loop.
+    #[serde(default = "default_openai_compatible_llm_worker_poll_limit")]
+    pub poll_limit: u32,
+    /// Number of consecutive empty polls that stops the loop.
+    #[serde(default = "default_openai_compatible_llm_worker_empty_limit")]
+    pub empty_limit: u32,
+    /// Number of concurrent worker identities used per batch.
+    #[serde(default = "default_openai_compatible_llm_worker_count")]
+    pub worker_count: u32,
+    /// Logical terminal-event timestamp for the first worker attempt.
+    pub settled_at_ms: u64,
+    /// Per-poll terminal timestamp increment.
+    #[serde(default = "default_openai_compatible_llm_worker_step_ms")]
+    pub settled_step_ms: u64,
+    /// Directory for provider response artifacts.
+    pub output_artifact_dir: PathBuf,
+    /// Optional artifact kind for provider response artifacts.
+    #[serde(default)]
+    pub output_artifact_kind: Option<String>,
+    /// Optional provider timeout for this bounded worker invocation.
+    #[serde(default)]
+    pub openai_compatible_timeout_ms: Option<u64>,
+}
+
+fn default_openai_compatible_llm_worker_id() -> String {
+    "qianji-server-openai-compatible-llm-worker".to_owned()
+}
+
+fn default_openai_compatible_llm_worker_step_ms() -> u64 {
+    1
+}
+
+fn default_openai_compatible_llm_worker_lease_ttl_ms() -> u64 {
+    30_000
+}
+
+fn default_openai_compatible_llm_worker_poll_limit() -> u32 {
+    1
+}
+
+fn default_openai_compatible_llm_worker_empty_limit() -> u32 {
+    1
+}
+
+fn default_openai_compatible_llm_worker_count() -> u32 {
+    1
+}
+
 /// JSON host-work result kind accepted by explicit task completion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QianjiBpmnWorkflowTaskCompletionHttpKind {
+    /// Complete a BPMN `task`.
+    Task,
     /// Complete a BPMN `sendTask`.
     Send,
     /// Complete a BPMN `serviceTask`.
@@ -330,6 +400,9 @@ fn http_completion_kind_into_control(
     kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
 ) -> QianjiBpmnWorkflowTaskCompletionKind {
     match kind {
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Task => {
+            QianjiBpmnWorkflowTaskCompletionKind::Task
+        }
         QianjiBpmnWorkflowTaskCompletionHttpKind::Send => {
             QianjiBpmnWorkflowTaskCompletionKind::Send
         }

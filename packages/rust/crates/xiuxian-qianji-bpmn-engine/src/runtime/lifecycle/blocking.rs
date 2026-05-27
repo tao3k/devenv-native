@@ -23,6 +23,11 @@ pub(super) fn build_wait_registration(
         BpmnEventKind::Message | BpmnEventKind::Signal => WaitKind::ExternalEvent,
         BpmnEventKind::Timer => WaitKind::Timer,
         BpmnEventKind::Conditional => WaitKind::Conditional,
+        BpmnEventKind::Link => {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "advance_instance_link_event_wait",
+            });
+        }
         BpmnEventKind::Error => {
             return Err(BpmnEngineError::UnsupportedOperation {
                 operation: "advance_instance_error_event_wait",

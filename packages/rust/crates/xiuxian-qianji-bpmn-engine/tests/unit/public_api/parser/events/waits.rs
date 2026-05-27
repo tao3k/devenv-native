@@ -81,3 +81,49 @@ fn parser_intermediate_conditional_wait_materializes_event_binding() {
     assert_eq!(event.name.as_deref(), Some("wait_condition"));
     assert_eq!(event.condition_expression.as_deref(), Some("approved"));
 }
+
+#[test]
+fn parser_link_event_definition_materializes_metadata_event_binding() {
+    let package = parse_fixture_package(
+        "link-event-metadata.bpmn",
+        "standard link events should parse as metadata events",
+    );
+    let process = package
+        .find_process("link_event_metadata")
+        .must("process should be present");
+
+    let link_catch = process
+        .event_for_node(1)
+        .must("link catch should materialize an event binding");
+    assert_eq!(link_catch.kind, BpmnEventKind::Link);
+    assert_eq!(link_catch.name.as_deref(), Some("handoff"));
+
+    let link_throw = process
+        .event_for_node(2)
+        .must("link throw should materialize an event binding");
+    assert_eq!(link_throw.kind, BpmnEventKind::Link);
+    assert_eq!(link_throw.name.as_deref(), Some("handoff"));
+}
+
+#[test]
+fn parser_intermediate_throw_events_materialize_metadata_event_bindings() {
+    let package = parse_fixture_package(
+        "intermediate-throw-event-metadata.bpmn",
+        "standard throw events should parse as metadata events",
+    );
+    let process = package
+        .find_process("throw_event_metadata")
+        .must("process should be present");
+
+    let message_throw = process
+        .event_for_node(1)
+        .must("message throw should materialize an event binding");
+    assert_eq!(message_throw.kind, BpmnEventKind::Message);
+    assert_eq!(message_throw.reference_id.as_deref(), Some("notice"));
+
+    let signal_throw = process
+        .event_for_node(2)
+        .must("signal throw should materialize an event binding");
+    assert_eq!(signal_throw.kind, BpmnEventKind::Signal);
+    assert_eq!(signal_throw.reference_id.as_deref(), Some("broadcast"));
+}

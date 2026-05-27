@@ -4,7 +4,13 @@ use super::activity_evidence::{
     matching_pending_work_for_failure, now_unix_ms, record_completion_activity_evidence,
     record_failure_activity_evidence,
 };
+use super::control_trace::record_bpmn_control_trace;
 use super::error_api::QianjiBpmnWorkflowHttpError;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use super::request_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest;
 use super::request_api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowStartHttpRequest,
     QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowTaskClaimHttpRequest,
@@ -12,12 +18,18 @@ use super::request_api::{
     QianjiBpmnWorkflowTaskFailHttpRequest, QianjiBpmnWorkflowTaskFailureHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiControlRecoveryApplyHttpRequest,
 };
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 use super::response_api::{
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlDiagnosticsHttpResponse,
-    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpResponse,
-    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceHttpResponse,
+    QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse,
 };
 use super::state::QianjiBpmnWorkflowHttpState;
 use crate::bpmn::control::{
@@ -25,20 +37,41 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionPayload,
 };
 use crate::bpmn::identity::QianjiBpmnWorkflowInstanceId;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use crate::qianji_server_cli::llm_worker::{
+    QianjiServerOpenAiCompatibleLlmWorkerLoopRequest,
+    run_qianji_server_openai_compatible_llm_worker_loop,
+};
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use crate::runtime_config::{
+    QianjiRuntimeLlmConfig, resolve_qianji_runtime_llm_config,
+    resolve_qianji_runtime_llm_config_with_env,
+};
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use std::io;
 use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
 use xiuxian_qianji_control::{
-    ControlLedger, HotStateStore, RecoveryAttempt, RecoveryLoopApplicationRequest, RecoveryPolicy,
-    RunId, apply_recovery_plan,
+    ControlEventKind, ControlEventRecord, ControlLedger, HotStateStore, RecoveryAttempt,
+    RecoveryLoopApplicationRequest, RecoveryPolicy, RunId, apply_recovery_plan,
 };
 
 pub(super) fn router<H>(state: QianjiBpmnWorkflowHttpState<H>) -> Router
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
-    Router::new()
+    let router = Router::new()
         .route("/workflows/start", post(start_workflow::<H>))
         .route("/workflows/{instance_id}", get(load_workflow_status::<H>))
         .route(
@@ -78,6 +111,10 @@ where
             get(load_control_history::<H>),
         )
         .route(
+            "/control/runs/{run_id}/bpmn-source",
+            get(load_control_bpmn_source::<H>),
+        )
+        .route(
             "/control/runs/{run_id}/summary",
             get(load_control_summary::<H>),
         )
@@ -92,8 +129,16 @@ where
         .route(
             "/control/runs/{run_id}/recovery/apply",
             post(apply_control_recovery::<H>),
-        )
-        .with_state(state)
+        );
+    #[cfg(any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    ))]
+    let router = router.route(
+        "/control/runs/{run_id}/workers/openai-compatible-llm/run",
+        post(run_control_openai_compatible_llm_worker::<H>),
+    );
+    router.with_state(state)
 }
 
 async fn start_workflow<H>(
@@ -109,6 +154,11 @@ where
         .service
         .start_prepared_workflow_until_host_boundary(prepared, &state.host, false, |_, _| {})
         .await?;
+    record_bpmn_control_trace(
+        state.activity_evidence_ledger.as_deref(),
+        &report.execution.session,
+        Some(report.resolved_bpmn_path.as_path()),
+    )?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
     )))
@@ -129,6 +179,36 @@ where
     Ok(Json(QianjiControlHistoryHttpResponse::new(
         run_id.as_str().to_owned(),
         events,
+    )))
+}
+
+async fn load_control_bpmn_source<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+) -> Result<Json<QianjiControlBpmnSourceHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let events = ledger
+        .load_events(&run_id)
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    let source_ref = control_bpmn_source_ref(&events).ok_or_else(|| {
+        QianjiBpmnWorkflowHttpError::not_found(
+            "bpmn_source_ref_missing",
+            "control run does not include a qianji-server BPMN source reference",
+        )
+    })?;
+    let bpmn_xml = std::fs::read_to_string(source_ref.as_str()).map_err(|error| {
+        QianjiBpmnWorkflowHttpError::internal_server_error(format!(
+            "failed to read BPMN source '{source_ref}': {error}"
+        ))
+    })?;
+    Ok(Json(QianjiControlBpmnSourceHttpResponse::new(
+        run_id.as_str().to_owned(),
+        source_ref,
+        bpmn_xml,
     )))
 }
 
@@ -210,6 +290,112 @@ where
     )))
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+async fn run_control_openai_compatible_llm_worker<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+    Json(request): Json<QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest>,
+) -> Result<Json<QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let hot_state = recovery_hot_state(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let llm_config = resolve_http_runtime_llm_config(&state)?;
+    let output = run_qianji_server_openai_compatible_llm_worker_loop(
+        ledger,
+        hot_state,
+        QianjiServerOpenAiCompatibleLlmWorkerLoopRequest {
+            run_id: &run_id,
+            worker_id: request.worker_id.as_str(),
+            task_queue: request.task_queue.as_deref(),
+            now_ms: request.now_ms,
+            now_step_ms: request.now_step_ms,
+            lease_ttl_ms: request.lease_ttl_ms,
+            heartbeat_ttl_ms: request.heartbeat_ttl_ms,
+            poll_limit: request.poll_limit,
+            empty_limit: request.empty_limit,
+            worker_count: request.worker_count,
+            settled_at_ms: request.settled_at_ms,
+            settled_step_ms: request.settled_step_ms,
+            openai_compatible_base_url: llm_config.base_url.as_str(),
+            openai_compatible_api_key: Some(llm_config.api_key.as_str()),
+            openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
+            output_artifact_dir: request.output_artifact_dir.as_path(),
+            output_artifact_kind: request.output_artifact_kind.as_deref(),
+        },
+    )
+    .await
+    .map_err(|error| map_llm_worker_error(&error))?;
+    Ok(Json(
+        QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse::new(
+            run_id.as_str().to_owned(),
+            output,
+        ),
+    ))
+}
+
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+fn resolve_http_runtime_llm_config<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+) -> Result<QianjiRuntimeLlmConfig, QianjiBpmnWorkflowHttpError> {
+    let resolved = match state.runtime_env.as_ref() {
+        Some(runtime_env) => resolve_qianji_runtime_llm_config_with_env(runtime_env),
+        None => resolve_qianji_runtime_llm_config(),
+    };
+    resolved.map_err(|error| map_runtime_llm_config_error(&error))
+}
+
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+fn map_runtime_llm_config_error(error: &io::Error) -> QianjiBpmnWorkflowHttpError {
+    match error.kind() {
+        io::ErrorKind::NotFound | io::ErrorKind::InvalidData | io::ErrorKind::InvalidInput => {
+            QianjiBpmnWorkflowHttpError::service_unavailable(
+                "qianji_llm_config_unavailable",
+                error.to_string(),
+            )
+        }
+        _ => QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()),
+    }
+}
+
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+fn map_llm_worker_error(error: &io::Error) -> QianjiBpmnWorkflowHttpError {
+    match error.kind() {
+        io::ErrorKind::InvalidInput => QianjiBpmnWorkflowHttpError::bad_request(
+            "invalid_openai_compatible_llm_worker_request",
+            error.to_string(),
+        ),
+        _ => QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()),
+    }
+}
+
+fn control_bpmn_source_ref(events: &[ControlEventRecord]) -> Option<String> {
+    events.iter().find_map(|record| {
+        let ControlEventKind::RunCreated { metadata, .. } = &record.event.kind else {
+            return None;
+        };
+        metadata
+            .get("bpmnSourceRef")
+            .or_else(|| metadata.get("bpmn_source_ref"))
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned)
+    })
+}
+
 fn control_ledger<H>(
     state: &QianjiBpmnWorkflowHttpState<H>,
 ) -> Result<&dyn ControlLedger, QianjiBpmnWorkflowHttpError> {
@@ -281,6 +467,11 @@ where
         .service
         .resume_prepared_workflow_until_host_boundary(prepared, &state.host, false, |_, _| {})
         .await?;
+    record_bpmn_control_trace(
+        state.activity_evidence_ledger.as_deref(),
+        &report.execution.session,
+        Some(report.resolved_bpmn_path.as_path()),
+    )?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
     )))
@@ -298,6 +489,11 @@ where
         .service
         .poll_workflow_events(&request.into_event_poll_request(instance_id), &state.host)
         .await?;
+    record_bpmn_control_trace(
+        state.activity_evidence_ledger.as_deref(),
+        &report.execution.session,
+        Some(report.resolved_bpmn_path.as_path()),
+    )?;
     Ok(Json(QianjiBpmnWorkflowRunHttpResponse::from_start_report(
         &report,
     )))
@@ -341,6 +537,11 @@ where
         .service
         .complete_prepared_workflow_task_batch_until_host_boundary(prepared, &request, &state.host)
         .await?;
+    record_bpmn_control_trace(
+        state.activity_evidence_ledger.as_deref(),
+        &report.execution.session,
+        Some(report.resolved_bpmn_path.as_path()),
+    )?;
     record_batch_activity_evidence(
         &state,
         &request.bpmn_path,
@@ -413,6 +614,11 @@ where
         .service
         .complete_prepared_workflow_task_until_host_boundary(prepared, &request, &state.host)
         .await?;
+    record_bpmn_control_trace(
+        state.activity_evidence_ledger.as_deref(),
+        &report.execution.session,
+        Some(report.resolved_bpmn_path.as_path()),
+    )?;
     record_single_activity_evidence(state, &bpmn_path, &instance_id, pending_work, &completion)?;
     Ok(report)
 }

@@ -10,6 +10,11 @@ use xiuxian_qianji_bpmn_engine::{
 };
 
 #[tokio::test(flavor = "current_thread")]
+async fn runtime_generic_task_blocks_on_host_boundary() {
+    assert_host_blocking(BpmnNodeKind::Task, PendingHostWorkKind::Task).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
 async fn runtime_service_task_blocks_on_host_boundary() {
     assert_host_blocking(BpmnNodeKind::ServiceTask, PendingHostWorkKind::Service).await;
 }

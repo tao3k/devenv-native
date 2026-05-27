@@ -1,6 +1,7 @@
 use std::io;
 
 use serde_json::Value;
+use xiuxian_llm::llm::ChatRequest;
 use xiuxian_qianji_control::WorkerActivityTask;
 
 use super::artifact;
@@ -15,7 +16,7 @@ use crate::qianji_cli::control_cli::ActivityExecutorOutcome;
 use crate::qianji_cli::invalid_input;
 
 struct OpenAiChatPayload {
-    payload: Value,
+    request: ChatRequest,
     episteme_context: Option<episteme::EpistemeReasoningContextExpectation>,
 }
 
@@ -30,7 +31,7 @@ pub(crate) async fn execute_openai_compatible_llm(
         Ok(payload) => payload,
         Err(outcome) => return Ok(outcome),
     };
-    let body = match transport::fetch_openai_chat_completion(request, &audit, &chat_payload.payload)
+    let body = match transport::fetch_openai_chat_completion(request, &audit, chat_payload.request)
         .await?
     {
         Ok(body) => body,
@@ -213,23 +214,18 @@ fn openai_chat_payload(
         content.push_str(&context_text);
         content.push_str("\n</context>");
     }
-    let mut payload = serde_json::json!({
-        "model": audit.model,
-        "messages": [
-            {
-                "role": "user",
-                "content": content
-            }
-        ]
-    });
+    let mut request = ChatRequest::new(audit.model.clone()).add_user_message(content);
     if let Some(temperature_millis) = audit.temperature_millis {
-        payload["temperature"] = serde_json::json!(f64::from(temperature_millis) / 1000.0_f64);
+        let bounded_temperature_millis = u16::try_from(temperature_millis).map_err(|_| {
+            invalid_input("LLM temperature_millis must fit in u16 before f32 conversion")
+        })?;
+        request = request.with_temperature(f32::from(bounded_temperature_millis) / 1000.0_f32);
     }
     if let Some(max_tokens) = audit.max_tokens {
-        payload["max_tokens"] = serde_json::json!(max_tokens);
+        request = request.with_max_tokens(max_tokens);
     }
     Ok(OpenAiChatPayload {
-        payload,
+        request,
         episteme_context,
     })
 }

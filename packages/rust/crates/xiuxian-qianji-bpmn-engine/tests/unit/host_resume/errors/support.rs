@@ -6,8 +6,8 @@ use xiuxian_qianji_bpmn_engine::{
     BpmnEdgeSpec, BpmnEventKind, BpmnEventSpec, BpmnInstanceInit, BpmnNodeKind, BpmnNodeSpec,
     BpmnPackage, BpmnProcessSpec, BpmnScriptTaskSpec, BpmnTaskIoSpec, BusinessRuleTaskOutcome,
     DmnDecisionRef, DmnEvaluationResult, ManualTaskOutcome, PendingHostWorkResult, ProcessKey,
-    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, UserTaskOutcome, advance_instance,
-    create_instance,
+    ScriptTaskOutcome, SendTaskOutcome, ServiceTaskOutcome, TaskOutcome, UserTaskOutcome,
+    advance_instance, create_instance,
 };
 
 pub(super) async fn create_blocked_strict_instance(
@@ -46,8 +46,9 @@ pub(super) fn service_process(process_id: &str, task_node: BpmnNodeSpec) -> Bpmn
     )
 }
 
-pub(super) fn host_task_kinds() -> [(BpmnNodeKind, &'static str); 6] {
+pub(super) fn host_task_kinds() -> [(BpmnNodeKind, &'static str); 7] {
     [
+        (BpmnNodeKind::Task, "task"),
         (BpmnNodeKind::SendTask, "send"),
         (BpmnNodeKind::ServiceTask, "service"),
         (BpmnNodeKind::ScriptTask, "script"),
@@ -107,6 +108,7 @@ pub(super) fn result_for_kind(
     data: serde_json::Value,
 ) -> PendingHostWorkResult {
     match node_kind {
+        BpmnNodeKind::Task => PendingHostWorkResult::Task(TaskOutcome { data }),
         BpmnNodeKind::SendTask => PendingHostWorkResult::Send(SendTaskOutcome { data }),
         BpmnNodeKind::ServiceTask => PendingHostWorkResult::Service(ServiceTaskOutcome { data }),
         BpmnNodeKind::ScriptTask => PendingHostWorkResult::Script(ScriptTaskOutcome { data }),

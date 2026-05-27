@@ -35,7 +35,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_required_attribute_issue(
         format!(
             "Source '{source_id}' contains BPMN DI geometry metadata without required DC or DI attributes."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but required geometry attributes must be present so interchange tools can round-trip bounds and waypoints without inventing coordinates.",
+        "Native BPMN DI preserves standard diagram interchange, and required geometry attributes must be present so interchange tools can round-trip bounds and waypoints without inventing coordinates.",
         vec![
             "Add `x`, `y`, `width`, and `height` to every `dc:Bounds` element.".to_string(),
             "Add `x` and `y` to every `di:waypoint` element.".to_string(),

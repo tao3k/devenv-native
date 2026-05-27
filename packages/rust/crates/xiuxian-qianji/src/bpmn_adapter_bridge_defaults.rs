@@ -4,7 +4,7 @@ use xiuxian_qianji_bpmn_engine::HostBridgeError;
 
 use super::api::{
     BusinessRuleHandler, ClockHandler, EventPollHandler, ManualHandler, ScriptHandler, SendHandler,
-    ServiceHandler, UserHandler,
+    ServiceHandler, TaskHandler, UserHandler,
 };
 
 pub(super) fn default_clock_handler() -> ClockHandler {
@@ -12,6 +12,10 @@ pub(super) fn default_clock_handler() -> ClockHandler {
 }
 
 pub(super) fn unsupported_send_handler(operation: &'static str) -> SendHandler {
+    Arc::new(move |_request| Box::pin(async move { Err(unsupported(operation)) }))
+}
+
+pub(super) fn unsupported_task_handler(operation: &'static str) -> TaskHandler {
     Arc::new(move |_request| Box::pin(async move { Err(unsupported(operation)) }))
 }
 

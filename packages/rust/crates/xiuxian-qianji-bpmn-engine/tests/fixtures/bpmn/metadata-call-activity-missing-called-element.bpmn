@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_call_activity_metadata"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="call_activity_metadata">
+    <bpmn:startEvent id="start" />
+    <bpmn:callActivity id="invoke_placeholder" />
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="invoke_placeholder" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="invoke_placeholder" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

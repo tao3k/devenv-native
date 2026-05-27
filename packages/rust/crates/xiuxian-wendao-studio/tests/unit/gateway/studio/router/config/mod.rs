@@ -1,11 +1,15 @@
 use std::fs;
+use std::sync::Arc;
 
+use crate::studio::StudioState;
 use crate::studio::router::{
     load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
-    load_ui_config_from_wendao_toml,
+    load_model_routing_config_from_wendao_toml, load_ui_config_from_wendao_toml,
     load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml,
     studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
+use xiuxian_wendao::analyzers::PluginRegistry;
+use xiuxian_wendao::search::SearchPlaneService;
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -141,6 +145,81 @@ endpoint = "http://127.0.0.1:50051/"
         load_document_extract_endpoint_from_wendao_toml(temp.path()).as_deref(),
         Some("http://127.0.0.1:50051")
     );
+    Ok(())
+}
+
+#[test]
+fn load_model_routing_config_from_wendao_toml_reads_route_models() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[model_routing]
+mode = "deterministic"
+default_provider = "openrouter"
+
+[model_routing.chat]
+model = "deepseek/deepseek-v4-pro"
+backend_profile = "openai-compatible-chat-v1"
+
+[model_routing.audio_transcript]
+model = "qwen/qwen3-asr-flash-2026-02-10"
+backend_profile = "hosted-audio-transcript-v1"
+
+[model_routing.image_extract]
+model = "qwen/qwen3-vl-8b-instruct"
+backend_profile = "hosted-vlm-image-extract-v1"
+"#,
+    )?;
+
+    let Some(config) = load_model_routing_config_from_wendao_toml(temp.path())? else {
+        panic!("model routing config should load");
+    };
+    assert_eq!(config.mode.as_deref(), Some("deterministic"));
+    assert_eq!(config.default_provider.as_deref(), Some("openrouter"));
+    assert_eq!(
+        config.chat.model.as_deref(),
+        Some("deepseek/deepseek-v4-pro")
+    );
+    assert_eq!(
+        config.audio_transcript.model.as_deref(),
+        Some("qwen/qwen3-asr-flash-2026-02-10")
+    );
+    assert_eq!(
+        config.image_extract.backend_profile.as_deref(),
+        Some("hosted-vlm-image-extract-v1")
+    );
+    Ok(())
+}
+
+#[test]
+fn studio_state_caches_model_routing_config_at_boot() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[model_routing.chat]
+model = "deepseek-chat"
+"#,
+    )?;
+    let state = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
+        Arc::new(PluginRegistry::new()),
+        temp.path().to_path_buf(),
+        temp.path().to_path_buf(),
+        SearchPlaneService::new(temp.path().join("search-plane")),
+    );
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[model_routing.chat]
+model = "changed-after-boot"
+"#,
+    )?;
+
+    let cached = state
+        .model_routing_config()?
+        .ok_or_else(|| std::io::Error::other("cached model routing config should exist"))?;
+    assert_eq!(cached.chat.model.as_deref(), Some("deepseek-chat"));
+    let reloaded = load_model_routing_config_from_wendao_toml(temp.path())?
+        .ok_or_else(|| std::io::Error::other("reloaded model routing config should exist"))?;
+    assert_eq!(reloaded.chat.model.as_deref(), Some("changed-after-boot"));
     Ok(())
 }
 

@@ -13,11 +13,12 @@ use super::legacy_office::{is_legacy_office_source, write_legacy_office_document
 use super::validate_successful_ocr_results_for_inputs_with_lookup;
 use super::{
     Arc, DOCUMENT_EXTRACT_ENDPOINT_ENV, DOCUMENT_EXTRACT_ENDPOINTS_ENV,
-    DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DocumentExtractJobRegistry, EngineRecordBatch,
-    ImageDocumentExtractRouteConfig, StudioDocumentExtractFlightRouteProvider,
-    document_extract_batches_are_cacheable,
+    DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV, DocumentExtractJobRegistry,
+    DocumentExtractRouteSourceIdentity, EngineRecordBatch, ImageDocumentExtractRouteConfig,
+    StudioDocumentExtractFlightRouteProvider, document_extract_batches_are_cacheable,
     document_extract_conversion_concurrency_limit_with_lookup,
     gateway_document_extract_mode_for_source, gateway_document_extract_profile_for_source,
+    image_document_extract_model_route_for_source_identity,
     image_document_extract_model_route_with_config, read_arrow_file,
     shared_document_extract_provider_runtime, write_arrow_file,
 };

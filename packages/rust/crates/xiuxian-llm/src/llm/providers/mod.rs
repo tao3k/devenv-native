@@ -42,9 +42,10 @@ pub use openai::{LiteLlmOpenAIProvider, build_openai_provider};
 pub use openai_like::{
     LiteLlmOpenAILikeProvider, OpenAiResponsesAssistantOutput, OpenAiResponsesPayload,
     OpenAiResponsesToolCall, OpenAiResponsesToolType, build_openai_like_provider,
-    build_openai_responses_payload, execute_openai_responses_request,
-    inline_openai_compatible_image_urls, is_openai_like_stream_required_error_message,
-    parse_openai_responses_stream, remap_openai_responses_tool_name,
+    build_openai_responses_payload, execute_openai_chat_completions_request,
+    execute_openai_responses_request, inline_openai_compatible_image_urls,
+    is_openai_like_stream_required_error_message, parse_openai_responses_stream,
+    remap_openai_responses_tool_name,
 };
 pub use resolution::{
     normalize_optional_base_override, parse_positive_usize, resolve_api_key_with_env,

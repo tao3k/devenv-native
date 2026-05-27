@@ -1,17 +1,42 @@
 //! Model routing contracts shared by Wendao Gateway and model-plane adapters.
 
+#[path = "model_routing/attachment.rs"]
+mod attachment;
 #[path = "model_routing/chat.rs"]
 mod chat;
+#[path = "model_routing/config.rs"]
+mod config;
 
 use reqwest::header::{AUTHORIZATION, HeaderMap};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+pub use attachment::{
+    DEFAULT_WENDAO_ATTACHMENT_ROUTE_PROVIDER,
+    DEFAULT_WENDAO_AUDIO_TRANSCRIPT_ROUTE_BACKEND_PROFILE,
+    DEFAULT_WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL,
+    DEFAULT_WENDAO_IMAGE_EXTRACT_ROUTE_BACKEND_PROFILE, DEFAULT_WENDAO_IMAGE_EXTRACT_ROUTE_MODEL,
+    WENDAO_AUDIO_TRANSCRIPT_ROUTE_BACKEND_PROFILE_ENV, WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL_ENV,
+    WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER_ENV, WENDAO_IMAGE_EXTRACT_ROUTE_BACKEND_PROFILE_ENV,
+    WENDAO_IMAGE_EXTRACT_ROUTE_MODEL_ENV, WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER_ENV,
+    WendaoAttachmentRouteConfig, WendaoAttachmentRouteInput,
+    wendao_attachment_model_route_decision, wendao_attachment_route_intent,
+    wendao_audio_transcript_route_config_with_lookup,
+    wendao_audio_transcript_route_config_with_model_routing_config,
+    wendao_image_extract_route_config_with_lookup,
+    wendao_image_extract_route_config_with_model_routing_config,
+};
 pub use chat::{
-    DEFAULT_WENDAO_CHAT_ROUTE_BACKEND_PROFILE, WENDAO_CHAT_ROUTE_BACKEND_PROFILE_ENV,
+    DEFAULT_WENDAO_CHAT_ROUTE_BACKEND_PROFILE, DEFAULT_WENDAO_CHAT_ROUTE_MODEL,
+    WENDAO_CHAT_ROUTE_BACKEND_PROFILE_ENV, WENDAO_CHAT_ROUTE_MODEL_ENV,
     WENDAO_CHAT_ROUTE_PROVIDER_ENV, WendaoChatRouteConfig, WendaoChatRouteInput,
     wendao_chat_model_route_decision, wendao_chat_route_config_with_lookup,
-    wendao_chat_route_intent,
+    wendao_chat_route_config_with_model_routing_config, wendao_chat_route_intent,
+};
+pub use config::{
+    WENDAO_MODEL_ROUTING_SYSTEM_DEFAULT_TOML, WendaoModelRoutingTomlConfig, WendaoRouteTomlConfig,
+    wendao_model_routing_config_from_toml_str, wendao_model_routing_config_from_toml_value,
+    wendao_model_routing_system_default_config,
 };
 
 /// Wendao model routing mode environment variable.
@@ -39,6 +64,8 @@ pub const WENDAO_ROUTE_PRECISION_TIER_HEADER: &str = "x-wendao-route-precision-t
 
 /// Default vLLM-SR proxy endpoint used by Wendao.
 pub const DEFAULT_WENDAO_VLLM_SR_BASE_URL: &str = "http://127.0.0.1:8888";
+/// Default local model-routing mode for developer experience.
+pub const DEFAULT_WENDAO_MODEL_ROUTING_MODE: &str = "deterministic";
 /// vLLM-SR auto model token used by the OpenAI-compatible data plane.
 pub const VLLM_SR_AUTO_MODEL: &str = "auto";
 /// vLLM-SR selected decision response header.
@@ -121,7 +148,7 @@ impl From<String> for WendaoRouteSourceKind {
 pub enum WendaoModelRoutingMode {
     /// Use vLLM-SR as the required model routing plane.
     VllmSr,
-    /// Use deterministic static policy only when explicitly configured.
+    /// Use Gateway-owned deterministic local route policy.
     Deterministic,
 }
 
@@ -133,8 +160,8 @@ impl WendaoModelRoutingMode {
     /// Returns an error when the value is not `vllm-sr` or `deterministic`.
     pub fn parse(value: &str) -> Result<Self, String> {
         match value.trim().to_ascii_lowercase().as_str() {
-            "" | "vllm-sr" | "vllm_sr" => Ok(Self::VllmSr),
-            "deterministic" => Ok(Self::Deterministic),
+            "" | "deterministic" => Ok(Self::Deterministic),
+            "vllm-sr" | "vllm_sr" => Ok(Self::VllmSr),
             other => Err(format!(
                 "unsupported {WENDAO_MODEL_ROUTING_MODE_ENV} value `{other}`"
             )),
@@ -153,7 +180,7 @@ pub fn wendao_model_routing_mode_with_lookup(
     WendaoModelRoutingMode::parse(
         lookup(WENDAO_MODEL_ROUTING_MODE_ENV)
             .as_deref()
-            .unwrap_or("vllm-sr"),
+            .unwrap_or(DEFAULT_WENDAO_MODEL_ROUTING_MODE),
     )
 }
 

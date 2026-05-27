@@ -57,6 +57,7 @@ fn is_known_xml_element_hint(tag_name: &str) -> bool {
             | "endEvent"
             | "intermediateCatchEvent"
             | "intermediateThrowEvent"
+            | "task"
             | "serviceTask"
             | "userTask"
             | "manualTask"
@@ -793,7 +794,8 @@ fn is_element(event: &BytesStart<'_>, expected: &str) -> bool {
 fn is_routable_task_element(event: &BytesStart<'_>) -> bool {
     matches!(
         local_name(event.name().as_ref()),
-        "serviceTask"
+        "task"
+            | "serviceTask"
             | "scriptTask"
             | "userTask"
             | "manualTask"

@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/../common.sh"
 PROJECT_ROOT="$(process_project_root "$SCRIPT_DIR" "../../../..")"
 process_export_project_defaults "$PROJECT_ROOT"
 
-MODE="${WENDAO_MODEL_ROUTING_MODE:-vllm-sr}"
+MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"
 case "$MODE" in
   deterministic)
     exit 0

@@ -174,6 +174,40 @@ pub struct SendTaskOutcome {
     pub data: Value,
 }
 
+/// Common generic BPMN task dispatch request.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct TaskRequest {
+    /// Owning workflow instance identifier.
+    pub instance_id: BpmnHostInstanceId,
+    /// Owning BPMN process identifier.
+    pub process_id: BpmnHostProcessId,
+    /// Owning runtime token identifier.
+    pub token_id: BpmnHostTokenId,
+    /// BPMN node index.
+    pub node_index: u32,
+    /// Stable BPMN activity identifier.
+    pub activity_id: BpmnHostActivityId,
+    /// Current workflow variables snapshot.
+    pub variables: Value,
+    /// Resolved standard BPMN task inputs for this dispatch.
+    #[serde(default)]
+    pub inputs: Value,
+    /// Declared standard BPMN task outputs for strict completion mapping.
+    #[serde(default)]
+    pub output_bindings: Vec<BpmnTaskOutputBinding>,
+    /// Optional repeat-execution metadata for the blocked task.
+    pub repeat: Option<RepeatExecutionContext>,
+    /// Optional BPMN lane membership metadata for passive routing/display.
+    pub lane: Option<BpmnLaneMembershipSpec>,
+}
+
+/// Common generic BPMN task dispatch outcome.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct TaskOutcome {
+    /// Updated variables or task output payload.
+    pub data: Value,
+}
+
 /// Common service-task dispatch request.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ServiceTaskRequest {
@@ -346,6 +380,8 @@ pub struct BusinessRuleTaskOutcome {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PendingHostWorkRequest {
+    /// Dispatch request for a generic BPMN task.
+    Task(TaskRequest),
     /// Dispatch request for a send task.
     Send(SendTaskRequest),
     /// Dispatch request for a service task.
@@ -365,6 +401,7 @@ impl PendingHostWorkRequest {
     #[must_use]
     pub fn kind(&self) -> PendingHostWorkKind {
         match self {
+            Self::Task(_) => PendingHostWorkKind::Task,
             Self::Send(_) => PendingHostWorkKind::Send,
             Self::Service(_) => PendingHostWorkKind::Service,
             Self::Script(_) => PendingHostWorkKind::Script,
@@ -378,6 +415,7 @@ impl PendingHostWorkRequest {
     #[must_use]
     pub fn kind_name(&self) -> &'static str {
         match self {
+            Self::Task(_) => "task",
             Self::Send(_) => "send",
             Self::Service(_) => "service",
             Self::Script(_) => "script",
@@ -392,6 +430,8 @@ impl PendingHostWorkRequest {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PendingHostWorkResult {
+    /// Completion payload for a generic BPMN task.
+    Task(TaskOutcome),
     /// Completion payload for a send task.
     Send(SendTaskOutcome),
     /// Completion payload for a service task.
@@ -411,6 +451,7 @@ impl PendingHostWorkResult {
     #[must_use]
     pub fn kind(&self) -> PendingHostWorkKind {
         match self {
+            Self::Task(_) => PendingHostWorkKind::Task,
             Self::Send(_) => PendingHostWorkKind::Send,
             Self::Service(_) => PendingHostWorkKind::Service,
             Self::Script(_) => PendingHostWorkKind::Script,
@@ -424,6 +465,7 @@ impl PendingHostWorkResult {
     #[must_use]
     pub fn kind_name(&self) -> &'static str {
         match self {
+            Self::Task(_) => "task",
             Self::Send(_) => "send",
             Self::Service(_) => "service",
             Self::Script(_) => "script",
@@ -437,6 +479,7 @@ impl PendingHostWorkResult {
     #[must_use]
     pub fn data(&self) -> &Value {
         match self {
+            Self::Task(outcome) => &outcome.data,
             Self::Send(outcome) => &outcome.data,
             Self::Service(outcome) => &outcome.data,
             Self::Script(outcome) => &outcome.data,

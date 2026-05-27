@@ -89,8 +89,9 @@ pub use {
     activity_schedule_plan::{
         ACTIVITY_SCHEDULE_ADMISSION_KIND, ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS,
         ACTIVITY_SCHEDULE_ADMISSION_PLAN_CONTRACT, ActivityScheduleAdmissionExecutionFlags,
-        ActivityScheduleAdmissionInputExecutionFlags, ActivityScheduleAdmissionPlanItem,
-        ActivityScheduleAdmissionRuntimeExecutionFlags, ActivityScheduleAdmissionSafetyFlags,
+        ActivityScheduleAdmissionInputExecutionFlags, ActivityScheduleAdmissionKind,
+        ActivityScheduleAdmissionPlanItem, ActivityScheduleAdmissionRuntimeExecutionFlags,
+        ActivityScheduleAdmissionSafetyFlags, ActivityScheduleAdmissionStatus,
         ActivitySchedulePlanAdmissionItemOutcome, ActivitySchedulePlanAdmissionReport,
         ActivitySchedulePlanAdmissionRequest, admit_activity_schedule_plan,
         parse_activity_schedule_plan_json,
@@ -162,9 +163,9 @@ pub use {
     signal_inventory::{SignalInventoryItem, SignalInventoryProjection, SignalInventorySummary},
     signal_journal::{SignalReceiveJournalRecord, record_signal_received},
     step_lifecycle_journal::{
-        StepCreatedJournalRecord, StepStartedJournalRecord, StepTerminalJournalRecord,
-        StepTerminalJournalStatus, StepToolCallJournalRecord, record_step_created,
-        record_step_started, record_step_terminal, record_step_tool_call,
+        StepCreatedJournalRecord, StepFailureJournalInput, StepStartedJournalRecord,
+        StepTerminalJournalRecord, StepTerminalJournalStatus, StepToolCallJournalRecord,
+        record_step_created, record_step_started, record_step_terminal, record_step_tool_call,
     },
     step_queue_journal::{
         StepQueueJournalRecord, record_step_queued, record_step_queued_with_hot_state,
@@ -201,6 +202,7 @@ pub use {
     },
     workflow_trace_journal::{
         WorkflowTraceProjectionRecord, WorkflowTraceProjectionStage,
-        WorkflowTraceProjectionStageStatus, record_workflow_trace_projection,
+        WorkflowTraceProjectionStageInput, WorkflowTraceProjectionStageStatus,
+        record_workflow_trace_projection,
     },
 };

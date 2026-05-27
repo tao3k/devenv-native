@@ -12,12 +12,20 @@ PROJECT_RUNTIME_ROOT="$(process_runtime_root "$PROJECT_ROOT")"
 LOG_DIR="${WENDAO_VLLM_SR_LOG_DIR:-$PROJECT_RUNTIME_ROOT/logs}"
 CONFIG_PATH="${WENDAO_VLLM_SR_CONFIG_PATH:-$PROJECT_CONFIG_ROOT/vllm-sr/config.yaml}"
 BASE_URL="${WENDAO_VLLM_SR_BASE_URL:-http://127.0.0.1:8888}"
-MODE="${WENDAO_MODEL_ROUTING_MODE:-vllm-sr}"
+MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"
+TARGET="${WENDAO_VLLM_SR_TARGET:-docker}"
+MINIMAL="${WENDAO_VLLM_SR_MINIMAL:-1}"
+IMAGE_PULL_POLICY="${WENDAO_VLLM_SR_IMAGE_PULL_POLICY:-ifnotpresent}"
 PYTHON_BIN="$(process_require_python_bin "${WENDAO_VLLM_SR_PYTHON:-}")"
 
 CONFIG_PATH="$(process_abs_path "$PROJECT_ROOT" "$CONFIG_PATH")"
 LOG_DIR="$(process_abs_path "$PROJECT_ROOT" "$LOG_DIR")"
 mkdir -p "$LOG_DIR" "$(dirname "$CONFIG_PATH")"
+
+block_vllm_sr_infra() {
+  echo "Error: $1" >&2
+  exec bash -c 'while :; do sleep 3600; done'
+}
 
 case "$MODE" in
   vllm-sr)
@@ -102,11 +110,52 @@ PY
 fi
 
 if ! command -v vllm-sr >/dev/null 2>&1; then
-  echo "Error: vllm-sr command not found; install the vLLM Semantic Router runtime before starting Wendao in vllm-sr mode." >&2
-  exit 1
+  block_vllm_sr_infra "vllm-sr command not found; install the vLLM Semantic Router runtime before starting Wendao in vllm-sr mode."
 fi
 
+case "$TARGET" in
+  docker)
+    if ! command -v docker >/dev/null 2>&1; then
+      if command -v podman >/dev/null 2>&1; then
+        block_vllm_sr_infra "vLLM-SR local Docker target requires Docker; Podman is installed but vLLM-SR rejects Podman for local serve."
+      else
+        block_vllm_sr_infra "vLLM-SR local Docker target requires the docker CLI."
+      fi
+    fi
+    if docker --version 2>/dev/null | tr '[:upper:]' '[:lower:]' | grep -q podman; then
+      block_vllm_sr_infra "vLLM-SR local Docker target requires Docker; the docker command resolves to Podman."
+    fi
+    if ! docker info >/dev/null 2>&1; then
+      block_vllm_sr_infra "Docker is installed but the Docker daemon is not reachable; vLLM-SR cannot start in docker mode."
+    fi
+    ;;
+  k8s)
+    if ! command -v kubectl >/dev/null 2>&1; then
+      block_vllm_sr_infra "WENDAO_VLLM_SR_TARGET=k8s requires kubectl in PATH."
+    fi
+    ;;
+  *)
+    echo "Error: unsupported WENDAO_VLLM_SR_TARGET value: $TARGET" >&2
+    exit 1
+    ;;
+esac
+
+vllm-sr validate --config "$CONFIG_PATH"
+
 export WENDAO_VLLM_SR_BASE_URL="$BASE_URL"
-exec vllm-sr serve --config "$CONFIG_PATH" \
+SERVE_ARGS=(serve --config "$CONFIG_PATH" --target "$TARGET" --image-pull-policy "$IMAGE_PULL_POLICY")
+case "$MINIMAL" in
+  1|true|True|TRUE|yes|YES|on|ON)
+    SERVE_ARGS+=(--minimal)
+    ;;
+  0|false|False|FALSE|no|NO|off|OFF)
+    ;;
+  *)
+    echo "Error: unsupported WENDAO_VLLM_SR_MINIMAL value: $MINIMAL" >&2
+    exit 1
+    ;;
+esac
+
+exec vllm-sr "${SERVE_ARGS[@]}" \
   > >(tee -a "$LOG_DIR/vllm-sr.stdout.log") \
   2> >(tee -a "$LOG_DIR/vllm-sr.stderr.log" >&2)

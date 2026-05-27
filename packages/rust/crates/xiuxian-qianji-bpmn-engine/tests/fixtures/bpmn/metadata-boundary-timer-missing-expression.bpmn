@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_metadata_boundary_timer_missing_expression"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="metadata_boundary_timer_missing_expression">
+    <bpmn:startEvent id="start" />
+    <bpmn:userTask id="review" />
+    <bpmn:boundaryEvent id="review_timer" attachedToRef="review">
+      <bpmn:timerEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="review" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="review" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>

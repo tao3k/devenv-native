@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_throw_event"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="throw_event_metadata">
+    <bpmn:startEvent id="start" />
+    <bpmn:intermediateThrowEvent id="throw_message">
+      <bpmn:messageEventDefinition messageRef="notice" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="throw_signal">
+      <bpmn:signalEventDefinition signalRef="broadcast" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="throw_message" />
+    <bpmn:sequenceFlow id="flow_signal" sourceRef="throw_message" targetRef="throw_signal" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="throw_signal" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

@@ -178,6 +178,109 @@ stream decoding validation.
   transcript evidence status, and downstream ontology-promotion boundaries
   remain in attachments.
 
+**** Scenario: Attachment PDF structure sidecars use contract schemas
+- WHEN attachments builds internal PDF document structure sidecar batches
+- THEN sidecar schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while Docling structure semantics,
+  reading order, provenance, and parity gates remain in attachments.
+
+**** Scenario: Attachment PDF metrics sidecars use contract schemas
+- WHEN attachments builds internal PDF OCR shard metrics sidecar batches
+- THEN sidecar schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while scheduler, cache, shard, and
+  result-character metric semantics remain in attachments.
+
+**** Scenario: Wendao event-lake append batches use contract schemas
+- WHEN Wendao builds DuckDB event-lake append batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while Wendao keeps event semantics,
+  DuckLake table ownership, and query routing.
+
+**** Scenario: Wendao Flight-host projection batches use contract schemas
+- WHEN Wendao builds Flight-host projected page-index, retrieval-context, or
+  graph-neighbor response batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while Wendao keeps projection
+  semantics and route ownership.
+
+**** Scenario: Wendao SQL registration catalog batches use contract schemas
+- WHEN Wendao builds request-scoped SQL registration table, column, or
+  view-source catalog batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while Wendao keeps SQL-visible
+  catalog semantics and adapter ownership.
+
+**** Scenario: Wendao Episteme source-contract read-model tables use contract schemas
+- WHEN Wendao builds Episteme source-contract `semantic_objects`,
+  `semantic_relations`, or `semantic_projection_state` read-model batches
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while Episteme keeps source-contract
+  provenance, ontology-seed semantics, and downstream WendaoGraph quality
+  request ownership.
+
+**** Scenario: Wendao link-graph Arrow snapshot cache uses contract schemas
+- WHEN Wendao builds or decodes DuckDB-local link-graph Arrow snapshot IPC
+  payloads for docs, sections, edges, or aliases
+- THEN batch schema construction and exact structural validation SHALL use
+  db-store `ArrowSchemaContract` helpers while link-graph keeps index semantics,
+  cache identity, and snapshot fingerprint ownership.
+
+**** Scenario: Wendao link-graph perf core streams use contract schemas
+- WHEN Wendao performance probes encode or decode link-graph Arrow IPC core
+  streams for document, edge, or alias rows
+- THEN core-stream schema construction and IPC validation SHALL use db-store
+  `ArrowSchemaContract` helpers while link-graph keeps benchmark semantics,
+  cache identity, and indexing behavior.
+
+**** Scenario: Wendao repo-content chunk engine batches use contract schemas
+- WHEN Wendao normalizes repo-content chunk Arrow batches for Parquet and
+  DuckDB-backed query publication
+- THEN the engine-facing Arrow schema and exact normalized-batch validation
+  SHALL use db-store `ArrowSchemaContract` helpers while repo-content indexing,
+  Lance schema ownership, and search semantics remain in Wendao.
+
+**** Scenario: Wendao search-index diagnostics relations use contract schemas
+- WHEN Wendao builds search-index status diagnostics relation inputs for
+  DataFusion or DuckDB summary queries
+- THEN status rollup, status reason, query telemetry, and repo read pressure
+  schemas SHALL use db-store `ArrowSchemaContract` helpers while Wendao keeps
+  search-plane status semantics, SQL summaries, and local engine selection.
+
+**** Scenario: Wendao query-core graph relations use contract schemas
+- WHEN Wendao query-core graph-neighbor execution returns an Arrow-native
+  relation for projection or downstream operators
+- THEN the graph-neighbor relation schema SHALL use db-store
+  `ArrowSchemaContract` helpers while Wendao keeps graph traversal, telemetry,
+  and projection semantics.
+
+**** Scenario: Studio document-extract Arrow cache uses contract schemas
+- WHEN Studio builds document-extract resource or status Arrow IPC cache
+  payloads
+- THEN cache schema construction and exact batch validation SHALL use db-store
+  `ArrowSchemaContract` helpers while Studio keeps route execution, cache
+  mirroring, and provider semantics.
+
+**** Scenario: Analyzer document tables use contract-shaped schemas
+- WHEN the Python analyzer builds document resource or document structure
+  `pyarrow.Schema` values for Docling-backed extraction
+- THEN schemas SHALL be generated through an analyzer-local contract helper
+  that mirrors db-store table metadata and field contracts while Python keeps
+  Docling adaptation semantics.
+
+**** Scenario: Analyzer OCR audio and timing tables use contract-shaped schemas
+- WHEN the Python analyzer builds PDF OCR shard, audio shard, or document
+  timing `pyarrow.Schema` values
+- THEN schemas SHALL be generated through the analyzer-local contract helper
+  that mirrors db-store table metadata and field contracts while Python keeps
+  worker invocation, Docling adaptation, and timing semantics.
+
+**** Scenario: Analyzer audio reference review table uses contract-shaped schema
+- WHEN the Python analyzer builds the private audio reference selection review
+  Parquet table schema
+- THEN the schema SHALL be generated through the analyzer-local contract helper
+  with table metadata while Python keeps reference curation and promotion
+  semantics.
+
 *** Requirement: No truth migration
 The shared Arrow contract interface SHALL NOT move ontology truth, search
 semantics, Julia strategy logic, or gateway route ownership into db-store.
@@ -314,10 +417,62 @@ validation loops.
 - Gate: Attachment audio Org projection tests pass while audio evidence source
   and segment schemas are generated and exact-validated through db-store
   schema contract helpers.
+- Gate: Attachment PDF structure tests pass while document structure sidecar
+  schemas are generated and exact-validated through db-store schema contract
+  helpers.
+- Gate: Attachment PDF metrics tests pass while OCR shard metrics sidecar
+  schemas are generated and exact-validated through db-store schema contract
+  helpers.
+- Gate: Wendao event-lake tests pass while event append schemas are generated
+  and exact-validated through db-store schema contract helpers, including
+  `Timestamp(Millisecond)` fields.
+- Gate: Wendao Flight-host provider tests pass while projected response
+  schemas are generated and exact-validated through db-store schema contract
+  helpers.
+- Gate: Wendao SQL catalog tests pass while registration catalog schemas are
+  generated and exact-validated through db-store schema contract helpers.
+- Gate: Wendao Episteme source-contract read-model tests pass while semantic
+  object, relation, and projection-state schemas are generated and
+  exact-validated through db-store schema contract helpers.
+- Gate: Wendao link-graph DuckDB cache tests pass while snapshot docs,
+  sections, edges, and aliases schemas are generated and exact-validated
+  through db-store schema contract helpers.
+- Gate: Wendao link-graph performance core-stream tests pass while document,
+  edge, and alias IPC schemas are generated and validated through db-store
+  schema contract helpers.
+- Gate: Wendao repo-content chunk publication/query tests pass while
+  engine-facing Arrow schemas and normalized batches are generated and
+  exact-validated through db-store schema contract helpers.
+- Gate: Wendao search-index diagnostics tests pass while status diagnostics
+  relation schemas are generated and exact-validated through db-store schema
+  contract helpers.
+- Gate: Wendao query-core graph tests pass while graph-neighbor relation
+  schemas are generated and exact-validated through db-store schema contract
+  helpers.
+- Gate: Studio document-extract cache tests pass while resource and status
+  Arrow cache schemas are generated and exact-validated through db-store schema
+  contract helpers.
+- Gate: Analyzer document schema tests pass while resource and structure
+  schemas are generated through an analyzer-local contract helper with
+  `wendao.table` metadata.
+- Gate: Analyzer OCR/audio/timing schema tests pass while shard and timing
+  schemas are generated through an analyzer-local contract helper with
+  `wendao.table` metadata.
+- Gate: Analyzer audio reference diagnostic tests pass while the reference
+  review table schema is generated through an analyzer-local contract helper
+  with `wendao.table` metadata.
 - Gate: package docs describe the db-store Arrow contract boundary without
   linking to hidden tracking paths.
 
 *** Evidence Log
+- 2026-05-26: Studio document-extract resource and status Arrow cache schemas
+  now use db-store `ArrowSchemaContract` construction and exact batch
+  validation while preserving Studio route execution, cache mirroring, and
+  provider semantics. Validation passed with targeted Studio gateway check,
+  document-extract cache schema test, broader document-extract tests, targeted
+  Studio clippy, fmt check, package README hidden-path scan, and targeted
+  xiuxian-llm model-routing tests for the clippy blocker fixed on the
+  validation path.
 - 2026-05-26: Graph-structural request schema adoption completed for
   `xiuxian-db-store` and `xiuxian-julia-core`. Validation passed with db-store
   Arrow schema tests, Julia-core graph-structural exchange tests, targeted
@@ -376,3 +531,91 @@ validation loops.
   schemas now use db-store `ArrowSchemaContract` construction and exact
   validation. Validation passed with targeted audio Org projection tests,
   targeted attachments clippy, fmt check, and package README hidden-path scan.
+- 2026-05-26: Attachment PDF document structure sidecar schemas now use
+  db-store `ArrowSchemaContract` construction and exact validation while
+  preserving Docling structure authority, reading order, provenance, and parity
+  checks in attachments. Validation passed with targeted PDF structure tests,
+  targeted attachments clippy, fmt check, and package README hidden-path scan.
+- 2026-05-26: Attachment PDF OCR shard metrics sidecar schemas now use
+  db-store `ArrowSchemaContract` construction and exact validation while
+  preserving scheduler/cache/shard metric semantics in attachments. Validation
+  passed with targeted PDF metrics tests, targeted attachments clippy, fmt
+  check, and package README hidden-path scan.
+- 2026-05-26: Wendao event-lake append batch schemas now use db-store
+  `ArrowSchemaContract` construction and exact validation while preserving
+  Wendao event semantics, DuckLake table ownership, and query routing.
+  Validation passed with db-store Arrow schema tests, targeted Wendao
+  event-lake tests, targeted clippy for db-store and Wendao duckdb, fmt check,
+  and package README hidden-path scan.
+- 2026-05-26: Wendao Flight-host projected page-index, retrieval-context, and
+  graph-neighbor response batch schemas now use db-store `ArrowSchemaContract`
+  construction and exact validation while preserving Wendao projection
+  semantics and route ownership. Validation passed with targeted Flight-host
+  provider tests, targeted Wendao clippy, fmt check, and package README
+  hidden-path scan.
+- 2026-05-26: Python analyzer document resource and structure schemas now use
+  an analyzer-local Arrow schema contract helper with `wendao.table` metadata
+  while preserving Docling adaptation and row materialization semantics.
+  Validation passed with targeted analyzer document/schema tests, docs tests,
+  and package README hidden-path scan.
+- 2026-05-26: Python analyzer PDF OCR shard, audio shard, and document timing
+  schemas now use the same analyzer-local Arrow schema contract helper with
+  `wendao.table` metadata while preserving worker invocation, timing, route,
+  and row materialization semantics. Validation passed with targeted analyzer
+  schema/document tests, the full analyzer document-service unit directory,
+  docs/export tests, ruff format/check, and package README hidden-path scan.
+- 2026-05-26: Python analyzer audio reference selection review Parquet schema
+  now uses the same analyzer-local Arrow schema contract helper with
+  `wendao.table` metadata while preserving reference curation and promotion
+  semantics. Validation passed with targeted audio reference diagnostic tests,
+  analyzer schema metadata tests, ruff format/check, package README
+  hidden-path scan, and an `rg` scan confirming only the helper itself calls
+  `pa.schema(...)` under analyzer source/tests.
+- 2026-05-26: Wendao SQL registration table, column, and view-source catalog
+  batch schemas now use db-store `ArrowSchemaContract` construction and exact
+  validation while preserving SQL-visible catalog semantics and adapter
+  ownership. Validation passed with targeted SQL catalog tests, targeted Wendao
+  clippy for `search-runtime,duckdb`, fmt check, package README hidden-path
+  scan, and SDD/Org validation. The broader SQL test module still exposes
+  pre-existing parallel DuckDB view-name collisions outside this schema slice.
+- 2026-05-26: Wendao Episteme source-contract `semantic_objects`,
+  `semantic_relations`, and `semantic_projection_state` read-model schemas now
+  use db-store `ArrowSchemaContract` construction and exact validation while
+  preserving source-contract provenance, ontology-seed semantics, and
+  WendaoGraph quality-request ownership. Validation passed with targeted
+  source-contract read-model tests, targeted Wendao clippy for `julia`, fmt
+  check, package README hidden-path scan, and SDD/Org validation.
+- 2026-05-26: Wendao link-graph DuckDB-local Arrow snapshot docs, sections,
+  edges, and aliases schemas now use db-store `ArrowSchemaContract`
+  construction and exact validation on encode/decode while preserving
+  link-graph index semantics, cache identity, and snapshot fingerprint
+  ownership. Validation passed with targeted link-graph DuckDB cache tests,
+  targeted Wendao clippy, fmt check, package README hidden-path scan, and
+  SDD/Org validation.
+- 2026-05-26: Wendao link-graph performance core-stream docs, edges, and
+  aliases schemas now use db-store `ArrowSchemaContract` construction and IPC
+  validation while preserving link-graph indexing behavior, cache benchmark
+  semantics, and performance-gate budgets. Validation passed with
+  feature-gated core-stream schema metadata and roundtrip tests, targeted
+  performance-feature Wendao clippy, fmt check, package README hidden-path
+  scan, and SDD/Org validation.
+- 2026-05-26: Wendao repo-content chunk engine-facing Arrow schema now uses
+  db-store `ArrowSchemaContract` construction and exact normalized-batch
+  validation while preserving Lance index schema ownership, repo-content search
+  semantics, and publication planning. Validation passed with targeted
+  repo-content schema/build tests, targeted Wendao clippy, fmt check, package
+  README hidden-path scan, and SDD/Org validation.
+- 2026-05-26: Wendao search-index status diagnostics relation inputs now use
+  db-store `ArrowSchemaContract` construction and exact batch validation while
+  preserving search-plane response semantics, SQL summary queries, and local
+  DataFusion/DuckDB engine selection. Validation passed with targeted
+  diagnostics relation metadata tests, diagnostics rollup tests, DuckDB
+  diagnostics selection tests, targeted Wendao clippy, fmt check, package
+  README hidden-path scan, and SDD/Org validation.
+- 2026-05-26: Wendao query-core graph-neighbor relation batches now use
+  db-store `ArrowSchemaContract` construction and exact validation while
+  preserving graph traversal, explain telemetry, projection, and public
+  query-core operator semantics. Validation passed with targeted graph-neighbor
+  relation metadata tests, graph execution tests, graph projection tests,
+  targeted Wendao clippy, fmt check, package README hidden-path scan, and
+  SDD/Org validation.

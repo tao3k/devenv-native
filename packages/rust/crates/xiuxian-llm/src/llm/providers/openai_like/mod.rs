@@ -7,8 +7,9 @@ mod responses;
 
 #[cfg(feature = "provider-litellm")]
 pub use facade::{
-    LiteLlmOpenAILikeProvider, build_openai_like_provider, execute_openai_responses_request,
-    inline_openai_compatible_image_urls, is_openai_like_stream_required_error_message,
+    LiteLlmOpenAILikeProvider, build_openai_like_provider, execute_openai_chat_completions_request,
+    execute_openai_responses_request, inline_openai_compatible_image_urls,
+    is_openai_like_stream_required_error_message,
 };
 #[cfg(feature = "provider-litellm")]
 pub use responses::{

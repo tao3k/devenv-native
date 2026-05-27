@@ -1,10 +1,10 @@
 //! LLM runtime primitives and clients.
 
 #[cfg(feature = "provider-litellm")]
-use super::error::HttpContentType;
+use super::HttpContentType;
 #[cfg(feature = "provider-litellm")]
-use super::error::sanitize_user_visible;
-use super::error::{LlmError, LlmResult};
+use super::sanitize_user_visible;
+use super::{LlmError, LlmResult};
 use async_trait::async_trait;
 use futures::Stream;
 #[cfg(feature = "provider-litellm")]
@@ -28,8 +28,8 @@ use std::pin::Pin;
 
 #[cfg(feature = "provider-litellm")]
 use crate::llm::providers::{
-    build_openai_like_provider, execute_openai_responses_request,
-    is_openai_like_stream_required_error_message,
+    build_openai_like_provider, execute_openai_chat_completions_request,
+    execute_openai_responses_request, is_openai_like_stream_required_error_message,
 };
 
 #[cfg(feature = "provider-litellm")]
@@ -122,6 +122,36 @@ pub struct OpenAICompatibleClient {
 }
 
 impl OpenAICompatibleClient {
+    /// Execute `/chat/completions` and return the raw provider JSON body.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the provider request fails, returns a non-success
+    /// status, or returns a non-JSON body.
+    pub async fn chat_completions_raw_body(&self, request: ChatRequest) -> LlmResult<String> {
+        #[cfg(feature = "provider-litellm")]
+        {
+            let endpoint = openai_like_chat_completions_endpoint(self.base_url.as_str());
+            let api_key = trimmed_api_key(self.api_key.as_str());
+            return execute_openai_chat_completions_request(
+                &self.http,
+                endpoint.as_str(),
+                api_key,
+                &request,
+            )
+            .await;
+        }
+
+        #[cfg(not(feature = "provider-litellm"))]
+        {
+            let _ = request;
+            Err(LlmError::Internal {
+                message: "chat_completions_raw_body requires feature `provider-litellm`"
+                    .to_string(),
+            })
+        }
+    }
+
     #[cfg(feature = "provider-litellm")]
     async fn retry_chat_with_stream_transport(
         &self,
@@ -262,6 +292,24 @@ impl OpenAICompatibleClient {
         }
 
         output
+    }
+}
+
+fn trimmed_api_key(api_key: &str) -> Option<&str> {
+    let trimmed = api_key.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed)
+    }
+}
+
+fn openai_like_chat_completions_endpoint(base_url: &str) -> String {
+    let trimmed = base_url.trim().trim_end_matches('/');
+    if trimmed.ends_with("/chat/completions") {
+        trimmed.to_string()
+    } else {
+        format!("{trimmed}/chat/completions")
     }
 }
 

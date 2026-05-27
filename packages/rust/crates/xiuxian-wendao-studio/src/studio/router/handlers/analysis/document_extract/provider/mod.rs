@@ -43,7 +43,7 @@ use xiuxian_wendao_attachments::pdf::render::{
 use xiuxian_wendao_attachments::pdf::structure::build_document_structure_batch;
 
 #[cfg(test)]
-use super::arrow_cache::{read_arrow_file, write_arrow_file};
+use super::arrow_cache::{DOCUMENT_RESOURCE_ARROW_CACHE_NAME, read_arrow_file, write_arrow_file};
 #[cfg(test)]
 use super::registry::DocumentExtractJobRegistry;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
@@ -90,7 +90,9 @@ use hybrid::{
 use jobs::document_extract_batches_are_cacheable;
 #[cfg(test)]
 use model_route::{
-    ImageDocumentExtractRouteConfig, image_document_extract_model_route_with_config,
+    DocumentExtractRouteSourceIdentity, ImageDocumentExtractRouteConfig,
+    image_document_extract_model_route_for_source_identity,
+    image_document_extract_model_route_with_config,
 };
 #[cfg(test)]
 use route::{

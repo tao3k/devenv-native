@@ -57,6 +57,7 @@ fn qianji_server_capabilities() -> Vec<&'static str> {
         "bpmn.workflow.activity-evidence",
         "bpmn.workflow.task.claim",
         "bpmn.workflow.task.release",
+        "qianji.control.bpmn-source",
         "qianji.control.history",
         "qianji.control.summary",
         "qianji.control.recovery",
@@ -66,7 +67,18 @@ fn qianji_server_capabilities() -> Vec<&'static str> {
     capabilities
 }
 
-#[cfg(feature = "valkey")]
+#[cfg(all(feature = "duckdb", feature = "valkey", feature = "qianji-full"))]
+fn qianji_server_valkey_capabilities() -> [&'static str; 2] {
+    [
+        "qianji.control.recovery.apply",
+        "qianji.control.worker.openai-compatible-llm.run",
+    ]
+}
+
+#[cfg(all(
+    feature = "valkey",
+    not(all(feature = "duckdb", feature = "qianji-full"))
+))]
 fn qianji_server_valkey_capabilities() -> [&'static str; 1] {
     ["qianji.control.recovery.apply"]
 }

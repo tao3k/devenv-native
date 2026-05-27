@@ -110,19 +110,18 @@ fn parser_event_based_gateway_requires_wait_targets() {
 }
 
 #[test]
-fn parser_unsupported_complex_gateway_is_rejected() {
-    let error = parse_fixture_error(
-        "invalid-unsupported-gateway.bpmn",
-        "unsupported BPMN elements should fail explicitly",
-    );
+fn parser_complex_gateway_materializes_gateway_kind() {
+    let package = parse_fixture_package("invalid-unsupported-gateway.bpmn");
+    let process = package
+        .find_process("gateway_flow")
+        .must("process should be present");
+
+    assert_eq!(process.nodes[1].kind, BpmnNodeKind::Gateway);
     assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedElement {
-            source_id: ("invalid-unsupported-gateway.bpmn".to_string()).into(),
-            process_id: ("gateway_flow".to_string()).into(),
-            element: "complexGateway".to_string(),
-        }
+        process.nodes[1].gateway_kind,
+        Some(BpmnGatewayKind::Complex)
     );
+    assert_eq!(process.outgoing_edge_indices(1), [1]);
 }
 
 #[test]

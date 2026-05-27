@@ -1,38 +1,37 @@
 use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
+use xiuxian_qianji_bpmn_engine::snapshot_bpmn_source;
 
 #[test]
-fn bpmn_linter_reports_callable_io_metadata_surface_with_llm_guidance() {
-    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-callable-io.bpmn"));
+fn bpmn_linter_preserves_callable_io_metadata_surface() {
+    let source = bpmn_fixture_source("metadata-callable-io.bpmn");
+    let report = lint_bpmn_source(&source);
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_collaboration_surface");
-    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert!(
+        report.ok,
+        "callable IO metadata should lint cleanly as passive metadata: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+
+    let snapshot = snapshot_bpmn_source(&source)
+        .unwrap_or_else(|error| panic!("callable IO fixture should snapshot: {error}"));
+    let process = &snapshot.processes[0];
+    let global_task = &snapshot.root.global_tasks[0];
+    assert_eq!(process.io_binding_count, 1);
+    assert_eq!(global_task.io_specification_count, 1);
+    assert_eq!(global_task.io_binding_count, 1);
     assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["process_io_binding_count"],
-        1
+        process.io_bindings[0].operation_ref.as_deref(),
+        Some("Operation_Callable")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["global_task_io_specification_count"],
-        1
+        global_task.io_specifications[0].data_inputs[0]
+            .data_id
+            .as_deref(),
+        Some("GlobalInput_Request")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["global_task_io_binding_count"],
-        1
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["processes"][0]["io_bindings"][0]["operation_ref"],
-        "Operation_Callable"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["global_tasks"][0]["io_specifications"][0]["data_inputs"]
-            [0]["data_id"],
-        "GlobalInput_Request"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["global_tasks"][0]["io_bindings"][0]["output_data_ref"],
-        "GlobalOutput_Response"
+        global_task.io_bindings[0].output_data_ref.as_deref(),
+        Some("GlobalOutput_Response")
     );
 }

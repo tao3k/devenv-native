@@ -33,16 +33,14 @@ pub(super) fn advance_active_node(
     }
 
     match current_node.kind {
-        BpmnNodeKind::StartEvent => {
-            advance_start_event(
-                process,
-                instance,
-                current_token_index,
-                current_node_index,
-                now_ms,
-            )?;
-            Ok(None)
-        }
+        BpmnNodeKind::StartEvent => advance_start_event(
+            package,
+            process,
+            instance,
+            current_token_index,
+            current_node_index,
+            now_ms,
+        ),
         BpmnNodeKind::EndEvent => advance_end_event(
             package,
             instance,
@@ -84,7 +82,8 @@ pub(super) fn advance_active_node(
         BpmnNodeKind::BoundaryEvent => Err(BpmnEngineError::UnsupportedOperation {
             operation: "advance_instance_boundary_event_direct_execution",
         }),
-        BpmnNodeKind::SendTask
+        BpmnNodeKind::Task
+        | BpmnNodeKind::SendTask
         | BpmnNodeKind::ServiceTask
         | BpmnNodeKind::ScriptTask
         | BpmnNodeKind::UserTask
@@ -123,6 +122,7 @@ pub(super) fn advance_active_node(
 
 fn host_work_kind_for_node(node_kind: &BpmnNodeKind) -> Option<PendingHostWorkKind> {
     match node_kind {
+        BpmnNodeKind::Task => Some(PendingHostWorkKind::Task),
         BpmnNodeKind::SendTask => Some(PendingHostWorkKind::Send),
         BpmnNodeKind::ServiceTask => Some(PendingHostWorkKind::Service),
         BpmnNodeKind::ScriptTask => Some(PendingHostWorkKind::Script),
@@ -133,16 +133,23 @@ fn host_work_kind_for_node(node_kind: &BpmnNodeKind) -> Option<PendingHostWorkKi
 }
 
 fn advance_start_event(
+    package: &BpmnPackage,
     process: &BpmnProcessSpec,
     instance: &mut BpmnInstanceState,
     current_token_index: usize,
     current_node_index: BpmnNodeIndex,
     now_ms: u64,
-) -> Result<()> {
+) -> Result<Option<BpmnAdvanceOutcome>> {
     if start_event_should_wait(process, instance, current_node_index)? {
-        return call_activity::register_intermediate_wait(
-            process,
+        call_activity::register_intermediate_wait(process, instance, current_node_index, now_ms)?;
+        return Ok(None);
+    }
+    if process.outgoing_edge_indices(current_node_index).is_empty() {
+        return advance_plain_end_event(
+            package,
             instance,
+            current_token_index,
+            process,
             current_node_index,
             now_ms,
         );
@@ -157,7 +164,7 @@ fn advance_start_event(
     state::set_active_node_index(instance, current_token_index, edge_index, next_node_index);
     state::set_node_status(instance, next_node_index, NodeRuntimeStatus::Queued);
     state::record_transition(instance, now_ms, InstanceLifecycle::Running);
-    Ok(())
+    Ok(None)
 }
 
 fn start_event_should_wait(
@@ -178,6 +185,7 @@ fn start_event_should_wait(
         | BpmnEventKind::Compensation
         | BpmnEventKind::Error
         | BpmnEventKind::Escalation
+        | BpmnEventKind::Link
         | BpmnEventKind::Terminate => Err(BpmnEngineError::UnsupportedEventConfiguration {
             process_id: (process.key.process_id.to_string()).into(),
             node_id: (process.nodes[node_index as usize].bpmn_id.to_string()).into(),

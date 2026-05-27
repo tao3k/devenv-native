@@ -26,7 +26,7 @@ use crate::lint::bpmn::{
 };
 use crate::{
     BpmnEngineError, BpmnPackage, BpmnParseOptions, BpmnSourceFile, LintDomain, LintIssue,
-    LintReport, LintSourceDiagnostic, LintSourceSpan, parse_bpmn_package,
+    LintReport, LintSourceDiagnostic, LintSourceSpan, parse_bpmn_package, snapshot_bpmn_source,
 };
 use serde_json::json;
 
@@ -81,13 +81,24 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
             if !condition_issues.is_empty() {
                 return LintReport::blocking(LintDomain::Bpmn, &source.source_id, condition_issues);
             }
-            let loop_issues = loop_risk_issues(source, &package);
-            if !loop_issues.is_empty() {
-                return LintReport::blocking(LintDomain::Bpmn, &source.source_id, loop_issues);
+            if !is_collaboration_metadata_surface(&package) {
+                let loop_issues = loop_risk_issues(source, &package);
+                if !loop_issues.is_empty() {
+                    return LintReport::blocking(LintDomain::Bpmn, &source.source_id, loop_issues);
+                }
             }
             LintReport::ok(LintDomain::Bpmn, &source.source_id)
         }
         Err(error) => {
+            if is_metadata_only_document_without_process(source, &error) {
+                return LintReport::ok(LintDomain::Bpmn, &source.source_id);
+            }
+            if is_collaboration_document_runtime_constraint(source, &error) {
+                return LintReport::ok(LintDomain::Bpmn, &source.source_id);
+            }
+            if is_non_executable_process_runtime_constraint(source, &error) {
+                return LintReport::ok(LintDomain::Bpmn, &source.source_id);
+            }
             let mut issues = vec![issue_from_bpmn_error(source, &error)];
             if should_append_source_task_routing_issue(&error)
                 && let Some(issue) = source_task_routing_issue(source)
@@ -115,6 +126,114 @@ pub(crate) fn lint_bpmn_source_impl(source: &BpmnSourceFile) -> LintReport {
             }
             LintReport::blocking(LintDomain::Bpmn, &source.source_id, issues)
         }
+    }
+}
+
+fn is_metadata_only_document_without_process(
+    source: &BpmnSourceFile,
+    error: &BpmnEngineError,
+) -> bool {
+    if !matches!(error, BpmnEngineError::MissingProcessDefinitions { .. }) {
+        return false;
+    }
+    let Ok(snapshot) = snapshot_bpmn_source(source) else {
+        return false;
+    };
+    let root = &snapshot.root;
+    root.import_count
+        + root.extension_count
+        + root.relationship_count
+        + root.collaboration_count
+        + root.item_definition_count
+        + root.message_count
+        + root.interface_count
+        + root.end_point_count
+        + root.resource_count
+        + root.category_count
+        + root.correlation_property_count
+        + root.error_count
+        + root.escalation_count
+        + root.signal_count
+        + root.data_store_count
+        + root.partner_entity_count
+        + root.partner_role_count
+        + root.global_task_count
+        > 0
+}
+
+fn is_collaboration_metadata_surface(package: &BpmnPackage) -> bool {
+    !package.collaboration_host_envelope.is_empty()
+}
+
+fn is_collaboration_document_runtime_constraint(
+    source: &BpmnSourceFile,
+    error: &BpmnEngineError,
+) -> bool {
+    if runtime_constraint_process_id(error).is_none() {
+        return false;
+    }
+    let Ok(snapshot) = snapshot_bpmn_source(source) else {
+        return false;
+    };
+    snapshot.root.collaboration_count > 0 && is_bounded_runtime_constraint(error)
+}
+
+fn is_bounded_runtime_constraint(error: &BpmnEngineError) -> bool {
+    matches!(
+        error,
+        BpmnEngineError::UnsupportedBoundaryEventConfiguration { .. }
+            | BpmnEngineError::UnsupportedCompensationConfiguration { .. }
+            | BpmnEngineError::UnsupportedEventBasedGatewayConfiguration { .. }
+            | BpmnEngineError::UnsupportedEventConfiguration { .. }
+            | BpmnEngineError::UnsupportedGatewayConfiguration { .. }
+            | BpmnEngineError::UnsupportedLoopConfiguration { .. }
+            | BpmnEngineError::UnsupportedSubProcessConfiguration { .. }
+            | BpmnEngineError::UnsupportedTaskConfiguration { .. }
+            | BpmnEngineError::UnsupportedTransactionConfiguration { .. }
+    )
+}
+
+fn is_non_executable_process_runtime_constraint(
+    source: &BpmnSourceFile,
+    error: &BpmnEngineError,
+) -> bool {
+    let Some(process_id) = runtime_constraint_process_id(error) else {
+        return false;
+    };
+    let Ok(snapshot) = snapshot_bpmn_source(source) else {
+        return false;
+    };
+    snapshot.processes.iter().any(|process| {
+        let process_matches = process
+            .process_id
+            .as_ref()
+            .is_some_and(|id| id.as_str() == process_id);
+        let is_editor_only = snapshot.root.diagram_count > 0
+            && process
+                .is_executable
+                .as_ref()
+                .is_none_or(|is_executable| !is_executable.get());
+        process_matches && is_editor_only
+    })
+}
+
+fn runtime_constraint_process_id(error: &BpmnEngineError) -> Option<&str> {
+    match error {
+        BpmnEngineError::MissingRequiredProcessElement { process_id, .. }
+        | BpmnEngineError::MissingRequiredNodeElement { process_id, .. }
+        | BpmnEngineError::UnsupportedElement { process_id, .. }
+        | BpmnEngineError::UnsupportedBoundaryEventConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedCompensationConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedEventBasedGatewayConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedEventConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedGatewayConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedLoopConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedSubProcessConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedTaskConfiguration { process_id, .. }
+        | BpmnEngineError::UnsupportedTransactionConfiguration { process_id, .. } => {
+            Some(process_id.as_str())
+        }
+        _ => None,
     }
 }
 

@@ -18,6 +18,7 @@ use super::model::{
 };
 use super::process::is_supported_node_tag;
 use super::task_io::handle_task_io_child_start;
+use super::task_io::record_task_io_property_id;
 use crate::bpmn_parse_api::BpmnSourceFile;
 use crate::error::{BpmnEngineError, Result};
 use crate::ir_event_api::{BpmnEventKind, BpmnTimerKind};
@@ -591,6 +592,12 @@ fn handle_supported_node_child_start(
     parent: &str,
     process: &mut RawProcess,
 ) -> Result<bool> {
+    if is_supported_node_tag(parent) && tag == "property" {
+        if let Some(property_id) = attribute_value(reader, event, "id")? {
+            record_task_io_property_id(source, process, property_id)?;
+        }
+        return Ok(true);
+    }
     if is_supported_node_tag(parent) && tag == "standardLoopCharacteristics" {
         let process_id = process.process_id.clone();
         let node = last_process_node_mut(source, process)?;
@@ -702,11 +709,21 @@ fn assign_event_definition(
 fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> {
     match (parent, tag) {
         (
-            "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
+            "startEvent"
+            | "intermediateCatchEvent"
+            | "intermediateThrowEvent"
+            | "boundaryEvent"
+            | "sendTask"
+            | "receiveTask",
             "messageEventDefinition",
         ) => Some(BpmnEventKind::Message),
         (
-            "startEvent" | "intermediateCatchEvent" | "boundaryEvent" | "sendTask" | "receiveTask",
+            "startEvent"
+            | "intermediateCatchEvent"
+            | "intermediateThrowEvent"
+            | "boundaryEvent"
+            | "sendTask"
+            | "receiveTask",
             "signalEventDefinition",
         ) => Some(BpmnEventKind::Signal),
         ("boundaryEvent" | "endEvent", "errorEventDefinition") => Some(BpmnEventKind::Error),
@@ -722,6 +739,9 @@ fn supported_event_definition(parent: &str, tag: &str) -> Option<BpmnEventKind> 
             "startEvent" | "intermediateCatchEvent" | "boundaryEvent",
             "conditionalEventDefinition",
         ) => Some(BpmnEventKind::Conditional),
+        ("intermediateCatchEvent" | "intermediateThrowEvent", "linkEventDefinition") => {
+            Some(BpmnEventKind::Link)
+        }
         _ => None,
     }
 }
@@ -760,7 +780,7 @@ fn supported_timer_expression(tag: &str) -> Option<BpmnTimerKind> {
 fn is_ignored_node_child(tag: &str) -> bool {
     matches!(
         tag,
-        "documentation" | "extensionElements" | "incoming" | "outgoing"
+        "documentation" | "extensionElements" | "incoming" | "outgoing" | "property"
     )
 }
 

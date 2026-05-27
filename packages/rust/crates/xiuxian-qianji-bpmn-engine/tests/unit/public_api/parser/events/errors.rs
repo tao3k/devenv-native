@@ -39,37 +39,37 @@ fn parser_intermediate_catch_event_requires_event_definition() {
 }
 
 #[test]
-fn parser_intermediate_timer_event_requires_timer_expression() {
-    let error = parse_fixture_error(
+fn parser_intermediate_timer_event_accepts_missing_expression_as_metadata() {
+    let package = parse_fixture_package(
         "invalid-intermediate-timer-event.bpmn",
-        "timer waits without an expression should fail validation",
+        "timer waits without an expression should parse as metadata",
     );
+    let process = package
+        .find_process("await_timer")
+        .must("process should be present");
+    let event = process
+        .event_for_node(1)
+        .must("timer event should be indexed by node");
 
-    assert_eq!(
-        error,
-        BpmnEngineError::MissingRequiredNodeElement {
-            process_id: ("await_timer".to_string()).into(),
-            node_id: ("wait_timer".to_string()).into(),
-            element: "timer_expression",
-        }
-    );
+    assert_eq!(event.kind, BpmnEventKind::Timer);
+    assert!(event.timer.is_none());
 }
 
 #[test]
-fn parser_intermediate_conditional_event_requires_condition_expression() {
-    let error = parse_fixture_error(
+fn parser_intermediate_conditional_event_accepts_missing_condition_as_metadata() {
+    let package = parse_fixture_package(
         "invalid-intermediate-conditional-missing-condition.bpmn",
-        "conditional waits without a condition should fail validation",
+        "conditional waits without a condition should parse as metadata",
     );
+    let process = package
+        .find_process("await_condition")
+        .must("process should be present");
+    let event = process
+        .event_for_node(1)
+        .must("conditional event should be indexed by node");
 
-    assert_eq!(
-        error,
-        BpmnEngineError::MissingRequiredNodeElement {
-            process_id: ("await_condition".to_string()).into(),
-            node_id: ("wait_condition".to_string()).into(),
-            element: "conditional_expression",
-        }
-    );
+    assert_eq!(event.kind, BpmnEventKind::Conditional);
+    assert!(event.condition_expression.is_none());
 }
 
 #[test]
@@ -90,20 +90,20 @@ fn parser_intermediate_conditional_event_rejects_unsupported_condition_expressio
 }
 
 #[test]
-fn parser_conditional_boundary_event_requires_condition_expression() {
-    let error = parse_fixture_error(
+fn parser_conditional_boundary_event_accepts_missing_condition_as_metadata() {
+    let package = parse_fixture_package(
         "invalid-boundary-conditional-missing-condition.bpmn",
-        "conditional boundary events without a condition should fail validation",
+        "conditional boundary events without a condition should parse as metadata",
     );
+    let process = package
+        .find_process("review_with_invalid_conditional_boundary")
+        .must("process should be present");
+    let event = process
+        .event_for_node(2)
+        .must("conditional boundary event should be indexed by node");
 
-    assert_eq!(
-        error,
-        BpmnEngineError::MissingRequiredNodeElement {
-            process_id: ("review_with_invalid_conditional_boundary".to_string()).into(),
-            node_id: ("review_condition".to_string()).into(),
-            element: "conditional_expression",
-        }
-    );
+    assert_eq!(event.kind, BpmnEventKind::Conditional);
+    assert!(event.condition_expression.is_none());
 }
 
 #[test]

@@ -2,13 +2,13 @@ use crate::test_support::MustExt as _;
 use serde_json::json;
 use std::sync::Arc;
 use xiuxian_qianji_bpmn_engine::{
-    BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceInit, BpmnParseOptions,
+    BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceInit, BpmnParseOptions, BpmnSourceFile,
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
-    HostBridgeError, LintIssue, ManualTaskOutcome, ManualTaskRequest, PendingHostWorkRequest,
+    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, PendingHostWorkRequest,
     PendingHostWorkResult, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest,
-    ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
-    build_pending_host_work_request, create_instance, lint_bpmn_source, parse_bpmn_package,
-    snapshot_bpmn_source,
+    ServiceTaskOutcome, ServiceTaskRequest, TaskOutcome, TaskRequest, UserTaskOutcome,
+    UserTaskRequest, advance_instance, build_pending_host_work_request, create_instance,
+    lint_bpmn_source, parse_bpmn_package, snapshot_bpmn_source,
 };
 
 use super::fixture_source;
@@ -77,15 +77,45 @@ fn native_compatibility_fixture_snapshots_standard_di_and_task_io() {
 }
 
 #[test]
-fn native_compatibility_lint_reports_only_standard_di_metadata() {
+fn native_compatibility_lints_standard_di_cleanly() {
     let report = lint_bpmn_source(&compatibility_source());
 
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = single_issue(&report.issues, "bpmn.metadata_di_surface");
-    assert_eq!(issue.evidence["snapshot"]["diagram_count"], 1);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 3);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["edge_count"], 2);
+    assert!(
+        report.ok,
+        "standard BPMNDI is native interchange and should lint cleanly: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn native_compatibility_lints_non_executable_editor_diagram_cleanly() {
+    let source = BpmnSourceFile::new(
+        "bpmn-js-new-diagram.bpmn",
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  id="sample-diagram"
+  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Shape_StartEvent_1" bpmnElement="StartEvent_1">
+        <dc:Bounds height="36.0" width="36.0" x="412.0" y="240.0"/>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>"#,
+    );
+    let report = lint_bpmn_source(&source);
+
+    assert!(
+        report.ok,
+        "non-executable bpmn-js editor diagrams are standard interchange, not runtime packages: {report:?}"
+    );
+    assert!(report.issues.is_empty());
 }
 
 #[tokio::test(flavor = "current_thread")]
@@ -170,13 +200,6 @@ fn assert_not_contains(haystack: &str, needle: &str) {
     );
 }
 
-fn single_issue<'a>(issues: &'a [LintIssue], code: &str) -> &'a LintIssue {
-    issues
-        .iter()
-        .find(|issue| issue.code == code)
-        .unwrap_or_else(|| panic!("expected lint issue {code}"))
-}
-
 struct CompatibilityHost {
     now_ms: u64,
 }
@@ -189,6 +212,13 @@ impl CompatibilityHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for CompatibilityHost {
+    async fn dispatch_task(
+        &self,
+        _request: TaskRequest,
+    ) -> std::result::Result<TaskOutcome, HostBridgeError> {
+        panic!("compatibility tests should not dispatch host work");
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

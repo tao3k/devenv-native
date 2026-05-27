@@ -46,6 +46,19 @@ impl QianjiBpmnWorkflowHttpError {
         }
     }
 
+    pub(in crate::bpmn::http_transport) fn not_found(
+        code: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            status: StatusCode::NOT_FOUND,
+            body: QianjiBpmnWorkflowHttpErrorBody {
+                code: code.into(),
+                message: message.into(),
+            },
+        }
+    }
+
     pub(in crate::bpmn::http_transport) fn service_unavailable(
         code: impl Into<String>,
         message: impl Into<String>,

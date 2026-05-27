@@ -1,63 +1,16 @@
+use super::support::spawn_vllm_sr_route_probe;
 use std::sync::{Arc, Mutex};
 
-use axum::http::{HeaderMap, HeaderValue};
-use axum::{Json, Router, routing::post};
-use serde_json::json;
-use tokio::net::TcpListener;
-use xiuxian_llm::model_routing::{
-    VLLM_SR_AUTO_MODEL, VLLM_SR_REQUEST_ID_HEADER, VLLM_SR_SELECTED_DECISION_HEADER,
-    VLLM_SR_SELECTED_MODEL_HEADER,
-};
-use xiuxian_wendao_server::transport::{
-    DOCUMENT_EXTRACT_FAST_TEXT_PROFILE, DOCUMENT_EXTRACT_FULL_PROFILE,
-    DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE, DocumentExtractMode,
-};
+use xiuxian_llm::model_routing::VLLM_SR_AUTO_MODEL;
+use xiuxian_wendao_server::transport::DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE;
 
-use super::runtime::flight_support::spawn_document_extract_service;
 use super::{
-    DocumentExtractJobRegistry, ImageDocumentExtractRouteConfig,
-    StudioDocumentExtractFlightRouteProvider, fs, gateway_document_extract_mode_for_source,
-    gateway_document_extract_profile_for_source, image_document_extract_model_route_with_config,
+    DocumentExtractJobRegistry, DocumentExtractRouteSourceIdentity,
+    ImageDocumentExtractRouteConfig, StudioDocumentExtractFlightRouteProvider, fs,
+    image_document_extract_model_route_for_source_identity,
+    image_document_extract_model_route_with_config, spawn_document_extract_service,
     test_document_resource_batch,
 };
-
-#[test]
-fn auto_mode_keeps_image_extraction_on_sync_route() {
-    assert_eq!(
-        gateway_document_extract_mode_for_source("/tmp/scan.PNG"),
-        DocumentExtractMode::Sync
-    );
-}
-
-#[test]
-fn full_profile_image_source_uses_hosted_vlm_image_profile() {
-    assert_eq!(
-        gateway_document_extract_profile_for_source("/tmp/scan.PNG", DOCUMENT_EXTRACT_FULL_PROFILE),
-        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
-    );
-}
-
-#[test]
-fn explicit_non_full_profile_is_not_rewritten_for_image_source() {
-    assert_eq!(
-        gateway_document_extract_profile_for_source(
-            "/tmp/scan.png",
-            DOCUMENT_EXTRACT_FAST_TEXT_PROFILE,
-        ),
-        DOCUMENT_EXTRACT_FAST_TEXT_PROFILE
-    );
-}
-
-#[test]
-fn non_image_full_profile_stays_full() {
-    assert_eq!(
-        gateway_document_extract_profile_for_source(
-            "/tmp/report.pdf",
-            DOCUMENT_EXTRACT_FULL_PROFILE
-        ),
-        DOCUMENT_EXTRACT_FULL_PROFILE
-    );
-}
 
 #[tokio::test]
 async fn image_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
@@ -69,6 +22,7 @@ async fn image_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
         spawn_vllm_sr_route_probe(Arc::clone(&observed_payload)).await?;
     let config = ImageDocumentExtractRouteConfig {
         route_provider: Some("openrouter".to_owned()),
+        route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
         model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::VllmSr,
         vllm_sr_base_url,
     };
@@ -112,6 +66,77 @@ async fn image_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
 }
 
 #[tokio::test]
+async fn image_route_deterministic_mode_returns_gateway_decision() -> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let source = temp.path().join("scan.PNG");
+    fs::write(source.as_path(), b"image bytes").map_err(|error| error.to_string())?;
+    let config = ImageDocumentExtractRouteConfig {
+        route_provider: Some("openrouter".to_owned()),
+        route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
+        model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic,
+        vllm_sr_base_url: "http://127.0.0.1:8888".to_owned(),
+    };
+
+    let route = image_document_extract_model_route_with_config(
+        source.as_path(),
+        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
+        config,
+    )
+    .await?
+    .ok_or_else(|| "image deterministic mode should produce a route decision".to_owned())?;
+
+    assert_eq!(route.intent.modality, "image");
+    assert_eq!(
+        route.decision.route_id,
+        "deterministic:attachment-extract:image:openrouter:qwen-qwen3-vl-8b-instruct"
+    );
+    assert_eq!(route.decision.selected_provider, "openrouter");
+    assert_eq!(route.decision.selected_model, "qwen/qwen3-vl-8b-instruct");
+    assert_eq!(
+        route.decision.selected_backend_profile,
+        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
+    );
+    assert_eq!(
+        route.model_routing_mode,
+        xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn image_route_uses_precomputed_source_hash_when_available() -> Result<(), String> {
+    let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
+    let source = temp.path().join("scan.PNG");
+    fs::write(source.as_path(), b"image bytes").map_err(|error| error.to_string())?;
+    let config = ImageDocumentExtractRouteConfig {
+        route_provider: Some("openrouter".to_owned()),
+        route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
+        model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic,
+        vllm_sr_base_url: "http://127.0.0.1:8888".to_owned(),
+    };
+
+    let route = image_document_extract_model_route_for_source_identity(
+        DocumentExtractRouteSourceIdentity {
+            path: source.as_path(),
+            sha256: " precomputed-source-hash ",
+        },
+        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
+        config,
+    )
+    .await?
+    .ok_or_else(|| "image route should use the precomputed source hash".to_owned())?;
+
+    assert_eq!(route.source_sha256, "precomputed-source-hash");
+    assert!(
+        route
+            .intent
+            .artifact_refs
+            .contains(&"source-sha256:precomputed-source-hash".to_owned())
+    );
+    Ok(())
+}
+
+#[tokio::test]
 async fn image_route_metadata_is_forwarded_to_document_extract_flight() -> Result<(), String> {
     let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
     let source = temp.path().join("scan.png");
@@ -121,6 +146,7 @@ async fn image_route_metadata_is_forwarded_to_document_extract_flight() -> Resul
         spawn_vllm_sr_route_probe(Arc::clone(&observed_payload)).await?;
     let config = ImageDocumentExtractRouteConfig {
         route_provider: Some("openrouter".to_owned()),
+        route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
         model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::VllmSr,
         vllm_sr_base_url,
     };
@@ -196,46 +222,4 @@ async fn image_route_metadata_is_forwarded_to_document_extract_flight() -> Resul
     route_server_handle.abort();
     flight_server_handle.abort();
     Ok(())
-}
-
-async fn spawn_vllm_sr_route_probe(
-    observed_payload: Arc<Mutex<Option<serde_json::Value>>>,
-) -> Result<(String, tokio::task::JoinHandle<()>), String> {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .map_err(|error| format!("bind vLLM-SR route probe: {error}"))?;
-    let address = listener
-        .local_addr()
-        .map_err(|error| format!("read vLLM-SR route probe address: {error}"))?;
-    let app = Router::new().route(
-        "/v1/chat/completions",
-        post(move |Json(payload): Json<serde_json::Value>| {
-            let observed_payload = Arc::clone(&observed_payload);
-            async move {
-                *observed_payload
-                    .lock()
-                    .expect("observed payload lock should not be poisoned") = Some(payload);
-                let mut headers = HeaderMap::new();
-                headers.insert(
-                    VLLM_SR_SELECTED_MODEL_HEADER,
-                    HeaderValue::from_static("qwen/qwen3-vl-8b-instruct"),
-                );
-                headers.insert(
-                    VLLM_SR_SELECTED_DECISION_HEADER,
-                    HeaderValue::from_static("image-document-vlm"),
-                );
-                headers.insert(
-                    VLLM_SR_REQUEST_ID_HEADER,
-                    HeaderValue::from_static("route-image-1"),
-                );
-                (headers, Json(json!({"model": "qwen/qwen3-vl-8b-instruct"})))
-            }
-        }),
-    );
-    let handle = tokio::spawn(async move {
-        if let Err(error) = axum::serve(listener, app).await {
-            panic!("vLLM-SR route probe failed: {error}");
-        }
-    });
-    Ok((format!("http://{address}"), handle))
 }

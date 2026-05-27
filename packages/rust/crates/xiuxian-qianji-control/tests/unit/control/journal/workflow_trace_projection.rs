@@ -2,7 +2,7 @@ use serde_json::json;
 use xiuxian_qianji_control::{
     ControlError, ControlEventKind, ControlLedger, InMemoryControlLedger, RunId, RunStatus, StepId,
     StepStatus, WorkflowTraceProjectionRecord, WorkflowTraceProjectionStage,
-    record_workflow_trace_projection,
+    WorkflowTraceProjectionStageInput, record_workflow_trace_projection,
 };
 
 #[test]
@@ -14,12 +14,13 @@ fn workflow_trace_projection_records_successful_run() -> Result<(), ControlError
         .with_plan_summary("Workflow trace with 1 stage(s)")
         .with_stages(vec![
             WorkflowTraceProjectionStage::succeeded(
-                StepId::new("load")?,
-                "load",
-                100,
-                104,
-                "workflow_kernel_stage",
-                json!({"stageId": "load"}),
+                WorkflowTraceProjectionStageInput::new(
+                    StepId::new("load")?,
+                    "load",
+                    "workflow_kernel_stage",
+                )
+                .with_timestamps(100, 104)
+                .with_metadata(json!({"stageId": "load"})),
             )
             .with_required_evidence(vec!["validation_path".to_owned()]),
         ]);
@@ -51,12 +52,13 @@ fn workflow_trace_projection_records_first_failed_stage_as_run_failure() -> Resu
             .with_metadata(json!({"source": "test", "stageCount": 1}))
             .with_plan_summary("Workflow trace with 1 stage(s)")
             .with_stages(vec![WorkflowTraceProjectionStage::failed(
-                StepId::new("parse")?,
-                "parse",
-                200,
-                205,
-                "workflow_kernel_stage",
-                json!({"stageId": "parse"}),
+                WorkflowTraceProjectionStageInput::new(
+                    StepId::new("parse")?,
+                    "parse",
+                    "workflow_kernel_stage",
+                )
+                .with_timestamps(200, 205)
+                .with_metadata(json!({"stageId": "parse"})),
                 "parser rejected input",
             )]);
 
@@ -84,12 +86,13 @@ fn workflow_trace_projection_rejects_blank_required_evidence() -> Result<(), Con
     .with_plan_summary("Workflow trace with 1 stage(s)")
     .with_stages(vec![
         WorkflowTraceProjectionStage::succeeded(
-            StepId::new("validate")?,
-            "validate",
-            300,
-            301,
-            "workflow_kernel_stage",
-            json!({"stageId": "validate"}),
+            WorkflowTraceProjectionStageInput::new(
+                StepId::new("validate")?,
+                "validate",
+                "workflow_kernel_stage",
+            )
+            .with_timestamps(300, 301)
+            .with_metadata(json!({"stageId": "validate"})),
         )
         .with_required_evidence(vec![" ".to_owned()]),
     ]);

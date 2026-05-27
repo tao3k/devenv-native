@@ -45,7 +45,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_reference_issue(
         format!(
             "Source '{source_id}' contains BPMN DI references that do not resolve to expected BPMN or DI ids."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but its semantic and DI-local links must remain traceable for diagram interchange and round-trip compatibility.",
+        "Native BPMN DI preserves standard diagram interchange, and its semantic and DI-local links must remain traceable for diagram interchange and round-trip compatibility.",
         vec![
             "Retarget each missing DI `bpmnElement` reference to an existing BPMN semantic id in the same source.".to_string(),
             "Retarget each missing DI `sourceElement`, `targetElement`, or `labelStyle` reference to an existing DI id in the same diagram scope.".to_string(),

@@ -143,6 +143,13 @@ fn detached_host_work_spec(
     node: &crate::ir_node_api::BpmnNodeSpec,
 ) -> Option<DetachedHostWorkSpec> {
     match node.kind {
+        BpmnNodeKind::Task => Some(DetachedHostWorkSpec {
+            kind: PendingHostWorkKind::Task,
+            decision: None,
+            script_format: None,
+            script_body: None,
+            task_io: node.task_io.clone(),
+        }),
         BpmnNodeKind::ServiceTask => Some(DetachedHostWorkSpec {
             kind: PendingHostWorkKind::Service,
             decision: None,

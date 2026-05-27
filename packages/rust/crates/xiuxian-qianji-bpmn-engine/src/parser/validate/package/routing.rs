@@ -67,7 +67,8 @@ pub(super) fn validate_task_routing(process: &RawProcess) -> Result<()> {
 fn requires_single_outgoing_task_route(kind: &BpmnNodeKind) -> bool {
     matches!(
         kind,
-        BpmnNodeKind::ServiceTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask
             | BpmnNodeKind::UserTask
             | BpmnNodeKind::ManualTask
@@ -394,7 +395,8 @@ pub(super) fn validate_standard_loops(process: &RawProcess) -> Result<()> {
 
         if !matches!(
             node.kind,
-            BpmnNodeKind::ServiceTask
+            BpmnNodeKind::Task
+                | BpmnNodeKind::ServiceTask
                 | BpmnNodeKind::ScriptTask
                 | BpmnNodeKind::UserTask
                 | BpmnNodeKind::ManualTask
@@ -450,7 +452,8 @@ pub(super) fn validate_multi_instances(process: &RawProcess) -> Result<()> {
 
         if !matches!(
             node.kind,
-            BpmnNodeKind::ServiceTask
+            BpmnNodeKind::Task
+                | BpmnNodeKind::ServiceTask
                 | BpmnNodeKind::ScriptTask
                 | BpmnNodeKind::UserTask
                 | BpmnNodeKind::ManualTask

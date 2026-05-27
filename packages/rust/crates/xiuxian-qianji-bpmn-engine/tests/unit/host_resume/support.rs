@@ -8,8 +8,8 @@ use xiuxian_qianji_bpmn_engine::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, DmnDecisionRef, EventPollOutcome,
     EventPollRequest, HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest,
     PendingHostWorkKind, PendingHostWorkResult, ProcessKey, ScriptTaskOutcome, ScriptTaskRequest,
-    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
-    UserTaskRequest, advance_instance, create_instance,
+    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, TaskOutcome,
+    TaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance, create_instance,
 };
 
 pub(super) async fn assert_host_resume(
@@ -67,6 +67,7 @@ pub(super) async fn assert_host_resume(
     assert_eq!(
         work_kind,
         match node_kind {
+            BpmnNodeKind::Task => PendingHostWorkKind::Task,
             BpmnNodeKind::SendTask => PendingHostWorkKind::Send,
             BpmnNodeKind::ServiceTask => PendingHostWorkKind::Service,
             BpmnNodeKind::ScriptTask => PendingHostWorkKind::Script,
@@ -88,6 +89,7 @@ fn assert_human_task_events_after_completion(
             BpmnHumanTaskLifecycleEventKind::Completed,
         ],
         PendingHostWorkKind::Send
+        | PendingHostWorkKind::Task
         | PendingHostWorkKind::Service
         | PendingHostWorkKind::Script
         | PendingHostWorkKind::BusinessRule => Vec::new(),
@@ -195,6 +197,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_task(
+        &self,
+        _request: TaskRequest,
+    ) -> std::result::Result<TaskOutcome, HostBridgeError> {
+        panic!("host resume tests should not execute generic task work");
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

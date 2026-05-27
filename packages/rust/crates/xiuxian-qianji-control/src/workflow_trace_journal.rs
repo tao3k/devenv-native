@@ -3,8 +3,9 @@
 use crate::{
     ControlError, ControlEvent, ControlEventRecord, ControlLedger, ControlResult,
     RunAdmittedJournalRecord, RunCreatedJournalRecord, RunId, RunPlanRecordedJournalRecord,
-    RunTerminalJournalRecord, StepCreatedJournalRecord, StepId, StepStartedJournalRecord,
-    StepTerminalJournalRecord, StepToolCallJournalRecord, record_control_event_batch,
+    RunTerminalJournalRecord, StepCreatedJournalRecord, StepFailureJournalInput, StepId,
+    StepStartedJournalRecord, StepTerminalJournalRecord, StepToolCallJournalRecord,
+    record_control_event_batch,
 };
 
 /// Terminal status for one projected workflow stage.
@@ -46,24 +47,73 @@ pub struct WorkflowTraceProjectionStage {
     pub status: WorkflowTraceProjectionStageStatus,
 }
 
-impl WorkflowTraceProjectionStage {
-    /// Creates a successful stage projection.
+/// Input for creating one projected workflow stage.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct WorkflowTraceProjectionStageInput {
+    /// Control-plane step id for the workflow stage.
+    pub step_id: StepId,
+    /// Human-readable step title.
+    pub title: String,
+    /// Stage start timestamp in Unix milliseconds.
+    pub started_at_ms: u64,
+    /// Stage terminal timestamp in Unix milliseconds.
+    pub terminal_at_ms: u64,
+    /// Tool name used to preserve the stage execution fact.
+    pub tool_name: String,
+    /// Extension metadata for the tool-call record.
+    #[serde(default)]
+    pub metadata: serde_json::Value,
+}
+
+impl WorkflowTraceProjectionStageInput {
+    /// Creates stage projection input with null metadata and zero timestamps.
     #[must_use]
-    pub fn succeeded(
-        step_id: StepId,
-        title: impl Into<String>,
-        started_at_ms: u64,
-        terminal_at_ms: u64,
-        tool_name: impl Into<String>,
-        metadata: serde_json::Value,
-    ) -> Self {
+    pub fn new(step_id: StepId, title: impl Into<String>, tool_name: impl Into<String>) -> Self {
         Self {
             step_id,
             title: title.into(),
+            started_at_ms: 0,
+            terminal_at_ms: 0,
+            tool_name: tool_name.into(),
+            metadata: serde_json::Value::Null,
+        }
+    }
+
+    /// Sets stage timestamps.
+    #[must_use]
+    pub const fn with_timestamps(mut self, started_at_ms: u64, terminal_at_ms: u64) -> Self {
+        self.started_at_ms = started_at_ms;
+        self.terminal_at_ms = terminal_at_ms;
+        self
+    }
+
+    /// Sets extension metadata for the tool-call record.
+    #[must_use]
+    pub fn with_metadata(mut self, metadata: serde_json::Value) -> Self {
+        self.metadata = metadata;
+        self
+    }
+}
+
+impl WorkflowTraceProjectionStage {
+    /// Creates a successful stage projection.
+    #[must_use]
+    pub fn succeeded(input: WorkflowTraceProjectionStageInput) -> Self {
+        let WorkflowTraceProjectionStageInput {
+            step_id,
+            title,
+            started_at_ms,
+            terminal_at_ms,
+            tool_name,
+            metadata,
+        } = input;
+        Self {
+            step_id,
+            title,
             started_at_ms,
             terminal_at_ms,
             required_evidence: Vec::new(),
-            tool_name: tool_name.into(),
+            tool_name,
             metadata,
             status: WorkflowTraceProjectionStageStatus::Succeeded,
         }
@@ -71,22 +121,22 @@ impl WorkflowTraceProjectionStage {
 
     /// Creates a failed stage projection.
     #[must_use]
-    pub fn failed(
-        step_id: StepId,
-        title: impl Into<String>,
-        started_at_ms: u64,
-        terminal_at_ms: u64,
-        tool_name: impl Into<String>,
-        metadata: serde_json::Value,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn failed(input: WorkflowTraceProjectionStageInput, message: impl Into<String>) -> Self {
+        let WorkflowTraceProjectionStageInput {
+            step_id,
+            title,
+            started_at_ms,
+            terminal_at_ms,
+            tool_name,
+            metadata,
+        } = input;
         Self {
             step_id,
-            title: title.into(),
+            title,
             started_at_ms,
             terminal_at_ms,
             required_evidence: Vec::new(),
-            tool_name: tool_name.into(),
+            tool_name,
             metadata,
             status: WorkflowTraceProjectionStageStatus::Failed {
                 error_code: "workflow_stage_failed".to_owned(),
@@ -315,9 +365,7 @@ fn append_stage_events(
             StepTerminalJournalRecord::failed(
                 run_id.clone(),
                 step_id,
-                error_code,
-                message,
-                retryable,
+                StepFailureJournalInput::new(error_code, message, retryable),
                 terminal_at_ms,
             )
             .into_event(),

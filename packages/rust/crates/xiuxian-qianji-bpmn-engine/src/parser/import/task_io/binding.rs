@@ -125,6 +125,9 @@ impl TaskIoBindings {
         else {
             return Self::missing_task_io_binding(source, process, "task_io_input_missing_target");
         };
+        if Self::is_task_property_ref(source, process, target_ref)? {
+            return Ok(());
+        }
         let input_name = Self::declaration_name_for_ref(
             source,
             process,
@@ -173,6 +176,9 @@ impl TaskIoBindings {
         else {
             return Self::missing_task_io_binding(source, process, "task_io_output_missing_source");
         };
+        if Self::is_task_property_ref(source, process, output_ref)? {
+            return Ok(());
+        }
         let output_name = Self::declaration_name_for_ref(
             source,
             process,
@@ -235,6 +241,17 @@ impl TaskIoBindings {
             node_id: node_id.into(),
             detail,
         })
+    }
+
+    fn is_task_property_ref(
+        source: &BpmnSourceFile,
+        process: &mut RawProcess,
+        reference: &str,
+    ) -> Result<bool> {
+        Ok(task_io_mut(source, process)?
+            .property_ids
+            .iter()
+            .any(|property_id| property_id == reference))
     }
 
     fn missing_task_io_binding<T>(

@@ -130,6 +130,8 @@ pub type QianjiBpmnWorkflowEventPollReport = QianjiBpmnWorkflowResumeReport;
 /// Host-work result kind accepted by explicit task completion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QianjiBpmnWorkflowTaskCompletionKind {
+    /// Complete a BPMN `task`.
+    Task,
     /// Complete a BPMN `sendTask`.
     Send,
     /// Complete a BPMN `serviceTask`.

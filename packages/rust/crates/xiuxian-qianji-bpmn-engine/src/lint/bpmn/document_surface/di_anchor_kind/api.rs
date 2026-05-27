@@ -43,9 +43,9 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_anchor_kind_issue(
         format!(
             "Source '{source_id}' contains BPMN DI `bpmnElement` anchors whose semantic element kind does not match the DI element kind."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but diagram planes, shapes, and edges must point at compatible BPMN semantic elements so interchange tools can trace layout metadata without deriving execution behavior from coordinates.",
+        "Native BPMN DI preserves standard diagram interchange, and diagram planes, shapes, and edges must point at compatible BPMN semantic elements so interchange tools can trace layout metadata without deriving execution behavior from coordinates.",
         vec![
-            "Point each `bpmndi:BPMNPlane` at the owning process, collaboration, or choreography root.".to_string(),
+            "Point each `bpmndi:BPMNPlane` at the owning process, collaboration, choreography, or nested subprocess drill-down root.".to_string(),
             "Point each `bpmndi:BPMNShape` at a BPMN node, artifact, participant, lane, conversation node, choreography activity, or data reference it displays.".to_string(),
             "Point each `bpmndi:BPMNEdge` at a BPMN flow, association, conversation link, or data association it displays.".to_string(),
             "Do not use diagram anchors to encode runtime routing; keep executable behavior in BPMN flow, events, tasks, gateways, and data mappings.".to_string(),
@@ -120,19 +120,27 @@ fn collect_plane_anchor_kind_violations(
 }
 
 fn is_obvious_non_plane_root_tag(tag: &str) -> bool {
-    is_shape_anchor_tag(tag) || is_edge_anchor_tag(tag)
+    !is_plane_root_tag(tag) && (is_shape_anchor_tag(tag) || is_edge_anchor_tag(tag))
 }
 
 fn is_obvious_non_shape_tag(tag: &str) -> bool {
-    is_plane_root_tag(tag) || is_edge_anchor_tag(tag)
+    !is_shape_anchor_tag(tag) && (is_plane_root_tag(tag) || is_edge_anchor_tag(tag))
 }
 
 fn is_obvious_non_edge_tag(tag: &str) -> bool {
-    is_plane_root_tag(tag) || is_shape_anchor_tag(tag)
+    !is_edge_anchor_tag(tag) && (is_plane_root_tag(tag) || is_shape_anchor_tag(tag))
 }
 
 fn is_plane_root_tag(tag: &str) -> bool {
-    matches!(tag, "process" | "collaboration" | "choreography")
+    matches!(
+        tag,
+        "adHocSubProcess"
+            | "process"
+            | "collaboration"
+            | "choreography"
+            | "subProcess"
+            | "transaction"
+    )
 }
 
 fn is_shape_anchor_tag(tag: &str) -> bool {

@@ -1,4 +1,4 @@
-//! BPMN DI semantic-anchor audit for metadata-only diagram surfaces.
+//! BPMN DI semantic-anchor audit for native diagram interchange surfaces.
 
 mod api;
 mod model;

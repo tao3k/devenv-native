@@ -1,26 +1,13 @@
 use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
 
 #[test]
-fn bpmn_linter_reports_diagram_interchange_metadata_surface_with_guidance() {
+fn bpmn_linter_accepts_standard_diagram_interchange_as_native_surface() {
     let report = lint_bpmn_source(&bpmn_fixture_source("metadata-bpmn-diagram.bpmn"));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.metadata_di_surface");
-    assert!(issue.why_it_failed.contains("round-trip compatibility"));
     assert!(
-        issue
-            .llm_fix_prompt
-            .contains("diagram-interchange metadata")
+        report.ok,
+        "standard BPMNDI should be accepted as native diagram interchange: {report:?}"
     );
-    assert_eq!(issue.evidence["snapshot_available"], true);
-    assert_eq!(issue.evidence["snapshot"]["diagram_count"], 1);
-    assert_eq!(
-        issue.evidence["snapshot"]["diagrams"][0]["diagram_id"],
-        "Diagram_Main"
-    );
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 2);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["edge_count"], 1);
+    assert!(report.issues.is_empty());
 }

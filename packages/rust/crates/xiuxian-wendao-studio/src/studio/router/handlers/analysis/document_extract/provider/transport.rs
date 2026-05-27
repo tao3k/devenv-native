@@ -125,13 +125,15 @@ impl StudioDocumentExtractFlightRouteProvider {
         model_route: Option<&DocumentExtractModelRoute>,
     ) -> Result<Vec<EngineRecordBatch>, String> {
         self.request_python_document_extract_with_page_range_and_model_route(
-            source_path,
-            output_dir,
-            force,
-            error_row,
-            profile,
-            None,
-            model_route,
+            PythonDocumentExtractRequest {
+                source_path,
+                output_dir,
+                force,
+                error_row,
+                profile,
+                page_range: None,
+                model_route,
+            },
         )
         .await
     }
@@ -146,26 +148,22 @@ impl StudioDocumentExtractFlightRouteProvider {
         page_range: Option<(u32, u32)>,
     ) -> Result<Vec<EngineRecordBatch>, String> {
         self.request_python_document_extract_with_page_range_and_model_route(
-            source_path,
-            output_dir,
-            force,
-            error_row,
-            profile,
-            page_range,
-            None,
+            PythonDocumentExtractRequest {
+                source_path,
+                output_dir,
+                force,
+                error_row,
+                profile,
+                page_range,
+                model_route: None,
+            },
         )
         .await
     }
 
     async fn request_python_document_extract_with_page_range_and_model_route(
         &self,
-        source_path: &str,
-        output_dir: &str,
-        force: bool,
-        error_row: bool,
-        profile: &str,
-        page_range: Option<(u32, u32)>,
-        model_route: Option<&DocumentExtractModelRoute>,
+        request: PythonDocumentExtractRequest<'_>,
     ) -> Result<Vec<EngineRecordBatch>, String> {
         let endpoint_urls = self.document_extract_endpoint_attempt_order()?;
         let mut last_retryable_error = None;
@@ -174,13 +172,13 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .request_python_document_extract_with_page_range_at_endpoint(
                     PythonDocumentExtractEndpointRequest {
                         endpoint_url,
-                        source_path,
-                        output_dir,
-                        force,
-                        error_row,
-                        profile,
-                        page_range,
-                        model_route,
+                        source_path: request.source_path,
+                        output_dir: request.output_dir,
+                        force: request.force,
+                        error_row: request.error_row,
+                        profile: request.profile,
+                        page_range: request.page_range,
+                        model_route: request.model_route,
                     },
                 )
                 .await
@@ -302,6 +300,16 @@ impl StudioDocumentExtractFlightRouteProvider {
             .fetch_add(1, Ordering::Relaxed);
         document_extract_endpoint_attempt_order_for_request(request_index, endpoint_urls.as_slice())
     }
+}
+
+struct PythonDocumentExtractRequest<'a> {
+    source_path: &'a str,
+    output_dir: &'a str,
+    force: bool,
+    error_row: bool,
+    profile: &'a str,
+    page_range: Option<(u32, u32)>,
+    model_route: Option<&'a DocumentExtractModelRoute>,
 }
 
 struct PythonDocumentExtractEndpointRequest<'a> {

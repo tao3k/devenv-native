@@ -18,6 +18,14 @@ mod template_cli;
 pub(crate) mod test_exports;
 mod usage;
 mod workspace;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub(crate) use control_cli::{
+    ActivityExecutorKindArg, ActivitySettleOutcomeArg, ActivityWorkerLoopStoreRequest,
+    worker_loop_output_with_hot_state,
+};
 pub(crate) use input::{invalid_input, parse_flag_value, resolve_cli_path};
 #[cfg(test)]
 pub(crate) use test_exports::{

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_metadata_compensation_boundary"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="metadata_compensation_boundary">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="charge_card" />
+    <bpmn:boundaryEvent id="charge_compensation" attachedToRef="charge_card">
+      <bpmn:compensateEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_1" sourceRef="start" targetRef="charge_card" />
+    <bpmn:sequenceFlow id="flow_2" sourceRef="charge_card" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>

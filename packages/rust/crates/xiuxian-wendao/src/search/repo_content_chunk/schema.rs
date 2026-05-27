@@ -1,9 +1,11 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use xiuxian_db_store::{
-    LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
-    VectorStoreError,
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, LanceDataType, LanceField, LanceRecordBatch, LanceSchema,
+    LanceStringArray, LanceUInt64Array, VectorStoreError, WENDAO_TABLE_METADATA_KEY,
+    build_arrow_schema, validate_record_batch_schema_with_options,
 };
 
 use crate::repo_index::RepoCodeDocument;
@@ -43,16 +45,46 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
 }
 
 pub(crate) fn repo_content_chunk_engine_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new(COLUMN_ID, DataType::Utf8, false),
-        Field::new(COLUMN_PATH, DataType::Utf8, false),
-        Field::new(COLUMN_PATH_FOLDED, DataType::Utf8, false),
-        Field::new(COLUMN_LANGUAGE, DataType::Utf8, false),
-        Field::new(COLUMN_LINE_NUMBER, DataType::UInt64, false),
-        Field::new(COLUMN_LINE_TEXT, DataType::Utf8, false),
-        Field::new(COLUMN_LINE_TEXT_FOLDED, DataType::Utf8, false),
-        Field::new(COLUMN_SEARCH_TEXT, DataType::Utf8, false),
-    ]))
+    let contract = repo_content_chunk_engine_contract();
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        WENDAO_TABLE_METADATA_KEY.to_string(),
+        contract.table_name().to_string(),
+    );
+    Arc::new(build_arrow_schema(&contract, metadata))
+}
+
+pub(super) fn validate_repo_content_chunk_engine_batch(
+    batch: &arrow::record_batch::RecordBatch,
+) -> Result<(), VectorStoreError> {
+    validate_record_batch_schema_with_options(
+        batch,
+        &repo_content_chunk_engine_contract(),
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| {
+        VectorStoreError::General(format!(
+            "validate repo-content chunk engine schema contract: {error}"
+        ))
+    })
+}
+
+fn repo_content_chunk_engine_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        "repo_content_chunk",
+        true,
+        vec![
+            utf8_column(COLUMN_ID),
+            utf8_column(COLUMN_PATH),
+            utf8_column(COLUMN_PATH_FOLDED),
+            utf8_column(COLUMN_LANGUAGE),
+            uint64_column(COLUMN_LINE_NUMBER),
+            utf8_column(COLUMN_LINE_TEXT),
+            utf8_column(COLUMN_LINE_TEXT_FOLDED),
+            utf8_column(COLUMN_SEARCH_TEXT),
+        ],
+    )
 }
 
 pub(super) fn rows_from_documents(documents: &[RepoCodeDocument]) -> Vec<RepoContentChunkRow> {
@@ -133,6 +165,14 @@ fn batch_from_rows(rows: &[RepoContentChunkRow]) -> Result<LanceRecordBatch, Vec
     .map_err(VectorStoreError::Arrow)
 }
 
+fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+fn uint64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::UInt64)
+}
+
 pub(super) const fn projected_columns() -> [&'static str; 5] {
     [
         COLUMN_PATH,
@@ -165,4 +205,24 @@ pub(super) const fn path_folded_column() -> &'static str {
 
 pub(super) const fn line_text_folded_column() -> &'static str {
     COLUMN_LINE_TEXT_FOLDED
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{COLUMN_ID, repo_content_chunk_engine_schema};
+    use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
+
+    #[test]
+    fn repo_content_chunk_engine_schema_uses_db_store_table_metadata() {
+        let schema = repo_content_chunk_engine_schema();
+
+        assert_eq!(
+            schema
+                .metadata()
+                .get(WENDAO_TABLE_METADATA_KEY)
+                .map(String::as_str),
+            Some("repo_content_chunk")
+        );
+        assert_eq!(schema.field(0).name(), COLUMN_ID);
+    }
 }

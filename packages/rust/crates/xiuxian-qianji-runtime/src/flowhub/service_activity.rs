@@ -268,6 +268,7 @@ fn missing_activity_id_error() -> ControlError {
 
 fn pending_host_work_kind_name(kind: &PendingHostWorkKind) -> &'static str {
     match kind {
+        PendingHostWorkKind::Task => "task",
         PendingHostWorkKind::Send => "send",
         PendingHostWorkKind::Service => "service",
         PendingHostWorkKind::Script => "script",

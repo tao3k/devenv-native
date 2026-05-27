@@ -4,7 +4,8 @@ use serde_json::json;
 use xiuxian_qianji_control::{
     ControlError, ControlEvent, ControlEventRecord, ControlLedger, ControlResult, RunId, RunStatus,
     RunView, StepId, WorkflowControlEvidenceRequirements, WorkflowTraceProjectionRecord,
-    WorkflowTraceProjectionStage, record_workflow_trace_projection,
+    WorkflowTraceProjectionStage, WorkflowTraceProjectionStageInput,
+    record_workflow_trace_projection,
 };
 
 use crate::workflow_kernel::{WorkflowStageStatus, WorkflowStageTrace, WorkflowTrace};
@@ -288,20 +289,10 @@ fn workflow_stage_to_control_projection(
         .unwrap_or_default();
     let projection = match stage.status {
         WorkflowStageStatus::Succeeded => WorkflowTraceProjectionStage::succeeded(
-            step_id,
-            stage.stage_id.clone(),
-            stage.started_unix_ms,
-            terminal_at_ms,
-            WORKFLOW_STAGE_TOOL_NAME,
-            stage_metadata(stage),
+            stage_projection_input(step_id, stage, terminal_at_ms),
         ),
         WorkflowStageStatus::Failed => WorkflowTraceProjectionStage::failed(
-            step_id,
-            stage.stage_id.clone(),
-            stage.started_unix_ms,
-            terminal_at_ms,
-            WORKFLOW_STAGE_TOOL_NAME,
-            stage_metadata(stage),
+            stage_projection_input(step_id, stage, terminal_at_ms),
             stage
                 .error
                 .clone()
@@ -309,6 +300,20 @@ fn workflow_stage_to_control_projection(
         ),
     };
     Ok(projection.with_required_evidence(required_evidence))
+}
+
+fn stage_projection_input(
+    step_id: StepId,
+    stage: &WorkflowStageTrace,
+    terminal_at_ms: u64,
+) -> WorkflowTraceProjectionStageInput {
+    WorkflowTraceProjectionStageInput::new(
+        step_id,
+        stage.stage_id.clone(),
+        WORKFLOW_STAGE_TOOL_NAME,
+    )
+    .with_timestamps(stage.started_unix_ms, terminal_at_ms)
+    .with_metadata(stage_metadata(stage))
 }
 
 fn workflow_trace_terminal_status(trace: &WorkflowTrace) -> RunStatus {

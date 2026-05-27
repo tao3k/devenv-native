@@ -9,7 +9,8 @@ use xiuxian_qianji_bpmn_engine::{
     BpmnTaskIoSpec, BpmnTaskOutputBinding, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
     EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest,
     PendingHostWork, PendingHostWorkKind, ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome,
-    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome, UserTaskRequest,
+    SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, TaskOutcome, TaskRequest,
+    UserTaskOutcome, UserTaskRequest,
 };
 use xiuxian_qianji_control::{
     ControlEventKind, ControlLedger, InMemoryControlLedger, InMemoryHotStateStore, RunId,
@@ -282,6 +283,10 @@ struct NoopHost;
 
 #[async_trait]
 impl xiuxian_qianji_bpmn_engine::BpmnHostBridge for NoopHost {
+    async fn dispatch_task(&self, _request: TaskRequest) -> Result<TaskOutcome, HostBridgeError> {
+        Err(unsupported("dispatch_task"))
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

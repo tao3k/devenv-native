@@ -40,7 +40,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_topology_issue(
         format!(
             "Source '{source_id}' contains BPMN DI diagram-plane metadata that is not shaped for stable interchange."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but every BPMN diagram should contain exactly one direct BPMN plane so diagram metadata can be preserved and audited without ambiguous container structure.",
+        "Native BPMN DI preserves standard diagram interchange, and every BPMN diagram should contain exactly one direct BPMN plane so diagram metadata can be preserved and audited without ambiguous container structure.",
         vec![
             "Add exactly one direct `bpmndi:BPMNPlane` child to each `bpmndi:BPMNDiagram`.".to_string(),
             "Merge or split extra planes into separate `bpmndi:BPMNDiagram` elements before relying on the source for interchange.".to_string(),

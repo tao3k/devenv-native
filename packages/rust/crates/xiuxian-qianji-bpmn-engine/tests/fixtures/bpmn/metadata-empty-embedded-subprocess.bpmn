@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_empty_subprocess"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="empty_subprocess_metadata">
+    <bpmn:startEvent id="start" />
+    <bpmn:subProcess id="placeholder_subprocess" />
+    <bpmn:boundaryEvent id="placeholder_signal" cancelActivity="false" attachedToRef="placeholder_subprocess">
+      <bpmn:signalEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="placeholder_subprocess" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="placeholder_subprocess" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

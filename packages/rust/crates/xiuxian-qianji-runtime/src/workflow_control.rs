@@ -118,6 +118,8 @@ impl QianjiRuntimeContinueUntilHumanBoundary {
 /// Pending host-work result kind accepted by runtime workflow completion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QianjiRuntimeWorkflowTaskCompletionKind {
+    /// Complete a BPMN `task`.
+    Task,
     /// Complete a BPMN `sendTask`.
     Send,
     /// Complete a BPMN `serviceTask`.

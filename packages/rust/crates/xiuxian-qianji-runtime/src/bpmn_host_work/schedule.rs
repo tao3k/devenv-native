@@ -180,6 +180,7 @@ fn output_binding_metadata(output: &BpmnTaskOutputBinding) -> serde_json::Value 
 
 fn pending_host_work_kind_name(kind: &PendingHostWorkKind) -> &'static str {
     match kind {
+        PendingHostWorkKind::Task => "task",
         PendingHostWorkKind::Send => "send",
         PendingHostWorkKind::Service => "service",
         PendingHostWorkKind::Script => "script",

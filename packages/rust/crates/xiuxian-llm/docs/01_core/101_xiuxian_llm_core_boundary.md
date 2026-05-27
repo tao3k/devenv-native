@@ -25,6 +25,16 @@ precision admission, and route-decision acquisition. Analyzer adapters consume
 the selected backend metadata and execute the requested backend; they do not
 own model/provider selection policy.
 
+`xiuxian-llm` ships source-owned system defaults under `src/resource/`. The
+LLM runtime default backend is `litellm`; the default chat provider is direct
+DeepSeek at `https://api.deepseek.com/v1`, while OpenRouter and local
+OpenAI-compatible providers remain named alternatives. Root `wendao.toml` may
+overlay `[model_routing]` to choose project-specific route mode, vLLM-SR base
+URL, provider, and per-task route models for chat, audio transcript, and image
+extraction. Environment variables remain operational fallback inputs for
+legacy/unconfigured fields, but source defaults and root TOML are the durable
+configuration surfaces.
+
 The live vLLM-SR acquisition client uses the official OpenAI-compatible data
 plane as a route probe: `POST /v1/chat/completions` with `model: auto`.
 `xiuxian-llm` parses the resulting vLLM-SR decision headers, including
@@ -34,12 +44,25 @@ plane as a route probe: `POST /v1/chat/completions` with `model: auto`.
 backend profile remains a Gateway execution concern; the analyzer only receives
 the final metadata.
 
+Local developer runs default to Gateway-owned `deterministic` routing so the
+pure local experience does not require Docker or Kubernetes. The deterministic
+policy still returns a `WendaoModelDecision`; frontends and adapters must
+consume the Gateway decision rather than selecting a model locally.
+
+When `WENDAO_MODEL_ROUTING_MODE=vllm-sr` is configured, the process-managed
+vLLM-SR sidecar validates its config before serve and uses the upstream
+`vllm-sr serve` runtime. Docker or Kubernetes target settings are deployment
+concerns for that mode. Missing Docker, a Podman-backed Docker shim, or an
+unreachable Docker daemon is an infrastructure admission failure in vLLM-SR
+mode, not a reason to silently change routing mode.
+
 The first Gateway consumers are Studio document-extract audio shards and
-standalone image VLM extraction. Studio uses the shared routing mode and vLLM-SR
-base URL helpers, then sends selected provider/model/backend metadata on the
-existing audio shard Flight exchange or primary document-extract Flight route.
-This keeps `xiuxian-llm` as the contract owner while leaving scheduling,
-artifact identity, and precision gates in Studio and Wendao attachment crates.
+standalone image VLM extraction. Studio uses the shared attachment route helpers
+for both deterministic and vLLM-SR modes, then sends selected
+provider/model/backend metadata on the existing audio shard Flight exchange or
+primary document-extract Flight route. This keeps `xiuxian-llm` as the contract
+owner while leaving scheduling, artifact identity, and precision gates in
+Studio and Wendao attachment crates.
 
 Chat uses the same contract shape through `xiuxian-llm` chat route helpers.
 They build `taskKind=chat`, `modality=text`, and `sourceKind=conversation`

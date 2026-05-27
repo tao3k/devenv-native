@@ -233,6 +233,9 @@ fn request_io_metadata(
     request: &PendingHostWorkRequest,
 ) -> (serde_json::Value, Vec<BpmnTaskOutputBinding>) {
     match request {
+        PendingHostWorkRequest::Task(request) => {
+            (request.inputs.clone(), request.output_bindings.clone())
+        }
         PendingHostWorkRequest::Send(request) => {
             (request.inputs.clone(), request.output_bindings.clone())
         }

@@ -83,8 +83,11 @@ fn build_workflow_http_state(
     host: QianjiBpmnHostBridge,
     command: &QianjiServerServeCommand,
 ) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
-    let state =
-        install_recovery_hot_state(QianjiBpmnWorkflowHttpState::new(service, host), command)?;
+    let state = QianjiBpmnWorkflowHttpState::new(service, host);
+    #[cfg(feature = "valkey")]
+    let state = install_recovery_hot_state(state, command)?;
+    #[cfg(not(feature = "valkey"))]
+    let state = install_recovery_hot_state(state, command);
     let Some(ledger_path) = command.control_ledger_path.as_ref() else {
         return Ok(state);
     };
@@ -121,8 +124,8 @@ fn install_recovery_hot_state(
 fn install_recovery_hot_state(
     state: QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>,
     _command: &QianjiServerServeCommand,
-) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
-    Ok(state)
+) -> QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge> {
+    state
 }
 
 pub(crate) fn resolve_qianji_server_bind_addr(

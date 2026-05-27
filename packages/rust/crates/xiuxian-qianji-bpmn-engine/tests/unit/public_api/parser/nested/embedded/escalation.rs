@@ -121,37 +121,37 @@ fn parser_embedded_subprocess_intermediate_escalation_requires_matching_parent_b
 }
 
 #[test]
-fn parser_top_level_escalation_end_requires_supported_parent_boundary() {
-    let error = parse_bpmn_package(
+fn parser_top_level_escalation_end_materializes_metadata_event() {
+    let package = parse_bpmn_package(
         &[fixture_source("invalid-top-level-escalation-end.bpmn")],
         &BpmnParseOptions::default(),
     )
-    .must_err("top-level escalation end should reject root-only routing");
+    .must("top-level escalation end should parse as metadata");
+    let process = package
+        .find_process("main_process")
+        .must("process should be present");
+    let event = process
+        .event_for_node(1)
+        .must("escalation end event should be indexed by node");
 
-    assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: ("main_process".to_string()).into(),
-            node_id: ("escalation_end".to_string()).into(),
-            detail: "escalation_end_requires_supported_parent_boundary",
-        }
-    );
+    assert_eq!(event.kind, BpmnEventKind::Escalation);
+    assert_eq!(event.reference_id.as_deref(), Some("top_level_escalation"));
 }
 
 #[test]
-fn parser_top_level_escalation_throw_requires_supported_parent_boundary() {
-    let error = parse_bpmn_package(
+fn parser_top_level_escalation_throw_materializes_metadata_event() {
+    let package = parse_bpmn_package(
         &[fixture_source("invalid-top-level-escalation-throw.bpmn")],
         &BpmnParseOptions::default(),
     )
-    .must_err("top-level escalation throw should reject root-only routing");
+    .must("top-level escalation throw should parse as metadata");
+    let process = package
+        .find_process("main_process")
+        .must("process should be present");
+    let event = process
+        .event_for_node(1)
+        .must("escalation throw event should be indexed by node");
 
-    assert_eq!(
-        error,
-        BpmnEngineError::UnsupportedEventConfiguration {
-            process_id: ("main_process".to_string()).into(),
-            node_id: ("escalation_throw".to_string()).into(),
-            detail: "escalation_throw_requires_supported_parent_boundary",
-        }
-    );
+    assert_eq!(event.kind, BpmnEventKind::Escalation);
+    assert_eq!(event.reference_id.as_deref(), Some("review_escalated"));
 }

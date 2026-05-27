@@ -12,6 +12,8 @@ pub enum BpmnGatewayKind {
     Inclusive,
     /// Event-based winner-takes-all gateway.
     EventBased,
+    /// Standard BPMN complex gateway metadata; executable activation semantics are deferred.
+    Complex,
 }
 
 /// Supported high-level BPMN node kinds for the scaffold slice.
@@ -28,6 +30,8 @@ pub enum BpmnNodeKind {
     IntermediateCatchEvent,
     /// Boundary event attached to one host-blocking task.
     BoundaryEvent,
+    /// Generic BPMN task node.
+    Task,
     /// Message-bound send task.
     SendTask,
     /// Message-bound receive task.

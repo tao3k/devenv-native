@@ -25,6 +25,34 @@ fn bpmn_linter_accepts_non_interrupting_boundary_timer_subset() {
 }
 
 #[test]
+fn bpmn_linter_accepts_boundary_timer_without_expression_as_metadata() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "metadata-boundary-timer-missing-expression.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "empty boundary timer definitions from standard modeler palettes should lint as metadata: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_receive_task_boundary_timer_as_metadata() {
+    let report = lint_bpmn_source(&bpmn_fixture_source(
+        "metadata-receive-task-boundary-timer.bpmn",
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "standard task-family boundary timers should include receiveTask owners: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+}
+
+#[test]
 fn bpmn_linter_accepts_non_interrupting_boundary_message_subset() {
     let report = lint_bpmn_source(&bpmn_fixture_source("boundary-message-non-interrupt.bpmn"));
 
@@ -70,6 +98,18 @@ fn bpmn_linter_accepts_interrupting_boundary_message_subset() {
 
     assert_eq!(report.domain, LintDomain::Bpmn);
     assert!(report.ok);
+    assert!(report.issues.is_empty());
+}
+
+#[test]
+fn bpmn_linter_accepts_cancel_boundary_on_task_as_metadata() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-cancel-boundary-task.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "cancel boundary on a non-transaction owner should lint as metadata-only: {report:?}"
+    );
     assert!(report.issues.is_empty());
 }
 
@@ -120,35 +160,17 @@ fn bpmn_linter_reports_escalation_deferred_non_interrupting_boundary_with_guidan
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_boundary_configuration");
-    assert!(issue.summary.contains("review_escalated"));
-    assert!(
-        issue
-            .llm_fix_prompt
-            .contains("non_interrupting_escalation_boundary_deferred")
-    );
-    assert!(issue.why_it_failed.contains("concurrent parent/child"));
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
 }
 
 #[test]
-fn bpmn_linter_reports_escalation_deferred_task_boundary_with_guidance() {
+fn bpmn_linter_accepts_escalation_task_boundary_as_metadata() {
     let report = lint_bpmn_source(&bpmn_fixture_source(
         "invalid-boundary-escalation-task-owner.bpmn",
     ));
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_boundary_configuration");
-    assert!(issue.summary.contains("review_escalated"));
-    assert!(
-        issue
-            .llm_fix_prompt
-            .contains("escalation_boundary_requires_supported_subprocess_shell")
-    );
-    assert!(issue.why_it_failed.contains("bounded embedded subprocess"));
+    assert!(report.ok);
+    assert!(report.issues.is_empty());
 }

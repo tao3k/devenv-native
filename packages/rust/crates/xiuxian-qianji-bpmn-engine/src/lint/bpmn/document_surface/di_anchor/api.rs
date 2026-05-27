@@ -40,7 +40,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_anchor_issue(
         format!(
             "Source '{source_id}' contains BPMN DI elements without `bpmnElement` semantic anchors."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but each plane, shape, and edge should declare which BPMN semantic element it represents so diagram metadata can be traced without deriving runtime behavior from layout.",
+        "Native BPMN DI preserves standard diagram interchange, and each plane, shape, and edge should declare which BPMN semantic element it represents so diagram metadata can be traced without deriving runtime behavior from layout.",
         vec![
             "Add `bpmnElement` to each `bpmndi:BPMNPlane` and point it at the owning process, collaboration, choreography, or other diagram root semantic id.".to_string(),
             "Add `bpmnElement` to each `bpmndi:BPMNShape` and point it at the BPMN node or artifact it displays.".to_string(),

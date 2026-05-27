@@ -23,6 +23,8 @@ pub enum BpmnEventKind {
     Compensation,
     /// Conditional event.
     Conditional,
+    /// Link event.
+    Link,
     /// Terminate end event.
     Terminate,
 }

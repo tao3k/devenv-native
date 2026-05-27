@@ -4,15 +4,6 @@ use crate::bpmn_model_api::{
 };
 use serde_json::{Value, json};
 
-pub(in crate::lint::bpmn::document_surface::data) fn data_store_binding_count_from_evidence(
-    evidence: &Value,
-) -> u64 {
-    evidence
-        .pointer("/snapshot/data_store_binding_count")
-        .and_then(Value::as_u64)
-        .unwrap_or(0)
-}
-
 pub(super) fn data_store_binding_evidence(snapshot: &BpmnDocumentSnapshot) -> Vec<Value> {
     let mut bindings = Vec::new();
     for process in &snapshot.processes {

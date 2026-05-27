@@ -76,6 +76,8 @@ pub mod telemetry;
 /// Bounded work-surface parsing, validation, and CLI support helpers.
 #[cfg(feature = "qianji-full")]
 pub mod workdir;
+/// Workflow/task-level route configuration (`resources/config/workflows` + user overlays).
+pub mod workflow_config;
 /// Low-overhead typed workflow execution substrate.
 pub mod workflow_kernel;
 
@@ -89,13 +91,19 @@ pub use bootcamp::{
     BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario,
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
 };
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub use bpmn::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use bpmn::{
     BPMN_HOST_WORK_ACTIVITY_METADATA_KEY, BPMN_HOST_WORK_ACTIVITY_SCHEMA,
     BPMN_HOST_WORK_ACTIVITY_TYPE, BPMN_HOST_WORK_COMPLETION_METADATA_KEY,
-    BPMN_HOST_WORK_COMPLETION_SCHEMA, BpmnAdapterError, BpmnHostWorkActivityScheduleInput,
-    BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,
-    DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, FLOWHUB_SERVICE_ACTIVITY_TYPE,
-    FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput,
+    BPMN_HOST_WORK_COMPLETION_SCHEMA, BPMN_HOST_WORK_LLM_ACTIVITY_ROUTE_SCHEMA, BpmnAdapterError,
+    BpmnHostWorkActivityScheduleInput, BpmnHostWorkLlmActivityRouteInput,
+    BpmnHostWorkLlmEndpointDecision, BpmnHostWorkLlmRouteDecision, BpmnOrchestrationError,
+    BpmnUnsupportedStartNodeKind, DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS,
+    FLOWHUB_SERVICE_ACTIVITY_TYPE, FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput,
     FlowhubServiceActivityScheduleInput, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,
     QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
     QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest, QianjiBpmnExecutionScheduler,
@@ -131,10 +139,11 @@ pub use bpmn::{
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
     QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
-    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
-    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
-    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs, build_bpmn_host_work_activity_result,
-    build_bpmn_host_work_activity_schedule_record, build_flowhub_service_activity_schedule_record,
+    QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest, QianjiControlRecoveryApplyHttpRequest,
+    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+    build_bpmn_host_work_activity_result, build_bpmn_host_work_activity_schedule_record,
+    build_bpmn_host_work_llm_activity_route, build_flowhub_service_activity_schedule_record,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
     build_flowhub_service_task_completion_payload,
@@ -209,6 +218,15 @@ pub use qianji_server_cli::flowhub_worker::{
     QianjiServerFlowhubServiceWorkerStepOutput,
     run_qianji_server_flowhub_service_worker_completion_loop,
 };
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub use qianji_server_cli::llm_worker::{
+    QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
+    QianjiServerOpenAiCompatibleLlmWorkerLoopRequest,
+    run_qianji_server_openai_compatible_llm_worker_loop,
+};
 pub use qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli};
 #[cfg(feature = "qianji-full")]
 pub use safety::QianjiSafetyGuard;
@@ -245,6 +263,12 @@ pub use workdir::{
     trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
     trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
     workdir_semantic_scope_guard_trace_json,
+};
+pub use workflow_config::{
+    DEFAULT_BPMN_HOST_WORK_LLM_WORKFLOW_PROFILE, QianjiWorkflowLlmEndpointConfig,
+    QianjiWorkflowLlmTaskConfig, QianjiWorkflowLlmTaskRetryConfig,
+    QianjiWorkflowLlmTaskRouteConfig, resolve_qianji_workflow_llm_task_config,
+    resolve_qianji_workflow_llm_task_config_with_env,
 };
 pub use workflow_kernel::{
     WorkflowCheckpointError, WorkflowCheckpointRef, WorkflowCheckpointStorageKind,

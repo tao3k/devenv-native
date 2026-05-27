@@ -17,6 +17,13 @@ pub(super) fn validate_compensation_handlers(process: &RawProcess) -> Result<()>
     if !has_compensation_shape(process, &compensation_boundaries, &throw_compensation_nodes) {
         return Ok(());
     }
+    if is_standalone_boundary_compensation_metadata(
+        process,
+        &compensation_boundaries,
+        &throw_compensation_nodes,
+    ) {
+        return Ok(());
+    }
 
     ensure_compensation_transaction_scope(
         process,
@@ -82,6 +89,22 @@ fn has_compensation_shape(
     !compensation_boundaries.is_empty()
         || !throw_compensation_nodes.is_empty()
         || process.nodes.iter().any(|node| node.is_for_compensation)
+}
+
+fn is_standalone_boundary_compensation_metadata(
+    process: &RawProcess,
+    compensation_boundaries: &[&RawNode],
+    throw_compensation_nodes: &[&RawNode],
+) -> bool {
+    !matches!(
+        process.scope,
+        RawProcessScope::NestedShell {
+            kind: NestedShellKind::Transaction,
+            ..
+        }
+    ) && !compensation_boundaries.is_empty()
+        && throw_compensation_nodes.is_empty()
+        && process.nodes.iter().all(|node| !node.is_for_compensation)
 }
 
 fn ensure_compensation_transaction_scope(
@@ -303,7 +326,8 @@ fn ensure_supported_compensated_activity_kind(
 ) -> Result<()> {
     if matches!(
         activity.kind,
-        BpmnNodeKind::ServiceTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask
             | BpmnNodeKind::UserTask
             | BpmnNodeKind::ManualTask
@@ -370,7 +394,8 @@ fn validate_compensation_handler<'a>(
 ) -> Result<()> {
     if !matches!(
         handler.kind,
-        BpmnNodeKind::ServiceTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask
             | BpmnNodeKind::UserTask
             | BpmnNodeKind::ManualTask

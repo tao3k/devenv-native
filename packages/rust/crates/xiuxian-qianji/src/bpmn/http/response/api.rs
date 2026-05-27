@@ -1,5 +1,10 @@
 //! HTTP response DTOs for BPMN workflow routes.
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use crate::QianjiServerOpenAiCompatibleLlmWorkerLoopOutput;
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskReleaseReport,
@@ -161,6 +166,12 @@ impl PendingHostWorkHttpDispatchDetails {
 
     fn apply_request(&mut self, request: PendingHostWorkRequest) {
         match request {
+            PendingHostWorkRequest::Task(request) => {
+                self.variables = request.variables;
+                self.inputs = request.inputs;
+                self.output_bindings = request.output_bindings;
+                self.repeat = request.repeat;
+            }
             PendingHostWorkRequest::Send(request) => {
                 self.variables = request.variables;
                 self.inputs = request.inputs;
@@ -202,6 +213,7 @@ impl PendingHostWorkHttpDispatchDetails {
 
 fn pending_host_work_request_token_id(request: &PendingHostWorkRequest) -> u64 {
     match request {
+        PendingHostWorkRequest::Task(request) => request.token_id.get(),
         PendingHostWorkRequest::Send(request) => request.token_id,
         PendingHostWorkRequest::Service(request) => request.token_id,
         PendingHostWorkRequest::Script(request) => request.token_id,
@@ -232,6 +244,42 @@ impl QianjiControlHistoryHttpResponse {
             run_id,
             event_count: events.len(),
             events,
+        }
+    }
+}
+
+/// HTTP response carrying the server-recorded BPMN source for one control run.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlBpmnSourceHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Server-recorded BPMN source reference.
+    pub source_ref: String,
+    /// Media type of the returned source payload.
+    pub media_type: QianjiControlBpmnSourceMediaType,
+    /// Raw BPMN XML read by qianji-server from the recorded source reference.
+    pub bpmn_xml: String,
+}
+
+/// Media type for a server-recorded BPMN source payload.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum QianjiControlBpmnSourceMediaType {
+    /// BPMN 2.0 XML.
+    #[serde(rename = "application/bpmn+xml")]
+    ApplicationBpmnXml,
+}
+
+impl QianjiControlBpmnSourceHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        run_id: String,
+        source_ref: String,
+        bpmn_xml: String,
+    ) -> Self {
+        Self {
+            run_id,
+            source_ref,
+            media_type: QianjiControlBpmnSourceMediaType::ApplicationBpmnXml,
+            bpmn_xml,
         }
     }
 }
@@ -311,6 +359,32 @@ impl QianjiControlRecoveryApplyHttpResponse {
             application,
             diagnostics,
         }
+    }
+}
+
+/// HTTP response for one bounded qianji-server OpenAI-compatible LLM worker run.
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Bounded qianji-server worker-loop trace.
+    pub worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
+}
+
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+impl QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        run_id: String,
+        worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
+    ) -> Self {
+        Self { run_id, worker }
     }
 }
 

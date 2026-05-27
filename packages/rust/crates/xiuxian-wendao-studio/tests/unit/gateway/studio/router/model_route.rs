@@ -36,6 +36,7 @@ async fn chat_model_route_admission_uses_gateway_vllm_sr_decision() -> Result<()
     let response = admit_chat_model_route_with_config(
         WendaoChatRouteConfig {
             route_provider: Some("openrouter".to_owned()),
+            route_model: "deepseek/deepseek-v4-pro".to_owned(),
             backend_profile: "openai-compatible-chat-v1".to_owned(),
             model_routing_mode: WendaoModelRoutingMode::VllmSr,
             vllm_sr_base_url: format!("http://{addr}"),
@@ -51,9 +52,7 @@ async fn chat_model_route_admission_uses_gateway_vllm_sr_decision() -> Result<()
     .await
     .map_err(|error| error.error.message)?;
 
-    let decision = response
-        .decision
-        .ok_or_else(|| "expected vLLM-SR decision".to_owned())?;
+    let decision = response.decision;
     assert_eq!(
         response.schema_version,
         "xiuxian_wendao.model_route_chat_admission.v1"
@@ -86,6 +85,7 @@ async fn chat_model_route_admission_allows_explicit_deterministic_mode() -> Resu
     let response = admit_chat_model_route_with_config(
         WendaoChatRouteConfig {
             route_provider: None,
+            route_model: "deepseek-chat".to_owned(),
             backend_profile: "openai-compatible-chat-v1".to_owned(),
             model_routing_mode: WendaoModelRoutingMode::Deterministic,
             vllm_sr_base_url: "http://127.0.0.1:8888".to_owned(),
@@ -102,7 +102,8 @@ async fn chat_model_route_admission_allows_explicit_deterministic_mode() -> Resu
     .map_err(|error| error.error.message)?;
 
     assert_eq!(response.model_routing_mode, "deterministic");
-    assert!(response.decision.is_none());
+    assert_eq!(response.decision.selected_provider, "deepseek");
+    assert_eq!(response.decision.selected_model, "deepseek-chat");
     assert_eq!(response.intent.task_kind.as_str(), "chat");
     assert_eq!(response.intent.precision_tier, "high");
     assert_eq!(response.intent.privacy_tier, "private");
@@ -118,7 +119,7 @@ async fn vllm_sr_chat_probe(
         .unwrap_or_else(|error| Value::String(format!("invalid_json:{error}")));
     requests
         .lock()
-        .expect("request capture lock should not be poisoned")
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
         .push(payload);
 
     let mut response = (StatusCode::OK, r#"{"model":"fallback-model"}"#).into_response();

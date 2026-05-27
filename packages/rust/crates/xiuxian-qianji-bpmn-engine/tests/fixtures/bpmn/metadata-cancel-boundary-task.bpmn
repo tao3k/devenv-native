@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_cancel_boundary_metadata"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="cancel_boundary_metadata">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="work" />
+    <bpmn:boundaryEvent id="cancel_marker" attachedToRef="work">
+      <bpmn:cancelEventDefinition />
+    </bpmn:boundaryEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="work" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="work" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

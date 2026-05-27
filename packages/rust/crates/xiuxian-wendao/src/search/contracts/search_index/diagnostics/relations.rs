@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use arrow::array::{ArrayRef, BooleanArray, Int64Array, RecordBatch, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 
 use crate::search::SearchPlaneStatusSnapshot;
 use crate::search::contracts::search_index::diagnostics::labels::{
@@ -11,21 +11,22 @@ use crate::search::contracts::search_index::diagnostics::labels::{
 use crate::search::contracts::search_index::status::{
     response_reason_code_priority, response_reason_severity_priority,
 };
-use xiuxian_db_store::EngineRecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, EngineRecordBatch, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
+
+pub(super) const STATUS_DIAGNOSTICS_TABLE: &str = "status_rollup_rows";
+pub(super) const STATUS_REASON_DIAGNOSTICS_TABLE: &str = "status_reason_rows";
+pub(super) const QUERY_TELEMETRY_DIAGNOSTICS_TABLE: &str = "query_telemetry_rows";
+pub(super) const REPO_READ_PRESSURE_DIAGNOSTICS_TABLE: &str = "repo_read_pressure_rows";
 
 pub(super) fn status_snapshot_relation(
     snapshot: &SearchPlaneStatusSnapshot,
 ) -> Result<(SchemaRef, Vec<EngineRecordBatch>), String> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("corpus", DataType::Utf8, false),
-        Field::new("phase", DataType::Utf8, false),
-        Field::new("prewarm_running", DataType::Boolean, false),
-        Field::new("prewarm_queue_depth", DataType::Int64, false),
-        Field::new("compaction_running", DataType::Boolean, false),
-        Field::new("compaction_queue_depth", DataType::Int64, false),
-        Field::new("compaction_queue_aged", DataType::Boolean, false),
-        Field::new("compaction_pending", DataType::Boolean, false),
-    ]));
+    let contract = status_snapshot_contract();
+    let schema = diagnostics_schema_ref(&contract);
     let corpus = snapshot
         .corpora
         .iter()
@@ -87,6 +88,7 @@ pub(super) fn status_snapshot_relation(
         ],
     )
     .map_err(|error| format!("failed to build status diagnostics relation batch: {error}"))?;
+    validate_diagnostics_batch(&batch, &contract, "status diagnostics relation schema")?;
 
     Ok((schema, vec![batch]))
 }
@@ -98,22 +100,8 @@ pub(super) fn query_telemetry_relation(
         return Ok(None);
     };
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("captured_at", DataType::Utf8, false),
-        Field::new("scope", DataType::Utf8, true),
-        Field::new("source", DataType::Utf8, false),
-        Field::new("batch_count", DataType::Int64, false),
-        Field::new("rows_scanned", DataType::Int64, false),
-        Field::new("matched_rows", DataType::Int64, false),
-        Field::new("result_count", DataType::Int64, false),
-        Field::new("batch_row_limit", DataType::Int64, true),
-        Field::new("recall_limit_rows", DataType::Int64, true),
-        Field::new("working_set_budget_rows", DataType::Int64, false),
-        Field::new("trim_threshold_rows", DataType::Int64, false),
-        Field::new("peak_working_set_rows", DataType::Int64, false),
-        Field::new("trim_count", DataType::Int64, false),
-        Field::new("dropped_candidate_count", DataType::Int64, false),
-    ]));
+    let contract = query_telemetry_contract();
+    let schema = diagnostics_schema_ref(&contract);
 
     let batch = RecordBatch::try_new(
         Arc::clone(&schema),
@@ -135,6 +123,11 @@ pub(super) fn query_telemetry_relation(
         ],
     )
     .map_err(|error| format!("failed to build query telemetry diagnostics batch: {error}"))?;
+    validate_diagnostics_batch(
+        &batch,
+        &contract,
+        "query telemetry diagnostics relation schema",
+    )?;
 
     Ok(Some((schema, vec![batch])))
 }
@@ -146,14 +139,8 @@ pub(super) fn status_reason_relation(
         return Ok(None);
     };
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("code", DataType::Utf8, false),
-        Field::new("severity", DataType::Utf8, false),
-        Field::new("action", DataType::Utf8, false),
-        Field::new("readable", DataType::Boolean, false),
-        Field::new("severity_priority", DataType::Int64, false),
-        Field::new("code_priority", DataType::Int64, false),
-    ]));
+    let contract = status_reason_contract();
+    let schema = diagnostics_schema_ref(&contract);
 
     let batch = RecordBatch::try_new(
         Arc::clone(&schema),
@@ -167,6 +154,11 @@ pub(super) fn status_reason_relation(
         ],
     )
     .map_err(|error| format!("failed to build status reason diagnostics batch: {error}"))?;
+    validate_diagnostics_batch(
+        &batch,
+        &contract,
+        "status reason diagnostics relation schema",
+    )?;
 
     Ok(Some((schema, vec![batch])))
 }
@@ -178,15 +170,8 @@ pub(super) fn repo_read_pressure_relation(
         return Ok(None);
     };
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("budget", DataType::Int64, false),
-        Field::new("in_flight", DataType::Int64, false),
-        Field::new("captured_at", DataType::Utf8, true),
-        Field::new("requested_repo_count", DataType::Int64, true),
-        Field::new("searchable_repo_count", DataType::Int64, true),
-        Field::new("parallelism", DataType::Int64, true),
-        Field::new("fanout_capped", DataType::Boolean, false),
-    ]));
+    let contract = repo_read_pressure_contract();
+    let schema = diagnostics_schema_ref(&contract);
 
     let batch = RecordBatch::try_new(
         Arc::clone(&schema),
@@ -205,8 +190,127 @@ pub(super) fn repo_read_pressure_relation(
         ],
     )
     .map_err(|error| format!("failed to build repo read pressure diagnostics batch: {error}"))?;
+    validate_diagnostics_batch(
+        &batch,
+        &contract,
+        "repo read pressure diagnostics relation schema",
+    )?;
 
     Ok(Some((schema, vec![batch])))
+}
+
+fn status_snapshot_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        STATUS_DIAGNOSTICS_TABLE,
+        true,
+        vec![
+            utf8_column("corpus"),
+            utf8_column("phase"),
+            boolean_column("prewarm_running"),
+            int64_column("prewarm_queue_depth"),
+            boolean_column("compaction_running"),
+            int64_column("compaction_queue_depth"),
+            boolean_column("compaction_queue_aged"),
+            boolean_column("compaction_pending"),
+        ],
+    )
+}
+
+fn query_telemetry_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        QUERY_TELEMETRY_DIAGNOSTICS_TABLE,
+        true,
+        vec![
+            utf8_column("captured_at"),
+            nullable_utf8_column("scope"),
+            utf8_column("source"),
+            int64_column("batch_count"),
+            int64_column("rows_scanned"),
+            int64_column("matched_rows"),
+            int64_column("result_count"),
+            nullable_int64_column("batch_row_limit"),
+            nullable_int64_column("recall_limit_rows"),
+            int64_column("working_set_budget_rows"),
+            int64_column("trim_threshold_rows"),
+            int64_column("peak_working_set_rows"),
+            int64_column("trim_count"),
+            int64_column("dropped_candidate_count"),
+        ],
+    )
+}
+
+fn status_reason_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        STATUS_REASON_DIAGNOSTICS_TABLE,
+        true,
+        vec![
+            utf8_column("code"),
+            utf8_column("severity"),
+            utf8_column("action"),
+            boolean_column("readable"),
+            int64_column("severity_priority"),
+            int64_column("code_priority"),
+        ],
+    )
+}
+
+fn repo_read_pressure_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
+        true,
+        vec![
+            int64_column("budget"),
+            int64_column("in_flight"),
+            nullable_utf8_column("captured_at"),
+            nullable_int64_column("requested_repo_count"),
+            nullable_int64_column("searchable_repo_count"),
+            nullable_int64_column("parallelism"),
+            boolean_column("fanout_capped"),
+        ],
+    )
+}
+
+fn diagnostics_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        WENDAO_TABLE_METADATA_KEY.to_string(),
+        contract.table_name().to_string(),
+    );
+    Arc::new(build_arrow_schema(contract, metadata))
+}
+
+fn validate_diagnostics_batch(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
+    context: &str,
+) -> Result<(), String> {
+    validate_record_batch_schema_with_options(
+        batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("{context}: {error}"))
+}
+
+fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+fn int64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int64)
+}
+
+fn nullable_int64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int64)
+}
+
+fn boolean_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Boolean)
 }
 
 pub(super) struct StatusReasonRelationColumns {
@@ -339,4 +443,54 @@ pub(super) fn collect_query_telemetry_relation_columns(
             .map(|entry| bounded_u64_to_i64(entry.dropped_candidate_count))
             .collect(),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        QUERY_TELEMETRY_DIAGNOSTICS_TABLE, REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
+        STATUS_DIAGNOSTICS_TABLE, STATUS_REASON_DIAGNOSTICS_TABLE, diagnostics_schema_ref,
+        query_telemetry_contract, repo_read_pressure_contract, status_reason_contract,
+        status_snapshot_contract,
+    };
+    use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
+
+    #[test]
+    fn diagnostics_relation_schemas_use_db_store_table_metadata() {
+        let cases = [
+            (
+                STATUS_DIAGNOSTICS_TABLE,
+                status_snapshot_contract(),
+                "corpus",
+            ),
+            (
+                QUERY_TELEMETRY_DIAGNOSTICS_TABLE,
+                query_telemetry_contract(),
+                "captured_at",
+            ),
+            (
+                STATUS_REASON_DIAGNOSTICS_TABLE,
+                status_reason_contract(),
+                "code",
+            ),
+            (
+                REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
+                repo_read_pressure_contract(),
+                "budget",
+            ),
+        ];
+
+        for (table_name, contract, first_column) in cases {
+            let schema = diagnostics_schema_ref(&contract);
+
+            assert_eq!(
+                schema
+                    .metadata()
+                    .get(WENDAO_TABLE_METADATA_KEY)
+                    .map(String::as_str),
+                Some(table_name)
+            );
+            assert_eq!(schema.field(0).name(), first_column);
+        }
+    }
 }

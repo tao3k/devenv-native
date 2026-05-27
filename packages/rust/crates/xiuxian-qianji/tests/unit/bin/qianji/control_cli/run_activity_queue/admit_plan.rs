@@ -4,12 +4,12 @@ use crate::qianji_cli::test_exports::{ControlCliCommand, run_control_command};
 use crate::qianji_cli::tests::control_cli::support::{append_empty_control_run, must_ok};
 use tempfile::TempDir;
 use xiuxian_qianji_control::{
-    ACTIVITY_SCHEDULE_ADMISSION_KIND, ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS,
     ACTIVITY_SCHEDULE_ADMISSION_PLAN_CONTRACT, ActivityId, ActivityScheduleAdmissionExecutionFlags,
-    ActivityScheduleAdmissionInputExecutionFlags, ActivityScheduleAdmissionPlanItem,
-    ActivityScheduleAdmissionRuntimeExecutionFlags, ActivityScheduleAdmissionSafetyFlags,
-    ActivityTask, ActivityType, ArtifactId, ArtifactKind, ArtifactRef, ControlLedger,
-    DuckDbControlLedger, IdempotencyKey, RunId, TaskQueue,
+    ActivityScheduleAdmissionInputExecutionFlags, ActivityScheduleAdmissionKind,
+    ActivityScheduleAdmissionPlanItem, ActivityScheduleAdmissionRuntimeExecutionFlags,
+    ActivityScheduleAdmissionSafetyFlags, ActivityScheduleAdmissionStatus, ActivityTask,
+    ActivityType, ArtifactId, ArtifactKind, ArtifactRef, ControlLedger, DuckDbControlLedger,
+    IdempotencyKey, RunId, TaskQueue,
 };
 
 #[test]
@@ -96,7 +96,7 @@ fn write_schedule_plan(path: &std::path::Path, run_id: &RunId) -> Result<(), Str
     let item = ActivityScheduleAdmissionPlanItem {
         schedule_item_id: "idf.qianji_schedule_plan.test".to_owned(),
         schedule_contract: ACTIVITY_SCHEDULE_ADMISSION_PLAN_CONTRACT.to_owned(),
-        admission_kind: ACTIVITY_SCHEDULE_ADMISSION_KIND.to_owned(),
+        admission_kind: ActivityScheduleAdmissionKind::QianjiActivityScheduleAdmissionCandidate,
         qianji_run_id: run_id.as_str().to_owned(),
         activity_task: activity_task()?,
         execution: ActivityScheduleAdmissionExecutionFlags {
@@ -115,7 +115,7 @@ fn write_schedule_plan(path: &std::path::Path, run_id: &RunId) -> Result<(), Str
             rdf_mutation_allowed: false,
             ontology_truth: false,
         },
-        status: ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS.to_owned(),
+        status: ActivityScheduleAdmissionStatus::PendingQianjiAdmission,
     };
     let content = serde_json::to_string_pretty(&vec![item]).map_err(|error| format!("{error}"))?;
     fs::write(path, content).map_err(|error| format!("should write schedule plan: {error}"))

@@ -51,6 +51,9 @@ in
     vllm-sr = {
       exec = processEntrypoint "vllm-sr";
       process-compose = {
+        availability = {
+          restart = "no";
+        };
         readiness_probe = {
           exec.command = processHealthcheck "vllm-sr";
           initial_delay_seconds = 5;
@@ -94,6 +97,22 @@ in
       };
     };
 
+    "wendao-ai" = {
+      exec = processEntrypoint "wendao-ai";
+      process-compose = {
+        depends_on = {
+          wendao-gateway.condition = "process_healthy";
+        };
+        readiness_probe = {
+          exec.command = processHealthcheck "wendao-ai";
+          initial_delay_seconds = 5;
+          period_seconds = 2;
+          timeout_seconds = 3;
+          failure_threshold = 30;
+        };
+      };
+    };
+
     wendao-gateway = {
       exec = processEntrypoint "wendao-gateway";
       process-compose = {
@@ -103,10 +122,10 @@ in
         };
         readiness_probe = {
           exec.command = processHealthcheck "wendao-gateway";
-          initial_delay_seconds = 15;
+          initial_delay_seconds = 30;
           period_seconds = 5;
           timeout_seconds = 2;
-          failure_threshold = 30;
+          failure_threshold = 120;
         };
       };
     };

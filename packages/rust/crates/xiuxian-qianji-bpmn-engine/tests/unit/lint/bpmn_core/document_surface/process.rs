@@ -1,72 +1,49 @@
 use crate::lint::{LintDomain, bpmn_fixture_source, lint_bpmn_source};
-use serde_json::json;
+use xiuxian_qianji_bpmn_engine::snapshot_bpmn_source;
 
 #[test]
-fn bpmn_linter_reports_process_callable_metadata_surface_with_llm_guidance() {
-    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-process-callable.bpmn"));
+fn bpmn_linter_preserves_process_callable_metadata_surface() {
+    let source = bpmn_fixture_source("metadata-process-callable.bpmn");
+    let report = lint_bpmn_source(&source);
 
     assert_eq!(report.domain, LintDomain::Bpmn);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    let issue = &report.issues[0];
-    assert_eq!(issue.code, "bpmn.unsupported_collaboration_surface");
-    assert_eq!(issue.evidence["snapshot_available"], true);
+    assert!(
+        report.ok,
+        "process callable metadata should lint cleanly as passive metadata: {report:?}"
+    );
+    assert!(report.issues.is_empty());
+
+    let snapshot = snapshot_bpmn_source(&source)
+        .unwrap_or_else(|error| panic!("process callable fixture should snapshot: {error}"));
+    let process = &snapshot.processes[0];
+    assert_eq!(process.support_count, 1);
+    assert_eq!(process.property_count, 1);
+    assert_eq!(process.correlation_subscription_count, 1);
+    assert_eq!(process.correlation_subscriptions[0].bindings.len(), 1);
+    assert_eq!(process.process_type.as_deref(), Some("Public"));
+    assert_eq!(process.supports[0].as_str(), "Process_Base");
     assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["support_count"],
-        1
+        process.properties[0].item_subject_ref.as_deref(),
+        Some("Item_Order")
     );
     assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["property_count"],
-        1
+        process.correlation_subscriptions[0].bindings[0]
+            .data_path
+            .as_deref(),
+        Some("order.id")
     );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["correlation_subscription_count"],
-        1
+}
+
+#[test]
+fn bpmn_linter_accepts_task_property_metadata_surface() {
+    let report = lint_bpmn_source(&bpmn_fixture_source("metadata-task-property.bpmn"));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "task property metadata should lint cleanly as passive metadata: {report:?}"
     );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["correlation_binding_count"],
-        1
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["correlation_boundary"]["status"],
-        "metadata_only"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["correlation_boundary"]["execution_policy"],
-        "deferred"
-    );
-    let Some(deferred_semantics) = issue.evidence["snapshot"]["process_callable"]
-        ["correlation_boundary"]["deferred_semantics"]
-        .as_array()
-    else {
-        panic!("process correlation boundary deferred semantics evidence");
-    };
-    assert!(deferred_semantics.contains(&json!("correlation_subscription_matching")));
-    assert!(deferred_semantics.contains(&json!("binding_data_path_evaluation")));
-    let Some(bounded_surface) = issue.evidence["snapshot"]["process_callable"]
-        ["correlation_boundary"]["bounded_executable_surface"]
-        .as_array()
-    else {
-        panic!("process correlation boundary bounded executable evidence");
-    };
-    assert!(bounded_surface.contains(&json!("message_event_reference_wait")));
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["processes"][0]["process_type"],
-        "Public"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["processes"][0]["supports"][0],
-        "Process_Base"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["processes"][0]["properties"][0]["item_subject_ref"],
-        "Item_Order"
-    );
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["processes"][0]["correlation_subscriptions"]
-            [0]["bindings"][0]["data_path"],
-        "order.id"
-    );
+    assert!(report.issues.is_empty());
 }
 
 #[test]

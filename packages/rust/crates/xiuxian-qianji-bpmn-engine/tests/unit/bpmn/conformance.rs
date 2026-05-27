@@ -122,14 +122,14 @@ fn conformance_registry_entries_have_canonical_tracking_fields() {
 
 #[test]
 fn conformance_registry_tracks_m4_boundary_families() {
-    assert_boundary("Complex gateway", BpmnConformanceStatus::LintDeferred);
+    assert_boundary("Complex gateway", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("Event subprocess", BpmnConformanceStatus::BoundedExecutable);
     assert_boundary(
         "Collaboration and pools",
         BpmnConformanceStatus::MetadataOnly,
     );
     assert_boundary("Data objects", BpmnConformanceStatus::BoundedExecutable);
-    assert_boundary("Data stores", BpmnConformanceStatus::LintDeferred);
+    assert_boundary("Data stores", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("Interfaces/operations", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("Global task catalogs", BpmnConformanceStatus::MetadataOnly);
     assert_boundary("Callable IO metadata", BpmnConformanceStatus::MetadataOnly);
@@ -138,15 +138,17 @@ fn conformance_registry_tracks_m4_boundary_families() {
         BpmnConformanceStatus::MetadataOnly,
     );
     assert_boundary("Flow-element metadata", BpmnConformanceStatus::MetadataOnly);
-    assert_boundary("BPMN DI", BpmnConformanceStatus::MetadataOnly);
+    assert_boundary("BPMN DI", BpmnConformanceStatus::Supported);
 }
 
 #[test]
 fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
     let complex_gateway = lint_fixture("invalid-unsupported-gateway.bpmn");
-    let issue = single_issue(&complex_gateway, "bpmn.unsupported_complex_gateway");
-    assert!(issue.llm_fix_prompt.contains("exclusiveGateway"));
-    assert!(issue.why_it_failed.contains("fan-in"));
+    assert!(
+        complex_gateway.ok,
+        "complex gateway metadata should lint cleanly: {complex_gateway:?}"
+    );
+    assert!(complex_gateway.issues.is_empty());
 
     let event_subprocess = lint_fixture("invalid-compensation-event-subprocess.bpmn");
     let issue = single_issue(
@@ -176,9 +178,16 @@ fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
     );
 
     let collaboration = lint_fixture("invalid-collaboration-participant.bpmn");
-    let issue = single_issue(&collaboration, "bpmn.unsupported_collaboration_surface");
-    assert_eq!(issue.evidence["snapshot"]["participant_count"], 2);
-    assert_eq!(issue.evidence["snapshot"]["message_flow_count"], 1);
+    assert!(
+        collaboration.ok,
+        "collaboration metadata is preserved and should not block lint: {collaboration:?}"
+    );
+    assert!(collaboration.issues.is_empty());
+    let snapshot = snapshot_bpmn_source(&fixture_source("invalid-collaboration-participant.bpmn"))
+        .unwrap_or_else(|error| panic!("collaboration fixture should snapshot cleanly: {error}"));
+    assert_eq!(snapshot.root.collaboration_count, 1);
+    assert_eq!(snapshot.collaborations[0].participants.len(), 2);
+    assert_eq!(snapshot.collaborations[0].message_flows.len(), 1);
 
     let data_object = lint_fixture("invalid-data-object-reference.bpmn");
     assert!(data_object.ok);
@@ -194,15 +203,21 @@ fn conformance_boundary_evidence_is_covered_by_lint_or_snapshot() {
     assert_eq!(process.data_object_bindings.len(), 2);
 
     let data_store = lint_fixture("metadata-data-state.bpmn");
-    let issue = single_issue(&data_store, "bpmn.unsupported_data_surface");
-    assert_eq!(issue.evidence["snapshot"]["data_store_count"], 1);
+    assert!(
+        data_store.ok,
+        "data store metadata should lint cleanly: {data_store:?}"
+    );
+    assert!(data_store.issues.is_empty());
 
     let callable_io = lint_fixture("metadata-callable-io.bpmn");
-    let issue = single_issue(&callable_io, "bpmn.unsupported_collaboration_surface");
-    assert_eq!(
-        issue.evidence["snapshot"]["process_callable"]["global_task_io_specification_count"],
-        1
+    assert!(
+        callable_io.ok,
+        "callable IO metadata is preserved and should not block lint: {callable_io:?}"
     );
+    assert!(callable_io.issues.is_empty());
+    let snapshot = snapshot_bpmn_source(&fixture_source("metadata-callable-io.bpmn"))
+        .unwrap_or_else(|error| panic!("callable IO fixture should snapshot cleanly: {error}"));
+    assert_eq!(snapshot.root.global_tasks[0].io_specification_count, 1);
 
     let resource_role = lint_fixture("metadata-resource-role.bpmn");
     let issue = single_issue(&resource_role, "bpmn.unsupported_resource_role_metadata");
@@ -305,10 +320,14 @@ fn assert_bpmn_di_boundary_evidence() {
 
 fn assert_bpmn_di_metadata_boundary_evidence() {
     let diagram = lint_fixture("metadata-bpmn-diagram.bpmn");
-    let issue = single_issue(&diagram, "bpmn.metadata_di_surface");
-    assert_eq!(issue.evidence["snapshot"]["diagram_count"], 1);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["shape_count"], 2);
-    assert_eq!(issue.evidence["snapshot"]["diagrams"][0]["edge_count"], 1);
+    assert!(
+        diagram.ok,
+        "standard BPMNDI should be native lint-clean interchange: {diagram:?}"
+    );
+    assert!(
+        diagram.issues.is_empty(),
+        "standard BPMNDI must not emit blocking metadata diagnostics"
+    );
 
     let snapshot = snapshot_bpmn_source(&fixture_source("metadata-bpmn-diagram.bpmn"))
         .unwrap_or_else(|error| panic!("diagram fixture should snapshot cleanly: {error}"));

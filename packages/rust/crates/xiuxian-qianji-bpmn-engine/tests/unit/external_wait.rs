@@ -7,8 +7,9 @@ use xiuxian_qianji_bpmn_engine::{
     BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
     HostBridgeError, InstanceLifecycle, ManualTaskOutcome, ManualTaskRequest, ProcessKey,
     ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
-    ServiceTaskRequest, TokenRecord, UserTaskOutcome, UserTaskRequest, WaitKind, WaitRegistration,
-    advance_instance, apply_event_poll_outcome, build_event_poll_request, create_instance,
+    ServiceTaskRequest, TaskOutcome, TaskRequest, TokenRecord, UserTaskOutcome, UserTaskRequest,
+    WaitKind, WaitRegistration, advance_instance, apply_event_poll_outcome,
+    build_event_poll_request, create_instance,
 };
 
 #[test]
@@ -203,6 +204,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_task(
+        &self,
+        _request: TaskRequest,
+    ) -> std::result::Result<TaskOutcome, HostBridgeError> {
+        panic!("external wait tests should not dispatch generic task work");
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

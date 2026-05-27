@@ -230,6 +230,7 @@ fn pending_kind_from_completion_kind(
     completion_kind: QianjiBpmnWorkflowTaskCompletionKind,
 ) -> PendingHostWorkKind {
     match completion_kind {
+        QianjiBpmnWorkflowTaskCompletionKind::Task => PendingHostWorkKind::Task,
         QianjiBpmnWorkflowTaskCompletionKind::Send => PendingHostWorkKind::Send,
         QianjiBpmnWorkflowTaskCompletionKind::Service => PendingHostWorkKind::Service,
         QianjiBpmnWorkflowTaskCompletionKind::Script => PendingHostWorkKind::Script,
@@ -242,6 +243,7 @@ fn pending_kind_from_failure_kind(
     failure_kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
 ) -> PendingHostWorkKind {
     match failure_kind {
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Task => PendingHostWorkKind::Task,
         QianjiBpmnWorkflowTaskCompletionHttpKind::Send => PendingHostWorkKind::Send,
         QianjiBpmnWorkflowTaskCompletionHttpKind::Service => PendingHostWorkKind::Service,
         QianjiBpmnWorkflowTaskCompletionHttpKind::Script => PendingHostWorkKind::Script,
@@ -252,6 +254,7 @@ fn pending_kind_from_failure_kind(
 
 fn failure_kind_name(kind: QianjiBpmnWorkflowTaskCompletionHttpKind) -> &'static str {
     match kind {
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Task => "task",
         QianjiBpmnWorkflowTaskCompletionHttpKind::Send => "send",
         QianjiBpmnWorkflowTaskCompletionHttpKind::Service => "service",
         QianjiBpmnWorkflowTaskCompletionHttpKind::Script => "script",

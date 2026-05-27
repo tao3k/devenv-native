@@ -4,6 +4,7 @@ mod adapter;
 mod control;
 mod flowhub_activity_adapter;
 mod http;
+mod llm_activity_adapter;
 mod runtime;
 mod runtime_identity;
 mod runtime_lease;

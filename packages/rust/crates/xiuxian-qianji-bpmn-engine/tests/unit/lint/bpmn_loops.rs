@@ -133,6 +133,24 @@ fn bpmn_linter_accepts_interaction_loop_with_explicit_progress_contract() {
 }
 
 #[test]
+fn bpmn_linter_accepts_collaboration_metadata_loop_surface() {
+    let source = interactive_loop_source("").replace(
+        "  <bpmn:process id=\"interaction_loop\" isExecutable=\"true\">",
+        "  <bpmn:collaboration id=\"collaboration_loop\">\n    <bpmn:participant id=\"participant_loop\" processRef=\"interaction_loop\" />\n  </bpmn:collaboration>\n  <bpmn:process id=\"interaction_loop\" isExecutable=\"true\">",
+    );
+    let report = lint_bpmn_source(&BpmnSourceFile::new(
+        "collaboration-metadata-loop.bpmn",
+        source,
+    ));
+
+    assert_eq!(report.domain, LintDomain::Bpmn);
+    assert!(
+        report.ok,
+        "collaboration documents preserve executable-looking process graphs as metadata: {report:#?}"
+    );
+}
+
+#[test]
 fn bpmn_linter_reports_default_branch_reentering_loop() {
     let report = lint_bpmn_source(&BpmnSourceFile::new(
         "invalid-default-reentry-loop.bpmn",

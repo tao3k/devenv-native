@@ -40,12 +40,11 @@ Within that bounded slice, the runtime guarantees:
 
 ## Deferred Gateway Semantics
 
-These gateway shapes remain outside the bounded surface:
+These gateway semantics remain outside the bounded executable surface:
 
-- `complexGateway`; lint reports `bpmn.unsupported_complex_gateway` and asks
-  authors to remodel activation, fan-in, or fan-out intent through bounded
-  `exclusiveGateway`, structured `inclusiveGateway`, `parallelGateway`, or
-  exclusive `eventBasedGateway` shapes.
+- `complexGateway` activation, fan-in, and fan-out rules. The parser preserves
+  standard `complexGateway` nodes as metadata, but runtime execution remains
+  deferred until an advanced-control-flow policy exists.
 - unstructured inclusive joins
 - parallel event-based gateway instantiation semantics
 - broader FEEL or script-backed gateway conditions

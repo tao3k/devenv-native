@@ -170,8 +170,10 @@ contract for real backend calls. Start the service with `--audio-worker skip`,
 `--audio-worker docling`, or `--audio-worker hosted`; the stable backend
 profiles are `docling-audio-transcript-v1` and
 `hosted-audio-transcript-v1`. The managed Wendao analyzer service passes
-`--audio-worker hosted` by default and selects OpenRouter unless explicitly
-configured for a local OpenAI-compatible backend. `--audio-workers` and the
+`--audio-worker hosted` by default. When Gateway route metadata is present, the
+analyzer uses the selected provider/model/backend profile from the route
+decision; without route metadata, hosted audio falls back to its explicit
+environment configuration. `--audio-workers` and the
 `x-wendao-audio-workers` Flight metadata header bound analyzer-side request
 parallelism inside the Rust-owned shard budget. Hosted audio uses
 `WENDAO_AUDIO_HOSTED_PROVIDER`, `WENDAO_AUDIO_HOSTED_BASE_URL`,

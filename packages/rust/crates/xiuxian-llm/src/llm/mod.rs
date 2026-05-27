@@ -31,6 +31,10 @@ pub use multimodal::{Base64ImageSource, ImageMediaType, resolve_image_source_to_
 #[cfg(feature = "model-routing")]
 pub use runtime_profile::runtime_profile_env_with_model_decision;
 pub use runtime_profile::{
-    LlmProviderProfileInput, LlmRuntimeDefaults, LlmRuntimeProfileEnv, LlmRuntimeProfileInput,
-    ResolvedLlmRuntimeProfile, resolve_openai_runtime_profile,
+    LlmProviderProfileInput, LlmProviderProfileTomlConfig, LlmRuntimeDefaults,
+    LlmRuntimeProfileEnv, LlmRuntimeProfileInput, LlmRuntimeProfileTomlConfig,
+    ResolvedLlmRuntimeProfile, WENDAO_LLM_SYSTEM_DEFAULT_TOML,
+    llm_runtime_profile_input_from_toml_config, llm_runtime_profile_system_default_config,
+    llm_runtime_profile_toml_config_from_str, llm_runtime_profile_toml_config_from_value,
+    resolve_openai_runtime_profile,
 };

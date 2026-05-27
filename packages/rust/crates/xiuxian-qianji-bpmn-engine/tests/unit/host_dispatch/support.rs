@@ -9,8 +9,8 @@ use xiuxian_qianji_bpmn_engine::{
     BusinessRuleTaskRequest, DmnDecisionRef, EventPollOutcome, EventPollRequest, HostBridgeError,
     ManualTaskOutcome, ManualTaskRequest, PendingHostWorkKind, PendingHostWorkRequest, ProcessKey,
     ScriptTaskOutcome, ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome,
-    ServiceTaskRequest, UserTaskOutcome, UserTaskRequest, advance_instance,
-    build_pending_host_work_request, create_instance,
+    ServiceTaskRequest, TaskOutcome, TaskRequest, UserTaskOutcome, UserTaskRequest,
+    advance_instance, build_pending_host_work_request, create_instance,
 };
 
 pub(super) async fn assert_dispatch_request(
@@ -41,6 +41,7 @@ pub(super) async fn assert_dispatch_request(
     assert_eq!(
         request.kind(),
         match node_kind {
+            BpmnNodeKind::Task => PendingHostWorkKind::Task,
             BpmnNodeKind::SendTask => PendingHostWorkKind::Send,
             BpmnNodeKind::ServiceTask => PendingHostWorkKind::Service,
             BpmnNodeKind::ScriptTask => PendingHostWorkKind::Script,
@@ -212,6 +213,10 @@ pub(super) fn with_token_id(
     token_id: u64,
 ) -> PendingHostWorkRequest {
     match expected {
+        PendingHostWorkRequest::Task(mut request) => {
+            request.token_id = token_id.into();
+            PendingHostWorkRequest::Task(request)
+        }
         PendingHostWorkRequest::Send(mut request) => {
             request.token_id = token_id;
             PendingHostWorkRequest::Send(request)
@@ -251,6 +256,13 @@ impl StubHost {
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for StubHost {
+    async fn dispatch_task(
+        &self,
+        _request: TaskRequest,
+    ) -> std::result::Result<TaskOutcome, HostBridgeError> {
+        panic!("host dispatch tests should not execute host work");
+    }
+
     async fn dispatch_send_task(
         &self,
         _request: SendTaskRequest,

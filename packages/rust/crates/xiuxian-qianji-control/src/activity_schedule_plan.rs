@@ -16,6 +16,42 @@ pub const ACTIVITY_SCHEDULE_ADMISSION_KIND: &str = "qianji_activity_schedule_adm
 /// Pending schedule-admission row status.
 pub const ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS: &str = "pending_qianji_admission";
 
+/// Supported schedule-admission row kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ActivityScheduleAdmissionKind {
+    /// Generic Qianji activity schedule-admission candidate.
+    #[serde(rename = "qianji_activity_schedule_admission_candidate")]
+    QianjiActivityScheduleAdmissionCandidate,
+}
+
+impl ActivityScheduleAdmissionKind {
+    /// Returns the wire value for this admission kind.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::QianjiActivityScheduleAdmissionCandidate => ACTIVITY_SCHEDULE_ADMISSION_KIND,
+        }
+    }
+}
+
+/// Supported schedule-admission row status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ActivityScheduleAdmissionStatus {
+    /// Pending Qianji admission.
+    #[serde(rename = "pending_qianji_admission")]
+    PendingQianjiAdmission,
+}
+
+impl ActivityScheduleAdmissionStatus {
+    /// Returns the wire value for this admission status.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::PendingQianjiAdmission => ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS,
+        }
+    }
+}
+
 /// One generic activity schedule-admission plan row.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +61,7 @@ pub struct ActivityScheduleAdmissionPlanItem {
     /// Schedule-admission contract version.
     pub schedule_contract: String,
     /// Admission row kind.
-    pub admission_kind: String,
+    pub admission_kind: ActivityScheduleAdmissionKind,
     /// Qianji run id carried by the plan producer.
     pub qianji_run_id: String,
     /// Generic activity task to schedule durably.
@@ -37,7 +73,7 @@ pub struct ActivityScheduleAdmissionPlanItem {
     #[serde(flatten)]
     pub safety: ActivityScheduleAdmissionSafetyFlags,
     /// Plan row status.
-    pub status: String,
+    pub status: ActivityScheduleAdmissionStatus,
 }
 
 /// Execution flags that must be false before admission.
@@ -199,43 +235,28 @@ where
         occurred_at_ms,
         items,
     } = request;
-    let mut outcomes = Vec::with_capacity(items.len());
-    let mut appended_count = 0;
-    let mut already_recorded_count = 0;
-
-    for (index, item) in items.into_iter().enumerate() {
-        let scheduled_at_ms = occurred_at_ms.checked_add(index as u64).ok_or_else(|| {
-            ControlError::InvalidEventSequence {
-                message: "schedule-plan admission timestamp overflow".to_owned(),
-            }
-        })?;
-        let schedule_item_id = item.schedule_item_id;
-        let activity_id = item.activity_task.activity_id.clone();
-        let record = match step_id.clone() {
-            Some(step_id) => AdmittedActivityTaskScheduleRecord::step(
-                run_id.clone(),
-                step_id,
-                scheduled_at_ms,
-                item.activity_task,
-            ),
-            None => AdmittedActivityTaskScheduleRecord::run(
-                run_id.clone(),
-                scheduled_at_ms,
-                item.activity_task,
-            ),
-        };
-        let outcome = record_admitted_activity_task_schedule_idempotent(ledger, record)?;
-        match outcome.status {
-            ActivityJournalWriteStatus::Appended => appended_count += 1,
-            ActivityJournalWriteStatus::AlreadyRecorded => already_recorded_count += 1,
-        }
-        outcomes.push(ActivitySchedulePlanAdmissionItemOutcome {
-            schedule_item_id,
-            activity_id,
-            status: outcome.status,
-            sequence: outcome.record.sequence,
-        });
-    }
+    let outcomes = items
+        .into_iter()
+        .enumerate()
+        .map(|(index, item)| {
+            admit_activity_schedule_plan_item(
+                ledger,
+                &run_id,
+                step_id.as_ref(),
+                occurred_at_ms,
+                index,
+                item,
+            )
+        })
+        .collect::<ControlResult<Vec<_>>>()?;
+    let appended_count = outcomes
+        .iter()
+        .filter(|outcome| outcome.status == ActivityJournalWriteStatus::Appended)
+        .count();
+    let already_recorded_count = outcomes
+        .iter()
+        .filter(|outcome| outcome.status == ActivityJournalWriteStatus::AlreadyRecorded)
+        .count();
 
     Ok(ActivitySchedulePlanAdmissionReport {
         run_id,
@@ -245,6 +266,53 @@ where
         already_recorded_count,
         outcomes,
     })
+}
+
+fn admit_activity_schedule_plan_item<L>(
+    ledger: &L,
+    run_id: &RunId,
+    step_id: Option<&StepId>,
+    occurred_at_ms: u64,
+    index: usize,
+    item: ActivityScheduleAdmissionPlanItem,
+) -> ControlResult<ActivitySchedulePlanAdmissionItemOutcome>
+where
+    L: ControlLedger + ?Sized,
+{
+    let scheduled_at_ms = schedule_plan_item_timestamp(occurred_at_ms, index)?;
+    let schedule_item_id = item.schedule_item_id;
+    let activity_id = item.activity_task.activity_id.clone();
+    let record = match step_id.cloned() {
+        Some(step_id) => AdmittedActivityTaskScheduleRecord::step(
+            run_id.clone(),
+            step_id,
+            scheduled_at_ms,
+            item.activity_task,
+        ),
+        None => AdmittedActivityTaskScheduleRecord::run(
+            run_id.clone(),
+            scheduled_at_ms,
+            item.activity_task,
+        ),
+    };
+    let outcome = record_admitted_activity_task_schedule_idempotent(ledger, record)?;
+    Ok(ActivitySchedulePlanAdmissionItemOutcome {
+        schedule_item_id,
+        activity_id,
+        status: outcome.status,
+        sequence: outcome.record.sequence,
+    })
+}
+
+fn schedule_plan_item_timestamp(occurred_at_ms: u64, index: usize) -> ControlResult<u64> {
+    let offset = u64::try_from(index).map_err(|_| ControlError::InvalidEventSequence {
+        message: "schedule-plan admission timestamp index overflow".to_owned(),
+    })?;
+    occurred_at_ms
+        .checked_add(offset)
+        .ok_or_else(|| ControlError::InvalidEventSequence {
+            message: "schedule-plan admission timestamp overflow".to_owned(),
+        })
 }
 
 fn validate_plan_request(request: &ActivitySchedulePlanAdmissionRequest) -> ControlResult<()> {
@@ -283,10 +351,13 @@ fn validate_plan_item(
             item.schedule_item_id, item.schedule_contract
         )));
     }
-    if item.admission_kind != ACTIVITY_SCHEDULE_ADMISSION_KIND {
+    if item.admission_kind
+        != ActivityScheduleAdmissionKind::QianjiActivityScheduleAdmissionCandidate
+    {
         return Err(invalid_schedule_plan(format!(
             "schedule item `{}` has unsupported admission kind `{}`",
-            item.schedule_item_id, item.admission_kind
+            item.schedule_item_id,
+            item.admission_kind.as_str()
         )));
     }
     if item.qianji_run_id != expected_run_id {
@@ -295,10 +366,11 @@ fn validate_plan_item(
             item.schedule_item_id, item.qianji_run_id, expected_run_id
         )));
     }
-    if item.status != ACTIVITY_SCHEDULE_ADMISSION_PENDING_STATUS {
+    if item.status != ActivityScheduleAdmissionStatus::PendingQianjiAdmission {
         return Err(invalid_schedule_plan(format!(
             "schedule item `{}` has unsupported status `{}`",
-            item.schedule_item_id, item.status
+            item.schedule_item_id,
+            item.status.as_str()
         )));
     }
     validate_execution_flags(item)?;

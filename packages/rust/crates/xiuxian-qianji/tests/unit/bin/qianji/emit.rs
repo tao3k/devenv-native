@@ -112,9 +112,11 @@ fn run_emit_command_renders_native_bpmn_with_standard_di() {
         .unwrap_or_else(|| panic!("emitted BPMN should preserve a BPMNPlane"));
     assert_eq!(plane.shapes.len(), 5);
     assert_eq!(plane.edges.len(), 4);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    assert_eq!(report.issues[0].code, "bpmn.metadata_di_surface");
+    assert!(
+        report.ok,
+        "emitted BPMN should lint clean with native BPMNDI: {report:?}"
+    );
+    assert!(report.issues.is_empty());
 }
 
 #[test]

@@ -35,7 +35,7 @@ pub(in crate::lint::bpmn::document_surface) fn diagram_boolean_issue(
         format!(
             "Source '{source_id}' contains BPMN DI or DC boolean attributes outside the XML Schema boolean lexical values."
         ),
-        "BPMN DI stays metadata-only in the bounded runtime, but boolean-valued diagram attributes must use standard XML boolean literals so interchange tools can round-trip them without silent coercion.",
+        "Native BPMN DI preserves standard diagram interchange, and boolean-valued diagram attributes must use standard XML boolean literals so interchange tools can round-trip them without silent coercion.",
         vec![
             "Use `true`, `false`, `1`, or `0` for BPMN DI and DC boolean attributes.".to_string(),
             "Check `BPMNShape` display flags such as `isHorizontal`, `isExpanded`, `isMarkerVisible`, and `isMessageVisible`.".to_string(),
