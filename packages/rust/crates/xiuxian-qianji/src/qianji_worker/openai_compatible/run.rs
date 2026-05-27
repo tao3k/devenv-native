@@ -12,8 +12,7 @@ use super::protocol::{AUDIT_METADATA_KEY, EPISTEME_REASONING_ACTIVITY_TYPE};
 use super::response;
 use super::transport;
 use super::types::{LlmRequestAudit, OpenAiCompatibleLlmExecutionRequest};
-use crate::qianji_cli::control_cli::ActivityExecutorOutcome;
-use crate::qianji_cli::invalid_input;
+use crate::qianji_worker::{ActivityExecutorOutcome, invalid_input};
 
 struct OpenAiChatPayload {
     request: ChatRequest,

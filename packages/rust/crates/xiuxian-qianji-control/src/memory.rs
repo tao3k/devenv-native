@@ -227,40 +227,18 @@ impl HotStateStore for InMemoryHotStateStore {
         now_ms: u64,
         lease_ttl_ms: u64,
     ) -> ControlResult<Option<HotStateLeasedActivityTask>> {
-        validate_positive_ttl("in_memory_activity_task_lease_ttl", lease_ttl_ms)?;
-        let mut guard = lock(&self.state, "hot_state")?;
-        remove_expired_activity_leases(&mut guard, now_ms);
-        let Some(index) =
-            next_runnable_activity_task_index(&guard.activity_queue, task_queue, now_ms)
-        else {
-            return Ok(None);
-        };
-        let activity_task = guard.activity_queue.remove(index);
-        guard.next_activity_lease_sequence += 1;
-        let lease = ActivityTaskLease {
-            lease_id: LeaseId::new(format!(
-                "activity-lease-{}",
-                guard.next_activity_lease_sequence
-            ))?,
-            run_id: activity_task.task.run_id.clone(),
-            step_id: activity_task.task.step_id.clone(),
-            activity_id: activity_task.task.activity_id.clone(),
-            worker_id: worker.worker_id,
-            acquired_at_ms: now_ms,
-            expires_at_ms: now_ms.saturating_add(lease_ttl_ms),
-        };
-        let leased = HotStateLeasedActivityTask {
-            activity_task,
-            lease,
-        };
-        guard.activity_leases.insert(
-            activity_task_key_from_lease(&leased.lease),
-            ActiveActivityLease {
-                activity_task: leased.activity_task.clone(),
-                lease: leased.lease.clone(),
-            },
-        );
-        Ok(Some(leased))
+        self.claim_matching_activity_task(worker, None, task_queue, now_ms, lease_ttl_ms)
+    }
+
+    async fn claim_activity_task_for_run(
+        &self,
+        worker: WorkerRef,
+        run_id: &RunId,
+        task_queue: Option<&TaskQueue>,
+        now_ms: u64,
+        lease_ttl_ms: u64,
+    ) -> ControlResult<Option<HotStateLeasedActivityTask>> {
+        self.claim_matching_activity_task(worker, Some(run_id), task_queue, now_ms, lease_ttl_ms)
     }
 
     async fn release_activity_task_lease(&self, lease: &ActivityTaskLease) -> ControlResult<bool> {
@@ -368,6 +346,52 @@ impl HotStateStore for InMemoryHotStateStore {
     }
 }
 
+impl InMemoryHotStateStore {
+    fn claim_matching_activity_task(
+        &self,
+        worker: WorkerRef,
+        run_id: Option<&RunId>,
+        task_queue: Option<&TaskQueue>,
+        now_ms: u64,
+        lease_ttl_ms: u64,
+    ) -> ControlResult<Option<HotStateLeasedActivityTask>> {
+        validate_positive_ttl("in_memory_activity_task_lease_ttl", lease_ttl_ms)?;
+        let mut guard = lock(&self.state, "hot_state")?;
+        remove_expired_activity_leases(&mut guard, now_ms);
+        let Some(index) =
+            next_runnable_activity_task_index(&guard.activity_queue, run_id, task_queue, now_ms)
+        else {
+            return Ok(None);
+        };
+        let activity_task = guard.activity_queue.remove(index);
+        guard.next_activity_lease_sequence += 1;
+        let lease = ActivityTaskLease {
+            lease_id: LeaseId::new(format!(
+                "activity-lease-{}",
+                guard.next_activity_lease_sequence
+            ))?,
+            run_id: activity_task.task.run_id.clone(),
+            step_id: activity_task.task.step_id.clone(),
+            activity_id: activity_task.task.activity_id.clone(),
+            worker_id: worker.worker_id,
+            acquired_at_ms: now_ms,
+            expires_at_ms: now_ms.saturating_add(lease_ttl_ms),
+        };
+        let leased = HotStateLeasedActivityTask {
+            activity_task,
+            lease,
+        };
+        guard.activity_leases.insert(
+            activity_task_key_from_lease(&leased.lease),
+            ActiveActivityLease {
+                activity_task: leased.activity_task.clone(),
+                lease: leased.lease.clone(),
+            },
+        );
+        Ok(Some(leased))
+    }
+}
+
 fn validate_positive_ttl(operation: &'static str, ttl_ms: u64) -> ControlResult<()> {
     if ttl_ms == 0 {
         return Err(ControlError::Storage {
@@ -417,6 +441,7 @@ fn next_runnable_index(queue: &[RunnableStep], now_ms: u64) -> Option<usize> {
 
 fn next_runnable_activity_task_index(
     queue: &[RunnableActivityTask],
+    run_id: Option<&RunId>,
     task_queue: Option<&TaskQueue>,
     now_ms: u64,
 ) -> Option<usize> {
@@ -424,6 +449,7 @@ fn next_runnable_activity_task_index(
         .iter()
         .enumerate()
         .filter(|(_, entry)| entry.not_before_ms <= now_ms)
+        .filter(|(_, entry)| run_id.is_none_or(|run_id| &entry.task.run_id == run_id))
         .filter(|(_, entry)| task_queue.is_none_or(|queue| &entry.task.task_queue == queue))
         .max_by_key(|(index, entry)| (entry.priority, std::cmp::Reverse(*index)))
         .map(|(index, _)| index)

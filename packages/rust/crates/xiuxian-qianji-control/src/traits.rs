@@ -259,6 +259,24 @@ pub trait HotStateStore: Send + Sync {
         lease_ttl_ms: u64,
     ) -> ControlResult<Option<HotStateLeasedActivityTask>>;
 
+    /// Claims one worker activity task lease for a specific durable run.
+    ///
+    /// Server-owned run routes should use this instead of a global queue claim
+    /// so stale activity tasks from other runs cannot be executed under the
+    /// caller's run history.
+    ///
+    /// # Errors
+    ///
+    /// Returns a store-specific control error when acquisition fails.
+    async fn claim_activity_task_for_run(
+        &self,
+        worker: WorkerRef,
+        run_id: &RunId,
+        task_queue: Option<&TaskQueue>,
+        now_ms: u64,
+        lease_ttl_ms: u64,
+    ) -> ControlResult<Option<HotStateLeasedActivityTask>>;
+
     /// Releases an activity-task lease if the caller still owns it.
     ///
     /// # Errors

@@ -1,44 +1,42 @@
+use std::error::Error;
+
 use crate::bpmn::{
     BPMN_HOST_WORK_LLM_ACTIVITY_ROUTE_SCHEMA, BpmnHostWorkLlmActivityRouteInput,
     QianjiBpmnActivityId, QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnProcessId,
     build_bpmn_host_work_llm_activity_route,
 };
 use crate::runtime_config::QianjiRuntimeLlmConfig;
-use crate::workflow_config::{
-    QianjiWorkflowLlmEndpointConfig, QianjiWorkflowLlmTaskConfig, QianjiWorkflowLlmTaskRetryConfig,
-    QianjiWorkflowLlmTaskRouteConfig,
-};
+use crate::workflow_config::QianjiWorkflowLlmTaskConfig;
 use xiuxian_qianji_bpmn_engine::PendingHostWorkKind;
 use xiuxian_qianji_control::{ArtifactId, ArtifactKind, ArtifactRef};
 
 #[test]
-fn bpmn_llm_route_uses_workflow_task_config_and_runtime_endpoint() {
+fn bpmn_llm_route_uses_workflow_task_config_and_runtime_endpoint() -> Result<(), Box<dyn Error>> {
     let work = pending_work();
-    let workflow_config = QianjiWorkflowLlmTaskConfig {
-        schema: Some("qianji.workflow.llm_task.v1".to_string()),
-        llm: QianjiWorkflowLlmEndpointConfig {
-            provider: Some("openrouter".to_string()),
-            model: Some("deepseek/test".to_string()),
-            ..QianjiWorkflowLlmEndpointConfig::default()
-        },
-        task: QianjiWorkflowLlmTaskRouteConfig {
-            activity_type: Some("llm.plan".to_string()),
-            task_queue: Some("llm.openrouter".to_string()),
-            idempotency_key_prefix: Some("qianji:test".to_string()),
-            max_tokens: Some(2048),
-            temperature_millis: Some(100),
-            timeout_ms: Some(60000),
-            retry: Some(QianjiWorkflowLlmTaskRetryConfig {
-                max_attempts: Some(2),
-                initial_interval_ms: Some(500),
-                non_retryable_error_codes: vec!["SchemaInvalid".to_string()],
-                ..QianjiWorkflowLlmTaskRetryConfig::default()
-            }),
-            ..QianjiWorkflowLlmTaskRouteConfig::default()
-        },
-    };
+    let workflow_config = workflow_task_config(
+        r#"
+schema = "qianji.workflow.llm_task.v1"
+
+[llm]
+provider = "openrouter"
+model = "deepseek/test"
+
+[task]
+activity_type = "llm.plan"
+task_queue = "llm.openrouter"
+idempotency_key_prefix = "qianji:test"
+max_tokens = 2048
+temperature_millis = 100
+timeout_ms = 60000
+
+[task.retry]
+max_attempts = 2
+initial_interval_ms = 500
+non_retryable_error_codes = ["SchemaInvalid"]
+"#,
+    )?;
     let runtime = runtime_llm();
-    let prompt_ref = artifact_ref("prompt-1", "qianji.bpmn.prompt", "file:///tmp/prompt.md");
+    let prompt_ref = artifact_ref("prompt-1", "qianji.bpmn.prompt", "file:///tmp/prompt.md")?;
 
     let decision = build_bpmn_host_work_llm_activity_route(BpmnHostWorkLlmActivityRouteInput {
         instance_id: "instance-1",
@@ -50,8 +48,7 @@ fn bpmn_llm_route_uses_workflow_task_config_and_runtime_endpoint() {
         prompt_ref: &prompt_ref,
         context_ref: None,
         response_schema_ref: None,
-    })
-    .expect("route decision should build");
+    })?;
 
     assert_eq!(decision.schema, BPMN_HOST_WORK_LLM_ACTIVITY_ROUTE_SCHEMA);
     assert_eq!(decision.profile, "bpmn-host-work-llm");
@@ -93,14 +90,15 @@ fn bpmn_llm_route_uses_workflow_task_config_and_runtime_endpoint() {
     let metadata = &decision.llm_activity.task.metadata;
     assert_eq!(metadata["process_id"], "process-main");
     assert_eq!(metadata["activity_id"], "step-1");
+    Ok(())
 }
 
 #[test]
-fn bpmn_llm_route_rejects_missing_identity() {
+fn bpmn_llm_route_rejects_missing_identity() -> Result<(), Box<dyn Error>> {
     let mut work = pending_work();
     work.activity_id = None;
-    let prompt_ref = artifact_ref("prompt-1", "qianji.bpmn.prompt", "file:///tmp/prompt.md");
-    let error = build_bpmn_host_work_llm_activity_route(BpmnHostWorkLlmActivityRouteInput {
+    let prompt_ref = artifact_ref("prompt-1", "qianji.bpmn.prompt", "file:///tmp/prompt.md")?;
+    let result = build_bpmn_host_work_llm_activity_route(BpmnHostWorkLlmActivityRouteInput {
         instance_id: "instance-1",
         bpmn_source_ref: None,
         profile: "bpmn-host-work-llm",
@@ -110,11 +108,14 @@ fn bpmn_llm_route_rejects_missing_identity() {
         prompt_ref: &prompt_ref,
         context_ref: None,
         response_schema_ref: None,
-    })
-    .expect_err("missing activity id must fail");
+    });
+    let Err(error) = result else {
+        return Err("missing activity id must fail".into());
+    };
 
     assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
     assert!(error.to_string().contains("activity_id"));
+    Ok(())
 }
 
 fn pending_work() -> QianjiBpmnPendingHostWorkHttpResponse {
@@ -138,6 +139,10 @@ fn pending_work() -> QianjiBpmnPendingHostWorkHttpResponse {
     }
 }
 
+fn workflow_task_config(source: &str) -> Result<QianjiWorkflowLlmTaskConfig, toml::de::Error> {
+    toml::from_str(source)
+}
+
 fn runtime_llm() -> QianjiRuntimeLlmConfig {
     QianjiRuntimeLlmConfig {
         model: "runtime-model".to_string(),
@@ -148,12 +153,12 @@ fn runtime_llm() -> QianjiRuntimeLlmConfig {
     }
 }
 
-fn artifact_ref(id: &str, kind: &str, uri: &str) -> ArtifactRef {
-    ArtifactRef {
-        artifact_id: ArtifactId::new(id).expect("valid artifact id"),
-        artifact_kind: ArtifactKind::new(kind).expect("valid artifact kind"),
+fn artifact_ref(id: &str, kind: &str, uri: &str) -> Result<ArtifactRef, Box<dyn Error>> {
+    Ok(ArtifactRef {
+        artifact_id: ArtifactId::new(id)?,
+        artifact_kind: ArtifactKind::new(kind)?,
         uri: uri.to_string(),
         content_digest: None,
         metadata: serde_json::Value::Null,
-    }
+    })
 }

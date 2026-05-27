@@ -19,7 +19,7 @@ use xiuxian_db_store::artifact_cache::{
     ArtifactBlobCacheBackend, FoyerArtifactBlobCache, FoyerArtifactBlobCacheConfig,
 };
 #[cfg(feature = "arrow-codec")]
-#[path = "unit/arrow_schema.rs"]
+#[path = "unit/arrow_schema/mod.rs"]
 mod arrow_schema;
 #[cfg(feature = "artifact-cache")]
 #[path = "unit/artifact_cache/mod.rs"]
@@ -45,6 +45,9 @@ mod lib_policy;
 #[cfg(feature = "qianji-bpmn-workflow-state")]
 #[path = "unit/qianji_bpmn/mod.rs"]
 mod qianji_bpmn;
-#[cfg(feature = "engine")]
+#[cfg(all(feature = "engine", not(feature = "vector-store")))]
 #[path = "unit/retrieval.rs"]
 mod retrieval;
+#[cfg(feature = "valkey")]
+#[path = "unit/valkey.rs"]
+mod valkey;

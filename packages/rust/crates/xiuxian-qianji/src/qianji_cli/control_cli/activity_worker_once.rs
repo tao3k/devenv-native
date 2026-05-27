@@ -13,14 +13,12 @@ use super::activity_executor::ActivityExecutorKindArg;
 use super::activity_executor::{
     ActivityExecutionRequest, ActivityExecutorOutcome, ActivityExecutorRegistry,
 };
+use super::types::{ControlCliCommand, ControlCliOutput};
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
-use super::activity_openai_compatible::{
-    OpenAiCompatibleLlmExecutionRequest, execute_openai_compatible_llm,
-};
-use super::types::{ControlCliCommand, ControlCliOutput};
+use crate::qianji_worker::{OpenAiCompatibleLlmExecutionRequest, execute_openai_compatible_llm};
 
 pub(super) fn parse(args: &[String]) -> io::Result<ControlCliCommand> {
     let mut parsed = ActivityWorkerOnceArgs::default();
@@ -458,6 +456,34 @@ where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
+    worker_once_output_with_claim_scope(ledger, hot_state, None, request).await
+}
+
+#[cfg(test)]
+pub(crate) async fn worker_once_output_for_run_with_hot_state<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    run_id: &xiuxian_qianji_control::RunId,
+    request: &ActivityWorkerOnceStoreRequest<'_>,
+) -> io::Result<ActivityWorkerOnceOutput>
+where
+    L: xiuxian_qianji_control::ControlLedger + ?Sized,
+    H: xiuxian_qianji_control::HotStateStore + ?Sized,
+{
+    worker_once_output_with_claim_scope(ledger, hot_state, Some(run_id), request).await
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+async fn worker_once_output_with_claim_scope<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    run_id: Option<&xiuxian_qianji_control::RunId>,
+    request: &ActivityWorkerOnceStoreRequest<'_>,
+) -> io::Result<ActivityWorkerOnceOutput>
+where
+    L: xiuxian_qianji_control::ControlLedger + ?Sized,
+    H: xiuxian_qianji_control::HotStateStore + ?Sized,
+{
     use xiuxian_qianji_control::{TaskQueue, WorkerId, WorkerRef};
 
     let worker_id = WorkerId::new(request.worker_id).map_err(|error| control_error(&error))?;
@@ -471,15 +497,30 @@ where
         capabilities: Vec::new(),
         metadata: serde_json::Value::Null,
     };
-    let claimed = hot_state
-        .claim_activity_task(
-            worker,
-            task_queue.as_ref(),
-            request.now_ms,
-            request.lease_ttl_ms,
-        )
-        .await
-        .map_err(|error| control_error(&error))?;
+    let claimed = match run_id {
+        Some(run_id) => {
+            hot_state
+                .claim_activity_task_for_run(
+                    worker,
+                    run_id,
+                    task_queue.as_ref(),
+                    request.now_ms,
+                    request.lease_ttl_ms,
+                )
+                .await
+        }
+        None => {
+            hot_state
+                .claim_activity_task(
+                    worker,
+                    task_queue.as_ref(),
+                    request.now_ms,
+                    request.lease_ttl_ms,
+                )
+                .await
+        }
+    }
+    .map_err(|error| control_error(&error))?;
     let Some(claimed_task) = claimed.clone() else {
         return Ok(empty_worker_once_output(worker_id, task_queue, request));
     };

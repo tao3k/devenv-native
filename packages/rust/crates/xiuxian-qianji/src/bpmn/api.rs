@@ -37,6 +37,11 @@ pub use super::execution::{
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
+pub use super::http_transport::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 pub use super::http_transport::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use super::http_transport::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,

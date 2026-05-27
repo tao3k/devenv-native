@@ -36,6 +36,7 @@ fn activity_executor_registry_accepts_openai_compatible_llm_gate() {
     assert_eq!(
         contract.allowed_task_queues,
         &[
+            "llm.*",
             "llm.openai",
             "llm.openrouter",
             "llm.local",

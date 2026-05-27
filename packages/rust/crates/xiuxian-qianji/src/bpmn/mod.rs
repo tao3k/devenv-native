@@ -42,6 +42,11 @@ mod wait;
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
+pub use api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 pub use api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use api::{
     BpmnAdapterError, BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,

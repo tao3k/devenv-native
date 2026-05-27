@@ -33,6 +33,10 @@ runtime code.
   DuckDB adapter, checkpoint-envelope storage helpers, append-only durable
   checkpoint events, and Arrow-appender batch snapshot storage for
   audit/replay paths.
+- `valkey`: enables shared Valkey client and structured hot-queue primitives
+  for short-lived queue, lease, heartbeat, and live coordination indexes.
+  Domain crates provide typed payloads and explicit indexed fields; this
+  crate owns command execution, atomic lease scripts, and queue filtering.
 
 ## Ownership Boundary
 
@@ -64,6 +68,13 @@ surface. The cache stores large derived payload bytes only, such as audio
 shards, PDF rasters/crops, OCR/VLM atlases, Arrow IPC batch bytes, ontology
 review packets, ontology read-model payloads, parser projections, and
 prompt/evidence packs.
+
+Valkey command mechanics belong here behind the `valkey` feature. Consumers
+should use the structured queue surface instead of parsing composite keys or
+embedding route-local scripts. Queue entries carry serialized typed payloads
+plus explicit indexed fields such as task queue or run id; lease and reclaim
+operations are atomic, while the owning domain crate remains responsible for
+payload schema, durable truth, and replay semantics.
 
 `ArtifactBlobCache` is the only consumer interface for those bytes. The
 filesystem backend is the contract baseline and stores artifact bytes in a

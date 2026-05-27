@@ -20,7 +20,8 @@ manages what is happening:
 The core slice ships Rust contracts plus in-memory stores. The `duckdb`
 feature adds the durable append-only ledger adapter. The `valkey` feature adds
 the hot-state adapter for step queues, worker activity task queues, leases,
-and worker heartbeats.
+and worker heartbeats by consuming the structured Valkey queue primitives from
+[`xiuxian-db-store`](../xiuxian-db-store/README.md).
 
 The DuckDB ledger adapter is an in-process store boundary. It is intended to
 support high-throughput Qianji worker execution by sharing one writable
@@ -47,6 +48,8 @@ The intended split is:
 - DuckDB: durable append-only control ledger and replayable run views inside
   one writable process boundary
 - Valkey: hot queues, leases, heartbeats, rate limits, and live progress
+  through explicit queue fields and typed payloads, not domain value recovery
+  from composite storage keys
 - [`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md):
   dependency-safe adapters that convert workflow host boundaries into control
   activity tasks

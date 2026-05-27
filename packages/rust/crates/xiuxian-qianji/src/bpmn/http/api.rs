@@ -21,6 +21,11 @@ pub use super::request_api::{
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
+pub use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 pub use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use super::response_api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCancelHttpResponse,

@@ -2,12 +2,12 @@ schema = "qianji.workflow.llm_task.v1"
 
 [llm]
 provider = "openai-compatible"
-model = "MiniMax-M2.5"
+model = "deepseek-chat"
 wire_api = "chat_completions"
 
 [task]
 activity_type = "llm.plan"
-task_queue = "llm.openrouter"
+task_queue = "llm.deepseek"
 idempotency_key_prefix = "qianji:bpmn:host-work:llm"
 prompt_artifact_kind = "qianji.bpmn.host_work.prompt"
 context_artifact_kind = "qianji.bpmn.host_work.context"

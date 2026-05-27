@@ -79,6 +79,12 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
     assert!(
         capabilities
             .iter()
+            .any(|capability| capability == "qianji.control.execution-graph"),
+        "capabilities should include server-owned execution graph query: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
             .any(|capability| capability == "qianji.control.history"),
         "capabilities should include control history query: {body}"
     );
@@ -113,6 +119,11 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
             .iter()
             .any(|capability| capability == "qianji.control.worker.openai-compatible-llm.run"),
         "capabilities should include server LLM worker route when the full Valkey server worker is compiled: {body}"
+    );
+    assert!(
+        capabilities.iter().any(|capability| capability
+            == "qianji.control.worker.openai-compatible-llm.run-and-complete"),
+        "capabilities should include server LLM worker completion route when the full Valkey server worker is compiled: {body}"
     );
     #[cfg(not(feature = "valkey"))]
     assert!(

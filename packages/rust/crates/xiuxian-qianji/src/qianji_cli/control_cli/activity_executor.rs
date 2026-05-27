@@ -1,6 +1,8 @@
 use std::io;
 
 use crate::qianji_cli::invalid_input;
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) use crate::qianji_worker::ActivityExecutorOutcome;
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 use super::activity_args::ActivitySettleOutcomeArg;
@@ -36,6 +38,7 @@ const OPENAI_COMPATIBLE_LLM_ACTIVITY_TYPES: &[&str] = &[
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 const OPENAI_COMPATIBLE_LLM_TASK_QUEUES: &[&str] = &[
+    "llm.*",
     "llm.openai",
     "llm.openrouter",
     "llm.local",
@@ -45,6 +48,8 @@ const OPENAI_COMPATIBLE_LLM_TASK_QUEUES: &[&str] = &[
 const FLOWHUB_SERVICE_ACTIVITY_TYPES: &[&str] = &["flowhub.service"];
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 const FLOWHUB_SERVICE_TASK_QUEUES: &[&str] = &["flowhub.*"];
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+const OPENAI_COMPATIBLE_LLM_TASK_QUEUE_PREFIX: &str = "llm.";
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 const FLOWHUB_SERVICE_TASK_QUEUE_PREFIX: &str = "flowhub.";
 
@@ -60,20 +65,6 @@ pub(crate) enum ActivityExecutorKindArg {
     #[serde(rename = "openai_compatible_llm")]
     OpenAiCompatibleLlm,
     FlowhubService,
-}
-
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ActivityExecutorOutcome {
-    Complete {
-        result: xiuxian_qianji_control::ActivityResult,
-    },
-    Fail {
-        error_code: xiuxian_qianji_control::ErrorCode,
-        message: String,
-        retryable: bool,
-        metadata: serde_json::Value,
-    },
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
@@ -279,6 +270,12 @@ fn validate_allowed_route(
     if executor == ActivityExecutorKindArg::FlowhubService
         && field == "task_queue"
         && value.starts_with(FLOWHUB_SERVICE_TASK_QUEUE_PREFIX)
+    {
+        return Ok(());
+    }
+    if executor == ActivityExecutorKindArg::OpenAiCompatibleLlm
+        && field == "task_queue"
+        && value.starts_with(OPENAI_COMPATIBLE_LLM_TASK_QUEUE_PREFIX)
     {
         return Ok(());
     }

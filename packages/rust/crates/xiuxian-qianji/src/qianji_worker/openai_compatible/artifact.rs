@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use super::protocol::RESPONSE_SCHEMA;
 use super::types::{LlmRequestAudit, OpenAiCompatibleLlmExecutionRequest};
-use crate::qianji_cli::control_cli::activity_artifact::{
+use crate::qianji_worker::artifact::{
     ActivityOutputArtifact, ActivityOutputArtifactRequest, write_activity_output_artifact,
 };
 

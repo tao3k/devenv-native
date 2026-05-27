@@ -47,7 +47,13 @@ pub mod manifest;
 pub(crate) mod markdown;
 #[cfg(feature = "qianji-full")]
 mod qianji_cli;
+mod qianji_server;
 mod qianji_server_cli;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+mod qianji_worker;
 /// Runtime configuration resolver (`resources/config/qianji.toml` + user overrides).
 pub mod runtime_config;
 /// Formal logic and safety auditing.
@@ -91,6 +97,11 @@ pub use bootcamp::{
     BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario,
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
 };
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub use bpmn::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
@@ -213,7 +224,7 @@ pub use llm_client::QianjiLlmClient;
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
 #[cfg(feature = "qianji-full")]
 pub use qianji_cli::{QianjiCliError, run_qianji_cli};
-pub use qianji_server_cli::flowhub_worker::{
+pub use qianji_server::flowhub_worker::{
     QianjiServerFlowhubServiceWorkerLoopOutput, QianjiServerFlowhubServiceWorkerLoopRequest,
     QianjiServerFlowhubServiceWorkerStepOutput,
     run_qianji_server_flowhub_service_worker_completion_loop,
@@ -222,9 +233,11 @@ pub use qianji_server_cli::flowhub_worker::{
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
-pub use qianji_server_cli::llm_worker::{
+pub use qianji_server::llm_worker::{
+    QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate,
     QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
     QianjiServerOpenAiCompatibleLlmWorkerLoopRequest,
+    QianjiServerOpenAiCompatibleLlmWorkerStepOutput,
     run_qianji_server_openai_compatible_llm_worker_loop,
 };
 pub use qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli};

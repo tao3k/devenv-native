@@ -1,6 +1,6 @@
-pub(super) const DEFAULT_MODEL: &str = "MiniMax-M2.5";
-pub(super) const DEFAULT_BASE_URL: &str = "http://localhost:3002/v1";
-pub(super) const DEFAULT_API_KEY_ENV: &str = "MINIMAX_API_KEY";
+pub(super) const DEFAULT_MODEL: &str = "deepseek-chat";
+pub(super) const DEFAULT_BASE_URL: &str = "https://api.deepseek.com/v1";
+pub(super) const DEFAULT_API_KEY_ENV: &str = "DEEPSEEK_API_KEY";
 pub(super) const DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE: &str = "qianji:memory_promotion";
 pub(super) const DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION: usize = 1024;
 pub(super) const DEFAULT_MEMORY_PROMOTION_PERSIST: bool = true;

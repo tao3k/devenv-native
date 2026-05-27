@@ -158,9 +158,9 @@ task_type = "llm"
 weight = 1.0
 params = { output_key = "analysis" }
 [nodes.llm]
-provider = "minimax"
-model = "MiniMax-M2.5"
-base_url = "http://tenant-a.local/v1"  # optional
+provider = "openai-compatible"
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/v1" # optional
 api_key_env = "TENANT_A_API_KEY"        # optional
 ```
 

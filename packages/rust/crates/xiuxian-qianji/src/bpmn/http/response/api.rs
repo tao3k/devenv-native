@@ -388,6 +388,45 @@ impl QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
     }
 }
 
+/// HTTP response for one bounded qianji-server OpenAI-compatible LLM worker
+/// run that also completes matching BPMN host work server-side.
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+#[derive(Debug, Clone, Serialize)]
+pub struct QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Bounded worker-loop traces executed by qianji-server.
+    pub worker_runs: Vec<QianjiServerOpenAiCompatibleLlmWorkerLoopOutput>,
+    /// Number of BPMN host-work completions applied by qianji-server.
+    pub completed_count: usize,
+    /// Last workflow response after server-owned BPMN completion.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
+}
+
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+impl QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        run_id: String,
+        worker_runs: Vec<QianjiServerOpenAiCompatibleLlmWorkerLoopOutput>,
+        completed_count: usize,
+        final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
+    ) -> Self {
+        Self {
+            run_id,
+            worker_runs,
+            completed_count,
+            final_workflow,
+        }
+    }
+}
+
 /// Compact runtime snapshot embedded in HTTP responses.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QianjiBpmnWorkflowSnapshotHttpResponse {

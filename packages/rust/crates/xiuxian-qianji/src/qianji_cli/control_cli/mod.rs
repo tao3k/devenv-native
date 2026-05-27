@@ -8,11 +8,6 @@ mod activity_claim;
 mod activity_executor;
 mod activity_finish;
 mod activity_mirror;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-mod activity_openai_compatible;
 mod activity_reclaim;
 mod activity_release;
 mod activity_schedule_llm;
@@ -30,13 +25,13 @@ mod run;
 mod run_create;
 mod types;
 
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+#[cfg(test)]
 pub(crate) use activity_args::ActivitySettleOutcomeArg;
 #[cfg(test)]
 pub(crate) use activity_claim::{WorkerActivityClaimStoreRequest, claim_with_hot_state};
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+#[cfg(test)]
 pub(crate) use activity_executor::ActivityExecutorKindArg;
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+#[cfg(test)]
 pub(crate) use activity_executor::ActivityExecutorOutcome;
 #[cfg(test)]
 pub(crate) use activity_executor::ActivityExecutorRegistry;
@@ -53,13 +48,16 @@ pub(crate) use activity_settle::{WorkerActivitySettleStoreRequest, settle_with_h
 #[cfg(test)]
 pub(crate) use activity_take::{WorkerActivityTakeStoreRequest, take_with_hot_state};
 #[cfg(test)]
-pub(crate) use activity_worker_loop::worker_loop_with_hot_state;
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-pub(crate) use activity_worker_loop::{
-    ActivityWorkerLoopStoreRequest, worker_loop_output_with_hot_state,
-};
+pub(crate) use activity_worker_loop::ActivityWorkerLoopStoreRequest;
 #[cfg(test)]
-pub(crate) use activity_worker_once::{ActivityWorkerOnceStoreRequest, worker_once_with_hot_state};
+pub(crate) use activity_worker_loop::worker_loop_with_hot_state;
+#[cfg(test)]
+pub(crate) use activity_worker_once::worker_once_with_hot_state;
+#[cfg(test)]
+pub(crate) use activity_worker_once::{
+    ActivityWorkerOnceOutput, ActivityWorkerOnceStoreRequest,
+    worker_once_output_for_run_with_hot_state,
+};
 #[cfg(test)]
 pub(crate) use api::run_control_command;
 pub(crate) use api::{handle_control_command_async, parse_control_command};

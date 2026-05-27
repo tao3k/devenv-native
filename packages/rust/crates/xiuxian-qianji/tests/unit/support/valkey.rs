@@ -37,7 +37,10 @@ impl TestValkey {
                 Err(error) => return Err(error),
             }
         }
-        Err(last_bind_conflict.expect("bind conflict retry should retain the last error"))
+        let Some(error) = last_bind_conflict else {
+            bail!("bind conflict retry should retain the last error");
+        };
+        Err(error)
     }
 
     async fn spawn_local() -> Result<Self> {

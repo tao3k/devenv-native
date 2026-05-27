@@ -15,12 +15,12 @@ use xiuxian_qianji_control::{
 };
 
 use super::support::{must_ok, write_file};
-use crate::qianji_server_cli::cli::QianjiServerServeCommand;
-use crate::qianji_server_cli::flowhub::resolve_qianji_server_flowhub_root;
-use crate::qianji_server_cli::flowhub_worker::{
+use crate::qianji_server::flowhub_worker::{
     QianjiServerFlowhubServiceWorkerLoopRequest,
     run_qianji_server_flowhub_service_worker_completion_loop,
 };
+use crate::qianji_server_cli::cli::QianjiServerServeCommand;
+use crate::qianji_server_cli::flowhub::resolve_qianji_server_flowhub_root;
 use crate::qianji_server_cli::run::{build_qianji_server_router, build_workflow_control_service};
 use crate::{
     FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput, QianjiBpmnHostBridge,

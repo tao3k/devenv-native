@@ -3,9 +3,9 @@
 # User overrides: $PRJ_CONFIG_HOME/xiuxian-artisan-workshop/qianji.toml
 
 [llm]
-model = "MiniMax-M2.5"
-base_url = "http://localhost:3002/v1"
-api_key_env = "MINIMAX_API_KEY"
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/v1"
+api_key_env = "DEEPSEEK_API_KEY"
 
 [memory_promotion.wendao]
 graph_scope = "qianji:memory_promotion"

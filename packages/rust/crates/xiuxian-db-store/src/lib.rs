@@ -30,6 +30,9 @@ pub use ::duckdb as duckdb_crate;
 #[cfg(feature = "qianji-bpmn-workflow-state")]
 /// Qianji BPMN workflow-state persistence surface.
 pub mod qianji_bpmn;
+#[cfg(feature = "valkey")]
+/// Structured Valkey storage primitives for hot indexes and leases.
+pub mod valkey;
 
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use arrow::array::builder::{
@@ -84,6 +87,14 @@ pub use engine::{
 };
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use error::VectorStoreError;
+#[cfg(feature = "valkey")]
+pub use valkey::{
+    ValkeyClient, ValkeyKeyNamespace, ValkeyLeaseId, ValkeyLeaseOwnership, ValkeyLeaseScriptResult,
+    ValkeyQueueEntryId, ValkeyQueueKeys, ValkeyStoreConfig, ValkeyStoreError,
+    ValkeyStructuredClaimFilter, ValkeyStructuredClaimRequest, ValkeyStructuredQueue,
+    ValkeyStructuredQueueEntry, ValkeyStructuredQueueLease, ValkeyStructuredQueueLeaseRef,
+    ValkeyWorkerId,
+};
 
 #[cfg(feature = "vector-store")]
 pub use xiuxian_vector::{

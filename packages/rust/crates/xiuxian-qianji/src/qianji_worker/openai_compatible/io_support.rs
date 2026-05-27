@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use xiuxian_qianji_control::ArtifactRef;
 
-use crate::qianji_cli::invalid_input;
+use crate::qianji_worker::invalid_input;
 
 pub(super) fn read_local_artifact_text(artifact_ref: &ArtifactRef) -> io::Result<String> {
     let uri = artifact_ref.uri.trim();

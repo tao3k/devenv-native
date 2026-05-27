@@ -1,6 +1,5 @@
 //! Cargo entry point for dormant `xiuxian-qianji` unit suites.
 
-pub use xiuxian_qianji::runtime_config;
 pub use xiuxian_qianji::{
     BpmnAdapterError, BpmnOrchestrationError, FLOWHUB_SERVICE_ACTIVITY_TYPE, FlowhubScenarioIdRef,
     FlowhubServiceActivityHttpScheduleInput, FlowhubServiceActivityScheduleInput,
@@ -36,6 +35,7 @@ pub use xiuxian_qianji::{
     load_bpmn_package_from_files, qianji_bpmn_workflow_router, resolve_pending_host_work,
     resolve_waiting_external_event,
 };
+pub use xiuxian_qianji::{bpmn, runtime_config, workflow_config};
 
 #[path = "unit/bpmn_engine_dependency.rs"]
 mod bpmn_engine_dependency;

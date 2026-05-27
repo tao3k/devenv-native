@@ -15,7 +15,7 @@ use xiuxian_qianji_control::{
 };
 
 const DEFAULT_ACTIVITY_TYPE: &str = "llm.plan";
-const DEFAULT_TASK_QUEUE: &str = "llm.openrouter";
+const DEFAULT_TASK_QUEUE: &str = "llm.deepseek";
 const DEFAULT_PROVIDER: &str = "openai-compatible";
 const DEFAULT_IDEMPOTENCY_PREFIX: &str = "qianji:bpmn:host-work:llm";
 

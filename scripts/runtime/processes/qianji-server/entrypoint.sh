@@ -10,6 +10,7 @@ LOG_DIR="${QIANJI_SERVER_LOG_DIR:-$PROJECT_RUNTIME_ROOT/logs}"
 RUNTIME_DIR="${QIANJI_SERVER_RUNTIME_DIR:-$PROJECT_RUNTIME_ROOT/qianji-server}"
 PIDFILE="${QIANJI_SERVER_PIDFILE:-$RUNTIME_DIR/qianji-server.pid}"
 QIANJI_SERVER_BIN="${QIANJI_SERVER_BIN:-$PROJECT_ROOT/target/debug/qianji-server}"
+QIANJI_SERVER_CARGO_FEATURES="${QIANJI_SERVER_CARGO_FEATURES:-valkey}"
 BIND_ADDR="${QIANJI_SERVER_BIND_ADDR:-127.0.0.1:38130}"
 QIANJI_VALKEY_URL="${QIANJI_SERVER_VALKEY_URL:-${VALKEY_URL:-redis://127.0.0.1:6379/0}}"
 FLOWHUB_ROOT="${QIANJI_FLOWHUB_ROOT:-$PROJECT_ROOT/qianji-flowhub}"
@@ -39,7 +40,11 @@ case "$BUILD_MODE" in
     ;;
   1|true|True|TRUE|on|ON)
     if command -v cargo >/dev/null 2>&1; then
-      cargo build -p xiuxian-qianji --bin qianji-server --locked
+      if [ -n "$QIANJI_SERVER_CARGO_FEATURES" ]; then
+        cargo build -p xiuxian-qianji --bin qianji-server --features "$QIANJI_SERVER_CARGO_FEATURES" --locked
+      else
+        cargo build -p xiuxian-qianji --bin qianji-server --locked
+      fi
     elif [ ! -x "$QIANJI_SERVER_BIN" ]; then
       echo "Error: cargo not found and Qianji server binary is missing: $QIANJI_SERVER_BIN" >&2
       exit 1
@@ -48,7 +53,11 @@ case "$BUILD_MODE" in
   auto|"")
     if [ ! -x "$QIANJI_SERVER_BIN" ]; then
       if command -v cargo >/dev/null 2>&1; then
-        cargo build -p xiuxian-qianji --bin qianji-server --locked
+        if [ -n "$QIANJI_SERVER_CARGO_FEATURES" ]; then
+          cargo build -p xiuxian-qianji --bin qianji-server --features "$QIANJI_SERVER_CARGO_FEATURES" --locked
+        else
+          cargo build -p xiuxian-qianji --bin qianji-server --locked
+        fi
       else
         echo "Error: cargo not found and Qianji server binary is missing: $QIANJI_SERVER_BIN" >&2
         exit 1
