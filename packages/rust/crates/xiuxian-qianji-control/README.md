@@ -88,6 +88,10 @@ ordered plan actions so gateway, CLI, or UI surfaces can show recovery state
 without reimplementing action classification.
 `ControlLedger::load_recovery_snapshot` packages the replay-derived recovery
 view, ordered plan, and summary into one read-only management response.
+`ControlLedger::load_operator_summary` packages compact operator counters from
+the same durable history. `ControlLedger::load_operator_diagnostics` packages
+that summary together with the recovery snapshot from one event replay, so a
+management API does not need to issue split summary and recovery reads.
 
 Activity journal fields use typed identities for activity ids, activity types,
 task queues, idempotency keys, and error codes while preserving string-shaped
@@ -454,12 +458,16 @@ hot-state work, lease steps, or execute workers.
 - `ControlLedger::load_signal_inventory_projection`
 - `ControlLedger::load_timer_inventory_projection`
 - `ControlLedger::load_recovery_plan`
+- `ControlLedger::load_recovery_snapshot`
+- `ControlLedger::load_operator_summary`
+- `ControlLedger::load_operator_diagnostics`
 - `RunRecoveryView`, `RecoveryItemScope`, `ActivityRecoveryItem`,
   `FailedActivityRecoveryItem`, `TimerRecoveryItem`,
   `AgentDecisionRecoveryItem`, `StepRecoveryItem`, and `LeaseRecoveryItem`
 - `RunRecoveryPlan` and `RecoveryPlanAction`
 - `RunRecoveryPlanSummary`
 - `RunRecoverySnapshot`
+- `RunOperatorSummary` and `RunOperatorDiagnostics`
 - `HotStateStore`
 - `InMemoryControlLedger`
 - `InMemoryHotStateStore`

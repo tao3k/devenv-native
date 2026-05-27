@@ -32,6 +32,7 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
     let output_dir = temp.path().join("out");
     let (ffmpeg_path, ffprobe_path) = audio_route_fake_tools(&temp)?;
     let config = document_extract_audio_config(&|key| match key {
+        "WENDAO_MODEL_ROUTING_MODE" => Some("deterministic".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS" => Some("30000".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS" => Some("15000".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFMPEG" => Some(ffmpeg_path.to_string_lossy().to_string()),
@@ -60,6 +61,7 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
         config.recovery_split_duration_ms,
     )?;
     let changed_config = document_extract_audio_config(&|key| match key {
+        "WENDAO_MODEL_ROUTING_MODE" => Some("deterministic".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS" => Some("15000".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS" => Some("15000".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFMPEG" => Some(ffmpeg_path.to_string_lossy().to_string()),

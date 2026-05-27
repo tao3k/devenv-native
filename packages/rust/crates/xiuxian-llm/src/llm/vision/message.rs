@@ -82,6 +82,7 @@ pub fn build_visual_user_message_with_ocr_truth(
         tool_call_id: None,
         tool_calls: None,
         thinking: None,
+        audio: None,
     })
 }
 

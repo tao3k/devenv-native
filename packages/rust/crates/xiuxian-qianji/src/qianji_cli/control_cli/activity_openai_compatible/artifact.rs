@@ -2,7 +2,8 @@ use std::io;
 
 use serde_json::Value;
 
-use super::{LlmRequestAudit, OpenAiCompatibleLlmExecutionRequest, RESPONSE_SCHEMA};
+use super::protocol::RESPONSE_SCHEMA;
+use super::types::{LlmRequestAudit, OpenAiCompatibleLlmExecutionRequest};
 use crate::qianji_cli::control_cli::activity_artifact::{
     ActivityOutputArtifact, ActivityOutputArtifactRequest, write_activity_output_artifact,
 };

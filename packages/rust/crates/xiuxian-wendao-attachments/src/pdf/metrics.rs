@@ -1,10 +1,16 @@
 //! OCR shard metrics Arrow sidecar schema and batch builders.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use super::ocr::{PdfOcrShardInput, PdfOcrShardResult};
 
@@ -12,6 +18,7 @@ use super::ocr::{PdfOcrShardInput, PdfOcrShardResult};
 pub const DOCUMENT_METRICS_ARROW_CACHE_NAME: &str = "_metrics.arrow";
 /// Stable schema version for OCR shard metrics sidecars.
 pub const DOCUMENT_METRICS_SCHEMA_VERSION: &str = "xiuxian_wendao.document_metrics.v1";
+const DOCUMENT_METRICS_TABLE: &str = "pdf_ocr_shard_metrics";
 
 /// Raw DTO boundary and stringly state boundary for PDF OCR metric rows.
 ///
@@ -99,37 +106,14 @@ impl PdfOcrShardMetric {
 /// Return the stable Arrow schema for OCR shard metrics.
 #[must_use]
 pub fn document_metrics_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("contractVersion", DataType::Utf8, true),
-        Field::new("sourcePath", DataType::Utf8, true),
-        Field::new("sourceContentHash", DataType::Utf8, true),
-        Field::new("pageIndex", DataType::Int32, true),
-        Field::new("chunkId", DataType::Utf8, true),
-        Field::new("workerId", DataType::Utf8, true),
-        Field::new("shardElementId", DataType::Utf8, true),
-        Field::new("shardType", DataType::Utf8, true),
-        Field::new("ocrProfile", DataType::Utf8, true),
-        Field::new("status", DataType::Utf8, true),
-        Field::new("converterInitMs", DataType::Float64, true),
-        Field::new("doclingConvertMs", DataType::Float64, true),
-        Field::new("markdownExportMs", DataType::Float64, true),
-        Field::new("arrowEncodeMs", DataType::Float64, true),
-        Field::new("cacheLookupMs", DataType::Float64, true),
-        Field::new("cacheWriteMs", DataType::Float64, true),
-        Field::new("rustSchedulerElapsedMs", DataType::Float64, true),
-        Field::new("pageCount", DataType::Int32, true),
-        Field::new("bboxCount", DataType::Int32, true),
-        Field::new("resultChars", DataType::Int32, true),
-        Field::new("provenance", DataType::Utf8, true),
-    ]))
+    schema_ref(&document_metrics_contract())
 }
 
 /// # Errors
 ///
 /// Returns an error if Arrow cannot build the typed metrics sidecar batch.
 pub fn build_pdf_ocr_metrics_batch(metrics: &[PdfOcrShardMetric]) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        document_metrics_schema(),
+    record_batch(
         vec![
             string_column(
                 metrics
@@ -169,8 +153,8 @@ pub fn build_pdf_ocr_metrics_batch(metrics: &[PdfOcrShardMetric]) -> Result<Reco
             int_column(metrics.iter().map(|metric| metric.result_chars)),
             string_column(metrics.iter().map(|metric| metric.provenance.as_str())),
         ],
+        "build PDF OCR metrics Arrow batch",
     )
-    .map_err(|error| format!("build PDF OCR metrics Arrow batch: {error}"))
 }
 
 fn string_column<'a>(values: impl IntoIterator<Item = &'a str>) -> ArrayRef {
@@ -183,6 +167,74 @@ fn int_column(values: impl IntoIterator<Item = i32>) -> ArrayRef {
 
 fn optional_float_column(values: impl IntoIterator<Item = Option<f64>>) -> ArrayRef {
     Arc::new(Float64Array::from(values.into_iter().collect::<Vec<_>>())) as ArrayRef
+}
+
+fn record_batch(columns: Vec<ArrayRef>, context: &'static str) -> Result<RecordBatch, String> {
+    let contract = document_metrics_contract();
+    let batch = RecordBatch::try_new(schema_ref(&contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        &contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("{context} schema validation: {error}"))?;
+    Ok(batch)
+}
+
+fn document_metrics_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        DOCUMENT_METRICS_TABLE,
+        true,
+        vec![
+            nullable_utf8_column("contractVersion"),
+            nullable_utf8_column("sourcePath"),
+            nullable_utf8_column("sourceContentHash"),
+            nullable_int32_column("pageIndex"),
+            nullable_utf8_column("chunkId"),
+            nullable_utf8_column("workerId"),
+            nullable_utf8_column("shardElementId"),
+            nullable_utf8_column("shardType"),
+            nullable_utf8_column("ocrProfile"),
+            nullable_utf8_column("status"),
+            nullable_float64_column("converterInitMs"),
+            nullable_float64_column("doclingConvertMs"),
+            nullable_float64_column("markdownExportMs"),
+            nullable_float64_column("arrowEncodeMs"),
+            nullable_float64_column("cacheLookupMs"),
+            nullable_float64_column("cacheWriteMs"),
+            nullable_float64_column("rustSchedulerElapsedMs"),
+            nullable_int32_column("pageCount"),
+            nullable_int32_column("bboxCount"),
+            nullable_int32_column("resultChars"),
+            nullable_utf8_column("provenance"),
+        ],
+    )
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int32)
+}
+
+const fn nullable_float64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Float64)
 }
 
 #[cfg(test)]

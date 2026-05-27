@@ -17,11 +17,13 @@ use crate::{
 };
 use axum::Router;
 use std::net::SocketAddr;
-#[cfg(feature = "duckdb")]
+#[cfg(any(feature = "duckdb", feature = "valkey"))]
 use std::sync::Arc;
 use tokio::net::TcpListener;
 #[cfg(feature = "duckdb")]
 use xiuxian_qianji_control::DuckDbControlLedger;
+#[cfg(feature = "valkey")]
+use xiuxian_qianji_control::{ValkeyHotStateConfig, ValkeyHotStateStore};
 
 pub(crate) async fn run_qianji_server(command: QianjiServerCommand) -> anyhow::Result<()> {
     match command {
@@ -81,7 +83,8 @@ fn build_workflow_http_state(
     host: QianjiBpmnHostBridge,
     command: &QianjiServerServeCommand,
 ) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
-    let state = QianjiBpmnWorkflowHttpState::new(service, host);
+    let state =
+        install_recovery_hot_state(QianjiBpmnWorkflowHttpState::new(service, host), command)?;
     let Some(ledger_path) = command.control_ledger_path.as_ref() else {
         return Ok(state);
     };
@@ -100,6 +103,26 @@ fn build_workflow_http_state(
         })?;
         Ok(state.with_activity_evidence_ledger(Arc::new(ledger)))
     }
+}
+
+#[cfg(feature = "valkey")]
+fn install_recovery_hot_state(
+    state: QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>,
+    command: &QianjiServerServeCommand,
+) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
+    let config =
+        ValkeyHotStateConfig::new(resolve_qianji_server_valkey_url(command)?).map_err(|error| {
+            anyhow::anyhow!("invalid qianji-server Valkey hot-state config: {error}")
+        })?;
+    Ok(state.with_recovery_hot_state(Arc::new(ValkeyHotStateStore::new(config))))
+}
+
+#[cfg(not(feature = "valkey"))]
+fn install_recovery_hot_state(
+    state: QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>,
+    _command: &QianjiServerServeCommand,
+) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
+    Ok(state)
 }
 
 pub(crate) fn resolve_qianji_server_bind_addr(

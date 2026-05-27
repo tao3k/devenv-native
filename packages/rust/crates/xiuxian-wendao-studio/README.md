@@ -100,6 +100,32 @@ OpenAI-compatible vision endpoint and return ordinary Markdown resource rows.
 Attachment-owned image audit and tile facts remain materialization inputs, not
 a separate public Flight schema.
 
+## Model Routing Metadata
+
+Studio consumes the Wendao route contract from
+[`xiuxian-llm`](../xiuxian-llm/docs/01_core/101_xiuxian_llm_core_boundary.md)
+when forwarding model-backed work to analyzer Flight routes. Studio may attach
+Gateway-selected provider/model/backend profile metadata to Arrow Flight
+requests, but model/provider policy belongs to the routing plane and the shared
+`xiuxian-llm` contract. Analyzer workers execute the selected backend profile;
+they do not decide routing policy locally.
+
+Audio document extraction is the first concrete admission path. When
+`WENDAO_MODEL_ROUTING_MODE=vllm-sr` is active, Studio builds a route intent from
+source hash, duration, shard count, plan strategy, and backend profile, calls
+the vLLM-SR OpenAI-compatible route probe, and forwards selected route metadata
+on the unchanged `/analysis/audio-shards` Flight contract. The audio cache
+manifest includes the selected provider/model/backend profile so warm transcript
+artifacts cannot cross incompatible route decisions. `deterministic` mode must
+be configured explicitly.
+
+Standalone image extraction uses the same model-routing contract when the
+profile resolves to `hosted-vlm-image-extract-v1`. Studio admits the image route
+through vLLM-SR before sync cache reuse, forwards selected provider/model/backend
+metadata on the unchanged `/analysis/document-extract` Flight route, and writes
+a route manifest beside the resource cache so image artifacts cannot cross
+incompatible route decisions.
+
 Full document extraction artifact directories are still mirrored by the hybrid
 route because resource-path rewriting depends on directory context. Moving that
 directory mirror behind the L2 byte-cache contract requires a separate manifest

@@ -1,7 +1,9 @@
-//! Verifies the default `xiuxian-llm` feature profile stays on the LiteLLM-only path.
+//! Verifies the default `xiuxian-llm` feature profile keeps routing and LiteLLM enabled.
 
 #[test]
-fn default_feature_profile_keeps_provider_litellm_enabled() {
+fn default_feature_profile_enables_model_routing_and_litellm_provider() {
+    let model_routing_enabled = std::hint::black_box(cfg!(feature = "model-routing"));
+    assert!(model_routing_enabled);
     let provider_litellm_enabled = std::hint::black_box(cfg!(feature = "provider-litellm"));
     assert!(provider_litellm_enabled);
     let _ = std::mem::size_of::<xiuxian_llm::llm::OpenAICompatibleClient>();

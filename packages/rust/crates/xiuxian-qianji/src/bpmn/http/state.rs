@@ -5,7 +5,7 @@
 
 use crate::bpmn::control::QianjiBpmnWorkflowControlService;
 use std::sync::Arc;
-use xiuxian_qianji_control::ControlLedger;
+use xiuxian_qianji_control::{ControlLedger, HotStateStore};
 
 /// Shared state for the embeddable BPMN workflow HTTP router.
 #[derive(Clone)]
@@ -16,6 +16,8 @@ pub struct QianjiBpmnWorkflowHttpState<H> {
     pub host: H,
     /// Optional durable control ledger for server-side host-work evidence.
     pub activity_evidence_ledger: Option<Arc<dyn ControlLedger>>,
+    /// Optional hot-state store for explicit recovery-plan application.
+    pub recovery_hot_state: Option<Arc<dyn HotStateStore>>,
 }
 
 impl<H> QianjiBpmnWorkflowHttpState<H> {
@@ -27,6 +29,7 @@ impl<H> QianjiBpmnWorkflowHttpState<H> {
             service,
             host,
             activity_evidence_ledger: None,
+            recovery_hot_state: None,
         }
     }
 
@@ -34,6 +37,13 @@ impl<H> QianjiBpmnWorkflowHttpState<H> {
     #[must_use]
     pub fn with_activity_evidence_ledger(mut self, ledger: Arc<dyn ControlLedger>) -> Self {
         self.activity_evidence_ledger = Some(ledger);
+        self
+    }
+
+    /// Installs a hot-state store for explicit recovery-plan application.
+    #[must_use]
+    pub fn with_recovery_hot_state(mut self, hot_state: Arc<dyn HotStateStore>) -> Self {
+        self.recovery_hot_state = Some(hot_state);
         self
     }
 }

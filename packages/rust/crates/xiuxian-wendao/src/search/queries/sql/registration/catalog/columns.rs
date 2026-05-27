@@ -1,39 +1,31 @@
 use std::sync::Arc;
 
 use arrow::array::{BooleanArray, StringArray, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::Schema;
 use arrow::record_batch::RecordBatch;
 #[cfg(not(feature = "duckdb"))]
 use datafusion::datasource::MemTable;
 #[cfg(not(feature = "duckdb"))]
 use xiuxian_db_store::SearchEngineContext;
 
-use crate::search::queries::sql::registration::RegisteredSqlColumn;
-#[cfg(not(feature = "duckdb"))]
-use crate::search::queries::sql::registration::STUDIO_SQL_COLUMNS_CATALOG_TABLE_NAME;
+use crate::search::queries::sql::registration::{
+    RegisteredSqlColumn, STUDIO_SQL_COLUMNS_CATALOG_TABLE_NAME,
+};
+
+use super::{
+    boolean_column, catalog_schema_ref, nullable_utf8_column, uint64_column, utf8_column,
+    validate_catalog_batch,
+};
 
 pub(crate) fn columns_catalog_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new("sql_table_name", DataType::Utf8, false),
-        Field::new("engine_table_name", DataType::Utf8, false),
-        Field::new("column_name", DataType::Utf8, false),
-        Field::new("source_column_name", DataType::Utf8, true),
-        Field::new("data_type", DataType::Utf8, false),
-        Field::new("is_nullable", DataType::Boolean, false),
-        Field::new("ordinal_position", DataType::UInt64, false),
-        Field::new("corpus", DataType::Utf8, false),
-        Field::new("scope", DataType::Utf8, false),
-        Field::new("sql_object_kind", DataType::Utf8, false),
-        Field::new("column_origin_kind", DataType::Utf8, false),
-        Field::new("repo_id", DataType::Utf8, true),
-    ]))
+    catalog_schema_ref(&columns_catalog_contract())
 }
 
 pub(crate) fn build_columns_catalog_batch(
     columns: &[RegisteredSqlColumn],
 ) -> Result<RecordBatch, String> {
     let schema = columns_catalog_schema();
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         Arc::clone(&schema),
         vec![
             Arc::new(StringArray::from(
@@ -112,7 +104,13 @@ pub(crate) fn build_columns_catalog_batch(
     )
     .map_err(|error| {
         format!("studio SQL Flight provider failed to build SQL column catalog batch: {error}")
-    })
+    })?;
+    validate_catalog_batch(
+        &batch,
+        &columns_catalog_contract(),
+        "studio SQL Flight provider built invalid SQL column catalog batch",
+    )?;
+    Ok(batch)
 }
 
 #[cfg(not(feature = "duckdb"))]
@@ -138,4 +136,25 @@ pub(crate) fn register_columns_catalog_table(
             format!("studio SQL Flight provider failed to register SQL column catalog: {error}")
         })?;
     Ok(())
+}
+
+fn columns_catalog_contract() -> xiuxian_db_store::ArrowSchemaContract {
+    xiuxian_db_store::ArrowSchemaContract::new(
+        STUDIO_SQL_COLUMNS_CATALOG_TABLE_NAME,
+        true,
+        vec![
+            utf8_column("sql_table_name"),
+            utf8_column("engine_table_name"),
+            utf8_column("column_name"),
+            nullable_utf8_column("source_column_name"),
+            utf8_column("data_type"),
+            boolean_column("is_nullable"),
+            uint64_column("ordinal_position"),
+            utf8_column("corpus"),
+            utf8_column("scope"),
+            utf8_column("sql_object_kind"),
+            utf8_column("column_origin_kind"),
+            nullable_utf8_column("repo_id"),
+        ],
+    )
 }

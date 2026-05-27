@@ -3,10 +3,10 @@
 use crate::{
     ActivityQueueProjection, ActivityTaskLease, ControlEvent, ControlEventRecord, ControlResult,
     CostInventoryProjection, GateResult, HotStateLeasedActivityTask, HotStateSnapshot,
-    LlmActivityInventoryProjection, RunId, RunOperatorSummary, RunRecoveryPlan,
-    RunRecoverySnapshot, RunView, RunnableActivityTask, RunnableStep, SignalInventoryProjection,
-    StepLease, StepView, TaskQueue, TimerInventoryProjection, WorkerActivityTask, WorkerHeartbeat,
-    WorkerId, WorkerRef,
+    LlmActivityInventoryProjection, RunId, RunOperatorDiagnostics, RunOperatorSummary,
+    RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableActivityTask, RunnableStep,
+    SignalInventoryProjection, StepLease, StepView, TaskQueue, TimerInventoryProjection,
+    WorkerActivityTask, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -170,6 +170,24 @@ pub trait ControlLedger: Send + Sync {
         observed_at_ms: u64,
     ) -> ControlResult<RunOperatorSummary> {
         RunOperatorSummary::from_records(run_id.clone(), &self.load_events(run_id)?, observed_at_ms)
+    }
+
+    /// Loads an operator diagnostics package from one durable history replay.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when records cannot be loaded, replayed, or
+    /// projected through recovery retry-policy evaluation.
+    fn load_operator_diagnostics(
+        &self,
+        run_id: &RunId,
+        observed_at_ms: u64,
+    ) -> ControlResult<RunOperatorDiagnostics> {
+        RunOperatorDiagnostics::from_records(
+            run_id.clone(),
+            &self.load_events(run_id)?,
+            observed_at_ms,
+        )
     }
 }
 

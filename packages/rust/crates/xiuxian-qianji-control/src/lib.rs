@@ -137,7 +137,7 @@ pub use {
         CostObservationJournalRecord, StepEvidenceJournalRecord, StepGateResultJournalRecord,
         record_cost_observation, record_step_evidence, record_step_gate_result,
     },
-    operator_summary::RunOperatorSummary,
+    operator_summary::{RunOperatorDiagnostics, RunOperatorSummary},
     policy::{AgentPolicyReason, ToolPolicyReduction, ToolPolicyReductionRequest},
     recovery::{
         ActivityRecoveryItem, AgentDecisionRecoveryItem, FailedActivityRecoveryItem,

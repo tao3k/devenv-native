@@ -30,6 +30,23 @@ fn operator_summary_aggregates_durable_management_counters() -> Result<(), Box<d
     Ok(())
 }
 
+#[test]
+fn operator_diagnostics_packages_summary_and_recovery_from_one_contract()
+-> Result<(), Box<dyn Error>> {
+    let ledger = operator_summary_fixture()?;
+    let run_id = RunId::new("run-operator-summary")?;
+    let diagnostics = ledger.load_operator_diagnostics(&run_id, 15_000)?;
+
+    assert_eq!(diagnostics.run_id, run_id);
+    assert_eq!(diagnostics.observed_at_ms, 15_000);
+    assert_eq!(diagnostics.summary.event_count, 7);
+    assert_eq!(diagnostics.recovery.summary, diagnostics.summary.recovery);
+    assert_eq!(diagnostics.recovery.summary.reclaim_expired_leases, 1);
+    assert_eq!(diagnostics.recovery.summary.fireable_timers, 1);
+    assert_eq!(diagnostics.recovery.plan.actions.len(), 3);
+    Ok(())
+}
+
 fn operator_summary_fixture() -> Result<InMemoryControlLedger, Box<dyn Error>> {
     let ledger = InMemoryControlLedger::new();
     let run_id = RunId::new("run-operator-summary")?;

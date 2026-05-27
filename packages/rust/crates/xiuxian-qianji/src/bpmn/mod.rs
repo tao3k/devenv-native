@@ -73,11 +73,12 @@ pub use api::{
     QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
-    QianjiControlHistoryHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, dispatch_pending_host_work_request,
-    dispatch_pending_host_work_requests, load_bpmn_package_from_files,
-    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
-    resolve_pending_host_work, resolve_waiting_external_event,
+    QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
+    load_bpmn_package_from_files, load_bpmn_package_from_files_with_options,
+    qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
 };
 #[cfg(feature = "duckdb")]
 pub use api::{

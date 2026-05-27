@@ -10,12 +10,13 @@ use super::request_api::{
     QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowTaskClaimHttpRequest,
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskFailHttpRequest, QianjiBpmnWorkflowTaskFailureHttpPayload,
-    QianjiBpmnWorkflowTaskReleaseHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiControlRecoveryApplyHttpRequest,
 };
 use super::response_api::{
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowRunHttpResponse,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlDiagnosticsHttpResponse,
+    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpResponse,
     QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
 };
 use super::state::QianjiBpmnWorkflowHttpState;
@@ -28,7 +29,10 @@ use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
-use xiuxian_qianji_control::{ControlLedger, RunId};
+use xiuxian_qianji_control::{
+    ControlLedger, HotStateStore, RecoveryAttempt, RecoveryLoopApplicationRequest, RecoveryPolicy,
+    RunId, apply_recovery_plan,
+};
 
 pub(super) fn router<H>(state: QianjiBpmnWorkflowHttpState<H>) -> Router
 where
@@ -80,6 +84,14 @@ where
         .route(
             "/control/runs/{run_id}/recovery",
             get(load_control_recovery::<H>),
+        )
+        .route(
+            "/control/runs/{run_id}/diagnostics",
+            get(load_control_diagnostics::<H>),
+        )
+        .route(
+            "/control/runs/{run_id}/recovery/apply",
+            post(apply_control_recovery::<H>),
         )
         .with_state(state)
 }
@@ -150,6 +162,54 @@ where
     Ok(Json(QianjiControlRecoveryHttpResponse::new(recovery)))
 }
 
+async fn load_control_diagnostics<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+) -> Result<Json<QianjiControlDiagnosticsHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let diagnostics = ledger
+        .load_operator_diagnostics(&run_id, now_unix_ms())
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    Ok(Json(QianjiControlDiagnosticsHttpResponse::new(diagnostics)))
+}
+
+async fn apply_control_recovery<H>(
+    State(state): State<QianjiBpmnWorkflowHttpState<H>>,
+    Path(run_id): Path<String>,
+    Json(request): Json<QianjiControlRecoveryApplyHttpRequest>,
+) -> Result<Json<QianjiControlRecoveryApplyHttpResponse>, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
+    let ledger = control_ledger(&state)?;
+    let hot_state = recovery_hot_state(&state)?;
+    let run_id = parse_control_run_id(run_id)?;
+    let occurred_at_ms = request.occurred_at_ms;
+    let priority = request.priority;
+    let attempt = recovery_attempt_from_request(request)?;
+    let plan = ledger
+        .load_recovery_plan(&run_id, occurred_at_ms)
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    let application = apply_recovery_plan(
+        ledger,
+        hot_state,
+        RecoveryLoopApplicationRequest::new(plan, attempt, occurred_at_ms, priority),
+    )
+    .await
+    .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    let diagnostics = ledger
+        .load_operator_diagnostics(&run_id, occurred_at_ms)
+        .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
+    Ok(Json(QianjiControlRecoveryApplyHttpResponse::new(
+        application,
+        diagnostics,
+    )))
+}
+
 fn control_ledger<H>(
     state: &QianjiBpmnWorkflowHttpState<H>,
 ) -> Result<&dyn ControlLedger, QianjiBpmnWorkflowHttpError> {
@@ -161,12 +221,49 @@ fn control_ledger<H>(
     })
 }
 
+fn recovery_hot_state<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+) -> Result<&dyn HotStateStore, QianjiBpmnWorkflowHttpError> {
+    state.recovery_hot_state.as_deref().ok_or_else(|| {
+        QianjiBpmnWorkflowHttpError::service_unavailable(
+            "control_hot_state_unavailable",
+            "qianji-server was not started with a recovery hot-state store",
+        )
+    })
+}
+
 fn parse_control_run_id(run_id: String) -> Result<RunId, QianjiBpmnWorkflowHttpError> {
     RunId::new(run_id).map_err(|_| {
         QianjiBpmnWorkflowHttpError::bad_request(
             "invalid_control_run_id",
             "run_id must be a non-empty string",
         )
+    })
+}
+
+fn recovery_attempt_from_request(
+    request: QianjiControlRecoveryApplyHttpRequest,
+) -> Result<RecoveryAttempt, QianjiBpmnWorkflowHttpError> {
+    if request.reason.trim().is_empty() {
+        return Err(QianjiBpmnWorkflowHttpError::bad_request(
+            "invalid_recovery_reason",
+            "reason must be a non-empty string",
+        ));
+    }
+    if request.max_attempts == 0 {
+        return Err(QianjiBpmnWorkflowHttpError::bad_request(
+            "invalid_recovery_policy",
+            "max_attempts must be greater than zero",
+        ));
+    }
+    Ok(RecoveryAttempt {
+        attempt: request.attempt,
+        reason: request.reason,
+        policy: RecoveryPolicy {
+            max_attempts: request.max_attempts,
+            backoff_ms: request.backoff_ms,
+            require_human_approval: request.require_human_approval,
+        },
     })
 }
 

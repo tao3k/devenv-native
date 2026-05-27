@@ -8,8 +8,9 @@ license = "Apache-2.0"
 publish = false
 
 [features]
-default = ["provider-litellm"]
-provider-litellm = []
+default = ["model-routing", "provider-litellm"]
+model-routing = []
+provider-litellm = ["dep:litellm-rs"]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -29,7 +30,7 @@ image = { workspace = true }
 imageproc = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
-litellm-rs = { workspace = true, features = ["redis"] }
+litellm-rs = { workspace = true, features = ["redis"], optional = true }
 spider = { version = "2.45.29", default-features = false, features = ["sync", "reqwest_native_tls_native_roots"] }
 
 [dev-dependencies]

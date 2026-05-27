@@ -46,12 +46,13 @@ table names, column names, and semantic contracts, but db-store provides the
 shared `ArrowSchemaContract` surface for constructing Arrow schemas and
 validating `RecordBatch` or Arrow IPC payloads against required columns,
 logical data types, exact-order contracts, nullability validation policies, and
-`wendao.table` metadata. The logical vocabulary covers the scalar and list
-shapes needed by graph-structural request contracts, including `Int32` and
-`List(Utf8)`, while route-specific semantics remain in the owning bridge
-crate. The lightweight engine retrieval payloads also use this surface
-internally so projected result schemas and canonical result schemas share the
-same field vocabulary.
+`wendao.table` metadata. The logical vocabulary covers the scalar, timestamp,
+and list shapes needed by graph-structural request contracts and event-lake
+append batches, including `Int32`, `Timestamp(Millisecond)`, and `List(Utf8)`,
+while route-specific semantics remain in the owning bridge crate. The
+lightweight engine retrieval payloads also use this surface internally so
+projected result schemas and canonical result schemas share the same field
+vocabulary.
 
 Attachment, document extraction, ontology, and agent evidence artifact cache
 contracts also belong here behind `artifact-cache`. The contract is

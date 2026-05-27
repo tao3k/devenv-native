@@ -3,8 +3,9 @@
 use std::collections::HashMap;
 use xiuxian_llm::llm::{
     LlmProviderProfileInput, LlmRuntimeDefaults, LlmRuntimeProfileEnv, LlmRuntimeProfileInput,
-    OpenAIWireApi, resolve_openai_runtime_profile,
+    OpenAIWireApi, resolve_openai_runtime_profile, runtime_profile_env_with_model_decision,
 };
+use xiuxian_llm::model_routing::WendaoModelDecision;
 
 #[test]
 fn runtime_profile_resolves_default_provider_and_responses_wire() {
@@ -193,4 +194,73 @@ fn runtime_profile_prefers_provider_specific_model_and_base_url_over_flat_defaul
     );
     assert_eq!(resolved.api_key_env, "MIMO_API_KEY");
     assert_eq!(resolved.api_key, "mimo-secret");
+}
+
+#[test]
+fn runtime_profile_model_route_decision_overrides_provider_and_model_only() {
+    let mut providers = HashMap::new();
+    providers.insert(
+        "openrouter".to_string(),
+        LlmProviderProfileInput {
+            model: Some("configured-chat-model".to_string()),
+            base_url: Some("https://openrouter.ai/api/v1".to_string()),
+            api_key: Some("OPENROUTER_API_KEY".to_string()),
+            api_key_env: None,
+            wire_api: Some("chat_completions".to_string()),
+        },
+    );
+    providers.insert(
+        "openai".to_string(),
+        LlmProviderProfileInput {
+            model: Some("gpt-4o-mini".to_string()),
+            base_url: Some("https://api.openai.com/v1".to_string()),
+            api_key: Some("OPENAI_API_KEY".to_string()),
+            api_key_env: None,
+            wire_api: None,
+        },
+    );
+    let profile = LlmRuntimeProfileInput {
+        model: None,
+        default_model: None,
+        base_url: None,
+        api_key_env: None,
+        api_key: None,
+        wire_api: None,
+        default_provider: Some("openai".to_string()),
+        providers,
+    };
+    let env = LlmRuntimeProfileEnv {
+        provider_override: None,
+        model_override: None,
+        base_url_override: None,
+        api_key_override: None,
+        wire_api_override: Some("responses".to_string()),
+        env_vars: vec![
+            (
+                "OPENROUTER_API_KEY".to_string(),
+                "openrouter-secret".to_string(),
+            ),
+            ("OPENAI_API_KEY".to_string(), "openai-secret".to_string()),
+        ],
+    };
+    let decision = WendaoModelDecision {
+        route_id: "route-chat-1".to_string(),
+        selected_provider: "openrouter".to_string(),
+        selected_model: "deepseek/deepseek-v4-pro".to_string(),
+        selected_backend_profile: "openai-compatible-chat-v1".to_string(),
+        reasoning_policy: Some("high".to_string()),
+        route_trace: Some("chat model card".to_string()),
+    };
+
+    let routed_env = runtime_profile_env_with_model_decision(&env, &decision);
+    let resolved =
+        resolve_openai_runtime_profile(&profile, &routed_env, &LlmRuntimeDefaults::default())
+            .unwrap_or_else(|err| panic!("runtime profile resolution should succeed: {err}"));
+
+    assert_eq!(resolved.provider_name, "openrouter");
+    assert_eq!(resolved.model, "deepseek/deepseek-v4-pro");
+    assert_eq!(resolved.base_url, "https://openrouter.ai/api/v1");
+    assert_eq!(resolved.api_key_env, "OPENROUTER_API_KEY");
+    assert_eq!(resolved.api_key, "openrouter-secret");
+    assert_eq!(resolved.wire_api, OpenAIWireApi::Responses);
 }

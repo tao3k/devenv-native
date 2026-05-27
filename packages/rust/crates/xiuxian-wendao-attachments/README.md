@@ -170,7 +170,10 @@ can prove complete coverage.
 The stable user-facing extraction result remains `_resources.arrow` with the
 nine-column document resource schema. Internal merge, debug, benchmark, and
 future UI code may also use `_structure.arrow`, an Arrow sidecar with schema
-version `xiuxian_wendao.document_structure.v1`.
+version `xiuxian_wendao.document_structure.v1`. The sidecar uses the shared
+`xiuxian-db-store` Arrow schema contract helpers for exact structural
+validation, while attachments keeps ownership of Docling structure semantics,
+reading order, provenance, and parity gates.
 
 The sidecar records source content hash, block id, parent block id, page index,
 block index, reading order key, block type, linked resource element id, content,
@@ -185,8 +188,11 @@ The document extraction performance probe records both stable resource artifact
 health and internal structure sidecar health. Each run reports `_resources.arrow`
 and `_structure.arrow` row counts, resource/block type counts, OCR page and
 region block counts, bbox block counts, reading-order sortedness, and artifact
-read errors. These metrics are benchmark evidence only; they do not change the
-stable user-facing `_resources.arrow` schema.
+read errors. `_metrics.arrow` uses the shared `xiuxian-db-store` Arrow schema
+contract helpers for exact structural validation while attachments keeps
+ownership of scheduler, cache, shard, and result-character semantics. These
+metrics are benchmark evidence only; they do not change the stable user-facing
+`_resources.arrow` schema.
 
 Mixed-format benchmark reports additionally group precision and speed signals
 by attachment class. PDF, Office, image, structured text, web, table-data, XML,

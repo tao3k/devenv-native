@@ -4,13 +4,35 @@ use crate::search::queries::sql::provider::StudioSqlFlightRouteProvider;
 use crate::search::queries::sql::provider::metadata::StudioSqlFlightMetadata;
 use crate::search::queries::sql::registration::{
     STUDIO_SQL_CATALOG_TABLE_NAME, STUDIO_SQL_COLUMNS_CATALOG_TABLE_NAME,
-    STUDIO_SQL_VIEW_SOURCES_CATALOG_TABLE_NAME,
+    STUDIO_SQL_VIEW_SOURCES_CATALOG_TABLE_NAME, build_columns_catalog_batch,
+    build_tables_catalog_batch, build_view_sources_catalog_batch,
 };
 use crate::search::queries::sql::tests::fixtures::{
     bool_column_values, fixture_service, nullable_string_column_values, publish_reference_hits,
     sample_hit, string_column_values, u64_column_values,
 };
 use crate::search::{SearchCorpusKind, SearchPlaneService};
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
+
+#[test]
+fn studio_sql_catalog_batches_use_wendao_table_metadata() {
+    let tables_batch = build_tables_catalog_batch(&[])
+        .unwrap_or_else(|error| panic!("build tables catalog batch: {error}"));
+    let columns_batch = build_columns_catalog_batch(&[])
+        .unwrap_or_else(|error| panic!("build columns catalog batch: {error}"));
+    let view_sources_batch = build_view_sources_catalog_batch(&[])
+        .unwrap_or_else(|error| panic!("build view sources catalog batch: {error}"));
+
+    assert_schema_table_name(&tables_batch.schema(), STUDIO_SQL_CATALOG_TABLE_NAME);
+    assert_schema_table_name(
+        &columns_batch.schema(),
+        STUDIO_SQL_COLUMNS_CATALOG_TABLE_NAME,
+    );
+    assert_schema_table_name(
+        &view_sources_batch.schema(),
+        STUDIO_SQL_VIEW_SOURCES_CATALOG_TABLE_NAME,
+    );
+}
 
 #[tokio::test]
 async fn studio_sql_flight_provider_exposes_registered_tables_catalog() {
@@ -211,5 +233,15 @@ async fn studio_sql_flight_provider_exposes_registered_columns_catalog() {
             "stored".to_string(),
             "stored".to_string(),
         ]
+    );
+}
+
+fn assert_schema_table_name(schema: &arrow::datatypes::Schema, expected: &str) {
+    assert_eq!(
+        schema
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some(expected)
     );
 }

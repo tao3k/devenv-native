@@ -20,6 +20,7 @@ fn split_anthropic_system_messages_promotes_developer_role_to_system_prompt() {
             tool_calls: None,
             tool_call_id: None,
             function_call: None,
+            audio: None,
         },
         LiteChatMessage {
             role: LiteMessageRole::System,
@@ -31,6 +32,7 @@ fn split_anthropic_system_messages_promotes_developer_role_to_system_prompt() {
             tool_calls: None,
             tool_call_id: None,
             function_call: None,
+            audio: None,
         },
         LiteChatMessage {
             role: LiteMessageRole::User,
@@ -40,6 +42,7 @@ fn split_anthropic_system_messages_promotes_developer_role_to_system_prompt() {
             tool_calls: None,
             tool_call_id: None,
             function_call: None,
+            audio: None,
         },
     ];
 

@@ -1,10 +1,18 @@
 //! Arrow table encoders for episteme semantic read-model rows.
 
-use std::{collections::BTreeSet, sync::Arc};
+use std::{
+    collections::{BTreeSet, HashMap},
+    sync::Arc,
+};
 
 use arrow::array::{Array, ArrayRef, Float64Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use super::{
     EpistemeError, OBJECTS_TABLE, PROJECTION_STATE_TABLE, RELATIONS_TABLE, SemanticObjectRow,
@@ -14,28 +22,9 @@ use super::{
 pub(super) fn semantic_objects_batch(
     rows: &[SemanticObjectRow],
 ) -> Result<RecordBatch, EpistemeError> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("id", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("confidence_score", DataType::Float64, false),
-        Field::new("confidence_source", DataType::Utf8, false),
-        Field::new("owner_count", DataType::Int64, false),
-        Field::new("owners_json", DataType::Utf8, false),
-        Field::new("provenance_source", DataType::Utf8, false),
-        Field::new("provenance_recorded_by", DataType::Utf8, false),
-        Field::new("provenance_recorded_at", DataType::Utf8, false),
-        Field::new("verification_required_json", DataType::Utf8, false),
-        Field::new("verification_evidence_json", DataType::Utf8, false),
-        Field::new("relation_count", DataType::Int64, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]));
+    let contract = semantic_objects_contract();
     record_batch(
-        schema,
+        read_model_schema_ref(&contract),
         vec![
             strings(rows.iter().map(|row| row.id.as_str())),
             strings(rows.iter().map(|row| row.kind)),
@@ -71,24 +60,16 @@ pub(super) fn semantic_objects_batch(
             strings(rows.iter().map(|row| row.read_model_projection_revision)),
             strings(rows.iter().map(|row| row.read_model_projection_staleness)),
         ],
-        OBJECTS_TABLE,
+        &contract,
     )
 }
 
 pub(super) fn semantic_relations_batch(
     rows: &[SemanticRelationRow],
 ) -> Result<RecordBatch, EpistemeError> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("source", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("target", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]));
+    let contract = semantic_relations_contract();
     record_batch(
-        schema,
+        read_model_schema_ref(&contract),
         vec![
             strings(rows.iter().map(|row| row.source.as_str())),
             strings(rows.iter().map(|row| row.kind)),
@@ -101,26 +82,16 @@ pub(super) fn semantic_relations_batch(
             strings(rows.iter().map(|row| row.read_model_projection_revision)),
             strings(rows.iter().map(|row| row.read_model_projection_staleness)),
         ],
-        RELATIONS_TABLE,
+        &contract,
     )
 }
 
 pub(super) fn semantic_projection_state_batch(
     rows: &[SemanticProjectionStateRow],
 ) -> Result<RecordBatch, EpistemeError> {
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("projection", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("source_revision", DataType::Utf8, false),
-        Field::new("current_source_revision", DataType::Utf8, false),
-        Field::new("projection_revision", DataType::Utf8, false),
-        Field::new("staleness", DataType::Utf8, false),
-        Field::new("source_object_count", DataType::Int64, false),
-        Field::new("source_objects_json", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-    ]));
+    let contract = semantic_projection_state_contract();
     record_batch(
-        schema,
+        read_model_schema_ref(&contract),
         vec![
             strings(rows.iter().map(|row| row.projection)),
             strings(rows.iter().map(|row| row.status)),
@@ -134,7 +105,7 @@ pub(super) fn semantic_projection_state_batch(
             strings(rows.iter().map(|row| row.source_objects_json.as_str())),
             strings(rows.iter().map(|row| row.source_path.as_str())),
         ],
-        PROJECTION_STATE_TABLE,
+        &contract,
     )
 }
 
@@ -154,10 +125,106 @@ fn strings<'a>(values: impl Iterator<Item = &'a str>) -> ArrayRef {
 }
 
 fn record_batch(
-    schema: Arc<Schema>,
+    schema: SchemaRef,
     columns: Vec<ArrayRef>,
-    table_name: &str,
+    contract: &ArrowSchemaContract,
 ) -> Result<RecordBatch, EpistemeError> {
-    RecordBatch::try_new(schema, columns)
-        .map_err(|error| EpistemeError::ReadModel(format!("build `{table_name}`: {error}")))
+    let batch = RecordBatch::try_new(schema, columns).map_err(|error| {
+        EpistemeError::ReadModel(format!("build `{}`: {error}", contract.table_name()))
+    })?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| {
+        EpistemeError::ReadModel(format!(
+            "validate `{}` schema contract: {error}",
+            contract.table_name()
+        ))
+    })?;
+    Ok(batch)
+}
+
+fn read_model_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        WENDAO_TABLE_METADATA_KEY.to_string(),
+        contract.table_name().to_string(),
+    );
+    Arc::new(build_arrow_schema(contract, metadata))
+}
+
+fn semantic_objects_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OBJECTS_TABLE,
+        true,
+        vec![
+            utf8_column("id"),
+            utf8_column("kind"),
+            utf8_column("title"),
+            utf8_column("status"),
+            float64_column("confidence_score"),
+            utf8_column("confidence_source"),
+            int64_column("owner_count"),
+            utf8_column("owners_json"),
+            utf8_column("provenance_source"),
+            utf8_column("provenance_recorded_by"),
+            utf8_column("provenance_recorded_at"),
+            utf8_column("verification_required_json"),
+            utf8_column("verification_evidence_json"),
+            int64_column("relation_count"),
+            utf8_column("source_path"),
+            utf8_column("read_model_source_revision"),
+            utf8_column("read_model_projection_revision"),
+            utf8_column("read_model_projection_staleness"),
+        ],
+    )
+}
+
+fn semantic_relations_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        RELATIONS_TABLE,
+        true,
+        vec![
+            utf8_column("source"),
+            utf8_column("kind"),
+            utf8_column("target"),
+            utf8_column("source_path"),
+            utf8_column("read_model_source_revision"),
+            utf8_column("read_model_projection_revision"),
+            utf8_column("read_model_projection_staleness"),
+        ],
+    )
+}
+
+fn semantic_projection_state_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        PROJECTION_STATE_TABLE,
+        true,
+        vec![
+            utf8_column("projection"),
+            utf8_column("status"),
+            utf8_column("source_revision"),
+            utf8_column("current_source_revision"),
+            utf8_column("projection_revision"),
+            utf8_column("staleness"),
+            int64_column("source_object_count"),
+            utf8_column("source_objects_json"),
+            utf8_column("source_path"),
+        ],
+    )
+}
+
+fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+fn int64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int64)
+}
+
+fn float64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Float64)
 }

@@ -168,7 +168,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 rayon = "1.11"
 
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
-litellm-rs = { git = "https://github.com/tao3k/litellm-rs", branch = "xiuxian", default-features = false }
+litellm-rs = { git = "https://github.com/majiayu000/litellm-rs", rev = "6937b32f1bf12db601f71520a966b43f6b82b0ef", default-features = false }
 
 # CLI and HTTP
 clap = { version = "4.5", features = ["derive"] }

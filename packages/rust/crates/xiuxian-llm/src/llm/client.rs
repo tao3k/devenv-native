@@ -1,8 +1,10 @@
 //! LLM runtime primitives and clients.
 
 #[cfg(feature = "provider-litellm")]
+use super::error::HttpContentType;
+#[cfg(feature = "provider-litellm")]
 use super::error::sanitize_user_visible;
-use super::error::{HttpContentType, LlmError, LlmResult};
+use super::error::{LlmError, LlmResult};
 use async_trait::async_trait;
 use futures::Stream;
 #[cfg(feature = "provider-litellm")]
@@ -30,10 +32,20 @@ use crate::llm::providers::{
     is_openai_like_stream_required_error_message,
 };
 
+#[cfg(feature = "provider-litellm")]
 pub use litellm_rs::core::types::chat::{ChatMessage, ChatRequest};
+#[cfg(feature = "provider-litellm")]
 pub use litellm_rs::core::types::content::{ContentPart, ImageUrl as ImageUrlContent};
+#[cfg(feature = "provider-litellm")]
 pub use litellm_rs::core::types::message::{MessageContent, MessageRole};
+#[cfg(feature = "provider-litellm")]
 pub use litellm_rs::core::types::responses::{ChatChoice, ChatResponse};
+
+#[cfg(not(feature = "provider-litellm"))]
+pub use provider_disabled_types::{
+    ChatChoice, ChatMessage, ChatRequest, ChatResponse, ContentPart, ImageUrlContent,
+    MessageContent, MessageRole,
+};
 
 /// Type alias for a boxed stream of string chunks.
 pub type ChatStream = Pin<Box<dyn Stream<Item = LlmResult<String>> + Send>>;
@@ -458,6 +470,10 @@ fn build_openai_like_base_candidates(base_url: &str) -> (String, Option<String>)
         (primary, Some(fallback))
     }
 }
+
+#[cfg(not(feature = "provider-litellm"))]
+#[path = "provider_disabled_types.rs"]
+mod provider_disabled_types;
 
 #[cfg(all(test, feature = "provider-litellm"))]
 #[path = "../../tests/unit/llm/client.rs"]

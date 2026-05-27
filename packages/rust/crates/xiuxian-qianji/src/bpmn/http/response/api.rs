@@ -17,7 +17,10 @@ use xiuxian_qianji_bpmn_engine::{
     PendingHostWorkKind, PendingHostWorkRequest, RepeatExecutionContext,
     build_pending_host_work_requests,
 };
-use xiuxian_qianji_control::{ControlEventRecord, RunOperatorSummary, RunRecoverySnapshot};
+use xiuxian_qianji_control::{
+    ControlEventRecord, RecoveryLoopApplication, RunOperatorDiagnostics, RunOperatorSummary,
+    RunRecoverySnapshot,
+};
 
 /// Raw DTO boundary: pending host-work item embedded in HTTP workflow
 /// snapshots.
@@ -265,6 +268,48 @@ impl QianjiControlRecoveryHttpResponse {
         Self {
             run_id: recovery.run_id.as_str().to_owned(),
             recovery,
+        }
+    }
+}
+
+/// HTTP response for one combined control-ledger diagnostics query.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiControlDiagnosticsHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Replay-derived operator diagnostics package.
+    pub diagnostics: RunOperatorDiagnostics,
+}
+
+impl QianjiControlDiagnosticsHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(diagnostics: RunOperatorDiagnostics) -> Self {
+        Self {
+            run_id: diagnostics.run_id.as_str().to_owned(),
+            diagnostics,
+        }
+    }
+}
+
+/// HTTP response for explicit recovery-plan application.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiControlRecoveryApplyHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Bounded recovery application trace.
+    pub application: RecoveryLoopApplication,
+    /// Replay-derived diagnostics after application.
+    pub diagnostics: RunOperatorDiagnostics,
+}
+
+impl QianjiControlRecoveryApplyHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        application: RecoveryLoopApplication,
+        diagnostics: RunOperatorDiagnostics,
+    ) -> Self {
+        Self {
+            run_id: diagnostics.run_id.as_str().to_owned(),
+            application,
+            diagnostics,
         }
     }
 }

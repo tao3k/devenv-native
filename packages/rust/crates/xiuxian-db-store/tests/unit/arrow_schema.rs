@@ -2,8 +2,11 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-use arrow::array::{BinaryArray, Int32Array, Int64Array, ListBuilder, StringArray, UInt64Array};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::array::{
+    BinaryArray, Int32Array, Int64Array, ListBuilder, StringArray, TimestampMillisecondArray,
+    UInt64Array,
+};
+use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use arrow::record_batch::RecordBatch;
 use xiuxian_db_store::{
     ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
@@ -178,6 +181,34 @@ fn builds_graph_structural_int32_and_utf8_list_fields_from_contract() -> Result<
         vec![
             Arc::new(Int32Array::from(vec![1])),
             Arc::new(utf8_list_array([["plane", "value"].as_slice()])),
+        ],
+    )?;
+
+    validate_record_batch_schema(&batch, &contract)?;
+    Ok(())
+}
+
+#[test]
+fn builds_timestamp_millisecond_fields_from_contract() -> Result<(), Box<dyn Error>> {
+    let contract = ArrowSchemaContract::new(
+        TEST_TABLE,
+        true,
+        vec![
+            ArrowSchemaColumn::new("id", ArrowSchemaDataType::Utf8),
+            ArrowSchemaColumn::new("created_at", ArrowSchemaDataType::TimestampMillisecond),
+        ],
+    );
+    let schema = Arc::new(build_arrow_schema(&contract, HashMap::new()));
+    assert_eq!(
+        schema.field(1).data_type(),
+        &DataType::Timestamp(TimeUnit::Millisecond, None)
+    );
+
+    let batch = RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(StringArray::from(vec!["row-1"])),
+            Arc::new(TimestampMillisecondArray::from(vec![1_778_000_000_000])),
         ],
     )?;
 

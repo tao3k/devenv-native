@@ -13,9 +13,17 @@ use super::ipc::{
     string_list_at,
 };
 use super::primitive::u64_to_usize_saturating;
+use super::schema::{
+    aliases_contract, docs_contract, edges_contract, sections_contract, validate_snapshot_batch,
+};
 
 pub(super) fn decode_docs(payload: &[u8]) -> Result<HashMap<String, LinkGraphDocument>, String> {
     let batch = decode_single_batch(payload, "docs")?;
+    validate_snapshot_batch(
+        &batch,
+        &docs_contract(),
+        "validate link-graph Arrow docs stream",
+    )?;
     let ids = required_column::<StringArray>(&batch, "id")?;
     let stems = required_column::<StringArray>(&batch, "stem")?;
     let paths = required_column::<StringArray>(&batch, "path")?;
@@ -68,6 +76,11 @@ pub(super) fn decode_sections(
     payload: &[u8],
 ) -> Result<HashMap<String, Vec<IndexedSection>>, String> {
     let batch = decode_single_batch(payload, "sections")?;
+    validate_snapshot_batch(
+        &batch,
+        &sections_contract(),
+        "validate link-graph Arrow sections stream",
+    )?;
     let doc_ids = required_column::<StringArray>(&batch, "doc_id")?;
     let heading_titles = required_column::<StringArray>(&batch, "heading_title")?;
     let heading_paths = required_column::<StringArray>(&batch, "heading_path")?;
@@ -133,6 +146,11 @@ pub(super) type EdgeDecodeTables = (
 
 pub(super) fn decode_edges(payload: &[u8]) -> Result<EdgeDecodeTables, String> {
     let batch = decode_single_batch(payload, "edges")?;
+    validate_snapshot_batch(
+        &batch,
+        &edges_contract(),
+        "validate link-graph Arrow edges stream",
+    )?;
     let sources = required_column::<StringArray>(&batch, "source_id")?;
     let targets = required_column::<StringArray>(&batch, "target_id")?;
     let mut outgoing = HashMap::<String, HashSet<String>>::new();
@@ -155,6 +173,11 @@ pub(super) fn decode_edges(payload: &[u8]) -> Result<EdgeDecodeTables, String> {
 
 pub(super) fn decode_aliases(payload: &[u8]) -> Result<HashMap<String, String>, String> {
     let batch = decode_single_batch(payload, "aliases")?;
+    validate_snapshot_batch(
+        &batch,
+        &aliases_contract(),
+        "validate link-graph Arrow aliases stream",
+    )?;
     let aliases = required_column::<StringArray>(&batch, "alias")?;
     let doc_ids = required_column::<StringArray>(&batch, "doc_id")?;
     let mut alias_to_doc_id = HashMap::with_capacity(batch.num_rows());

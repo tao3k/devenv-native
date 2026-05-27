@@ -6,6 +6,10 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
 use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
+use xiuxian_llm::model_routing::{
+    VllmSrRouteDecisionClient, WendaoModelDecision, WendaoModelRoutingMode, WendaoRouteIntent,
+    WendaoRouteSourceKind, WendaoRouteTaskKind,
+};
 use xiuxian_qianji::WorkflowTrace;
 use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchGateOptions, AudioRiskParentSelectionOptions, AudioShardMaterializationInput,
@@ -15,9 +19,10 @@ use xiuxian_wendao_attachments::audio::{
 };
 use xiuxian_wendao_server::transport::{
     DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
+    WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
 };
 
-use super::config::AudioDocumentExtractConfig;
+use super::config::{AUDIO_ROUTE_PROVIDER_ENV, AudioDocumentExtractConfig};
 use super::plan::{
     audio_materialization_input, build_full_coverage_audio_plan, probe_audio_duration_ms,
     source_sha256_hex,
@@ -49,6 +54,13 @@ const AUDIO_MATERIALIZATION_REPORT_SCHEMA: &str = "xiuxian_wendao.audio_material
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_NAME: &str = "_audio_transcript_admission.json";
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_SCHEMA: &str =
     "xiuxian_wendao.audio_transcript_admission_report.v1";
+const AUDIO_ROUTE_TASK_KIND: &str = "attachment-extract";
+const AUDIO_ROUTE_MODALITY: &str = "audio";
+const AUDIO_ROUTE_SOURCE_KIND: &str = "attachment";
+const AUDIO_ROUTE_PRECISION_TIER: &str = "high";
+const AUDIO_ROUTE_PRIVACY_TIER: &str = "private";
+const AUDIO_ROUTE_EVIDENCE_PROFILE: &str = "audio-transcript";
+const AUDIO_ROUTE_MIN_LATENCY_BUDGET_MS: u64 = 60_000;
 
 struct AudioRecoveryWorkflowDispatch<'a> {
     request: &'a DocumentExtractFlightRequest,
@@ -58,6 +70,8 @@ struct AudioRecoveryWorkflowDispatch<'a> {
     recovery_speech_window_input: Option<&'a AudioSpeechWindowPlannerInput>,
     base_worker_budget: Option<usize>,
     recovery_worker_budget: Option<usize>,
+    route_intent: Option<&'a WendaoRouteIntent>,
+    model_decision: Option<&'a WendaoModelDecision>,
 }
 
 impl StudioDocumentExtractFlightRouteProvider {
@@ -81,8 +95,29 @@ impl StudioDocumentExtractFlightRouteProvider {
         let output = document_extract_audio_output_dir(&source, request.output_dir.as_str());
         let duration_ms = probe_audio_duration_ms(source.as_path(), config.ffprobe_path.as_path())?;
         let source_hash = source_sha256_hex(source.as_path())?;
-        let cache_manifest =
-            audio_cache_manifest(request, &config, source_hash.as_str(), duration_ms)?;
+        let full_coverage_plan = build_full_coverage_audio_plan(
+            source.as_path(),
+            source_hash.clone(),
+            duration_ms,
+            &config,
+        )?;
+        let plan = base_speech_window_plan_from_config(&full_coverage_plan, &config)?
+            .unwrap_or(full_coverage_plan);
+        let model_route = audio_model_route_decision_for_document_extract(
+            request,
+            &config,
+            &plan,
+            source_hash.as_str(),
+            duration_ms,
+        )
+        .await?;
+        let cache_manifest = audio_cache_manifest(
+            request,
+            &config,
+            source_hash.as_str(),
+            duration_ms,
+            model_route.as_ref(),
+        )?;
         if source.exists()
             && !request.force
             && audio_cache_manifest_matches(output.as_path(), &cache_manifest)
@@ -90,11 +125,6 @@ impl StudioDocumentExtractFlightRouteProvider {
         {
             return Ok(DocumentExtractFlightRouteResponse::from_batches(batches));
         }
-
-        let full_coverage_plan =
-            build_full_coverage_audio_plan(source.as_path(), source_hash, duration_ms, &config)?;
-        let plan = base_speech_window_plan_from_config(&full_coverage_plan, &config)?
-            .unwrap_or(full_coverage_plan);
         let scheduled_base_worker_budget = config.base_worker_budget.or_else(|| {
             Some(
                 self.runtime
@@ -125,6 +155,8 @@ impl StudioDocumentExtractFlightRouteProvider {
                     recovery_speech_window_input: recovery_speech_window_input.as_ref(),
                     base_worker_budget: scheduled_base_worker_budget,
                     recovery_worker_budget: scheduled_recovery_worker_budget,
+                    route_intent: model_route.as_ref().map(|(intent, _)| intent),
+                    model_decision: model_route.as_ref().map(|(_, decision)| decision),
                 },
             )
             .await?;
@@ -198,7 +230,12 @@ impl StudioDocumentExtractFlightRouteProvider {
                     base_worker_budget: dispatch.base_worker_budget,
                     recovery_worker_budget: dispatch.recovery_worker_budget,
                 },
-                audio_shard_request_options_for_document_extract(dispatch.request, dispatch.config),
+                audio_shard_request_options_for_document_extract(
+                    dispatch.request,
+                    dispatch.config,
+                    dispatch.route_intent,
+                    dispatch.model_decision,
+                ),
             )
             .await
         {
@@ -257,6 +294,8 @@ pub(crate) fn audio_recovery_selection_options_for_plan(
 fn audio_shard_request_options_for_document_extract(
     request: &DocumentExtractFlightRequest,
     config: &AudioDocumentExtractConfig,
+    route_intent: Option<&WendaoRouteIntent>,
+    model_decision: Option<&WendaoModelDecision>,
 ) -> AudioShardFlightRequestOptions {
     AudioShardFlightRequestOptions {
         audio_worker: request.audio_worker.clone(),
@@ -264,9 +303,79 @@ fn audio_shard_request_options_for_document_extract(
         hosted_base_url: request.audio_hosted_base_url.clone(),
         hosted_endpoint: request.audio_hosted_endpoint.clone(),
         hosted_model: request.audio_hosted_model.clone(),
+        route_intent: route_intent.cloned(),
+        model_decision: model_decision.cloned(),
         transcript_admission_dir: config.transcript_admission_dir.clone(),
         ..AudioShardFlightRequestOptions::default()
     }
+}
+
+async fn audio_model_route_decision_for_document_extract(
+    request: &DocumentExtractFlightRequest,
+    config: &AudioDocumentExtractConfig,
+    plan: &AudioShardPlan,
+    source_hash: &str,
+    duration_ms: u64,
+) -> Result<Option<(WendaoRouteIntent, WendaoModelDecision)>, String> {
+    match config.model_routing_mode {
+        WendaoModelRoutingMode::Deterministic => Ok(None),
+        WendaoModelRoutingMode::VllmSr => {
+            let provider = audio_route_provider_hint(request, config)?;
+            let intent =
+                audio_route_intent_for_document_extract(config, plan, source_hash, duration_ms);
+            let decision = VllmSrRouteDecisionClient::new(config.vllm_sr_base_url.as_str())
+                .decide(&intent, provider.as_str(), config.backend_profile.as_str())
+                .await
+                .map_err(|error| format!("audio model route admission failed: {error}"))?;
+            Ok(Some((intent, decision)))
+        }
+    }
+}
+
+fn audio_route_provider_hint(
+    request: &DocumentExtractFlightRequest,
+    config: &AudioDocumentExtractConfig,
+) -> Result<String, String> {
+    request
+        .audio_hosted_provider
+        .as_deref()
+        .or(config.route_provider.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| {
+            format!(
+                "WENDAO_MODEL_ROUTING_MODE=vllm-sr requires {AUDIO_ROUTE_PROVIDER_ENV} or `{WENDAO_AUDIO_HOSTED_PROVIDER_HEADER}`"
+            )
+        })
+}
+
+fn audio_route_intent_for_document_extract(
+    config: &AudioDocumentExtractConfig,
+    plan: &AudioShardPlan,
+    source_hash: &str,
+    duration_ms: u64,
+) -> WendaoRouteIntent {
+    WendaoRouteIntent {
+        task_kind: WendaoRouteTaskKind::new(AUDIO_ROUTE_TASK_KIND),
+        modality: AUDIO_ROUTE_MODALITY.to_owned(),
+        source_kind: WendaoRouteSourceKind::new(AUDIO_ROUTE_SOURCE_KIND),
+        precision_tier: AUDIO_ROUTE_PRECISION_TIER.to_owned(),
+        privacy_tier: AUDIO_ROUTE_PRIVACY_TIER.to_owned(),
+        latency_budget_ms: audio_route_latency_budget_ms(duration_ms),
+        evidence_profile: AUDIO_ROUTE_EVIDENCE_PROFILE.to_owned(),
+        artifact_refs: vec![
+            format!("source-sha256:{source_hash}"),
+            format!("duration-ms:{duration_ms}"),
+            format!("shard-count:{}", plan.start_offsets_ms.len()),
+            format!("plan-strategy:{}", plan.strategy.as_str()),
+            format!("backend-profile:{}", config.backend_profile.as_str()),
+        ],
+    }
+}
+
+fn audio_route_latency_budget_ms(duration_ms: u64) -> u64 {
+    AUDIO_ROUTE_MIN_LATENCY_BUDGET_MS.max(duration_ms.saturating_mul(2))
 }
 
 fn duration_to_ms(duration: Duration) -> u64 {
@@ -278,12 +387,22 @@ fn audio_cache_manifest(
     config: &AudioDocumentExtractConfig,
     source_hash: &str,
     duration_ms: u64,
+    model_route: Option<&(WendaoRouteIntent, WendaoModelDecision)>,
 ) -> Result<serde_json::Value, String> {
     let speech_segments_jsonl = config
         .speech_segments_jsonl_path
         .as_ref()
         .map(|path| path.to_string_lossy().to_string());
     let speech_segments_sha256 = configured_speech_segments_sha256_from_config(config)?;
+    let (route_selected_provider, route_selected_model, route_selected_backend_profile) =
+        match model_route {
+            Some((_, decision)) => (
+                Some(decision.selected_provider.as_str()),
+                Some(decision.selected_model.as_str()),
+                Some(decision.selected_backend_profile.as_str()),
+            ),
+            None => (None, None, None),
+        };
     Ok(serde_json::json!({
         "schema": AUDIO_CACHE_MANIFEST_SCHEMA,
         "sourceSha256": source_hash,
@@ -302,12 +421,24 @@ fn audio_cache_manifest(
         "speechLimitChunks": config.speech_limit_chunks,
         "speechSegmentsJsonl": speech_segments_jsonl,
         "speechSegmentsSha256": speech_segments_sha256,
+        "modelRoutingMode": audio_model_routing_mode_name(config.model_routing_mode),
+        "routeProviderHint": config.route_provider.as_deref(),
+        "routeSelectedProvider": route_selected_provider,
+        "routeSelectedModel": route_selected_model,
+        "routeSelectedBackendProfile": route_selected_backend_profile,
         "requestAudioWorker": request.audio_worker.as_deref(),
         "hostedProvider": request.audio_hosted_provider.as_deref(),
         "hostedBaseUrl": request.audio_hosted_base_url.as_deref(),
         "hostedEndpoint": request.audio_hosted_endpoint.as_deref(),
         "hostedModel": request.audio_hosted_model.as_deref(),
     }))
+}
+
+fn audio_model_routing_mode_name(mode: WendaoModelRoutingMode) -> &'static str {
+    match mode {
+        WendaoModelRoutingMode::VllmSr => "vllm-sr",
+        WendaoModelRoutingMode::Deterministic => "deterministic",
+    }
 }
 
 fn audio_cache_manifest_matches(output_dir: &Path, expected: &serde_json::Value) -> bool {
@@ -543,6 +674,9 @@ fn document_extract_audio_output_dir(source: &Path, output_dir: &str) -> PathBuf
     }
 }
 
+#[cfg(test)]
+#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/route_model_routing.rs"]
+mod model_routing_tests;
 #[cfg(test)]
 #[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/route_materialization_report.rs"]
 mod tests;

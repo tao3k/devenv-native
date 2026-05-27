@@ -6,6 +6,7 @@ use crate::pdf::metrics::{
     document_metrics_schema,
 };
 use crate::pdf::ocr::{PDF_OCR_SHARD_INPUT_SCHEMA_VERSION, PdfOcrShardInput, PdfOcrShardResult};
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
 
 fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, String> {
     batch
@@ -79,6 +80,14 @@ fn pdf_ocr_metrics_batch_uses_stable_schema() -> Result<(), String> {
     let batch = build_pdf_ocr_metrics_batch(&[metric])?;
 
     assert_eq!(batch.schema(), document_metrics_schema());
+    assert_eq!(
+        batch
+            .schema()
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some("pdf_ocr_shard_metrics")
+    );
     assert_eq!(batch.num_rows(), 1);
     assert_eq!(
         string_column(&batch, "contractVersion")?.value(0),

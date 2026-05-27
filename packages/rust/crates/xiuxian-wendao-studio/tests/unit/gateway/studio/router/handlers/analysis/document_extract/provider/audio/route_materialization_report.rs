@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use sha2::Digest;
+use xiuxian_llm::model_routing::{DEFAULT_WENDAO_VLLM_SR_BASE_URL, WendaoModelRoutingMode};
 use xiuxian_qianji::{WorkflowStageFacts, WorkflowStageStatus, WorkflowStageTrace, WorkflowTrace};
 use xiuxian_wendao_attachments::audio::AudioShardManifestItem;
 use xiuxian_wendao_server::transport::{DocumentExtractFlightRequest, DocumentExtractMode};
@@ -23,6 +24,9 @@ fn audio_materialization_report_records_artifact_backend_and_byte_sources() -> R
     std::fs::write(cache_path.as_path(), b"cache").map_err(|error| error.to_string())?;
     let config = AudioDocumentExtractConfig {
         backend_profile: "hosted-audio-transcript-v1".to_owned(),
+        route_provider: None,
+        model_routing_mode: WendaoModelRoutingMode::Deterministic,
+        vllm_sr_base_url: DEFAULT_WENDAO_VLLM_SR_BASE_URL.to_owned(),
         chunk_duration_ms: 30_000,
         context_before_ms: 0,
         context_after_ms: 0,
@@ -215,6 +219,9 @@ fn audio_cache_manifest_records_speech_sidecar_hash() -> Result<(), String> {
     std::fs::write(sidecar_path.as_path(), sidecar_contents).map_err(|error| error.to_string())?;
     let config = AudioDocumentExtractConfig {
         backend_profile: "hosted-audio-transcript-v1".to_owned(),
+        route_provider: None,
+        model_routing_mode: WendaoModelRoutingMode::Deterministic,
+        vllm_sr_base_url: DEFAULT_WENDAO_VLLM_SR_BASE_URL.to_owned(),
         chunk_duration_ms: 30_000,
         context_before_ms: 0,
         context_after_ms: 0,
@@ -254,6 +261,7 @@ fn audio_cache_manifest_records_speech_sidecar_hash() -> Result<(), String> {
         &config,
         "sourcehash",
         42_000,
+        None,
     )?;
 
     let expected_hash = format!("{:x}", sha2::Sha256::digest(sidecar_contents.as_bytes()));

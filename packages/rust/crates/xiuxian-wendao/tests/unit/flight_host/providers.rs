@@ -1,4 +1,5 @@
 use crate::analyzers::{DocRecord, RepoProjectedRetrievalContextQuery, RepositoryAnalysisOutput};
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
 
 use super::{BootstrapProjectionCache, projected_page_id_variants};
 
@@ -55,6 +56,22 @@ fn projected_page_id_variants_include_collapsed_and_expanded_doc_ids() {
             .iter()
             .any(|variant| variant.ends_with("repo:main:doc:docs/search.md"))
     );
+}
+
+#[test]
+fn graph_neighbors_response_schema_uses_db_store_contract_metadata() {
+    let schema = super::batches::graph_neighbors_response_schema();
+
+    assert_eq!(
+        schema
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some("flight_graph_neighbors_response")
+    );
+    assert_eq!(schema.fields().len(), 18);
+    assert_eq!(schema.field(0).name(), "rowType");
+    assert_eq!(schema.field(17).name(), "linkDistance");
 }
 
 fn doc(repo_id: &str, path: &str, title: &str) -> DocRecord {

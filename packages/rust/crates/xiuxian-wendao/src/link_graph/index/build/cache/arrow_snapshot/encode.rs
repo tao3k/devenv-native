@@ -5,12 +5,15 @@ use std::sync::Arc;
 use arrow::array::{
     ArrayRef, Float64Array, Int64Array, ListBuilder, StringArray, StringBuilder, UInt64Array,
 };
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 
 use crate::link_graph::index::LinkGraphIndex;
 
 use super::primitive::usize_to_u64_saturating;
+use super::schema::{
+    aliases_contract, docs_contract, edges_contract, sections_contract, snapshot_schema_ref,
+    validate_snapshot_batch,
+};
 
 pub(super) fn build_docs_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
     let mut docs = index.docs_by_id.values().collect::<Vec<_>>();
@@ -49,27 +52,9 @@ pub(super) fn build_docs_batch(index: &LinkGraphIndex) -> Result<RecordBatch, St
         tags_builder.append(true);
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("id", DataType::Utf8, false),
-        Field::new("stem", DataType::Utf8, false),
-        Field::new("path", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("lead", DataType::Utf8, false),
-        Field::new("doc_type", DataType::Utf8, true),
-        Field::new(
-            "tags",
-            DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
-            false,
-        ),
-        Field::new("word_count", DataType::UInt64, false),
-        Field::new("search_text", DataType::Utf8, false),
-        Field::new("saliency_base", DataType::Float64, false),
-        Field::new("decay_rate", DataType::Float64, false),
-        Field::new("created_ts", DataType::Int64, true),
-        Field::new("modified_ts", DataType::Int64, true),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = docs_contract();
+    let batch = RecordBatch::try_new(
+        snapshot_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(ids)) as ArrayRef,
             Arc::new(StringArray::from(stems)) as ArrayRef,
@@ -86,7 +71,9 @@ pub(super) fn build_docs_batch(index: &LinkGraphIndex) -> Result<RecordBatch, St
             Arc::new(Int64Array::from(modified_values)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow docs batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow docs batch: {error}"))?;
+    validate_snapshot_batch(&batch, &contract, "validate link-graph Arrow docs batch")?;
+    Ok(batch)
 }
 
 pub(super) fn build_sections_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
@@ -150,29 +137,9 @@ pub(super) fn build_sections_batch(index: &LinkGraphIndex) -> Result<RecordBatch
         );
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("doc_id", DataType::Utf8, false),
-        Field::new("heading_title", DataType::Utf8, false),
-        Field::new("heading_path", DataType::Utf8, false),
-        Field::new("heading_path_lower", DataType::Utf8, false),
-        Field::new("heading_level", DataType::UInt64, false),
-        Field::new("line_start", DataType::UInt64, false),
-        Field::new("line_end", DataType::UInt64, false),
-        Field::new("byte_start", DataType::UInt64, false),
-        Field::new("byte_end", DataType::UInt64, false),
-        Field::new("section_text", DataType::Utf8, false),
-        Field::new("section_text_lower", DataType::Utf8, false),
-        Field::new(
-            "entities",
-            DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
-            false,
-        ),
-        Field::new("attributes_json", DataType::Utf8, false),
-        Field::new("logbook_json", DataType::Utf8, false),
-        Field::new("observations_json", DataType::Utf8, false),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = sections_contract();
+    let batch = RecordBatch::try_new(
+        snapshot_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(doc_ids)) as ArrayRef,
             Arc::new(StringArray::from(heading_titles)) as ArrayRef,
@@ -191,7 +158,13 @@ pub(super) fn build_sections_batch(index: &LinkGraphIndex) -> Result<RecordBatch
             Arc::new(StringArray::from(observations_json)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow sections batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow sections batch: {error}"))?;
+    validate_snapshot_batch(
+        &batch,
+        &contract,
+        "validate link-graph Arrow sections batch",
+    )?;
+    Ok(batch)
 }
 
 pub(super) fn build_edges_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
@@ -210,18 +183,17 @@ pub(super) fn build_edges_batch(index: &LinkGraphIndex) -> Result<RecordBatch, S
         targets.push(target.to_string());
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("source_id", DataType::Utf8, false),
-        Field::new("target_id", DataType::Utf8, false),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = edges_contract();
+    let batch = RecordBatch::try_new(
+        snapshot_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(sources)) as ArrayRef,
             Arc::new(StringArray::from(targets)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow edges batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow edges batch: {error}"))?;
+    validate_snapshot_batch(&batch, &contract, "validate link-graph Arrow edges batch")?;
+    Ok(batch)
 }
 
 pub(super) fn build_aliases_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
@@ -239,16 +211,15 @@ pub(super) fn build_aliases_batch(index: &LinkGraphIndex) -> Result<RecordBatch,
         doc_ids.push(doc_id.to_string());
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("alias", DataType::Utf8, false),
-        Field::new("doc_id", DataType::Utf8, false),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = aliases_contract();
+    let batch = RecordBatch::try_new(
+        snapshot_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(alias_values)) as ArrayRef,
             Arc::new(StringArray::from(doc_ids)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow aliases batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow aliases batch: {error}"))?;
+    validate_snapshot_batch(&batch, &contract, "validate link-graph Arrow aliases batch")?;
+    Ok(batch)
 }

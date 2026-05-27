@@ -3,8 +3,13 @@
 use std::path::PathBuf;
 
 use xiuxian_db_store::artifact_cache::ARTIFACT_CACHE_ROOT_ENV;
+use xiuxian_llm::model_routing::{
+    WendaoModelRoutingMode, wendao_model_routing_mode_with_lookup,
+    wendao_vllm_sr_base_url_with_lookup,
+};
 
 pub(super) const AUDIO_BACKEND_PROFILE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE";
+pub(super) const AUDIO_ROUTE_PROVIDER_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_ROUTE_PROVIDER";
 pub(super) const AUDIO_CHUNK_MS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS";
 pub(super) const AUDIO_CONTEXT_BEFORE_MS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS";
@@ -55,6 +60,9 @@ const DEFAULT_FFPROBE: &str = "ffprobe";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct AudioDocumentExtractConfig {
     pub(crate) backend_profile: String,
+    pub(crate) route_provider: Option<String>,
+    pub(crate) model_routing_mode: WendaoModelRoutingMode,
+    pub(crate) vllm_sr_base_url: String,
     pub(crate) chunk_duration_ms: u64,
     pub(crate) context_before_ms: u64,
     pub(crate) context_after_ms: u64,
@@ -90,11 +98,17 @@ pub(crate) fn document_extract_audio_config(
     if backend_profile.trim().is_empty() {
         return Err(format!("{AUDIO_BACKEND_PROFILE_ENV} must not be blank"));
     }
+    let route_provider = optional_string_value(lookup, AUDIO_ROUTE_PROVIDER_ENV);
+    let model_routing_mode = wendao_model_routing_mode_with_lookup(lookup)?;
+    let vllm_sr_base_url = wendao_vllm_sr_base_url_with_lookup(lookup);
     let artifact_cache_dir = artifact_cache_dir_value(lookup);
     let transcript_admission_dir =
         audio_transcript_admission_dir_value(lookup, artifact_cache_dir.as_ref());
     Ok(AudioDocumentExtractConfig {
         backend_profile,
+        route_provider,
+        model_routing_mode,
+        vllm_sr_base_url,
         chunk_duration_ms: u64_value(lookup, AUDIO_CHUNK_MS_ENV, DEFAULT_CHUNK_MS)?,
         context_before_ms: u64_non_negative_value(
             lookup,
@@ -178,6 +192,15 @@ fn string_value(
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| default.to_owned())
+}
+
+fn optional_string_value(
+    lookup: &dyn Fn(&str) -> Option<String>,
+    key: &'static str,
+) -> Option<String> {
+    lookup(key)
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
 }
 
 fn optional_path_value(

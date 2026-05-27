@@ -10,6 +10,9 @@ use arrow_flight::encode::FlightDataEncoderBuilder;
 use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServiceClient;
 use futures::{TryStreamExt, stream};
 use tonic::transport::{Channel, Endpoint};
+use xiuxian_llm::model_routing::{
+    WendaoModelDecision, WendaoRouteIntent, wendao_model_route_metadata,
+};
 use xiuxian_qianji::workflow_kernel::WorkflowMemoryCheckpointRecord;
 use xiuxian_qianji::{
     WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStage, WorkflowStageFacts,
@@ -67,6 +70,10 @@ pub struct AudioShardFlightRequestOptions {
     pub hosted_endpoint: Option<String>,
     /// Optional hosted audio model override.
     pub hosted_model: Option<String>,
+    /// Gateway route intent used to explain the selected backend decision.
+    pub route_intent: Option<WendaoRouteIntent>,
+    /// Gateway model decision selected by the model routing plane.
+    pub model_decision: Option<WendaoModelDecision>,
     /// Optional Rust-owned transcript transcript admission root.
     pub transcript_admission_dir: Option<PathBuf>,
 }
@@ -80,6 +87,8 @@ impl AudioShardFlightRequestOptions {
             hosted_base_url: self.hosted_base_url.clone(),
             hosted_endpoint: self.hosted_endpoint.clone(),
             hosted_model: self.hosted_model.clone(),
+            route_intent: self.route_intent.clone(),
+            model_decision: self.model_decision.clone(),
             transcript_admission_dir: self.transcript_admission_dir.clone(),
         }
     }
@@ -688,6 +697,7 @@ async fn request_audio_shards_batch_on_channel(
         options.hosted_model.as_deref(),
         "hosted audio model",
     )?;
+    add_model_route_headers(&mut client, options)?;
 
     let response_batches = client
         .do_exchange(request_stream)
@@ -707,6 +717,24 @@ async fn request_audio_shards_batch_on_channel(
         response,
         response_batches,
     })
+}
+
+fn add_model_route_headers(
+    client: &mut FlightClient,
+    options: &AudioShardFlightRequestOptions,
+) -> Result<(), String> {
+    let Some(intent) = options.route_intent.as_ref() else {
+        return Ok(());
+    };
+    let Some(decision) = options.model_decision.as_ref() else {
+        return Ok(());
+    };
+    for (header, value) in wendao_model_route_metadata(intent, decision) {
+        client
+            .add_header(header, value.as_str())
+            .map_err(|error| format!("invalid model route header `{header}`: {error}"))?;
+    }
+    Ok(())
 }
 
 fn add_optional_audio_header(

@@ -13,6 +13,9 @@ rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
 pub mod embedding;
 /// Chat LLM clients, provider adapters, multimodal helpers, and vision utilities.
 pub mod llm;
+/// Model routing plane contracts and decision metadata.
+#[cfg(feature = "model-routing")]
+pub mod model_routing;
 /// Model-slot execution runtime and bus primitives.
 #[path = "runtime/mod.rs"]
 pub mod model_runtime;

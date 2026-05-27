@@ -31,6 +31,7 @@ dev = [
   "pytest-benchmark>=4.0.0",
   "dirty-equals>=0.11",
   "ruff>=0.14.10",
+  "vllm-sr>=0.3.0.dev20260506175740",
   "vulture>=2.14",
   "pytest-json-report>=1.5.0",
   "pytest-rerunfailures>=14.0",

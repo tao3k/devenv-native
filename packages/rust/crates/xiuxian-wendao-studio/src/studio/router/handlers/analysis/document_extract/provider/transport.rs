@@ -9,6 +9,7 @@ use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServi
 use futures::TryStreamExt;
 use tokio::sync::{OwnedSemaphorePermit, TryAcquireError};
 use tonic::transport::{Channel, Endpoint};
+use xiuxian_llm::model_routing::wendao_model_route_metadata;
 use xiuxian_polyglot_orchestrator::{
     DocumentExtractPressureEvidenceInput, document_extract_pressure_evidence,
     document_extract_schedule_plan,
@@ -22,6 +23,7 @@ use xiuxian_wendao_server::transport::{
     encode_document_extract_source_path_utf8_hex,
 };
 
+use super::model_route::DocumentExtractModelRoute;
 use super::{
     DEFAULT_DOCUMENT_EXTRACT_ENDPOINT, DOCUMENT_EXTRACT_ENDPOINT_ENV,
     DOCUMENT_EXTRACT_ENDPOINTS_ENV, DOCUMENT_EXTRACT_FLIGHT_MESSAGE_SIZE_BYTES,
@@ -113,6 +115,27 @@ impl StudioDocumentExtractFlightRouteProvider {
         .await
     }
 
+    pub(super) async fn request_python_document_extract_with_model_route(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+        profile: &str,
+        model_route: Option<&DocumentExtractModelRoute>,
+    ) -> Result<Vec<EngineRecordBatch>, String> {
+        self.request_python_document_extract_with_page_range_and_model_route(
+            source_path,
+            output_dir,
+            force,
+            error_row,
+            profile,
+            None,
+            model_route,
+        )
+        .await
+    }
+
     pub(super) async fn request_python_document_extract_with_page_range(
         &self,
         source_path: &str,
@@ -121,6 +144,28 @@ impl StudioDocumentExtractFlightRouteProvider {
         error_row: bool,
         profile: &str,
         page_range: Option<(u32, u32)>,
+    ) -> Result<Vec<EngineRecordBatch>, String> {
+        self.request_python_document_extract_with_page_range_and_model_route(
+            source_path,
+            output_dir,
+            force,
+            error_row,
+            profile,
+            page_range,
+            None,
+        )
+        .await
+    }
+
+    async fn request_python_document_extract_with_page_range_and_model_route(
+        &self,
+        source_path: &str,
+        output_dir: &str,
+        force: bool,
+        error_row: bool,
+        profile: &str,
+        page_range: Option<(u32, u32)>,
+        model_route: Option<&DocumentExtractModelRoute>,
     ) -> Result<Vec<EngineRecordBatch>, String> {
         let endpoint_urls = self.document_extract_endpoint_attempt_order()?;
         let mut last_retryable_error = None;
@@ -135,6 +180,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                         error_row,
                         profile,
                         page_range,
+                        model_route,
                     },
                 )
                 .await
@@ -200,6 +246,15 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .add_header(WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, value.as_str())
                 .map_err(|error| format!("invalid page range header: {error}"))?;
         }
+        if let Some(model_route) = request.model_route {
+            for (key, value) in
+                wendao_model_route_metadata(&model_route.intent, &model_route.decision)
+            {
+                client
+                    .add_header(key, value.as_str())
+                    .map_err(|error| format!("invalid model route header `{key}`: {error}"))?;
+            }
+        }
 
         let descriptor = FlightDescriptor::new_path(
             ANALYSIS_DOCUMENT_EXTRACT_ROUTE
@@ -257,6 +312,7 @@ struct PythonDocumentExtractEndpointRequest<'a> {
     error_row: bool,
     profile: &'a str,
     page_range: Option<(u32, u32)>,
+    model_route: Option<&'a DocumentExtractModelRoute>,
 }
 
 pub(super) fn document_extract_default_endpoint_with_lookup(

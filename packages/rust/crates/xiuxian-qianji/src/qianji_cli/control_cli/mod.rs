@@ -34,10 +34,12 @@ mod types;
 pub(crate) use activity_args::ActivitySettleOutcomeArg;
 #[cfg(test)]
 pub(crate) use activity_claim::{WorkerActivityClaimStoreRequest, claim_with_hot_state};
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) use activity_executor::ActivityExecutorOutcome;
 #[cfg(test)]
 pub(crate) use activity_executor::{
     ActivityExecutionRequest, ActivityExecutorAdapterKind, ActivityExecutorKindArg,
-    ActivityExecutorOutcome, ActivityExecutorRegistry,
+    ActivityExecutorRegistry,
 };
 #[cfg(test)]
 pub(crate) use activity_mirror::{WorkerActivityMirrorStoreRequest, mirror_with_hot_state};

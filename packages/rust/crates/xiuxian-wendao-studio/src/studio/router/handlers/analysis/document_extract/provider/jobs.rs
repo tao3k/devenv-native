@@ -53,13 +53,26 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .sync_legacy_office_document_extract_batch(source.as_path(), output.as_path())
                 .await;
         }
+        let model_route =
+            super::model_route::image_document_extract_model_route(source.as_path(), profile)
+                .await?;
         if source.exists() && !force {
-            if let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
+            if super::model_route::document_extract_route_manifest_matches(
+                output.as_path(),
+                model_route.as_ref(),
+                profile,
+            ) && let Some(batches) =
+                read_cached_document_batches(source.as_path(), output.as_path())?
             {
                 return Ok(DocumentExtractFlightRouteResponse::from_batches(batches));
             }
             match self
-                .reuse_succeeded_artifact(source.as_path(), output.as_path())
+                .reuse_succeeded_artifact(
+                    source.as_path(),
+                    output.as_path(),
+                    model_route.as_ref(),
+                    profile,
+                )
                 .await
             {
                 Ok(Some(response)) => return Ok(response),
@@ -73,14 +86,20 @@ impl StudioDocumentExtractFlightRouteProvider {
         let output_string = output.to_string_lossy().to_string();
         let _permit = self.acquire_document_extract_dispatch_permit().await?;
         let engine_batches = self
-            .request_python_document_extract(
+            .request_python_document_extract_with_model_route(
                 source_path,
                 output_string.as_str(),
-                force,
+                force || model_route.is_some(),
                 error_row,
                 profile,
+                model_route.as_ref(),
             )
             .await?;
+        super::model_route::write_document_extract_route_manifest(
+            output.as_path(),
+            model_route.as_ref(),
+            profile,
+        )?;
         if source.exists()
             && document_extract_batches_are_cacheable(engine_batches.as_slice())
             && let Err(error) = self
@@ -98,6 +117,8 @@ impl StudioDocumentExtractFlightRouteProvider {
         &self,
         source: &Path,
         output: &Path,
+        model_route: Option<&super::model_route::DocumentExtractModelRoute>,
+        profile: &str,
     ) -> Result<Option<DocumentExtractFlightRouteResponse>, String> {
         let status = {
             let _registry_guard = self.registry_lock();
@@ -107,6 +128,13 @@ impl StudioDocumentExtractFlightRouteProvider {
         let Some(status) = status else {
             return Ok(None);
         };
+        if !super::model_route::document_extract_route_manifest_matches(
+            Path::new(status.artifact_dir.as_str()),
+            model_route,
+            profile,
+        ) {
+            return Ok(None);
+        }
         let _guard = self.runtime.artifact_lock.lock().await;
         Self::mirror_and_read_succeeded(&status, output).map(Some)
     }

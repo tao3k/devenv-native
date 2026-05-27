@@ -3,8 +3,8 @@ use std::io;
 
 use serde_json::Value;
 
-use super::LlmRequestAudit;
 use super::io_support::read_local_artifact_text;
+use super::types::LlmRequestAudit;
 use crate::qianji_cli::invalid_input;
 
 const EPISTEME_REASONING_CONTEXT_KIND: &str = "episteme.reasoning_fill_context";

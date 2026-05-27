@@ -2,6 +2,8 @@
 
 use super::client::OpenAIWireApi;
 use super::error::{LlmError, LlmResult};
+#[cfg(feature = "model-routing")]
+use crate::model_routing::WendaoModelDecision;
 use std::collections::HashMap;
 
 /// Provider-scoped runtime fields used to resolve an OpenAI-compatible profile.
@@ -173,6 +175,24 @@ pub fn resolve_openai_runtime_profile(
         api_key,
         wire_api,
     })
+}
+
+/// Return runtime overrides with a Gateway-selected model route decision.
+///
+/// Existing explicit API-key, base-URL, wire-mode, and test environment values
+/// are preserved. The model decision supplies provider and model overrides so
+/// the normal provider profile resolver still owns endpoint and credential
+/// lookup.
+#[cfg(feature = "model-routing")]
+#[must_use]
+pub fn runtime_profile_env_with_model_decision(
+    env: &LlmRuntimeProfileEnv,
+    decision: &WendaoModelDecision,
+) -> LlmRuntimeProfileEnv {
+    let mut routed = env.clone();
+    routed.provider_override = Some(decision.selected_provider.clone());
+    routed.model_override = Some(decision.selected_model.clone());
+    routed
 }
 
 fn resolve_api_key(

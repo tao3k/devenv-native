@@ -127,6 +127,28 @@ impl QianjiBpmnWorkflowActionHttpRequest {
     }
 }
 
+/// JSON body for explicitly applying a control-ledger recovery plan.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlRecoveryApplyHttpRequest {
+    /// Event timestamp supplied by the caller.
+    pub occurred_at_ms: u64,
+    /// Recovery attempt number.
+    pub attempt: u32,
+    /// Human-readable reason for this recovery attempt.
+    pub reason: String,
+    /// Maximum attempts permitted by the recovery policy.
+    pub max_attempts: u32,
+    /// Backoff attached to retryable activity recovery.
+    #[serde(default)]
+    pub backoff_ms: u64,
+    /// Whether the recovery policy requires human approval.
+    #[serde(default)]
+    pub require_human_approval: bool,
+    /// Queue priority for applied retry work.
+    #[serde(default)]
+    pub priority: i64,
+}
+
 /// JSON host-work result kind accepted by explicit task completion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

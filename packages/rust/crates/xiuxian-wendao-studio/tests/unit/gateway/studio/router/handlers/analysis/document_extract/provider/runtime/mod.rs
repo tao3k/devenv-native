@@ -6,7 +6,7 @@ use super::{
 };
 
 mod cache;
-mod flight_support;
+pub(super) mod flight_support;
 mod native_org;
 mod native_org_flight;
 mod queue;

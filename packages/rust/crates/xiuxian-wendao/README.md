@@ -143,6 +143,12 @@ Use `xiuxian-wendao` for:
   event-row reads with benchmark coverage for append and query throughput;
   event payloads are serialized once into compact JSON text at record
   construction so append and query hot paths avoid repeated JSON conversion;
+  event-lake Arrow batches use the shared db-store schema contract helpers for
+  exact structural validation while Wendao keeps event semantics and query
+  ownership;
+  Flight-host projected page-index, retrieval-context, and graph-neighbor
+  response batches use the same shared schema contract helpers while Wendao
+  keeps projection semantics and route ownership;
   `WendaoEventLakeLocalConfig`
   resolves the local embedded path convention under
   `$PRJ_DATA_HOME/wendao/event_lake/`
@@ -196,7 +202,10 @@ Use `xiuxian-wendao` for:
   implementation home. Rust owns source hash validation, queue selection,
   persisted run-plan receipts, scheduling, cache identity, and compiled
   read-model seed materialization into `semantic_objects`,
-  `semantic_relations`, and `semantic_projection_state` Arrow batches. Customer
+  `semantic_relations`, and `semantic_projection_state` Arrow batches. Those
+  read-model batches are built through the db-store `ArrowSchemaContract`
+  helper so table metadata and column contracts stay deterministic while
+  Episteme retains source-contract semantics. Customer
   repository names, domain names, corpus-root environment variable
   names, source manifest paths, and mapping ledger paths are episteme
   configuration facts, not Rust defaults. A single-contract episteme repository
@@ -361,6 +370,10 @@ native Arrow IPC streams and keeps a bounded page-index residual so warm hits
 avoid rebuilding every page-index tree. The page-index residual remains a
 single bounded payload until a measured columnar form beats it; cache schema
 validity is tracked by fingerprint rather than rolling local table versions.
+The docs, sections, edges, and aliases IPC streams are built and decoded
+through db-store `ArrowSchemaContract` helpers so table metadata and column
+contracts stay deterministic while link-graph owns index semantics and cache
+identity.
 Warm-hit lookup opens existing local cache files with DuckDB read-only access
 and lets the prepared payload SELECT validate the stable table shape before
 reading streams; cache writes still own table creation and
@@ -681,7 +694,8 @@ The SQL handler now follows the same folder-first rule at a finer granularity:
   logical views
 - `sql/registration/catalog/{tables,columns,view_sources}.rs`: stable
   `wendao_sql_tables`, `wendao_sql_columns`, and
-  `wendao_sql_view_sources` system catalogs
+  `wendao_sql_view_sources` system catalogs built through the db-store
+  `ArrowSchemaContract` helper
 - `sql/tests/provider.rs`: SQL execution plus app-metadata coverage
 - `sql/tests/catalog.rs`: SQL table/column catalog coverage
 - `sql/tests/information_schema.rs`: standard SQL introspection coverage

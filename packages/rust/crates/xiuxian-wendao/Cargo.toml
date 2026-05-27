@@ -51,6 +51,7 @@ search-runtime = [
   "dep:xiuxian-ast",
   "dep:xiuxian-code-intelligence",
   "dep:xiuxian-db-store",
+  "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/engine",
   "runtime-transport",
   "xiuxian-wendao-core/arrow-transport",
@@ -92,6 +93,7 @@ document-extract-pdf-render = [
 duckdb = [
   "dep:duckdb",
   "dep:xiuxian-db-store",
+  "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/duckdb",
 ]
 

@@ -48,6 +48,19 @@ in
 
     carfox.exec = processEntrypoint "carfox";
 
+    vllm-sr = {
+      exec = processEntrypoint "vllm-sr";
+      process-compose = {
+        readiness_probe = {
+          exec.command = processHealthcheck "vllm-sr";
+          initial_delay_seconds = 5;
+          period_seconds = 3;
+          timeout_seconds = 3;
+          failure_threshold = 40;
+        };
+      };
+    };
+
     # Wendao Phase 7.6 Integrated Services
     wendao-analyzer = {
       exec = processEntrypoint "wendao-analyzer";
@@ -86,6 +99,7 @@ in
       process-compose = {
         depends_on = {
           valkey.condition = "process_healthy";
+          vllm-sr.condition = "process_healthy";
         };
         readiness_probe = {
           exec.command = processHealthcheck "wendao-gateway";

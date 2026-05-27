@@ -30,6 +30,8 @@ pub enum ArrowSchemaDataType {
     Float64,
     /// Arrow `Boolean`.
     Boolean,
+    /// Arrow `Timestamp(Millisecond, None)`.
+    TimestampMillisecond,
     /// Arrow `Binary`.
     Binary,
     /// Arrow `List(Utf8)`.
@@ -47,6 +49,9 @@ impl ArrowSchemaDataType {
             Self::UInt64 => DataType::UInt64,
             Self::Float64 => DataType::Float64,
             Self::Boolean => DataType::Boolean,
+            Self::TimestampMillisecond => {
+                DataType::Timestamp(arrow::datatypes::TimeUnit::Millisecond, None)
+            }
             Self::Binary | Self::BinaryPayload => DataType::Binary,
             Self::Utf8List => DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
         }
@@ -60,6 +65,7 @@ impl ArrowSchemaDataType {
             Self::UInt64 => "UInt64",
             Self::Float64 => "Float64",
             Self::Boolean => "Boolean",
+            Self::TimestampMillisecond => "Timestamp(Millisecond)",
             Self::Binary => "Binary",
             Self::Utf8List => "List(Utf8)",
             Self::BinaryPayload => "Binary, LargeBinary, List(UInt8), or LargeList(UInt8)",
@@ -74,6 +80,12 @@ impl ArrowSchemaDataType {
             Self::UInt64 => matches!(actual, DataType::UInt64),
             Self::Float64 => matches!(actual, DataType::Float64),
             Self::Boolean => matches!(actual, DataType::Boolean),
+            Self::TimestampMillisecond => {
+                matches!(
+                    actual,
+                    DataType::Timestamp(arrow::datatypes::TimeUnit::Millisecond, None)
+                )
+            }
             Self::Binary => matches!(actual, DataType::Binary),
             Self::Utf8List => {
                 matches!(actual, DataType::List(field) if field.data_type() == &DataType::Utf8)

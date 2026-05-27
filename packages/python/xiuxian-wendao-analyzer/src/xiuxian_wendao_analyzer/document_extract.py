@@ -32,6 +32,7 @@ from .document_types import (
 
 if TYPE_CHECKING:
     import pyarrow as pa
+    from .pdf_ocr_ocr2.config import Ocr2ClientConfig
 
 __all__ = [
     "_new_docling_converter",
@@ -51,6 +52,7 @@ def extract_document_table(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
+    hosted_vlm_config: Ocr2ClientConfig | None = None,
 ) -> pa.Table:
     """Extract one document and return Arrow resource rows.
 
@@ -77,6 +79,7 @@ def extract_document_table(
             force=force,
             error_row=error_row,
             page_range=page_range,
+            hosted_vlm_config=hosted_vlm_config,
         )
     )
 
@@ -90,6 +93,7 @@ def extract_document_resources(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
+    hosted_vlm_config: Ocr2ClientConfig | None = None,
 ) -> list[DocumentResourceRow]:
     """Extract one local document into Arrow-friendly resource rows.
 
@@ -123,6 +127,7 @@ def extract_document_resources(
         return extract_image_document_resources(
             source,
             out,
+            config=hosted_vlm_config,
             error_row=error_row,
         )
 

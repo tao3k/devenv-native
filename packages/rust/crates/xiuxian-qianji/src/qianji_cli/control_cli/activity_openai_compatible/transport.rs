@@ -4,9 +4,10 @@ use std::time::Duration;
 use serde_json::Value;
 
 use super::failure;
+use super::protocol::DEFAULT_TIMEOUT_MS;
 use super::response;
-use super::{DEFAULT_TIMEOUT_MS, LlmRequestAudit, OpenAiCompatibleLlmExecutionRequest};
-use crate::qianji_cli::control_cli::activity_executor::ActivityExecutorOutcome;
+use super::types::{LlmRequestAudit, OpenAiCompatibleLlmExecutionRequest};
+use crate::qianji_cli::control_cli::ActivityExecutorOutcome;
 use crate::qianji_cli::invalid_input;
 
 pub(super) async fn fetch_openai_chat_completion(

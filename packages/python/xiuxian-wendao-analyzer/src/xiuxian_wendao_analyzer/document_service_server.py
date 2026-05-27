@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 import pyarrow.flight as flight
@@ -21,6 +22,7 @@ from .audio_shards import (
     build_audio_shard_result_table,
 )
 from .document_profiles import (
+    DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
     DOCUMENT_EXTRACT_FULL_PROFILE,
     new_docling_converter_for_profile,
     normalize_document_extract_profile,
@@ -29,6 +31,7 @@ from .document_service_extract import build_document_extract_table
 from .document_service_headers import (
     document_extract_converter_cache_mode,
     document_extract_profile,
+    route_decision_headers,
 )
 from .document_service_routes import (
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
@@ -41,6 +44,9 @@ from .document_service_routes import (
     WENDAO_AUDIO_WORKER_HEADER,
     WENDAO_AUDIO_WORKERS_HEADER,
     WENDAO_PDF_OCR_WORKERS_HEADER,
+    WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER,
+    WENDAO_ROUTE_SELECTED_MODEL_HEADER,
+    WENDAO_ROUTE_SELECTED_PROVIDER_HEADER,
     descriptor_route,
     flatten_headers,
     validate_document_extract_route,
@@ -51,14 +57,22 @@ from .documents import (
     DOCUMENT_RESOURCE_SCHEMA,
     DocumentConverterProtocol,
 )
+from .pdf_ocr_contracts import (
+    HOSTED_VLM_OCR_BASE_URL_ENV,
+    HOSTED_VLM_OCR_OPENROUTER_BASE_URL,
+    HOSTED_VLM_OCR_OPENROUTER_PROVIDER,
+)
 from .pdf_ocr import (
     PDF_OCR_SHARD_RESULT_SCHEMA,
     PdfOcrShardWorkerProtocol,
     build_pdf_ocr_shard_result_table,
 )
+from .pdf_ocr_ocr2.config import ocr2_client_config_from_env
+from .pdf_ocr_ocr2.env import env_value, openrouter_headers, resolve_openrouter_api_key
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from .pdf_ocr_ocr2.config import Ocr2ClientConfig
 
 
 class DocumentExtractMiddleware(flight.ServerMiddleware):
@@ -128,6 +142,7 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             table = build_document_extract_table(
                 headers,
                 converter=self._document_extract_converter(headers),
+                hosted_vlm_config=hosted_vlm_image_config_from_headers(headers),
             )
         except ValueError as exc:
             raise flight.FlightServerError(str(exc), extra_info=str(exc).encode("utf-8")) from exc
@@ -223,6 +238,12 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
         headers: Mapping[str, str],
     ) -> AudioShardWorkerProtocol | None:
         requested_worker = headers.get(WENDAO_AUDIO_WORKER_HEADER, "").strip()
+        route_decision = route_decision_headers(headers)
+        if route_decision:
+            requested_worker = route_decision.get(
+                WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER,
+                "missing-route-selected-backend-profile",
+            )
         hosted_overrides = hosted_audio_overrides_from_headers(headers)
         if not requested_worker and not hosted_overrides:
             return self._audio_worker
@@ -246,6 +267,17 @@ def _warm_document_arrow_runtime() -> None:
 def hosted_audio_overrides_from_headers(
     headers: Mapping[str, str],
 ) -> dict[str, str]:
+    route_decision = route_decision_headers(headers)
+    if route_decision.get(WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER) in {
+        "hosted-audio-transcript-v1",
+        "hosted",
+    }:
+        overrides = {
+            AUDIO_HOSTED_PROVIDER_ENV: route_decision.get(WENDAO_ROUTE_SELECTED_PROVIDER_HEADER, ""),
+            AUDIO_HOSTED_MODEL_ENV: route_decision.get(WENDAO_ROUTE_SELECTED_MODEL_HEADER, ""),
+        }
+        return {key: value.strip() for key, value in overrides.items() if value and value.strip()}
+
     overrides = {
         AUDIO_HOSTED_PROVIDER_ENV: headers.get(WENDAO_AUDIO_HOSTED_PROVIDER_HEADER, ""),
         AUDIO_HOSTED_BASE_URL_ENV: headers.get(WENDAO_AUDIO_HOSTED_BASE_URL_HEADER, ""),
@@ -253,3 +285,42 @@ def hosted_audio_overrides_from_headers(
         AUDIO_HOSTED_MODEL_ENV: headers.get(WENDAO_AUDIO_HOSTED_MODEL_HEADER, ""),
     }
     return {key: value.strip() for key, value in overrides.items() if value and value.strip()}
+
+
+def hosted_vlm_image_config_from_headers(
+    headers: Mapping[str, str],
+) -> Ocr2ClientConfig | None:
+    """Build hosted-image config from Gateway model-route metadata."""
+
+    route_decision = route_decision_headers(headers)
+    if (
+        route_decision.get(WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER)
+        != DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
+    ):
+        return None
+
+    provider = route_decision.get(WENDAO_ROUTE_SELECTED_PROVIDER_HEADER, "").strip()
+    model = route_decision.get(WENDAO_ROUTE_SELECTED_MODEL_HEADER, "").strip()
+    if not provider:
+        raise ValueError("Gateway image route decision missing selected provider")
+    if not model:
+        raise ValueError("Gateway image route decision missing selected model")
+
+    base_config = ocr2_client_config_from_env()
+    if provider == HOSTED_VLM_OCR_OPENROUTER_PROVIDER:
+        return replace(
+            base_config,
+            base_url=env_value(
+                HOSTED_VLM_OCR_BASE_URL_ENV,
+                HOSTED_VLM_OCR_OPENROUTER_BASE_URL,
+            ),
+            model=model,
+            api_key=resolve_openrouter_api_key(),
+            extra_headers=openrouter_headers(),
+        )
+    if provider == "openai-compatible":
+        return replace(base_config, model=model)
+    raise ValueError(
+        f"unsupported Gateway image route selected provider `{provider}`; "
+        "supported values: openai-compatible, openrouter"
+    )

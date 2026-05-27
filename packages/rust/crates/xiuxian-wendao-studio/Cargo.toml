@@ -16,6 +16,7 @@ studio = [
   "http-router",
   "flight-transport",
   "local-runtime",
+  "dep:xiuxian-llm",
 ]
 zhenfa-router = [
   "studio",
@@ -148,6 +149,7 @@ document-extract-legacy-office = [
 document-extract-audio-shards = [
   "studio",
   "dep:sha2",
+  "dep:xiuxian-llm",
   "dep:xiuxian-qianji",
   "dep:xiuxian-wendao-attachments",
   "xiuxian-wendao-attachments/foyer-artifact-cache",
@@ -220,6 +222,7 @@ xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
 xiuxian-io = { path = "../xiuxian-io", optional = true }
+xiuxian-llm = { path = "../xiuxian-llm", default-features = false, features = ["model-routing"], optional = true }
 xiuxian-qianji = { path = "../xiuxian-qianji", default-features = false, optional = true }
 
 anyhow = { workspace = true, optional = true }

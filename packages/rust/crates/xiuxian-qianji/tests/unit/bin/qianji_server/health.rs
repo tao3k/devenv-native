@@ -91,6 +91,26 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
     assert!(
         capabilities
             .iter()
+            .any(|capability| capability == "qianji.control.diagnostics"),
+        "capabilities should include control diagnostics query: {body}"
+    );
+    #[cfg(feature = "valkey")]
+    assert!(
+        capabilities
+            .iter()
+            .any(|capability| capability == "qianji.control.recovery.apply"),
+        "capabilities should include control recovery apply when Valkey hot-state is compiled: {body}"
+    );
+    #[cfg(not(feature = "valkey"))]
+    assert!(
+        capabilities
+            .iter()
+            .all(|capability| capability != "qianji.control.recovery.apply"),
+        "capabilities should not advertise control recovery apply without Valkey hot-state: {body}"
+    );
+    assert!(
+        capabilities
+            .iter()
             .any(|capability| capability == "flowhub.scenarios"),
         "capabilities should include Flowhub registry: {body}"
     );

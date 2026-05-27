@@ -37,26 +37,43 @@ async fn capabilities() -> Json<QianjiServerCapabilitiesResponse> {
     Json(QianjiServerCapabilitiesResponse {
         service: "qianji-server",
         checkpoint_default_backend: "valkey",
-        capabilities: &[
-            "health.healthz",
-            "health.readyz",
-            "flowhub.scenarios",
-            "bpmn.workflow.start",
-            "bpmn.workflow.resume",
-            "bpmn.workflow.status",
-            "bpmn.workflow.cancel",
-            "bpmn.workflow.events.poll",
-            "bpmn.workflow.task.complete",
-            "bpmn.workflow.task.complete-batch",
-            "bpmn.workflow.task.fail",
-            "bpmn.workflow.activity-evidence",
-            "bpmn.workflow.task.claim",
-            "bpmn.workflow.task.release",
-            "qianji.control.history",
-            "qianji.control.summary",
-            "qianji.control.recovery",
-        ],
+        capabilities: qianji_server_capabilities(),
     })
+}
+
+fn qianji_server_capabilities() -> Vec<&'static str> {
+    let mut capabilities = vec![
+        "health.healthz",
+        "health.readyz",
+        "flowhub.scenarios",
+        "bpmn.workflow.start",
+        "bpmn.workflow.resume",
+        "bpmn.workflow.status",
+        "bpmn.workflow.cancel",
+        "bpmn.workflow.events.poll",
+        "bpmn.workflow.task.complete",
+        "bpmn.workflow.task.complete-batch",
+        "bpmn.workflow.task.fail",
+        "bpmn.workflow.activity-evidence",
+        "bpmn.workflow.task.claim",
+        "bpmn.workflow.task.release",
+        "qianji.control.history",
+        "qianji.control.summary",
+        "qianji.control.recovery",
+        "qianji.control.diagnostics",
+    ];
+    capabilities.extend(qianji_server_valkey_capabilities());
+    capabilities
+}
+
+#[cfg(feature = "valkey")]
+fn qianji_server_valkey_capabilities() -> [&'static str; 1] {
+    ["qianji.control.recovery.apply"]
+}
+
+#[cfg(not(feature = "valkey"))]
+fn qianji_server_valkey_capabilities() -> [&'static str; 0] {
+    []
 }
 
 async fn readyz(State(state): State<QianjiServerHealthState>) -> Response {
@@ -120,7 +137,7 @@ struct QianjiServerHealthResponse {
 struct QianjiServerCapabilitiesResponse {
     service: &'static str,
     checkpoint_default_backend: &'static str,
-    capabilities: &'static [&'static str],
+    capabilities: Vec<&'static str>,
 }
 
 #[derive(Debug, Serialize)]

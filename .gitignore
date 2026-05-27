@@ -24,7 +24,7 @@ target
 # All content in these dirs is auto-generated and ignored
 .config/*
 .run/
-.cache/
+/.cache/
 .data/
 .bin/
 

@@ -4,8 +4,8 @@
 mod embedding_backend;
 #[path = "unit/embedding_openai_compat.rs"]
 mod embedding_openai_compat;
-#[path = "unit/feature_default_litellm_only.rs"]
-mod feature_default_litellm_only;
+#[path = "unit/feature_default_model_routing.rs"]
+mod feature_default_model_routing;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
 #[path = "unit/llm_acceleration_unit.rs"]
@@ -26,6 +26,9 @@ mod llm_openai_responses_transport;
 mod llm_runtime_profile;
 #[path = "unit/llm_vision.rs"]
 mod llm_vision;
+#[cfg(feature = "model-routing")]
+#[path = "unit/model_routing.rs"]
+mod model_routing;
 #[path = "unit/test_embedding_runtime.rs"]
 mod test_embedding_runtime;
 #[path = "unit/web_spider_unit.rs"]

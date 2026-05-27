@@ -10,24 +10,28 @@ from typing import TYPE_CHECKING
 
 import pyarrow as pa
 
+from .arrow_schema_contracts import ArrowSchemaColumn, build_arrow_schema
+
 if TYPE_CHECKING:
     from collections.abc import Iterator, Mapping
 
 DOCUMENT_TIMING_ARROW_CACHE_NAME = "_document_metrics.arrow"
 DOCUMENT_TIMING_SCHEMA_VERSION = "xiuxian_wendao.document_timing.v1"
+DOCUMENT_TIMING_TABLE = "document_timing"
 
-DOCUMENT_TIMING_SCHEMA = pa.schema(
-    [
-        pa.field("contractVersion", pa.utf8()),
-        pa.field("sourcePath", pa.utf8()),
-        pa.field("sourceSuffix", pa.utf8()),
-        pa.field("phase", pa.utf8()),
-        pa.field("elapsedMs", pa.float64()),
-        pa.field("status", pa.utf8()),
-        pa.field("detail", pa.utf8()),
-        pa.field("resourceRows", pa.int32()),
-        pa.field("structureRows", pa.int32()),
-    ]
+DOCUMENT_TIMING_SCHEMA = build_arrow_schema(
+    DOCUMENT_TIMING_TABLE,
+    (
+        ArrowSchemaColumn("contractVersion", pa.utf8()),
+        ArrowSchemaColumn("sourcePath", pa.utf8()),
+        ArrowSchemaColumn("sourceSuffix", pa.utf8()),
+        ArrowSchemaColumn("phase", pa.utf8()),
+        ArrowSchemaColumn("elapsedMs", pa.float64()),
+        ArrowSchemaColumn("status", pa.utf8()),
+        ArrowSchemaColumn("detail", pa.utf8()),
+        ArrowSchemaColumn("resourceRows", pa.int32()),
+        ArrowSchemaColumn("structureRows", pa.int32()),
+    ),
 )
 
 
@@ -143,10 +147,7 @@ def document_timing_to_table(
     """Convert timing rows to the stable Arrow schema."""
 
     return pa.Table.from_pylist(
-        [
-            asdict(row) if isinstance(row, DocumentTimingRow) else dict(row)
-            for row in rows
-        ],
+        [asdict(row) if isinstance(row, DocumentTimingRow) else dict(row) for row in rows],
         schema=DOCUMENT_TIMING_SCHEMA,
     )
 

@@ -6,15 +6,18 @@ use axum::{
 };
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tempfile::TempDir;
 use tower::util::ServiceExt;
 use xiuxian_qianji_control::{
-    ActivityStatus, ControlEventKind, ControlLedger, DuckDbControlLedger, RunId,
+    ActivityStatus, ControlEventKind, ControlLedger, DuckDbControlLedger, InMemoryHotStateStore,
+    RunId,
 };
 
 use super::support::{must_ok, write_file};
 use crate::qianji_server_cli::cli::QianjiServerServeCommand;
-use crate::qianji_server_cli::run::build_qianji_server_router;
+use crate::qianji_server_cli::run::{build_qianji_server_router, build_workflow_control_service};
+use crate::{QianjiBpmnHostBridge, QianjiBpmnWorkflowHttpState, qianji_bpmn_workflow_router};
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_http_completion_records_host_work_activity_evidence() {
@@ -67,8 +70,153 @@ async fn qianji_server_http_failure_records_host_work_activity_evidence_without_
     assert_failed_control_history(&proof).await;
     assert_failed_control_summary(&proof).await;
     assert_failed_control_recovery(&proof).await;
+    assert_failed_control_diagnostics(&proof).await;
     assert_failed_activity_evidence(&proof);
     assert_workflow_still_blocked(&proof).await;
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn qianji_server_http_recovery_apply_records_bounded_attempt() {
+    let proof = start_mapped_service_evidence_workflow_with_recovery_hot_state(
+        "qianji_server_host_work_recovery_apply",
+    )
+    .await;
+    let fail_payload = service_failure_payload(&proof);
+
+    assert_failure_route_preserves_checkpoint(&proof, &fail_payload).await;
+
+    let apply_response = proof
+        .router
+        .clone()
+        .oneshot(post_json(
+            format!(
+                "/control/runs/bpmn.workflow.{}/recovery/apply",
+                proof.instance_id
+            )
+            .as_str(),
+            &json!({
+                "occurred_at_ms": 99_000,
+                "attempt": 1,
+                "reason": "operator requested bounded recovery",
+                "max_attempts": 1
+            }),
+        ))
+        .await
+        .unwrap_or_else(|error| panic!("control recovery apply route should respond: {error}"));
+    let status = apply_response.status();
+    let body = response_json(apply_response).await;
+
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "control recovery apply route should succeed: {body}"
+    );
+    assert_eq!(
+        body["run_id"],
+        format!("bpmn.workflow.{}", proof.instance_id)
+    );
+    assert_eq!(
+        body["application"]["action_results"][0]["result"]["status"],
+        "not_applicable"
+    );
+    assert_eq!(
+        body["application"]["action_results"][0]["result"]["reason"],
+        "unsupported_action"
+    );
+    assert_eq!(body["diagnostics"]["summary"]["event_count"], 5);
+    assert_eq!(
+        body["diagnostics"]["recovery"]["summary"],
+        body["diagnostics"]["summary"]["recovery"]
+    );
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn qianji_server_http_recovery_apply_requires_hot_state() {
+    let proof = start_mapped_service_evidence_workflow_with_control_ledger_only(
+        "qianji_server_host_work_recovery_apply_no_hot_state",
+    )
+    .await;
+    let fail_payload = service_failure_payload(&proof);
+
+    assert_failure_route_preserves_checkpoint(&proof, &fail_payload).await;
+
+    let apply_response = proof
+        .router
+        .oneshot(post_json(
+            format!(
+                "/control/runs/bpmn.workflow.{}/recovery/apply",
+                proof.instance_id
+            )
+            .as_str(),
+            &json!({
+                "occurred_at_ms": 99_000,
+                "attempt": 1,
+                "reason": "operator requested bounded recovery",
+                "max_attempts": 1
+            }),
+        ))
+        .await
+        .unwrap_or_else(|error| panic!("control recovery apply route should respond: {error}"));
+    let status = apply_response.status();
+    let body = response_json(apply_response).await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["code"], "control_hot_state_unavailable");
+}
+
+#[tokio::test(flavor = "current_thread")]
+async fn qianji_server_http_recovery_apply_rejects_invalid_policy() {
+    let proof = start_mapped_service_evidence_workflow_with_recovery_hot_state(
+        "qianji_server_host_work_recovery_apply_invalid_policy",
+    )
+    .await;
+    let uri = format!(
+        "/control/runs/bpmn.workflow.{}/recovery/apply",
+        proof.instance_id
+    );
+
+    let blank_reason_response = proof
+        .router
+        .clone()
+        .oneshot(post_json(
+            uri.as_str(),
+            &json!({
+                "occurred_at_ms": 99_000,
+                "attempt": 1,
+                "reason": " ",
+                "max_attempts": 1
+            }),
+        ))
+        .await
+        .unwrap_or_else(|error| {
+            panic!("blank reason recovery apply route should respond: {error}")
+        });
+    let blank_reason_status = blank_reason_response.status();
+    let blank_reason_body = response_json(blank_reason_response).await;
+
+    assert_eq!(blank_reason_status, StatusCode::BAD_REQUEST);
+    assert_eq!(blank_reason_body["code"], "invalid_recovery_reason");
+
+    let zero_attempts_response = proof
+        .router
+        .oneshot(post_json(
+            uri.as_str(),
+            &json!({
+                "occurred_at_ms": 99_000,
+                "attempt": 1,
+                "reason": "operator requested bounded recovery",
+                "max_attempts": 0
+            }),
+        ))
+        .await
+        .unwrap_or_else(|error| {
+            panic!("zero max attempts recovery apply route should respond: {error}")
+        });
+    let zero_attempts_status = zero_attempts_response.status();
+    let zero_attempts_body = response_json(zero_attempts_response).await;
+
+    assert_eq!(zero_attempts_status, StatusCode::BAD_REQUEST);
+    assert_eq!(zero_attempts_body["code"], "invalid_recovery_policy");
 }
 
 fn service_failure_payload(proof: &ActivityEvidenceProof) -> Value {
@@ -197,6 +345,33 @@ async fn assert_failed_control_recovery(proof: &ActivityEvidenceProof) {
     );
 }
 
+async fn assert_failed_control_diagnostics(proof: &ActivityEvidenceProof) {
+    let diagnostics_response = proof
+        .router
+        .clone()
+        .oneshot(get(format!(
+            "/control/runs/bpmn.workflow.{}/diagnostics",
+            proof.instance_id
+        )
+        .as_str()))
+        .await
+        .unwrap_or_else(|error| panic!("control diagnostics route should respond: {error}"));
+    let diagnostics_body = response_json(diagnostics_response).await;
+    assert_eq!(
+        diagnostics_body["run_id"],
+        format!("bpmn.workflow.{}", proof.instance_id)
+    );
+    assert_eq!(diagnostics_body["diagnostics"]["summary"]["event_count"], 4);
+    assert_eq!(
+        diagnostics_body["diagnostics"]["recovery"]["summary"],
+        diagnostics_body["diagnostics"]["summary"]["recovery"]
+    );
+    assert_eq!(
+        diagnostics_body["diagnostics"]["recovery"]["plan"]["actions"][0]["action"],
+        "review_retryable_activity"
+    );
+}
+
 fn assert_failed_activity_evidence(proof: &ActivityEvidenceProof) {
     let (event_kinds, activity_status) =
         replay_activity_evidence(&proof.ledger_path, proof.instance_id);
@@ -252,9 +427,39 @@ async fn qianji_server_http_control_history_requires_configured_ledger() {
     assert_eq!(body["code"], "control_ledger_unavailable");
 
     let response = router
+        .clone()
         .oneshot(get("/control/runs/bpmn.workflow.missing/recovery"))
         .await
         .unwrap_or_else(|error| panic!("control recovery route should respond: {error}"));
+    let status = response.status();
+    let body = response_json(response).await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["code"], "control_ledger_unavailable");
+
+    let response = router
+        .clone()
+        .oneshot(get("/control/runs/bpmn.workflow.missing/diagnostics"))
+        .await
+        .unwrap_or_else(|error| panic!("control diagnostics route should respond: {error}"));
+    let status = response.status();
+    let body = response_json(response).await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["code"], "control_ledger_unavailable");
+
+    let response = router
+        .oneshot(post_json(
+            "/control/runs/bpmn.workflow.missing/recovery/apply",
+            &json!({
+                "occurred_at_ms": 1,
+                "attempt": 1,
+                "reason": "operator requested bounded recovery",
+                "max_attempts": 1
+            }),
+        ))
+        .await
+        .unwrap_or_else(|error| panic!("control recovery apply route should respond: {error}"));
     let status = response.status();
     let body = response_json(response).await;
 
@@ -311,6 +516,37 @@ struct ActivityEvidenceProof {
 async fn start_mapped_service_evidence_workflow(
     instance_id: &'static str,
 ) -> ActivityEvidenceProof {
+    start_mapped_service_evidence_workflow_with_router(
+        instance_id,
+        server_router_with_valkey_and_control_ledger,
+    )
+    .await
+}
+
+async fn start_mapped_service_evidence_workflow_with_recovery_hot_state(
+    instance_id: &'static str,
+) -> ActivityEvidenceProof {
+    start_mapped_service_evidence_workflow_with_router(
+        instance_id,
+        server_router_with_valkey_control_ledger_and_in_memory_hot_state,
+    )
+    .await
+}
+
+async fn start_mapped_service_evidence_workflow_with_control_ledger_only(
+    instance_id: &'static str,
+) -> ActivityEvidenceProof {
+    start_mapped_service_evidence_workflow_with_router(
+        instance_id,
+        server_router_with_valkey_control_ledger_only,
+    )
+    .await
+}
+
+async fn start_mapped_service_evidence_workflow_with_router(
+    instance_id: &'static str,
+    router_builder: fn(PathBuf, String, PathBuf) -> Router,
+) -> ActivityEvidenceProof {
     let valkey = TestValkey::spawn()
         .await
         .unwrap_or_else(|error| panic!("valkey should start for qianji-server proof: {error}"));
@@ -318,7 +554,7 @@ async fn start_mapped_service_evidence_workflow(
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let bpmn_path = write_mapped_service_boundary_bpmn(temp_dir.path());
     let ledger_path = temp_dir.path().join("qianji-control.duckdb");
-    let router = server_router_with_valkey_and_control_ledger(
+    let router = router_builder(
         temp_dir.path().join("unused-flowhub"),
         valkey.url().to_string(),
         ledger_path.clone(),
@@ -446,6 +682,57 @@ fn server_router_with_valkey_and_control_ledger(
     must_ok(
         build_qianji_server_router(&command),
         "qianji-server router should build with explicit control ledger",
+    )
+}
+
+fn server_router_with_valkey_control_ledger_and_in_memory_hot_state(
+    flowhub_root: PathBuf,
+    valkey_url: String,
+    control_ledger_path: PathBuf,
+) -> Router {
+    let command = QianjiServerServeCommand {
+        bind_addr: None,
+        valkey_url: Some(valkey_url),
+        require_valkey_ready: None,
+        flowhub_root: Some(flowhub_root),
+        control_ledger_path: Some(control_ledger_path.clone()),
+    };
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&control_ledger_path),
+        "control ledger should open for recovery apply test",
+    );
+    qianji_bpmn_workflow_router(
+        QianjiBpmnWorkflowHttpState::new(
+            build_workflow_control_service(&command),
+            QianjiBpmnHostBridge::default(),
+        )
+        .with_activity_evidence_ledger(Arc::new(ledger))
+        .with_recovery_hot_state(Arc::new(InMemoryHotStateStore::new())),
+    )
+}
+
+fn server_router_with_valkey_control_ledger_only(
+    flowhub_root: PathBuf,
+    valkey_url: String,
+    control_ledger_path: PathBuf,
+) -> Router {
+    let command = QianjiServerServeCommand {
+        bind_addr: None,
+        valkey_url: Some(valkey_url),
+        require_valkey_ready: None,
+        flowhub_root: Some(flowhub_root),
+        control_ledger_path: Some(control_ledger_path.clone()),
+    };
+    let ledger = must_ok(
+        DuckDbControlLedger::open(&control_ledger_path),
+        "control ledger should open for recovery apply hot-state guard test",
+    );
+    qianji_bpmn_workflow_router(
+        QianjiBpmnWorkflowHttpState::new(
+            build_workflow_control_service(&command),
+            QianjiBpmnHostBridge::default(),
+        )
+        .with_activity_evidence_ledger(Arc::new(ledger)),
     )
 }
 

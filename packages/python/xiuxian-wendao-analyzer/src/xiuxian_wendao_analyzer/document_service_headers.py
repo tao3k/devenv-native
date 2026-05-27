@@ -16,6 +16,13 @@ from .document_service_routes import (
     WENDAO_DOCUMENT_EXTRACT_CONVERTER_CACHE_ENV,
     WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
+    WENDAO_ROUTE_ID_HEADER,
+    WENDAO_ROUTE_MODALITY_HEADER,
+    WENDAO_ROUTE_PRECISION_TIER_HEADER,
+    WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER,
+    WENDAO_ROUTE_SELECTED_MODEL_HEADER,
+    WENDAO_ROUTE_SELECTED_PROVIDER_HEADER,
+    WENDAO_ROUTE_TASK_KIND_HEADER,
 )
 
 
@@ -81,3 +88,22 @@ def document_extract_page_range(
         raise ValueError("document extract page range must satisfy 1 <= start <= end")
     return (start, end)
 
+
+def route_decision_headers(headers: dict[str, str] | Any) -> dict[str, str]:
+    """Return Wendao model route decision headers supplied by Gateway."""
+
+    keys = (
+        WENDAO_ROUTE_ID_HEADER,
+        WENDAO_ROUTE_TASK_KIND_HEADER,
+        WENDAO_ROUTE_MODALITY_HEADER,
+        WENDAO_ROUTE_SELECTED_PROVIDER_HEADER,
+        WENDAO_ROUTE_SELECTED_MODEL_HEADER,
+        WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER,
+        WENDAO_ROUTE_PRECISION_TIER_HEADER,
+    )
+    values: dict[str, str] = {}
+    for key in keys:
+        value = headers.get(key, "")
+        if value and value.strip():
+            values[key] = value.strip()
+    return values

@@ -233,7 +233,8 @@ that the effective Valkey checkpoint backend responds to `PING`, and
 running process. Workflow-control clients should use `/capabilities` to reject
 stale qianji-server processes before relying on recently added routes such as
 `bpmn.workflow.task.complete-batch`, `bpmn.workflow.task.fail`, or
-`bpmn.workflow.activity-evidence`, or `qianji.control.history`.
+`bpmn.workflow.activity-evidence`, `qianji.control.history`, or
+`qianji.control.recovery.apply`.
 `--control-ledger <path>` enables an optional DuckDB-backed append-only control
 ledger for server-owned host-work ActivityTask evidence. With that ledger
 configured, `GET /control/runs/{run_id}/history` returns the in-process
@@ -243,8 +244,13 @@ append-only event timeline for one control run, and
 signal, cost, and recovery counters without parsing raw events.
 `GET /control/runs/{run_id}/recovery` returns the replay-derived
 `RunRecoverySnapshot`, including ordered recovery actions, without applying
-those actions. Omitted ledgers keep existing HTTP behavior unchanged and make
-these read routes return service-unavailable.
+those actions. `GET /control/runs/{run_id}/diagnostics` packages the same
+summary and recovery projection from one durable event replay. When the server
+is built with the Valkey feature and started with a recovery hot-state store,
+`POST /control/runs/{run_id}/recovery/apply` applies the replay-derived plan
+through the bounded `xiuxian-qianji-control` applier and returns the application
+trace plus diagnostics. Omitted ledgers or hot-state stores keep existing HTTP
+behavior unchanged and make these control routes return service-unavailable.
 The `qianji-server` test suite is mounted through the library test tree because
 it exercises private server adapters under `src/qianji_server_cli/`. Use
 `direnv exec . rtk --ultra-compact cargo test -p xiuxian-qianji --lib
@@ -680,8 +686,13 @@ operator-safe summary, including failed activity counters for recovery UI and
 subagent-runner status checks. `GET /control/runs/{run_id}/recovery` exposes
 the read-only recovery plan derived from the same event stream, such as retry
 review or terminal escalation actions, but does not enqueue work, retry
-activities, fire timers, reclaim leases, or mutate hot state.
-delete checkpoints, or change the completion payload schemas.
+activities, fire timers, reclaim leases, mutate hot state, delete checkpoints,
+or change the completion payload schemas. The diagnostics route
+`GET /control/runs/{run_id}/diagnostics` returns the combined operator summary
+and recovery package from one replay. The recovery apply route
+`POST /control/runs/{run_id}/recovery/apply` is the opt-in mutation surface for
+the bounded recovery applier and requires both the control ledger and a
+configured recovery hot-state store.
 The same `workdir` surface now also exposes a thin bounded markdown query
 wrapper over Wendao SQL, so library callers can execute exact SQL retrieval
 against `blueprint/` plus `plan/` without changing the `qianji` CLI surface.

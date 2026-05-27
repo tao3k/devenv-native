@@ -10,6 +10,7 @@ PROCESS_ROOT = PROJECT_ROOT / "scripts/runtime/processes"
 ENTRYPOINT_PROCESSES = (
     "carfox",
     "valkey",
+    "vllm-sr",
     "wendao-analyzer",
     "wendao-frontend",
     "wendao-gateway",
@@ -20,6 +21,7 @@ ENTRYPOINT_PROCESSES = (
 
 HEALTHCHECK_PROCESSES = (
     "valkey",
+    "vllm-sr",
     "wendao-analyzer",
     "wendao-frontend",
     "wendao-gateway",
@@ -178,6 +180,28 @@ def test_process_nix_exposes_code_parser_summary_service() -> None:
     assert 'exec = processEntrypoint "wendaocodeparser-parser-summary";' in process_nix
     assert 'exec.command = processHealthcheck "wendaocodeparser-parser-summary";' in process_nix
     assert "wendaosearch-parser-summary = {" not in process_nix
+
+
+def test_process_nix_exposes_vllm_sr_model_routing_plane() -> None:
+    process_nix = PROCESS_NIX.read_text(encoding="utf-8")
+
+    assert "vllm-sr = {" in process_nix
+    assert 'exec = processEntrypoint "vllm-sr";' in process_nix
+    assert 'exec.command = processHealthcheck "vllm-sr";' in process_nix
+    assert 'vllm-sr.condition = "process_healthy";' in process_nix
+
+
+def test_vllm_sr_entrypoint_uses_required_mode_gate() -> None:
+    entrypoint = (PROCESS_ROOT / "vllm-sr" / "entrypoint.sh").read_text(encoding="utf-8")
+    healthcheck = (PROCESS_ROOT / "vllm-sr" / "healthcheck.sh").read_text(encoding="utf-8")
+
+    assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-vllm-sr}"' in entrypoint
+    assert "unsupported WENDAO_MODEL_ROUTING_MODE" in entrypoint
+    assert "vllm-sr serve --config" in entrypoint
+    assert 'CONFIG_PATH="${WENDAO_VLLM_SR_CONFIG_PATH:-$PROJECT_CONFIG_ROOT/vllm-sr/config.yaml}"' in entrypoint
+    assert "Wendao model routing mode is deterministic" in entrypoint
+    assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-vllm-sr}"' in healthcheck
+    assert "socket.create_connection" in healthcheck
 
 
 def test_code_parser_summary_entrypoint_targets_wendaocodeparser_runtime() -> None:

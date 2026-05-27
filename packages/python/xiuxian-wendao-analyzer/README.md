@@ -41,6 +41,7 @@ It does not own:
 2. local rerank semantics
 3. Flight metadata assembly
 4. any Python-hosted shadow of Rust runtime logic
+5. model/provider routing policy
 
 ## Current Beta Surface
 
@@ -81,7 +82,9 @@ The current beta exports:
     extraction profile on the primary document resource schema
 32. `wendao-image-ocr-jsonl` and `wendao-docling-document-jsonl` as
     queue-keyed source-contract evidence adapters
-33. summary helpers over the same rows, table, query, and repo-search runs
+33. route-decision metadata consumption for Gateway-selected audio, image,
+    OCR/VLM, and hosted backend execution
+34. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
 Docling's XBRL support so the documented XML/XBRL coverage is real, not only a
@@ -222,6 +225,8 @@ until reviewed.
 
 For selected private review clips, the Parquet review table is the canonical
 machine data plane and the Org checklist is the human proofreading surface.
+The review table schema is built through the analyzer Arrow schema contract
+helper and carries `wendao.table=audio_reference_selection_review` metadata.
 Every reviewed row must be marked `DONE`, must carry
 `:REFERENCE_STATUS: curated`, and must place the human transcript in that row's
 `reference_text` block before conversion. Each Org row also includes the model
@@ -414,6 +419,13 @@ The returned Arrow table uses the stable document resource schema:
 8. `status`
 9. `elementId`
 
+The analyzer builds the resource, structure, OCR shard, audio shard, and
+document timing `pyarrow.Schema` values through its local Arrow schema contract
+helper, mirroring the db-store contract pattern and attaching `wendao.table`
+metadata. Python keeps Docling adaptation, worker invocation, and row
+materialization semantics; db-store remains the Rust storage/schema validation
+boundary.
+
 Each extraction emits a main markdown `document` row and may emit structured
 rows when Docling exposes reusable content, including `table`, `image`,
 `formula`, `code`, `docling_json`, `audio`, and `subtitle`. Reusable rows are
@@ -438,12 +450,13 @@ Docling when coverage is incomplete.
 
 Standalone image attachments can use the same primary document route with the
 `hosted-vlm-image-extract-v1` profile. The analyzer sends the image to the
-configured OpenAI-compatible hosted VLM endpoint, normalizes the response into
-one Markdown `document` resource row, writes the usual `_resources.arrow` and
-`_structure.arrow` sidecars, and returns table-shaped error rows for missing
-configuration, malformed responses, request failures, unsupported image
-formats, or empty recognized text. Rust Gateway remains responsible for source
-classification and default profile selection; Python only performs model
+Gateway-selected OpenAI-compatible hosted VLM endpoint, normalizes the response
+into one Markdown `document` resource row, writes the usual `_resources.arrow`
+and `_structure.arrow` sidecars, and returns table-shaped error rows for
+missing selected model/provider metadata in Gateway-routed requests, malformed
+responses, request failures, unsupported image formats, or empty recognized
+text. Rust Gateway remains responsible for source classification, default
+profile selection, and provider/model routing; Python only performs model
 invocation and resource-row normalization.
 
 For source-contract image evidence tasks that are not PDF page shards, the

@@ -22,11 +22,14 @@ pub use client::{
     ChatChoice, ChatMessage, ChatRequest, ChatResponse, ContentPart, ImageUrlContent, LlmClient,
     MessageContent, OpenAIClient, OpenAICompatibleClient, OpenAIWireApi,
 };
+#[cfg(feature = "provider-litellm")]
 pub(crate) use error::sanitize_user_visible;
 pub use error::{HttpContentType, LlmError, LlmResult};
 pub use llm_backend::{LlmBackendKind, parse_llm_backend_kind};
 #[cfg(feature = "provider-litellm")]
 pub use multimodal::{Base64ImageSource, ImageMediaType, resolve_image_source_to_base64};
+#[cfg(feature = "model-routing")]
+pub use runtime_profile::runtime_profile_env_with_model_decision;
 pub use runtime_profile::{
     LlmProviderProfileInput, LlmRuntimeDefaults, LlmRuntimeProfileEnv, LlmRuntimeProfileInput,
     ResolvedLlmRuntimeProfile, resolve_openai_runtime_profile,

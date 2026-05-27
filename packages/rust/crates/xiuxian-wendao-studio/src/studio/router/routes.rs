@@ -140,6 +140,10 @@ pub fn studio_routes() -> Router<Arc<GatewayState>> {
             get(handlers::document_extract_jobs::get_document_extract_job),
         )
         .route(
+            handlers::model_route::MODEL_ROUTE_CHAT_ROUTE,
+            post(handlers::model_route::admit_chat_route),
+        )
+        .route(
             handlers::episteme::EPISTEME_SOURCE_CONTRACT_RUN_PLAN_ROUTE,
             post(handlers::episteme::plan_episteme_extraction_run),
         )

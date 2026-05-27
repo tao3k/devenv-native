@@ -296,7 +296,7 @@ fn is_audio_source_path(source_path: &Path) -> bool {
     )
 }
 
-fn is_image_source_path(source_path: &Path) -> bool {
+pub(super) fn is_image_source_path(source_path: &Path) -> bool {
     let Some(extension) = source_path
         .extension()
         .and_then(|extension| extension.to_str())

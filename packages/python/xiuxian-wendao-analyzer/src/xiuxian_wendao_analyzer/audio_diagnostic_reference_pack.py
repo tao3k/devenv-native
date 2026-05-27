@@ -15,6 +15,10 @@ from typing import TYPE_CHECKING
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from xiuxian_wendao_analyzer.arrow_schema_contracts import (
+    ArrowSchemaColumn,
+    build_arrow_schema,
+)
 from xiuxian_wendao_analyzer.audio_diagnostic_media_probe import (
     audio_duration_seconds,
     resolve_ffmpeg_executable,
@@ -35,21 +39,23 @@ REFERENCE_SELECTION_PACK_SCHEMA = "xiuxian_wendao.audio_reference_selection_pack
 REFERENCE_SELECTION_MODEL_REVIEW_SCHEMA = "xiuxian_wendao.audio_reference_selection_model_review.v1"
 REFERENCE_SELECTION_REVIEW_ORG_SCHEMA = "xiuxian_wendao.audio_reference_selection_review_org.v1"
 REFERENCE_SELECTION_REVIEW_TABLE_SCHEMA = "xiuxian_wendao.audio_reference_selection_review.v1"
+REFERENCE_SELECTION_REVIEW_TABLE_NAME = "audio_reference_selection_review"
 
-REFERENCE_SELECTION_REVIEW_TABLE = pa.schema(
-    [
-        pa.field("contractVersion", pa.utf8()),
-        pa.field("clipPath", pa.utf8()),
-        pa.field("source", pa.utf8()),
-        pa.field("sourceId", pa.utf8()),
-        pa.field("chunkIndex", pa.int32()),
-        pa.field("startSeconds", pa.float64()),
-        pa.field("durationSeconds", pa.float64()),
-        pa.field("reviewStatus", pa.utf8()),
-        pa.field("selectionReason", pa.utf8()),
-        pa.field("referenceStatus", pa.utf8()),
-        pa.field("text", pa.utf8()),
-    ]
+REFERENCE_SELECTION_REVIEW_TABLE = build_arrow_schema(
+    REFERENCE_SELECTION_REVIEW_TABLE_NAME,
+    (
+        ArrowSchemaColumn("contractVersion", pa.utf8()),
+        ArrowSchemaColumn("clipPath", pa.utf8()),
+        ArrowSchemaColumn("source", pa.utf8()),
+        ArrowSchemaColumn("sourceId", pa.utf8()),
+        ArrowSchemaColumn("chunkIndex", pa.int32()),
+        ArrowSchemaColumn("startSeconds", pa.float64()),
+        ArrowSchemaColumn("durationSeconds", pa.float64()),
+        ArrowSchemaColumn("reviewStatus", pa.utf8()),
+        ArrowSchemaColumn("selectionReason", pa.utf8()),
+        ArrowSchemaColumn("referenceStatus", pa.utf8()),
+        ArrowSchemaColumn("text", pa.utf8()),
+    ),
 )
 
 

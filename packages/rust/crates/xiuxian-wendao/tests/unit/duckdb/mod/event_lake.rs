@@ -6,7 +6,10 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use chrono::{TimeZone, Utc};
 use serde_json::json;
-use xiuxian_db_store::duckdb::{DuckLakeCatalog, DuckLakeDataPath};
+use xiuxian_db_store::{
+    WENDAO_TABLE_METADATA_KEY,
+    duckdb::{DuckLakeCatalog, DuckLakeDataPath},
+};
 
 use super::{TestResult, in_memory_search_duckdb_runtime};
 use crate::duckdb::{
@@ -39,6 +42,14 @@ fn wendao_event_lake_schema_sql_and_batch_contract_are_stable() -> TestResult {
     .map_err(std::io::Error::other)?;
 
     assert_eq!(batch.schema().as_ref(), wendao_event_schema().as_ref());
+    assert_eq!(
+        batch
+            .schema()
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some("wendao_event_lake_events")
+    );
     assert_eq!(batch.num_rows(), 1);
     let payloads = batch
         .column(3)

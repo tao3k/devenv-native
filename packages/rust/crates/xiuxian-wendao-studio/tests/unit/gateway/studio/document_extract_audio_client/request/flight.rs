@@ -6,6 +6,7 @@ use crate::studio::document_extract_audio_client::{
 use crate::unit::gateway::studio::document_extract_audio_client::support::{
     ObservedAudioShardWindow, sample_input, spawn_audio_shard_service,
 };
+use xiuxian_llm::model_routing::{WendaoModelDecision, WendaoRouteIntent};
 use xiuxian_wendao_attachments::audio::{AudioShardResult, build_audio_shard_result_batch};
 
 #[tokio::test]
@@ -159,6 +160,76 @@ async fn audio_shard_flight_client_sends_backend_selection_headers() -> Result<(
     assert_eq!(
         observed.hosted_model_header.as_deref(),
         Some("xiaomi/mimo-v2.5")
+    );
+
+    server_handle.abort();
+    Ok(())
+}
+
+#[tokio::test]
+async fn audio_shard_flight_client_sends_model_route_decision_headers() -> Result<(), String> {
+    let input = sample_input();
+    let success = AudioShardResult::succeeded(&input, "audio text", 0.92);
+    let response_batch = build_audio_shard_result_batch(std::slice::from_ref(&success))?;
+    let observed = Arc::new(Mutex::new(None));
+    let (endpoint, server_handle) =
+        spawn_audio_shard_service(response_batch, Arc::clone(&observed)).await?;
+
+    let client = AudioShardFlightClient::connect(endpoint.as_str()).await?;
+    let response = client
+        .request_with_options(
+            std::slice::from_ref(&input),
+            &AudioShardFlightRequestOptions {
+                route_intent: Some(WendaoRouteIntent {
+                    task_kind: "attachment-extract".into(),
+                    modality: "audio".to_owned(),
+                    source_kind: "attachment".into(),
+                    precision_tier: "high".to_owned(),
+                    privacy_tier: "private".to_owned(),
+                    latency_budget_ms: 120_000,
+                    evidence_profile: "transcript".to_owned(),
+                    artifact_refs: vec!["artifact://audio/001".to_owned()],
+                }),
+                model_decision: Some(WendaoModelDecision {
+                    route_id: "route-audio-1".to_owned(),
+                    selected_provider: "openrouter".to_owned(),
+                    selected_model: "qwen/qwen3-asr-flash-2026-02-10".to_owned(),
+                    selected_backend_profile: "hosted-audio-transcript-v1".to_owned(),
+                    reasoning_policy: Some("none".to_owned()),
+                    route_trace: Some("matched audio card".to_owned()),
+                }),
+                ..AudioShardFlightRequestOptions::default()
+            },
+        )
+        .await?;
+
+    assert_eq!(response.results, vec![success]);
+    let observed = observed
+        .lock()
+        .map_err(|_| "observed request lock poisoned".to_owned())?
+        .clone()
+        .ok_or_else(|| "test service did not observe a request".to_owned())?;
+    assert_eq!(observed.route_id_header.as_deref(), Some("route-audio-1"));
+    assert_eq!(
+        observed.route_task_kind_header.as_deref(),
+        Some("attachment-extract")
+    );
+    assert_eq!(observed.route_modality_header.as_deref(), Some("audio"));
+    assert_eq!(
+        observed.route_selected_provider_header.as_deref(),
+        Some("openrouter")
+    );
+    assert_eq!(
+        observed.route_selected_model_header.as_deref(),
+        Some("qwen/qwen3-asr-flash-2026-02-10")
+    );
+    assert_eq!(
+        observed.route_selected_backend_profile_header.as_deref(),
+        Some("hosted-audio-transcript-v1")
+    );
+    assert_eq!(
+        observed.route_precision_tier_header.as_deref(),
+        Some("high")
     );
 
     server_handle.abort();
