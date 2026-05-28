@@ -233,8 +233,9 @@ that the effective Valkey checkpoint backend responds to `PING`, and
 running process. Workflow-control clients should use `/capabilities` to reject
 stale qianji-server processes before relying on recently added routes such as
 `bpmn.workflow.task.complete-batch`, `bpmn.workflow.task.fail`, or
-`bpmn.workflow.activity-evidence`, `qianji.control.bpmn-source.admit`,
-`qianji.control.bpmn-source`,
+`bpmn.workflow.activity-evidence`,
+`qianji.control.workflow-source.admit`,
+`qianji.control.bpmn-source.admit`, `qianji.control.bpmn-source`,
 `qianji.control.history`, `qianji.control.recovery.apply`, or
 `qianji.control.worker.openai-compatible-llm.run`.
 `--control-ledger <path>` enables an optional DuckDB-backed append-only control
@@ -248,15 +249,38 @@ old clients may still render their own projection, but promotion-grade BPMN
 markers should bind to the server-owned XML.
 Skill.md and natural-language workflow authoring follow the same server-owned
 boundary in product deployments. qianji-server owns the legal BPMN source
-admission path: `POST /control/bpmn-source/admit` accepts a candidate BPMN XML
-payload, runs qianji lint and parse checks, verifies the requested process id,
-and returns a server-owned `bpmn_path`/source ref for `/workflows/start`.
-Model-assisted draft generation through pi-agent-capable worker surfaces,
-qianji lint/repair, source ref persistence, control-run creation, and durable
-execution stay server-side. pi-wendao may expose the same capability through a
-CLI for fast local tests, but server-side wendao.ai must call qianji-server and
-render the server-owned BPMN source instead of compiling or repairing BPMN in
-the UI process.
+admission path. `POST /control/workflow-source/admit` accepts authoring source
+such as `text/markdown`, compiles it inside qianji-server, runs qianji lint and
+parse checks on the derived BPMN XML, verifies the requested process id, and
+returns a server-owned `bpmn_path`/source ref for `/workflows/start`.
+The first deterministic Markdown compiler admits explicit `## Step N: Title`
+sections only. Free-form Markdown returns `workflow_source_repair_required`
+until the server-owned Skill.md/pi-agent repair compiler is enabled; it is not
+silently downgraded to a one-node BPMN fallback.
+The request accepts `compiler_mode = "deterministic_markdown_step"` by default;
+`compiler_mode = "server_repair"` enters the server-owned repair path. The
+route requires the qianji-server durable control ledger and worker hot state;
+without those substrates it returns a substrate-specific service-unavailable
+error before writing any final admitted BPMN source. With durable substrates
+installed, qianji-server starts the embedded
+`qianji.workflow_source_repair.v1` BPMN repair workflow from
+`resources/workflows/workflow_source_repair_v1.bpmn` and returns a
+`repair_started` admission response. That workflow separates deterministic
+source intake, qianji lint evidence, and final BPMN source admission from the
+LLM draft, repair, and reasoning lint judge nodes. The server completes
+`source_intake`, `run_qianji_lint`, and `admit_bpmn_source` itself and excludes
+those deterministic nodes from generic LLM scheduling; LLM workers only receive
+declared model-owned nodes such as `draft_bpmn`, `reason_lint_diagnostics`, and
+`repair_bpmn`. Structured output bindings such as `candidateBpmn`,
+`repairPlan`, and `admittedBpmnSourceRef` carry the repair state back through
+the existing BPMN host-work completion contract.
+`POST /control/bpmn-source/admit` remains the lower-level BPMN XML admission
+route for already-generated candidates. Model-assisted draft generation through
+pi-agent-capable worker surfaces, qianji lint/repair, source ref persistence,
+control-run creation, and durable execution stay server-side. pi-wendao may
+expose the same capability through a CLI for fast local tests, but server-side
+wendao.ai must call qianji-server and render the server-owned BPMN source
+instead of compiling or repairing BPMN in the UI process.
 `GET /control/runs/{run_id}/summary` returns the replay-derived
 `RunOperatorSummary` projection for operators that need activity, timer,
 signal, cost, and recovery counters without parsing raw events.

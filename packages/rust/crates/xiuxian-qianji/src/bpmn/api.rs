@@ -59,7 +59,9 @@ pub use super::http_transport::{
     QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
     QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, qianji_bpmn_workflow_router,
+    QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpRequest,
+    QianjiControlWorkflowSourceAdmissionHttpResponse, QianjiControlWorkflowSourceCompilerMode,
+    qianji_bpmn_workflow_router,
 };
 pub use super::identity::{
     QianjiBpmnActivityId, QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId,

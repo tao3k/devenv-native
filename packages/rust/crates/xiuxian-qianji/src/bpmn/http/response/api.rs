@@ -356,6 +356,128 @@ impl QianjiControlBpmnSourceAdmissionHttpResponse {
     }
 }
 
+/// HTTP response for one server-owned workflow authoring source admission.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum QianjiControlWorkflowSourceAdmissionHttpResponse {
+    /// The source was compiled and admitted as server-owned BPMN.
+    Admitted {
+        /// Server-normalized source identifier.
+        source_id: String,
+        /// Server-owned BPMN source reference.
+        source_ref: String,
+        /// Filesystem path accepted by the existing workflow start route.
+        bpmn_path: String,
+        /// Media type of the admitted executable source payload.
+        media_type: QianjiControlBpmnSourceMediaType,
+        /// BPMN process identifier validated against the parsed package.
+        process_id: QianjiBpmnProcessId,
+        /// Stable SHA-256 digest of the admitted BPMN XML payload.
+        source_sha256: String,
+        /// Blocking lint issue count. This is zero for admitted sources.
+        lint_issue_count: usize,
+        /// Media type of the original authoring source.
+        authoring_media_type: String,
+        /// Stable SHA-256 digest of the original authoring source.
+        authoring_source_sha256: String,
+        /// Server compiler/admission path used for this source.
+        compiler: String,
+    },
+    /// The source requires model-assisted repair and a durable repair workflow
+    /// has been started.
+    RepairStarted {
+        /// Server-normalized source identifier.
+        source_id: String,
+        /// Target BPMN process identifier requested by the authoring caller.
+        target_process_id: QianjiBpmnProcessId,
+        /// Media type of the original authoring source.
+        authoring_media_type: String,
+        /// Stable SHA-256 digest of the original authoring source.
+        authoring_source_sha256: String,
+        /// Server compiler/admission path used for this source.
+        compiler: String,
+        /// Durable repair workflow run details.
+        repair_run: QianjiControlWorkflowSourceRepairRunHttpResponse,
+    },
+}
+
+/// Durable repair workflow run details for model-assisted source admission.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlWorkflowSourceRepairRunHttpResponse {
+    /// Durable qianji control run identifier.
+    pub run_id: String,
+    /// BPMN repair workflow instance identifier.
+    pub instance_id: QianjiBpmnWorkflowInstanceId,
+    /// BPMN repair process identifier.
+    pub process_id: QianjiBpmnProcessId,
+    /// Server-owned repair BPMN source path.
+    pub bpmn_path: String,
+    /// Repair output contract expected from the final admission step.
+    pub output_contract: String,
+    /// Pending host work count after the first bounded repair run.
+    pub pending_host_work_count: usize,
+}
+
+impl QianjiControlWorkflowSourceRepairRunHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        run_id: String,
+        instance_id: QianjiBpmnWorkflowInstanceId,
+        process_id: QianjiBpmnProcessId,
+        bpmn_path: String,
+        output_contract: impl Into<String>,
+        pending_host_work_count: usize,
+    ) -> Self {
+        Self {
+            run_id,
+            instance_id,
+            process_id,
+            bpmn_path,
+            output_contract: output_contract.into(),
+            pending_host_work_count,
+        }
+    }
+}
+
+impl QianjiControlWorkflowSourceAdmissionHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        admitted: QianjiControlBpmnSourceAdmissionHttpResponse,
+        authoring_media_type: String,
+        authoring_source_sha256: String,
+        compiler: impl Into<String>,
+    ) -> Self {
+        Self::Admitted {
+            source_id: admitted.source_id,
+            source_ref: admitted.source_ref,
+            bpmn_path: admitted.bpmn_path,
+            media_type: admitted.media_type,
+            process_id: admitted.process_id,
+            source_sha256: admitted.source_sha256,
+            lint_issue_count: admitted.lint_issue_count,
+            authoring_media_type,
+            authoring_source_sha256,
+            compiler: compiler.into(),
+        }
+    }
+
+    pub(in crate::bpmn::http_transport) fn repair_started(
+        source_id: String,
+        target_process_id: QianjiBpmnProcessId,
+        authoring_media_type: String,
+        authoring_source_sha256: String,
+        compiler: impl Into<String>,
+        repair_run: QianjiControlWorkflowSourceRepairRunHttpResponse,
+    ) -> Self {
+        Self::RepairStarted {
+            source_id,
+            target_process_id,
+            authoring_media_type,
+            authoring_source_sha256,
+            compiler: compiler.into(),
+            repair_run,
+        }
+    }
+}
+
 /// HTTP response for one control-ledger operator summary query.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QianjiControlRunSummaryHttpResponse {

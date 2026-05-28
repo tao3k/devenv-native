@@ -75,7 +75,7 @@ async fn qianji_server_http_run_stream_returns_durable_ui_rows() {
         "run stream should include durable BPMN and host-work rows: {body}"
     );
     assert_stream_row(&body, "run_created", "bpmn");
-    assert_stream_row(&body, "activity_scheduled", "tool");
+    assert_stream_row(&body, "activity_scheduled", "llm");
     assert_stream_element(&body, "resolve_project");
 }
 

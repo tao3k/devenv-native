@@ -173,7 +173,7 @@ fn link_graph_rerank_provider_binding_uses_runtime_route_and_launch_config() {
     assert_eq!(binding.selector.capability_id.0, JULIA_RERANK_CAPABILITY_ID);
     assert_eq!(binding.endpoint.route.as_deref(), Some("/custom-rerank"));
     assert_eq!(
-        binding.launch.expect("launch").launcher_path,
+        binding.launch.unwrap_or_else(|| panic!("launch config missing")).launcher_path,
         DEFAULT_JULIA_SEARCH_LAUNCHER_PATH
     );
 }

@@ -72,6 +72,41 @@ pub struct QianjiControlBpmnSourceAdmissionHttpRequest {
     pub bpmn_xml: String,
 }
 
+/// JSON body for admitting one server-owned workflow authoring source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlWorkflowSourceAdmissionHttpRequest {
+    /// Stable source identifier supplied by the authoring caller.
+    pub source_id: String,
+    /// Expected BPMN process identifier after source compilation.
+    pub process_id: QianjiBpmnProcessId,
+    /// Authoring source media type, for example `text/markdown`.
+    pub source_media_type: String,
+    /// Authoring source body. This is not executable until qianji-server
+    /// admits a linted BPMN source derived from it.
+    pub source_text: String,
+    /// Human-readable workflow name used in the admitted BPMN process.
+    pub workflow_name: String,
+    /// Optional workflow goal or description used in task documentation.
+    #[serde(default)]
+    pub workflow_description: String,
+    /// Compiler mode requested for authoring-source admission.
+    #[serde(default)]
+    pub compiler_mode: QianjiControlWorkflowSourceCompilerMode,
+}
+
+/// Server-owned compiler mode for workflow authoring source admission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QianjiControlWorkflowSourceCompilerMode {
+    /// Deterministic Markdown compiler that requires explicit `## Step N`
+    /// sections and never calls a model.
+    #[default]
+    DeterministicMarkdownStep,
+    /// Future model-assisted server repair compiler. The route exposes this
+    /// mode as a stable contract before provider execution is enabled.
+    ServerRepair,
+}
+
 impl QianjiBpmnWorkflowStartHttpRequest {
     pub(in crate::bpmn::http_transport) fn into_control_request(
         self,

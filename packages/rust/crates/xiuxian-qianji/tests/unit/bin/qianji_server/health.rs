@@ -63,6 +63,7 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
     for capability in [
         "bpmn.workflow.task.complete-batch",
         "bpmn.workflow.task.fail",
+        "qianji.control.workflow-source.admit",
         "qianji.control.bpmn-source.admit",
         "qianji.control.bpmn-source",
         "qianji.control.execution-graph",

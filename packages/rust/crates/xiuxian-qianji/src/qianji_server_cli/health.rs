@@ -57,6 +57,7 @@ fn qianji_server_capabilities() -> Vec<&'static str> {
         "bpmn.workflow.activity-evidence",
         "bpmn.workflow.task.claim",
         "bpmn.workflow.task.release",
+        "qianji.control.workflow-source.admit",
         "qianji.control.bpmn-source.admit",
         "qianji.control.bpmn-source",
         "qianji.control.execution-graph",

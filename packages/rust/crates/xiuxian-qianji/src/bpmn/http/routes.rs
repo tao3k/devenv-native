@@ -5,10 +5,9 @@ use super::activity_evidence::{
     record_failure_activity_evidence,
 };
 use super::bpmn_source_admission::admit_control_bpmn_source;
-use super::control_trace::record_bpmn_control_trace;
+use super::control_projection::record_bpmn_control_projection;
 use super::error_api::QianjiBpmnWorkflowHttpError;
 use super::execution_graph::QianjiControlExecutionGraphHttpResponse;
-use super::llm_host_work_schedule::record_bpmn_llm_host_work_schedules;
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
@@ -40,6 +39,9 @@ use super::response_api::{
     QianjiControlRunStreamHttpResponse, QianjiControlRunSummaryHttpResponse,
 };
 use super::state::QianjiBpmnWorkflowHttpState;
+use super::workflow_source_admission::{
+    admit_control_workflow_source, advance_server_owned_repair_tasks,
+};
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
@@ -82,27 +84,6 @@ use xiuxian_qianji_control::{
     ControlEventKind, ControlEventRecord, ControlLedger, HotStateStore, RecoveryAttempt,
     RecoveryLoopApplicationRequest, RecoveryPolicy, RunId, apply_recovery_plan,
 };
-
-fn record_bpmn_control_projection<H>(
-    state: &QianjiBpmnWorkflowHttpState<H>,
-    session: &crate::bpmn::session::QianjiBpmnSession,
-    bpmn_source: Option<&std::path::Path>,
-) -> Result<(), QianjiBpmnWorkflowHttpError> {
-    record_bpmn_control_trace(
-        state.activity_evidence_ledger.as_deref(),
-        session,
-        bpmn_source,
-    )?;
-    if state.runtime_env.is_none() {
-        return Ok(());
-    }
-    record_bpmn_llm_host_work_schedules(
-        state.activity_evidence_ledger.as_deref(),
-        state.runtime_env.as_ref(),
-        session,
-        bpmn_source,
-    )
-}
 
 pub(super) fn router<H>(state: QianjiBpmnWorkflowHttpState<H>) -> Router
 where
@@ -178,6 +159,10 @@ where
         .route(
             "/control/bpmn-source/admit",
             post(admit_control_bpmn_source::<H>),
+        )
+        .route(
+            "/control/workflow-source/admit",
+            post(admit_control_workflow_source::<H>),
         );
     #[cfg(any(
         all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
@@ -948,6 +933,7 @@ where
         .service
         .complete_prepared_workflow_task_until_host_boundary(prepared, &request, &state.host)
         .await?;
+    let report = advance_server_owned_repair_tasks(state, report).await?;
     record_bpmn_control_projection(
         state,
         &report.execution.session,

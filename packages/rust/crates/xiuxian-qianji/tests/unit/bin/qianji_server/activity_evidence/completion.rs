@@ -5,13 +5,15 @@ use xiuxian_qianji_control::ActivityStatus;
 
 use super::support::{
     assert_start_control_trace, post_json, replay_activity_evidence,
-    start_mapped_service_evidence_workflow,
+    start_mapped_service_evidence_workflow_with_control_ledger_only,
 };
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_http_completion_records_host_work_activity_evidence() {
-    let proof =
-        start_mapped_service_evidence_workflow("qianji_server_host_work_activity_evidence").await;
+    let proof = start_mapped_service_evidence_workflow_with_control_ledger_only(
+        "qianji_server_host_work_activity_evidence",
+    )
+    .await;
     assert_start_control_trace(&proof).await;
 
     let complete_payload = json!({

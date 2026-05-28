@@ -20,6 +20,16 @@ pub(super) async fn admit_control_bpmn_source<H>(
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
 {
+    Ok(Json(admit_bpmn_source_request(&state, request)?))
+}
+
+pub(super) fn admit_bpmn_source_request<H>(
+    state: &QianjiBpmnWorkflowHttpState<H>,
+    request: QianjiControlBpmnSourceAdmissionHttpRequest,
+) -> Result<QianjiControlBpmnSourceAdmissionHttpResponse, QianjiBpmnWorkflowHttpError>
+where
+    H: BpmnHostBridge + Clone + Send + Sync + 'static,
+{
     let source_id = normalize_source_id(&request.source_id)?;
     let process_id = request.process_id.clone();
     if process_id.as_str().trim().is_empty() {
@@ -78,13 +88,13 @@ where
     std::fs::write(&admitted_path, request.bpmn_xml).map_err(admission_io_error)?;
     let source_ref = admitted_path.display().to_string();
 
-    Ok(Json(QianjiControlBpmnSourceAdmissionHttpResponse::new(
+    Ok(QianjiControlBpmnSourceAdmissionHttpResponse::new(
         source_id,
         source_ref,
         process_id,
         source_sha256,
         lint_report.issues.len(),
-    )))
+    ))
 }
 
 fn normalize_source_id(source_id: &str) -> Result<String, QianjiBpmnWorkflowHttpError> {
@@ -133,14 +143,14 @@ fn admission_root(runtime_env: Option<&QianjiRuntimeEnv>) -> PathBuf {
         .join(".cache/qianji/bpmn-sources")
 }
 
-fn sha256_digest(content: &[u8]) -> String {
+pub(super) fn sha256_digest(content: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content);
     let digest = hasher.finalize();
     format!("sha256:{digest:x}")
 }
 
-fn admission_bad_request(
+pub(super) fn admission_bad_request(
     code: impl Into<String>,
     message: impl Into<String>,
 ) -> QianjiBpmnWorkflowHttpError {

@@ -5,6 +5,7 @@
 mod activity_evidence;
 mod api;
 mod bpmn_source_admission;
+mod control_projection;
 mod control_trace;
 #[path = "error/api.rs"]
 mod error_api;
@@ -16,6 +17,7 @@ mod request_api;
 mod response_api;
 mod routes;
 mod state;
+mod workflow_source_admission;
 
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
@@ -43,5 +45,7 @@ pub use api::{
     QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
     QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, qianji_bpmn_workflow_router,
+    QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpRequest,
+    QianjiControlWorkflowSourceAdmissionHttpResponse, QianjiControlWorkflowSourceCompilerMode,
+    qianji_bpmn_workflow_router,
 };

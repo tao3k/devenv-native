@@ -1,6 +1,6 @@
 //! Org property adapter for memory object inference.
 
-use super::super::model::AgentOrgTaskListRow;
+use crate::orgize::read_model::model::AgentOrgTaskListRow;
 use xiuxian_memory_engine::{
     InferredMemoryObject, infer_memory_lifecycle_facts_from_properties,
     infer_memory_objects_from_properties,

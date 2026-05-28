@@ -1,10 +1,7 @@
 //! Model routing contracts shared by Wendao Gateway and model-plane adapters.
 
-#[path = "model_routing/attachment.rs"]
 mod attachment;
-#[path = "model_routing/chat.rs"]
 mod chat;
-#[path = "model_routing/config.rs"]
 mod config;
 
 use reqwest::header::{AUTHORIZATION, HeaderMap};

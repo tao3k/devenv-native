@@ -25,7 +25,6 @@ jobs:
           - xiuxian-llm-release
           - xiuxian-logging-release
           - xiuxian-macros-release
-          - xiuxian-memory-release
           - xiuxian-memory-engine-release
           - xiuxian-qianhuan-release
           - xiuxian-qianji-release

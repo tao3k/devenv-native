@@ -7,13 +7,15 @@ use super::support::{
     assert_failed_control_history, assert_failed_control_recovery, assert_failed_control_summary,
     assert_failure_route_preserves_checkpoint, assert_start_control_trace,
     assert_workflow_still_blocked, post_json, replay_activity_evidence_event_kinds,
-    service_failure_payload, start_mapped_service_evidence_workflow,
+    service_failure_payload, start_mapped_service_evidence_workflow_with_control_ledger_only,
 };
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_http_failure_records_host_work_activity_evidence_without_advancing() {
-    let proof =
-        start_mapped_service_evidence_workflow("qianji_server_host_work_failure_evidence").await;
+    let proof = start_mapped_service_evidence_workflow_with_control_ledger_only(
+        "qianji_server_host_work_failure_evidence",
+    )
+    .await;
     assert_start_control_trace(&proof).await;
     let fail_payload = service_failure_payload(&proof);
 
@@ -28,9 +30,10 @@ async fn qianji_server_http_failure_records_host_work_activity_evidence_without_
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_http_failure_rejects_blank_message_without_partial_activity_evidence() {
-    let proof =
-        start_mapped_service_evidence_workflow("qianji_server_host_work_blank_failure_evidence")
-            .await;
+    let proof = start_mapped_service_evidence_workflow_with_control_ledger_only(
+        "qianji_server_host_work_blank_failure_evidence",
+    )
+    .await;
 
     let fail_payload = json!({
         "bpmn_path": proof.bpmn_path.display().to_string(),

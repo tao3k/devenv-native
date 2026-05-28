@@ -9,6 +9,7 @@ use super::error_api::QianjiBpmnWorkflowHttpError;
 use super::response_api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
 };
+use super::workflow_source_admission::is_server_owned_repair_deterministic_work_id;
 use crate::bpmn::identity::{QianjiBpmnActivityId, QianjiBpmnProcessId};
 use crate::bpmn::llm_activity_adapter::{
     BpmnHostWorkLlmActivityRouteInput, build_bpmn_host_work_llm_activity_route,
@@ -24,12 +25,14 @@ use crate::workflow_config::{
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use xiuxian_qianji_bpmn_engine::PendingHostWorkKind;
 use xiuxian_qianji_control::{
-    AdmittedLlmActivityScheduleRecord, ArtifactId, ArtifactKind, ArtifactRef, ControlLedger,
-    LlmActivityAdmission, RunId, StepId, record_admitted_llm_activity_schedule_idempotent,
+    AdmittedLlmActivityScheduleRecord, ArtifactId, ArtifactKind, ArtifactRef, ControlEventKind,
+    ControlLedger, LlmActivityAdmission, RunId, StepCreatedJournalRecord, StepId,
+    record_admitted_llm_activity_schedule_idempotent, record_control_event_batch,
 };
 
 const PROMPT_ARTIFACT_SCHEMA: &str = "qianji.bpmn.host_work.llm_prompt.v1";
@@ -55,6 +58,7 @@ pub(super) fn record_bpmn_llm_host_work_schedules(
     fs::create_dir_all(&artifact_dir).map_err(schedule_error)?;
     let source_ref = bpmn_source.map(|path| path.display().to_string());
     let now_ms = now_unix_ms();
+    ensure_llm_host_work_steps(ledger, &run_id, &pending_work, now_ms)?;
 
     for (index, work) in pending_work.iter().enumerate() {
         let prompt_ref = write_prompt_artifact(
@@ -94,6 +98,59 @@ pub(super) fn record_bpmn_llm_host_work_schedules(
     Ok(())
 }
 
+fn ensure_llm_host_work_steps(
+    ledger: &dyn ControlLedger,
+    run_id: &RunId,
+    pending_work: &[QianjiBpmnPendingHostWorkHttpResponse],
+    now_ms: u64,
+) -> Result<(), QianjiBpmnWorkflowHttpError> {
+    let existing = ledger.load_events(run_id).map_err(schedule_error)?;
+    let mut declared_steps = existing
+        .iter()
+        .filter_map(|record| {
+            let step_id = record.event.step_id.as_ref()?;
+            matches!(record.event.kind, ControlEventKind::StepCreated { .. })
+                .then(|| step_id.as_str().to_owned())
+        })
+        .collect::<BTreeSet<_>>();
+    let mut events = Vec::new();
+
+    for (index, work) in pending_work.iter().enumerate() {
+        let Some(activity_id) = work.activity_id.as_ref() else {
+            continue;
+        };
+        if !declared_steps.insert(activity_id.as_str().to_owned()) {
+            continue;
+        }
+        let occurred_at_ms = now_ms.saturating_add(u64::try_from(index).unwrap_or(u64::MAX));
+        events.push(
+            StepCreatedJournalRecord::new(
+                run_id.clone(),
+                StepId::new(activity_id.as_str()).map_err(schedule_error)?,
+                llm_host_work_step_title(work),
+                occurred_at_ms,
+            )
+            .into_event(),
+        );
+    }
+
+    if events.is_empty() {
+        return Ok(());
+    }
+    record_control_event_batch(ledger, events)
+        .map(|_| ())
+        .map_err(schedule_error)
+}
+
+fn llm_host_work_step_title(work: &QianjiBpmnPendingHostWorkHttpResponse) -> String {
+    work.activity_id
+        .as_ref()
+        .map(QianjiBpmnActivityId::as_str)
+        .or(work.node_id.as_deref())
+        .unwrap_or("BPMN LLM host work")
+        .to_owned()
+}
+
 fn selectable_llm_host_work(
     session: &QianjiBpmnSession,
 ) -> Vec<QianjiBpmnPendingHostWorkHttpResponse> {
@@ -106,6 +163,12 @@ fn selectable_llm_host_work(
 }
 
 fn is_llm_routable_host_work(work: &QianjiBpmnPendingHostWorkHttpResponse) -> bool {
+    if is_server_owned_repair_deterministic_work_id(
+        work.process_id.as_ref().map(QianjiBpmnProcessId::as_str),
+        work.activity_id.as_ref().map(QianjiBpmnActivityId::as_str),
+    ) {
+        return false;
+    }
     matches!(
         work.kind,
         PendingHostWorkKind::Service | PendingHostWorkKind::Task | PendingHostWorkKind::Script

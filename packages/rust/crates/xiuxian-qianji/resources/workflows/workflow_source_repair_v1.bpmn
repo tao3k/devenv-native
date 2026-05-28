@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="defs_qianji_workflow_source_repair_v1">
+  <bpmn:process id="qianji_workflow_source_repair_v1" isExecutable="true">
+    <bpmn:startEvent id="start_repair" />
+    <bpmn:serviceTask id="source_intake" name="Intake authoring source">
+      <bpmn:documentation>Validate source media type, process id, source hash, and repair budget before any model call.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="source_intake_Output_sourceIntakeAccepted" name="sourceIntakeAccepted" />
+        <bpmn:outputSet id="source_intake_OutputSet">
+          <bpmn:dataOutputRefs>source_intake_Output_sourceIntakeAccepted</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>source_intake_Output_sourceIntakeAccepted</bpmn:sourceRef>
+        <bpmn:targetRef>sourceIntakeAccepted</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="draft_bpmn" name="Draft BPMN artifacts">
+      <bpmn:documentation>Use the governed qianji LLM activity lane to draft candidate BPMN artifacts from the authoring source and qianji template context.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="draft_bpmn_Output_candidateBpmn" name="candidateBpmn" />
+        <bpmn:outputSet id="draft_bpmn_OutputSet">
+          <bpmn:dataOutputRefs>draft_bpmn_Output_candidateBpmn</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>draft_bpmn_Output_candidateBpmn</bpmn:sourceRef>
+        <bpmn:targetRef>candidateBpmn</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="run_qianji_lint" name="Run qianji lint evidence">
+      <bpmn:documentation>Run deterministic qianji lint over the candidate artifact bundle and emit compact structured diagnostics for the reasoning judge.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="run_qianji_lint_Output_lintDiagnostics" name="lintDiagnostics" />
+        <bpmn:outputSet id="run_qianji_lint_OutputSet">
+          <bpmn:dataOutputRefs>run_qianji_lint_Output_lintDiagnostics</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>run_qianji_lint_Output_lintDiagnostics</bpmn:sourceRef>
+        <bpmn:targetRef>lintDiagnostics</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="reason_lint_diagnostics" name="Reason over lint diagnostics">
+      <bpmn:documentation>Use the governed qianji LLM reasoning lane to judge lint diagnostics, decide whether repair is required, and emit a bounded artifact-local repair plan.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="reason_lint_diagnostics_Output_lintPassed" name="lintPassed" />
+        <bpmn:dataOutput id="reason_lint_diagnostics_Output_repairRequired" name="repairRequired" />
+        <bpmn:dataOutput id="reason_lint_diagnostics_Output_repairPlan" name="repairPlan" />
+        <bpmn:outputSet id="reason_lint_diagnostics_OutputSet">
+          <bpmn:dataOutputRefs>reason_lint_diagnostics_Output_lintPassed</bpmn:dataOutputRefs>
+          <bpmn:dataOutputRefs>reason_lint_diagnostics_Output_repairRequired</bpmn:dataOutputRefs>
+          <bpmn:dataOutputRefs>reason_lint_diagnostics_Output_repairPlan</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>reason_lint_diagnostics_Output_lintPassed</bpmn:sourceRef>
+        <bpmn:targetRef>lintPassed</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>reason_lint_diagnostics_Output_repairRequired</bpmn:sourceRef>
+        <bpmn:targetRef>repairRequired</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>reason_lint_diagnostics_Output_repairPlan</bpmn:sourceRef>
+        <bpmn:targetRef>repairPlan</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="lint_decision" default="flow_lint_admit" />
+    <bpmn:serviceTask id="repair_bpmn" name="Repair BPMN artifacts">
+      <bpmn:documentation>Use the reasoning lint repair plan and previous artifacts to request the smallest artifact-local repair through the governed qianji LLM activity lane.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="repair_bpmn_Output_candidateBpmn" name="candidateBpmn" />
+        <bpmn:outputSet id="repair_bpmn_OutputSet">
+          <bpmn:dataOutputRefs>repair_bpmn_Output_candidateBpmn</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>repair_bpmn_Output_candidateBpmn</bpmn:sourceRef>
+        <bpmn:targetRef>candidateBpmn</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="admit_bpmn_source" name="Admit lint-clean BPMN source">
+      <bpmn:documentation>Admit only lint-clean BPMN through qianji-server BPMN source admission and return the server-owned source reference.</bpmn:documentation>
+      <bpmn:ioSpecification>
+        <bpmn:dataOutput id="admit_bpmn_source_Output_admittedBpmnSourceRef" name="admittedBpmnSourceRef" />
+        <bpmn:outputSet id="admit_bpmn_source_OutputSet">
+          <bpmn:dataOutputRefs>admit_bpmn_source_Output_admittedBpmnSourceRef</bpmn:dataOutputRefs>
+        </bpmn:outputSet>
+      </bpmn:ioSpecification>
+      <bpmn:dataOutputAssociation>
+        <bpmn:sourceRef>admit_bpmn_source_Output_admittedBpmnSourceRef</bpmn:sourceRef>
+        <bpmn:targetRef>admittedBpmnSourceRef</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="done_repair" />
+    <bpmn:sequenceFlow id="flow_start_intake" sourceRef="start_repair" targetRef="source_intake" />
+    <bpmn:sequenceFlow id="flow_intake_draft" sourceRef="source_intake" targetRef="draft_bpmn" />
+    <bpmn:sequenceFlow id="flow_draft_lint" sourceRef="draft_bpmn" targetRef="run_qianji_lint" />
+    <bpmn:sequenceFlow id="flow_lint_reason" sourceRef="run_qianji_lint" targetRef="reason_lint_diagnostics" />
+    <bpmn:sequenceFlow id="flow_reason_decision" sourceRef="reason_lint_diagnostics" targetRef="lint_decision" />
+    <bpmn:sequenceFlow id="flow_lint_admit" sourceRef="lint_decision" targetRef="admit_bpmn_source" />
+    <bpmn:sequenceFlow id="flow_lint_repair" sourceRef="lint_decision" targetRef="repair_bpmn">
+      <bpmn:conditionExpression>repairRequired</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_repair_lint" sourceRef="repair_bpmn" targetRef="run_qianji_lint" />
+    <bpmn:sequenceFlow id="flow_admit_done" sourceRef="admit_bpmn_source" targetRef="done_repair" />
+  </bpmn:process>
+</bpmn:definitions>

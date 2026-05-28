@@ -141,7 +141,8 @@ pub async fn materialize_search_strategy_flow_routes(
     let mut receipts = Vec::with_capacity(planned_routes.len());
     for route_wave in planned_routes.chunks(wave_size) {
         let client = SearchStrategyFlowFlightClient::connect(config).await?;
-        let wave_receipts = try_join_all(route_wave.iter().cloned().map(|route| {
+        let wave_receipts = try_join_all(route_wave.iter().map(|route| {
+            let route = route.clone();
             let config = config.clone();
             let mut client = client.clone();
             async move { materialize_route(&mut client, &config, &route).await }

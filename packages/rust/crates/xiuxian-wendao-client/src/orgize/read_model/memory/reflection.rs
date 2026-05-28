@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use super::super::model::AgentOrgTaskListRow;
+use crate::orgize::read_model::model::AgentOrgTaskListRow;
 use xiuxian_memory_engine::{InferredMemoryObject, infer_memory_object_from_reflection};
 
 pub(in crate::orgize::read_model) fn reflection_memory_objects_for_row(

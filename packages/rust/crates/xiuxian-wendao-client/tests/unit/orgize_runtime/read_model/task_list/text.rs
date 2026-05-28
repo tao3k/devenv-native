@@ -2,7 +2,7 @@ use std::process::Command;
 
 use crate::orgize_runtime::support::tempdir_or_panic;
 
-use super::super::{
+use crate::orgize_runtime::read_model::{
     assert_agent_memory_object_row_count, assert_agent_org_element_join_matches_text,
     assert_agent_org_element_projection_exists, assert_agent_org_element_row_count_at_least,
 };
