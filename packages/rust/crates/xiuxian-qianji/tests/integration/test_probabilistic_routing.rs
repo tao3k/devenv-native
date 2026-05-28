@@ -1,3 +1,5 @@
+#![cfg(feature = "wendao-integration")]
+
 use serde_json::{Value, json};
 use std::sync::Arc;
 use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};

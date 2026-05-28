@@ -8,4 +8,4 @@ pub mod flowhub_worker;
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
-pub mod llm_worker;
+pub(crate) mod llm_worker;

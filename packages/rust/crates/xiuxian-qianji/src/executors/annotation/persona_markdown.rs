@@ -1,21 +1,15 @@
 use std::collections::HashMap;
 use std::path::Path;
 use xiuxian_qianhuan::persona::PersonaProfile;
-use xiuxian_wendao_core::WendaoResourceUri;
-use xiuxian_wendao_parsers::frontmatter::parse_frontmatter;
 
 pub(super) fn persona_profile_from_markdown(uri: &str, markdown: &str) -> PersonaProfile {
-    let frontmatter = parse_frontmatter(markdown);
+    let frontmatter = parse_persona_frontmatter(markdown);
     let background = strip_markdown_frontmatter(markdown);
     let heading_title = extract_markdown_h1(background.as_str());
-    let parsed_uri = WendaoResourceUri::parse(uri).ok();
-    let fallback_name = parsed_uri
-        .as_ref()
-        .and_then(|value| {
-            Path::new(value.entity_name())
-                .file_stem()
-                .and_then(|stem| stem.to_str())
-        })
+    let fallback_name = uri
+        .rsplit('/')
+        .next()
+        .and_then(|value| Path::new(value).file_stem().and_then(|stem| stem.to_str()))
         .map_or_else(|| "Persona".to_string(), humanize_identifier);
     let persona_name = frontmatter
         .title
@@ -55,6 +49,68 @@ pub(super) fn persona_profile_from_markdown(uri: &str, markdown: &str) -> Person
         forbidden_words: Vec::new(),
         metadata,
     }
+}
+
+#[derive(Debug, Default)]
+struct PersonaFrontmatter {
+    title: Option<String>,
+    routing_keywords: Vec<String>,
+    intents: Vec<String>,
+}
+
+fn parse_persona_frontmatter(markdown: &str) -> PersonaFrontmatter {
+    let normalized = markdown.replace("\r\n", "\n");
+    let Some(rest) = normalized.strip_prefix("---\n") else {
+        return PersonaFrontmatter::default();
+    };
+    let Some(end) = rest.find("\n---\n") else {
+        return PersonaFrontmatter::default();
+    };
+    let header = &rest[..end];
+    let mut frontmatter = PersonaFrontmatter::default();
+    for line in header.lines() {
+        let trimmed = line.trim();
+        if let Some(title) = trimmed.strip_prefix("title:") {
+            frontmatter.title = Some(unquote_yaml_scalar(title.trim()));
+            continue;
+        }
+        if let Some(values) = trimmed.strip_prefix("routing_keywords:") {
+            frontmatter
+                .routing_keywords
+                .extend(parse_yaml_inline_string_list(values.trim()));
+            continue;
+        }
+        if let Some(values) = trimmed.strip_prefix("intents:") {
+            frontmatter
+                .intents
+                .extend(parse_yaml_inline_string_list(values.trim()));
+        }
+    }
+    frontmatter
+}
+
+fn parse_yaml_inline_string_list(raw: &str) -> Vec<String> {
+    let trimmed = raw.trim();
+    let Some(inner) = trimmed
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+    else {
+        return Vec::new();
+    };
+    inner
+        .split(',')
+        .map(str::trim)
+        .map(unquote_yaml_scalar)
+        .filter(|value| !value.trim().is_empty())
+        .collect()
+}
+
+fn unquote_yaml_scalar(raw: &str) -> String {
+    raw.trim()
+        .trim_matches('"')
+        .trim_matches('\'')
+        .trim()
+        .to_string()
 }
 
 fn strip_persona_suffix(raw: &str) -> &str {

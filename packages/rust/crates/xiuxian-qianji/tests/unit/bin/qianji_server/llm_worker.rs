@@ -224,7 +224,7 @@ async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -
         TempDir::new().map_err(|error| format!("temporary directory should allocate: {error}"))?;
     let (base_url, request_rx) = spawn_openai_compatible_server(
         "200 OK",
-        r#"{"choices":[{"message":{"content":"{\"resolvedProject\":true}"}}]}"#,
+        r#"{"choices":[{"message":{"content":"Project resolved by qianji-server LLM worker."}}]}"#,
     )
     .await?;
     let project_root = temp_dir.path().join("project-root");
@@ -327,7 +327,8 @@ async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -
         "{worker_json}"
     );
     assert_eq!(
-        worker_json["final_workflow"]["workflow"]["variables"]["resolvedProject"], true,
+        worker_json["final_workflow"]["workflow"]["variables"]["resolvedProject"],
+        "Project resolved by qianji-server LLM worker.",
         "{worker_json}"
     );
     let provider_request = tokio::time::timeout(Duration::from_secs(10), request_rx)

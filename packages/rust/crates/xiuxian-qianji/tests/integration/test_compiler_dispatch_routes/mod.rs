@@ -1,5 +1,7 @@
 //! Integration tests for compiler dispatch route coverage.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::path::Path;
 use std::sync::Arc;
 

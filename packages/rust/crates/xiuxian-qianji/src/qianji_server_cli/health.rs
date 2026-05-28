@@ -57,6 +57,7 @@ fn qianji_server_capabilities() -> Vec<&'static str> {
         "bpmn.workflow.activity-evidence",
         "bpmn.workflow.task.claim",
         "bpmn.workflow.task.release",
+        "qianji.control.bpmn-source.admit",
         "qianji.control.bpmn-source",
         "qianji.control.execution-graph",
         "qianji.control.history",
@@ -64,6 +65,8 @@ fn qianji_server_capabilities() -> Vec<&'static str> {
         "qianji.control.recovery",
         "qianji.control.diagnostics",
     ];
+    #[cfg(feature = "duckdb")]
+    capabilities.push("qianji.control.run-console.arrow-flight");
     capabilities.extend(qianji_server_valkey_capabilities());
     capabilities
 }

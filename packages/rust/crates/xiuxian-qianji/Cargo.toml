@@ -10,6 +10,10 @@ publish = false
 [features]
 default = ["duckdb", "llm", "qianji-full"]
 duckdb = [
+  "dep:arrow",
+  "dep:arrow-flight",
+  "dep:tonic",
+  "dep:tokio-stream",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/qianji-bpmn-workflow-state",
   "xiuxian-qianji-control/duckdb",
@@ -30,6 +34,7 @@ qianji-full = [
   "dep:jsonschema",
   "dep:md5",
   "dep:merman-core",
+  "dep:orgize",
   "dep:petgraph",
   "dep:quick-xml",
   "dep:rand",
@@ -38,17 +43,19 @@ qianji-full = [
   "dep:serde_yaml",
   "dep:tokio-util",
   "dep:walkdir",
-  "dep:xiuxian-ast",
   "dep:xiuxian-logging",
   "dep:xiuxian-qianhuan",
+  "dep:xiuxian-window",
+  "dep:xiuxian-zhenfa",
+]
+wendao-integration = [
+  "qianji-full",
   "dep:xiuxian-wendao",
   "xiuxian-wendao/search-runtime",
   "dep:xiuxian-wendao-sql",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-runtime",
   "dep:xiuxian-wendao-parsers",
-  "dep:xiuxian-window",
-  "dep:xiuxian-zhenfa",
 ]
 
 [dependencies]
@@ -61,17 +68,23 @@ toml = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+arrow = { workspace = true, optional = true }
+arrow-flight = { workspace = true, optional = true }
 ariadne = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true, optional = true }
+tokio-stream = { workspace = true, optional = true }
+tonic = { workspace = true, optional = true }
 redis = { workspace = true, features = ["tokio-comp"] }
 log = { workspace = true }
 futures = { workspace = true }
+num-traits = { workspace = true }
 rand = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 md5 = { workspace = true, optional = true }
 include_dir = { workspace = true, optional = true }
+orgize = { workspace = true, optional = true }
 walkdir = { workspace = true, optional = true }
 globset = { workspace = true, optional = true }
 tempfile = { workspace = true }
@@ -88,7 +101,6 @@ xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, opt
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan", optional = true }
 xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
 xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
-xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
@@ -115,7 +127,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "qianji"
 path = "src/bin/qianji.rs"
-required-features = ["llm", "qianji-full"]
+required-features = ["llm", "qianji-full", "wendao-integration"]
 
 [[bin]]
 name = "qianji-server"
@@ -130,7 +142,7 @@ required-features = ["performance"]
 [[test]]
 name = "llm_augmented_formal_audit"
 path = "tests/integration/llm_augmented_formal_audit/mod.rs"
-required-features = ["llm", "qianji-full"]
+required-features = ["llm", "qianji-full", "wendao-integration"]
 
 [[test]]
 name = "llm_analyzer"
@@ -140,7 +152,7 @@ required-features = ["llm", "qianji-full"]
 [[test]]
 name = "llm_multi_tenancy"
 path = "tests/integration/llm_multi_tenancy.rs"
-required-features = ["llm", "qianji-full"]
+required-features = ["llm", "qianji-full", "wendao-integration"]
 
 [[test]]
 name = "runtime_config"
@@ -154,12 +166,12 @@ required-features = ["llm", "qianji-full"]
 [[test]]
 name = "contract_feedback_pipeline_llm"
 path = "tests/integration/contract_feedback_pipeline_llm.rs"
-required-features = ["llm", "qianji-full"]
+required-features = ["llm", "qianji-full", "wendao-integration"]
 
 [[test]]
 name = "contract_feedback_pipeline"
 path = "tests/integration/contract_feedback_pipeline.rs"
-required-features = ["qianji-full"]
+required-features = ["qianji-full", "wendao-integration"]
 
 [[test]]
 name = "flowhub_contracts"
@@ -194,12 +206,12 @@ required-features = ["qianji-full"]
 [[test]]
 name = "wendao_persisted_rest_docs_contract_feedback"
 path = "tests/integration/test_wendao_persisted_rest_docs_contract_feedback.rs"
-required-features = ["qianji-full"]
+required-features = ["qianji-full", "wendao-integration"]
 
 [[test]]
 name = "wendao_live_rest_docs_contract_feedback"
 path = "tests/integration/test_wendao_live_rest_docs_contract_feedback.rs"
-required-features = ["qianji-full"]
+required-features = ["qianji-full", "wendao-integration"]
 
 # Unit tests for telemetry
 [[test]]
@@ -209,4 +221,4 @@ path = "tests/unit/unit_telemetry_events.rs"
 [[test]]
 name = "workdir_contracts"
 path = "tests/integration/workdir_contracts.rs"
-required-features = ["qianji-full"]
+required-features = ["qianji-full", "wendao-integration"]

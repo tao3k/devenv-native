@@ -4,6 +4,7 @@ use xiuxian_logging::{init, split_logging_args};
 
 use super::bpmn_cli::{handle_bpmn_command, parse_bpmn_command};
 use super::construct_cli::{handle_construct_command, parse_construct_command};
+#[cfg(feature = "wendao-integration")]
 use super::contract_feedback_cli::{
     handle_contract_feedback_command, parse_contract_feedback_command,
 };
@@ -43,6 +44,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
         return handle_graph_export(&args[2], &args[3]);
     }
 
+    #[cfg(feature = "wendao-integration")]
     if let Some(command) = parse_contract_feedback_command(&args)? {
         return handle_contract_feedback_command(command).await;
     }

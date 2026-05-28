@@ -1,5 +1,7 @@
 //! Master research workflow tests for Qianji.
 
+#![cfg(feature = "wendao-integration")]
+
 #[cfg(feature = "llm")]
 use async_trait::async_trait;
 #[cfg(feature = "llm")]

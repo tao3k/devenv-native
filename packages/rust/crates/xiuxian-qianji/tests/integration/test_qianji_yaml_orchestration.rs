@@ -5,6 +5,7 @@
     clippy::unwrap_used,
     clippy::doc_markdown
 )]
+#![cfg(feature = "wendao-integration")]
 
 use serde_json::json;
 use std::sync::Arc;

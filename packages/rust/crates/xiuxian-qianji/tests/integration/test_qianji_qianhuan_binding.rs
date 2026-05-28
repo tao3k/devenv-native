@@ -1,5 +1,7 @@
 //! Qianhuan binding contract and runtime tests for Qianji nodes.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

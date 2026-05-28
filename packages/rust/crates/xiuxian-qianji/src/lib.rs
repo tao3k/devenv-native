@@ -4,10 +4,10 @@
 //! Follows Rust 2024 Edition standards.
 
 /// Application-layer scheduler factories and built-in pipeline presets.
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub mod app;
 /// High-level laboratory API for end-to-end workflow execution.
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub mod bootcamp;
 /// Thin BPMN host adapter helpers backed by `xiuxian-qianji-bpmn-engine`.
 pub mod bpmn;
@@ -72,7 +72,7 @@ mod scheduler_preflight;
 #[cfg(feature = "qianji-full")]
 mod scheduler_state;
 /// Sovereign Memory Module (Blueprint V6.1) - Agent reasoning trace persistence.
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub mod sovereign;
 /// Multi-agent swarm orchestration runtime.
 #[cfg(feature = "qianji-full")]
@@ -87,26 +87,16 @@ pub mod workflow_config;
 /// Low-overhead typed workflow execution substrate.
 pub mod workflow_kernel;
 
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub use app::{
     MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, QianjiManifestPipelineRequest,
     QianjiPipelineDependencies, RESEARCH_TRINITY_TOML, WENDAO_SQL_AUTHORING_V1_TOML,
 };
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub use bootcamp::{
     BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario,
     run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
 };
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-pub use bpmn::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-pub use bpmn::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use bpmn::{
     BPMN_HOST_WORK_ACTIVITY_METADATA_KEY, BPMN_HOST_WORK_ACTIVITY_SCHEMA,
     BPMN_HOST_WORK_ACTIVITY_TYPE, BPMN_HOST_WORK_COMPLETION_METADATA_KEY,
@@ -115,46 +105,48 @@ pub use bpmn::{
     BpmnHostWorkLlmEndpointDecision, BpmnHostWorkLlmRouteDecision, BpmnOrchestrationError,
     BpmnUnsupportedStartNodeKind, DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS,
     FLOWHUB_SERVICE_ACTIVITY_TYPE, FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput,
-    FlowhubServiceActivityScheduleInput, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,
-    QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
-    QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest, QianjiBpmnExecutionScheduler,
-    QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder, QianjiBpmnLeaseOwnerToken,
-    QianjiBpmnPackageId, QianjiBpmnPendingHostCompletion, QianjiBpmnPendingHostWorkHttpResponse,
-    QianjiBpmnPreparedWorkflowResume, QianjiBpmnPreparedWorkflowStart, QianjiBpmnProcessId,
-    QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, QianjiBpmnStartAtNodeId,
-    QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCancelHttpResponse,
-    QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowCancelRequest,
-    QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlError,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowEventPollReport,
-    QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowHttpCheckpointBackend,
-    QianjiBpmnWorkflowHttpErrorBody, QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowInstanceId,
-    QianjiBpmnWorkflowInstanceSummary, QianjiBpmnWorkflowInstancesReport,
-    QianjiBpmnWorkflowInstancesRequest, QianjiBpmnWorkflowInterruptReport,
-    QianjiBpmnWorkflowInterruptRequest, QianjiBpmnWorkflowResumeReport,
-    QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowRunHttpResponse,
-    QianjiBpmnWorkflowSnapshotHttpResponse, QianjiBpmnWorkflowStartHttpRequest,
-    QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStartRequest,
-    QianjiBpmnWorkflowStatusHttpQuery, QianjiBpmnWorkflowStatusHttpResponse,
-    QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
-    QianjiBpmnWorkflowTaskClaimHttpPayload, QianjiBpmnWorkflowTaskClaimHttpRequest,
-    QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskClaimPayload,
-    QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
-    QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteBatchReport,
-    QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
-    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
-    QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
-    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
-    QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiBpmnWorkflowTaskReleasePayload,
-    QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
-    QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
-    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
-    QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
-    QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest, QianjiControlRecoveryApplyHttpRequest,
+    FlowhubServiceActivityScheduleInput, QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE,
+    QIANJI_RUN_CONSOLE_EVENT_ROUTE, QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiBpmnActivityId,
+    QianjiBpmnCheckpointStore, QianjiBpmnExecutionDriver, QianjiBpmnExecutionFacade,
+    QianjiBpmnExecutionMode, QianjiBpmnExecutionReport, QianjiBpmnExecutionRequest,
+    QianjiBpmnExecutionScheduler, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder,
+    QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnPendingHostCompletion,
+    QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnPreparedWorkflowResume,
+    QianjiBpmnPreparedWorkflowStart, QianjiBpmnProcessId, QianjiBpmnSchedulerLeaseConfig,
+    QianjiBpmnSession, QianjiBpmnStartAtNodeId, QianjiBpmnWorkflowActionHttpRequest,
+    QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowCancelReport,
+    QianjiBpmnWorkflowCancelRequest, QianjiBpmnWorkflowCheckpointBackend,
+    QianjiBpmnWorkflowControlError, QianjiBpmnWorkflowControlService,
+    QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowEventPollRequest,
+    QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowHttpErrorBody,
+    QianjiBpmnWorkflowHttpState, QianjiBpmnWorkflowInstanceId, QianjiBpmnWorkflowInstanceSummary,
+    QianjiBpmnWorkflowInstancesReport, QianjiBpmnWorkflowInstancesRequest,
+    QianjiBpmnWorkflowInterruptReport, QianjiBpmnWorkflowInterruptRequest,
+    QianjiBpmnWorkflowResumeReport, QianjiBpmnWorkflowResumeRequest,
+    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStartReport,
+    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusHttpQuery,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowStatusReport,
+    QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimHttpPayload,
+    QianjiBpmnWorkflowTaskClaimHttpRequest, QianjiBpmnWorkflowTaskClaimHttpResponse,
+    QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimReport,
+    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteBatchHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
+    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompleteReport,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
+    QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter, QianjiControlDiagnosticsHttpResponse,
+    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
-    build_bpmn_host_work_activity_result, build_bpmn_host_work_activity_schedule_record,
-    build_bpmn_host_work_llm_activity_route, build_flowhub_service_activity_schedule_record,
+    QianjiControlRunSummaryHttpResponse, QianjiRunConsoleElementState,
+    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs, build_bpmn_host_work_activity_result,
+    build_bpmn_host_work_activity_schedule_record, build_bpmn_host_work_llm_activity_route,
+    build_flowhub_service_activity_schedule_record,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
     build_flowhub_service_task_completion_payload,
@@ -167,8 +159,19 @@ pub use bpmn::{
 #[cfg(feature = "duckdb")]
 pub use bpmn::{
     DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
-    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
-    QianjiBpmnDuckDbDataStoreConfig,
+    QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
+    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig, QianjiRunConsoleArrowReadModel,
+    QianjiRunConsoleFlightService, qianji_run_console_arrow_read_model,
+    qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
+    qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,
+};
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+pub use bpmn::{
+    QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse,
+    QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse,
 };
 pub use construct_cards::{
     ConstructCard, ConstructIndexEntry, ConstructLintMapping, ConstructStatus, construct_cards,
@@ -181,15 +184,15 @@ pub use construct_plan::{
     render_workflow_plan_validation_report, render_workflow_plan_validation_report_json,
     validate_workflow_plan,
 };
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub use contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};
-#[cfg(all(feature = "llm", feature = "qianji-full"))]
+#[cfg(all(feature = "llm", feature = "wendao-integration"))]
 pub use contract_feedback::{
     QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
     run_and_persist_contract_feedback_flow_with_live_advisory,
     run_contract_feedback_flow_with_live_advisory,
 };
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub use contract_feedback::{
     QianjiPersistedContractFeedbackRun, persist_contract_feedback_run,
     run_and_persist_contract_feedback_flow,
@@ -197,12 +200,14 @@ pub use contract_feedback::{
 #[cfg(feature = "qianji-full")]
 pub use contracts::{
     FlowInstruction, FlowhubGraphTopology, NodeQianhuanExecutionMode, NodeStatus, QianjiManifest,
-    QianjiMechanism, QianjiOutput, WendaoDocsContractShow, render_wendao_docs_contract_show,
-    show_wendao_docs_contract,
+    QianjiMechanism, QianjiOutput,
+};
+#[cfg(feature = "wendao-integration")]
+pub use contracts::{
+    WendaoDocsContractShow, render_wendao_docs_contract_show, show_wendao_docs_contract,
 };
 #[cfg(feature = "qianji-full")]
 pub use engine::{QianjiCompiler, QianjiEngine};
-pub use error::QianjiError;
 #[cfg(feature = "qianji-full")]
 pub use flowhub::{
     AnchoredMaterializedWorkdir, FlowhubCheckReport, FlowhubDiagnostic, FlowhubDirKind,
@@ -219,35 +224,16 @@ pub use flowhub::{
     resolve_flowhub_module_children, resolve_flowhub_scenario_modules, show_flowhub,
     show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario,
 };
-pub use llm_client::QianjiLlmClient;
 #[cfg(feature = "qianji-full")]
 pub use manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
 #[cfg(feature = "qianji-full")]
 pub use qianji_cli::{QianjiCliError, run_qianji_cli};
-pub use qianji_server::flowhub_worker::{
-    QianjiServerFlowhubServiceWorkerLoopOutput, QianjiServerFlowhubServiceWorkerLoopRequest,
-    QianjiServerFlowhubServiceWorkerStepOutput,
-    run_qianji_server_flowhub_service_worker_completion_loop,
-};
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-pub use qianji_server::llm_worker::{
-    QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate,
-    QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
-    QianjiServerOpenAiCompatibleLlmWorkerLoopRequest,
-    QianjiServerOpenAiCompatibleLlmWorkerStepOutput,
-    run_qianji_server_openai_compatible_llm_worker_loop,
-};
-pub use qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli};
 #[cfg(feature = "qianji-full")]
 pub use safety::QianjiSafetyGuard;
 #[cfg(feature = "qianji-full")]
 pub use scheduler::QianjiScheduler;
 #[cfg(feature = "qianji-full")]
 pub use scheduler_checkpoint::QianjiStateSnapshot;
-pub use scheduler_identity::SchedulerAgentIdentity;
 #[cfg(feature = "qianji-full")]
 pub use scheduler_policy::{RoleAvailabilityRegistry, SchedulerExecutionPolicy};
 #[cfg(feature = "qianji-full")]
@@ -263,17 +249,21 @@ pub use telemetry::{
 };
 #[cfg(feature = "qianji-full")]
 pub use workdir::{
-    WorkdirAdvance, WorkdirCheckFollowUpQuery, WorkdirCheckReport, WorkdirDiagnostic,
-    WorkdirMarkdownSurface, WorkdirSemanticEvidenceStatus, WorkdirSemanticProjectionPolicySummary,
-    WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
-    WorkdirSemanticScopeObjectKind, WorkdirSemanticScopeObjectStatus,
-    WorkdirSemanticScopeObjectSummary, WorkdirSemanticSqlGuardSummary, WorkdirShow,
-    WorkdirVisibleSurface, WorkdirVisibleSurfaceKind, advance_workdir_step,
-    build_workdir_check_follow_up_query, check_workdir, load_workdir_manifest,
-    looks_like_workdir_dir, parse_workdir_manifest, query_workdir_check_follow_up_payload,
-    query_workdir_markdown_payload, render_workdir_advance, render_workdir_check_markdown,
-    render_workdir_semantic_scope_guard_trace, render_workdir_show, show_workdir,
-    trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
+    WorkdirAdvance, WorkdirCheckReport, WorkdirDiagnostic, WorkdirMarkdownSurface, WorkdirShow,
+    WorkdirVisibleSurface, WorkdirVisibleSurfaceKind, advance_workdir_step, check_workdir,
+    load_workdir_manifest, looks_like_workdir_dir, parse_workdir_manifest, render_workdir_advance,
+    render_workdir_check_markdown, render_workdir_show, show_workdir,
+};
+#[cfg(feature = "wendao-integration")]
+pub use workdir::{
+    WorkdirCheckFollowUpQuery, WorkdirSemanticEvidenceStatus,
+    WorkdirSemanticProjectionPolicySummary, WorkdirSemanticScopeGuardStatus,
+    WorkdirSemanticScopeGuardTrace, WorkdirSemanticScopeObjectKind,
+    WorkdirSemanticScopeObjectStatus, WorkdirSemanticScopeObjectSummary,
+    WorkdirSemanticSqlGuardSummary, build_workdir_check_follow_up_query,
+    query_workdir_check_follow_up_payload, query_workdir_markdown_payload,
+    render_workdir_semantic_scope_guard_trace, trace_workdir_semantic_scope_bundle,
+    trace_workdir_semantic_scope_bundle_with_evidence,
     trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
     workdir_semantic_scope_guard_trace_json,
 };
@@ -289,6 +279,17 @@ pub use workflow_kernel::{
     WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStage, WorkflowStageBinding,
     WorkflowStageFacts, WorkflowStageStatus, WorkflowStageTrace, WorkflowTopology,
     WorkflowTopologyEdge, WorkflowTopologyError, WorkflowTrace,
+};
+pub use {
+    error::QianjiError, llm_client::QianjiLlmClient, scheduler_identity::SchedulerAgentIdentity,
+};
+pub use {
+    qianji_server::flowhub_worker::{
+        QianjiServerFlowhubServiceWorkerLoopOutput, QianjiServerFlowhubServiceWorkerLoopRequest,
+        QianjiServerFlowhubServiceWorkerStepOutput,
+        run_qianji_server_flowhub_service_worker_completion_loop,
+    },
+    qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli},
 };
 
 #[cfg(test)]

@@ -13,7 +13,6 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
 use xiuxian_qianhuan::persona::{PersonaProfile, PersonaRegistry};
-use xiuxian_wendao_core::WendaoResourceUri;
 
 const MAX_SNAPSHOT_COMPACTION_DEPTH: usize = 4;
 
@@ -173,12 +172,12 @@ impl ContextAnnotator {
     }
 
     fn resolve_wendao_persona_profile(&self, uri: &str) -> Result<PersonaProfile, String> {
-        let parsed_uri = WendaoResourceUri::parse(uri)
-            .map_err(|error| format!("invalid persona semantic URI '{uri}': {error}"))?;
-        let canonical_uri = parsed_uri.canonical_uri();
-        let markdown = resolve_wendao_uri_with_zhenfa(canonical_uri.as_str())?;
-        let parsed_profile =
-            persona_profile_from_markdown(canonical_uri.as_str(), markdown.as_str());
+        let canonical_uri = uri.trim();
+        if canonical_uri.is_empty() {
+            return Err("persona semantic URI must not be empty".to_string());
+        }
+        let markdown = resolve_wendao_uri_with_zhenfa(canonical_uri)?;
+        let parsed_profile = persona_profile_from_markdown(canonical_uri, markdown.as_str());
         if let Some(existing) = self.registry.get(parsed_profile.id.as_str()) {
             return Ok(existing);
         }

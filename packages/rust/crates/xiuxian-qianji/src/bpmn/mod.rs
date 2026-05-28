@@ -31,6 +31,9 @@ pub mod llm_activity_adapter;
 mod loader;
 #[path = "../bpmn_runtime_ownership.rs"]
 mod ownership;
+#[cfg(feature = "duckdb")]
+pub mod run_console_flight;
+pub mod run_console_read_model;
 #[path = "../bpmn_runtime_scheduler.rs"]
 mod scheduler;
 #[path = "../bpmn_runtime_session.rs"]
@@ -84,14 +87,14 @@ pub use api::{
     QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
+    QianjiControlBpmnSourceAdmissionHttpRequest, QianjiControlBpmnSourceAdmissionHttpResponse,
     QianjiControlBpmnSourceHttpResponse, QianjiControlBpmnSourceMediaType,
     QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
-    QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest, QianjiControlRecoveryApplyHttpRequest,
-    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, dispatch_pending_host_work_request,
-    dispatch_pending_host_work_requests, load_bpmn_package_from_files,
-    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
-    resolve_pending_host_work, resolve_waiting_external_event,
+    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
+    load_bpmn_package_from_files, load_bpmn_package_from_files_with_options,
+    qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
 };
 #[cfg(feature = "duckdb")]
 pub use api::{
@@ -120,6 +123,18 @@ pub use llm_activity_adapter::{
     BPMN_HOST_WORK_LLM_ACTIVITY_ROUTE_SCHEMA, BpmnHostWorkLlmActivityRouteInput,
     BpmnHostWorkLlmEndpointDecision, BpmnHostWorkLlmRouteDecision,
     build_bpmn_host_work_llm_activity_route,
+};
+#[cfg(feature = "duckdb")]
+pub use run_console_flight::{QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleFlightService};
+pub use run_console_read_model::{
+    QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE, QIANJI_RUN_CONSOLE_EVENT_ROUTE,
+    QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiRunConsoleElementState,
+};
+#[cfg(feature = "duckdb")]
+pub use run_console_read_model::{
+    QianjiRunConsoleArrowReadModel, qianji_run_console_arrow_read_model,
+    qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
+    qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,
 };
 
 #[cfg(test)]

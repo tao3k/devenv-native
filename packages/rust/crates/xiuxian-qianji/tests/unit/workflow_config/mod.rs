@@ -30,15 +30,17 @@ timeout_ms = 45000
 "#,
     );
 
-    let config = resolve_qianji_workflow_llm_task_config_with_env(
-        "bpmn-host-work-llm",
-        &QianjiRuntimeEnv {
-            prj_root: Some(project_root),
-            prj_config_home: Some(config_home),
-            ..QianjiRuntimeEnv::default()
-        },
-    )
-    .expect("workflow llm task config should resolve");
+    let config = must_ok(
+        resolve_qianji_workflow_llm_task_config_with_env(
+            "bpmn-host-work-llm",
+            &QianjiRuntimeEnv {
+                prj_root: Some(project_root),
+                prj_config_home: Some(config_home),
+                ..QianjiRuntimeEnv::default()
+            },
+        ),
+        "workflow llm task config should resolve",
+    );
 
     assert_eq!(config.llm.provider.as_deref(), Some("openrouter"));
     assert_eq!(config.llm.model.as_deref(), Some("deepseek/test"));
@@ -84,21 +86,25 @@ non_retryable_error_codes = ["SchemaInvalid"]
 "#,
     );
 
-    let config = resolve_qianji_workflow_llm_task_config_with_env(
-        "bpmn-host-work-llm",
-        &QianjiRuntimeEnv {
-            prj_root: Some(project_root),
-            prj_config_home: Some(config_home),
-            ..QianjiRuntimeEnv::default()
-        },
-    )
-    .expect("workflow llm task config should resolve");
+    let config = must_ok(
+        resolve_qianji_workflow_llm_task_config_with_env(
+            "bpmn-host-work-llm",
+            &QianjiRuntimeEnv {
+                prj_root: Some(project_root),
+                prj_config_home: Some(config_home),
+                ..QianjiRuntimeEnv::default()
+            },
+        ),
+        "workflow llm task config should resolve",
+    );
 
     assert_eq!(config.llm.model.as_deref(), Some("system-model"));
     assert_eq!(config.task.activity_type.as_deref(), Some("llm.plan"));
     assert_eq!(config.task.task_queue.as_deref(), Some("llm.local"));
     assert_eq!(config.task.max_tokens, Some(2048));
-    let retry = config.task.retry.expect("retry overlay should apply");
+    let Some(retry) = config.task.retry else {
+        panic!("retry overlay should apply");
+    };
     assert_eq!(retry.max_attempts, Some(3));
     assert_eq!(retry.non_retryable_error_codes, ["SchemaInvalid"]);
 }
@@ -108,15 +114,17 @@ fn workflow_llm_task_config_rejects_path_traversal_profile() {
     let tmp = TempDir::new()
         .unwrap_or_else(|err| panic!("failed to create temp dir for workflow config test: {err}"));
 
-    let error = resolve_qianji_workflow_llm_task_config_with_env(
-        "../qianji",
-        &QianjiRuntimeEnv {
-            prj_root: Some(tmp.path().join("project")),
-            prj_config_home: Some(tmp.path().join("project/.config")),
-            ..QianjiRuntimeEnv::default()
-        },
-    )
-    .expect_err("path traversal profile should fail");
+    let error = must_err(
+        resolve_qianji_workflow_llm_task_config_with_env(
+            "../qianji",
+            &QianjiRuntimeEnv {
+                prj_root: Some(tmp.path().join("project")),
+                prj_config_home: Some(tmp.path().join("project/.config")),
+                ..QianjiRuntimeEnv::default()
+            },
+        ),
+        "path traversal profile should fail",
+    );
 
     assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
 }
@@ -132,4 +140,24 @@ fn write_file(path: &Path, content: &str) {
     }
     fs::write(path, content)
         .unwrap_or_else(|err| panic!("failed to write file '{}': {err}", path.display()));
+}
+
+fn must_ok<T, E>(result: Result<T, E>, context: &str) -> T
+where
+    E: std::fmt::Display,
+{
+    match result {
+        Ok(value) => value,
+        Err(error) => panic!("{context}: {error}"),
+    }
+}
+
+fn must_err<T, E>(result: Result<T, E>, context: &str) -> E
+where
+    E: std::fmt::Display,
+{
+    match result {
+        Ok(_) => panic!("{context}: expected error"),
+        Err(error) => error,
+    }
 }

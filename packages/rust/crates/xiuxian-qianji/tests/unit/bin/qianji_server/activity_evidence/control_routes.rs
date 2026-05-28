@@ -24,6 +24,17 @@ async fn qianji_server_http_control_history_requires_configured_ledger() {
 
     let response = router
         .clone()
+        .oneshot(get("/control/runs/bpmn.workflow.missing/stream"))
+        .await
+        .unwrap_or_else(|error| panic!("control run stream route should respond: {error}"));
+    let status = response.status();
+    let body = response_json(response).await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["code"], "control_ledger_unavailable");
+
+    let response = router
+        .clone()
         .oneshot(get("/control/runs/bpmn.workflow.missing/bpmn-source"))
         .await
         .unwrap_or_else(|error| panic!("control BPMN source route should respond: {error}"));

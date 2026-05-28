@@ -233,7 +233,8 @@ that the effective Valkey checkpoint backend responds to `PING`, and
 running process. Workflow-control clients should use `/capabilities` to reject
 stale qianji-server processes before relying on recently added routes such as
 `bpmn.workflow.task.complete-batch`, `bpmn.workflow.task.fail`, or
-`bpmn.workflow.activity-evidence`, `qianji.control.bpmn-source`,
+`bpmn.workflow.activity-evidence`, `qianji.control.bpmn-source.admit`,
+`qianji.control.bpmn-source`,
 `qianji.control.history`, `qianji.control.recovery.apply`, or
 `qianji.control.worker.openai-compatible-llm.run`.
 `--control-ledger <path>` enables an optional DuckDB-backed append-only control
@@ -245,6 +246,17 @@ qianji-server from the source reference recorded on the run-created event. This
 source route is for UI canvases and inspectors that need true BPMN element ids;
 old clients may still render their own projection, but promotion-grade BPMN
 markers should bind to the server-owned XML.
+Skill.md and natural-language workflow authoring follow the same server-owned
+boundary in product deployments. qianji-server owns the legal BPMN source
+admission path: `POST /control/bpmn-source/admit` accepts a candidate BPMN XML
+payload, runs qianji lint and parse checks, verifies the requested process id,
+and returns a server-owned `bpmn_path`/source ref for `/workflows/start`.
+Model-assisted draft generation through pi-agent-capable worker surfaces,
+qianji lint/repair, source ref persistence, control-run creation, and durable
+execution stay server-side. pi-wendao may expose the same capability through a
+CLI for fast local tests, but server-side wendao.ai must call qianji-server and
+render the server-owned BPMN source instead of compiling or repairing BPMN in
+the UI process.
 `GET /control/runs/{run_id}/summary` returns the replay-derived
 `RunOperatorSummary` projection for operators that need activity, timer,
 signal, cost, and recovery counters without parsing raw events.
@@ -445,6 +457,11 @@ does not accept fixture output refs, output artifacts, ad-hoc metadata, or
 failure arguments; retries and failures remain activity lifecycle facts, while
 successful execution records the exact completion data later used by the
 qianji-server BPMN task-completion route.
+Workflow authoring workers that convert Skill.md or natural language into BPMN
+must use the same server-side discipline: they are workers behind
+qianji-server, not frontend compilers. They can use pi-agent tools for file
+inspection and repair assistance, but qianji lint/repair remains the admission
+gate and the accepted BPMN source is recorded by the server before execution.
 `qianji control activity-worker-loop --ledger <path> --valkey-url <url>
 --worker-id <id> --now-ms <ms> --lease-ttl-ms <ms> --poll-limit <n>
 --executor fixture|openai-compatible-llm|flowhub-service --outcome complete|fail

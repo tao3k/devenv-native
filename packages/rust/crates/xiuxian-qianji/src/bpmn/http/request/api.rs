@@ -61,6 +61,17 @@ pub struct QianjiBpmnWorkflowStartHttpRequest {
     pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
 }
 
+/// JSON body for admitting one server-owned BPMN source candidate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlBpmnSourceAdmissionHttpRequest {
+    /// Stable source identifier supplied by the authoring caller.
+    pub source_id: String,
+    /// Expected BPMN process identifier.
+    pub process_id: QianjiBpmnProcessId,
+    /// Candidate BPMN XML. The server lints and parses this before writing it.
+    pub bpmn_xml: String,
+}
+
 impl QianjiBpmnWorkflowStartHttpRequest {
     pub(in crate::bpmn::http_transport) fn into_control_request(
         self,
@@ -150,8 +161,12 @@ pub struct QianjiControlRecoveryApplyHttpRequest {
 }
 
 /// JSON body for one bounded qianji-server OpenAI-compatible LLM worker run.
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest {
+pub(in crate::bpmn::http_transport) struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest {
     /// Server worker identity used for activity-task claims.
     #[serde(default = "default_openai_compatible_llm_worker_id")]
     pub worker_id: String,
@@ -193,26 +208,50 @@ pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest {
     pub openai_compatible_timeout_ms: Option<u64>,
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 fn default_openai_compatible_llm_worker_id() -> String {
     "qianji-server-openai-compatible-llm-worker".to_owned()
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 fn default_openai_compatible_llm_worker_step_ms() -> u64 {
     1
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 fn default_openai_compatible_llm_worker_lease_ttl_ms() -> u64 {
     30_000
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 fn default_openai_compatible_llm_worker_poll_limit() -> u32 {
     1
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 fn default_openai_compatible_llm_worker_empty_limit() -> u32 {
     1
 }
 
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 fn default_openai_compatible_llm_worker_count() -> u32 {
     1
 }

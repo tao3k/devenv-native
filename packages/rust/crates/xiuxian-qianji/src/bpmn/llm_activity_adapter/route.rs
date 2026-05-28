@@ -229,6 +229,12 @@ fn task_metadata(
     process_id: &str,
     bpmn_activity_id: &str,
 ) -> serde_json::Value {
+    let output_bindings = input
+        .pending_work
+        .output_bindings
+        .iter()
+        .map(|binding| binding.name.as_ref().to_owned())
+        .collect::<Vec<_>>();
     serde_json::json!({
         "schema": "qianji.bpmn.host_work.llm_activity_metadata.v1",
         "profile": input.profile,
@@ -241,6 +247,7 @@ fn task_metadata(
         "work_id": input.pending_work.work_id.as_deref(),
         "bpmn_source_ref": input.bpmn_source_ref,
         "pending_work_kind": format!("{:?}", input.pending_work.kind),
+        "output_bindings": output_bindings,
     })
 }
 

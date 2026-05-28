@@ -1,5 +1,7 @@
 //! Integration coverage for persisted Qianji to Wendao contract feedback.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::fs;
 use std::path::PathBuf;
 

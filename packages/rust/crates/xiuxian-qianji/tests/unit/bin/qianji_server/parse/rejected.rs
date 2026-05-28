@@ -16,6 +16,19 @@ fn qianji_server_rejects_missing_bind_value() {
 }
 
 #[test]
+fn qianji_server_rejects_missing_flight_bind_value() {
+    let error = must_err(
+        parse_qianji_server_args(["--flight-bind"]),
+        "missing Flight bind value should be rejected",
+    );
+
+    assert!(
+        error.contains("missing value for --flight-bind"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
 fn qianji_server_rejects_missing_valkey_url() {
     let error = must_err(
         parse_qianji_server_args(["--valkey-url"]),

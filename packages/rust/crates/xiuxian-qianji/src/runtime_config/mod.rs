@@ -20,6 +20,7 @@
 //!    - `QIANJI_MEMORY_PROMOTION_PERSIST`
 //!    - `QIANJI_MEMORY_PROMOTION_PERSIST_BEST_EFFORT`
 //!    - `QIANJI_WORKFLOW_STATE_DUCKDB_PATH`
+//!    - `QIANJI_SERVER_FLIGHT_BIND_ADDR`
 
 #[path = "../runtime_config_api.rs"]
 mod api;
@@ -44,7 +45,7 @@ pub use api::{
     resolve_qianji_runtime_workflow_state_config,
     resolve_qianji_runtime_workflow_state_config_with_env,
 };
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub(crate) use api::{
     resolve_process_env_path, resolve_process_project_root, resolve_process_project_root_from_cwd,
 };

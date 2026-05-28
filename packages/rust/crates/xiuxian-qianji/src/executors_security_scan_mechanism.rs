@@ -1,13 +1,13 @@
-//! AST-based Security Scanning Mechanism.
+//! Text-based security scanning mechanism.
 
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
 use crate::executors::security_scan::input::{
     collect_file_paths, resolve_base_dir, resolve_scan_path,
 };
+use crate::executors::security_scan::scanner::scan_security_violations;
 use async_trait::async_trait;
 use serde_json::json;
 use std::fs;
-use xiuxian_ast::SecurityScanner;
 
 /// Mechanism responsible for statically analyzing code files for security violations.
 /// Semantic field boundary: this public DTO preserves externally serialized field names.
@@ -29,7 +29,6 @@ impl QianjiMechanism for SecurityScanMechanism {
         let base_dir = resolve_base_dir(context, self.cwd_key.as_ref());
 
         let mut all_violations = Vec::new();
-        let scanner = SecurityScanner::new();
 
         for file_str in file_paths {
             let path_buf = resolve_scan_path(&file_str, base_dir);
@@ -39,8 +38,7 @@ impl QianjiMechanism for SecurityScanMechanism {
                 && path_buf.is_file()
                 && let Ok(content) = fs::read_to_string(&path_buf)
             {
-                let file_violations = scanner.scan_all(&content);
-                for v in file_violations {
+                for v in scan_security_violations(&content) {
                     all_violations.push(json!({
                         "file": file_str,
                         "rule_id": v.rule_id,

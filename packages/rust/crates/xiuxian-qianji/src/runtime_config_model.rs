@@ -3,7 +3,7 @@
 use super::constants::{
     DEFAULT_MEMORY_PROMOTION_GRAPH_DIMENSION, DEFAULT_MEMORY_PROMOTION_GRAPH_SCOPE,
     DEFAULT_MEMORY_PROMOTION_PERSIST, DEFAULT_MEMORY_PROMOTION_PERSIST_BEST_EFFORT,
-    DEFAULT_SERVER_BIND_ADDR, DEFAULT_SERVER_REQUIRE_VALKEY_READY,
+    DEFAULT_SERVER_BIND_ADDR, DEFAULT_SERVER_FLIGHT_BIND_ADDR, DEFAULT_SERVER_REQUIRE_VALKEY_READY,
     DEFAULT_WORKFLOW_STATE_DUCKDB_RELATIVE_PATH,
 };
 use std::path::PathBuf;
@@ -77,6 +77,8 @@ impl Default for QianjiRuntimeWorkflowStateConfig {
 pub struct QianjiRuntimeServerConfig {
     /// Effective socket bind address.
     pub bind_addr: String,
+    /// Optional Arrow Flight socket bind address for server-owned data-plane reads.
+    pub flight_bind_addr: Option<String>,
     /// Whether `qianji-server` must ping Valkey before binding.
     pub require_valkey_ready: bool,
 }
@@ -85,6 +87,7 @@ impl Default for QianjiRuntimeServerConfig {
     fn default() -> Self {
         Self {
             bind_addr: DEFAULT_SERVER_BIND_ADDR.to_string(),
+            flight_bind_addr: DEFAULT_SERVER_FLIGHT_BIND_ADDR.map(str::to_string),
             require_valkey_ready: DEFAULT_SERVER_REQUIRE_VALKEY_READY,
         }
     }
@@ -128,6 +131,8 @@ pub struct QianjiRuntimeEnv {
     pub qianji_workflow_state_duckdb_path: Option<PathBuf>,
     /// Optional `QIANJI_SERVER_BIND_ADDR` override for the HTTP service.
     pub qianji_server_bind_addr: Option<String>,
+    /// Optional `QIANJI_SERVER_FLIGHT_BIND_ADDR` override for the Arrow Flight service.
+    pub qianji_server_flight_bind_addr: Option<String>,
     /// Optional `QIANJI_SERVER_REQUIRE_VALKEY_READY` override.
     pub qianji_server_require_valkey_ready: Option<bool>,
     /// Optional values for arbitrary env keys (used for `api_key_env` lookups).

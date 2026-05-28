@@ -16,6 +16,7 @@ pub(crate) use super::bpmn_cli::{
 pub(crate) use super::construct_cli::{
     ConstructCliCommand, parse_construct_command, run_construct_command,
 };
+#[cfg(feature = "wendao-integration")]
 pub(crate) use super::contract_feedback_cli::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, REST_DOCS_PACK_ID,
     RestDocsCliCommand, build_contract_feedback_config, normalize_prj_data_home,
@@ -41,6 +42,8 @@ pub(crate) use super::lint_cli::{LintCliCommand, parse_lint_command, run_lint_co
 pub(crate) use super::template_cli::{
     TemplateCliCommand, parse_template_command, run_template_command,
 };
+#[cfg(feature = "wendao-integration")]
 pub(crate) use super::workspace::resolve_workspace_root;
 pub(crate) use crate::QianjiBpmnWorkflowCheckpointBackend as BpmnCliCheckpointBackend;
+#[cfg(feature = "wendao-integration")]
 pub(crate) use crate::contract_feedback::build_rest_docs_collection_context;

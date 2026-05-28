@@ -23,4 +23,5 @@ valkey_url = "redis://127.0.0.1:6379/0"
 
 [server]
 bind_addr = "127.0.0.1:38130"
+flight_bind_addr = "127.0.0.1:38131"
 require_valkey_ready = false

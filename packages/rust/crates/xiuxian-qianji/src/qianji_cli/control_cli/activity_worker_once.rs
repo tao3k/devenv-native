@@ -459,20 +459,6 @@ where
     worker_once_output_with_claim_scope(ledger, hot_state, None, request).await
 }
 
-#[cfg(test)]
-pub(crate) async fn worker_once_output_for_run_with_hot_state<L, H>(
-    ledger: &L,
-    hot_state: &H,
-    run_id: &xiuxian_qianji_control::RunId,
-    request: &ActivityWorkerOnceStoreRequest<'_>,
-) -> io::Result<ActivityWorkerOnceOutput>
-where
-    L: xiuxian_qianji_control::ControlLedger + ?Sized,
-    H: xiuxian_qianji_control::HotStateStore + ?Sized,
-{
-    worker_once_output_with_claim_scope(ledger, hot_state, Some(run_id), request).await
-}
-
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 async fn worker_once_output_with_claim_scope<L, H>(
     ledger: &L,

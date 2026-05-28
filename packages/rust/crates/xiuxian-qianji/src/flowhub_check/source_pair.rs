@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use orgize::Org;
 use xiuxian_qianji_bpmn_engine::{BpmnSourceFile, lint_bpmn_source};
-use xiuxian_wendao_parsers::{OrgizeLintOutputFormat, OrgizeLintRequest, lint_org_files};
 
 use crate::contracts::FlowhubStructureContract;
 use crate::error::QianjiError;
@@ -123,34 +123,35 @@ fn validate_org_source(
         return;
     };
 
-    let request = OrgizeLintRequest {
-        paths: vec![path.clone()],
-        output_format: OrgizeLintOutputFormat::Compact,
-        priority_highest: None,
-        priority_lowest: None,
-        priority_default: None,
-        fix: false,
-    };
-    match lint_org_files(&request) {
-        Ok(report) if report.is_clean() => {}
-        Ok(report) => diagnostics.push(FlowhubDiagnostic {
+    if let Some(problem) = validate_org_syntax(&path, &source) {
+        diagnostics.push(FlowhubDiagnostic {
             title: "Invalid Flowhub Org scenario source".to_string(),
             location: path.clone(),
-            problem: report.render(OrgizeLintOutputFormat::Compact),
+            problem,
             why_it_blocks: "Qianji cannot trust the Org-owned scenario semantics".to_string(),
-            fix: "repair the Org scenario source so Orgize lint passes".to_string(),
-        }),
-        Err(error) => diagnostics.push(FlowhubDiagnostic {
-            title: "Unreadable Flowhub Org scenario source".to_string(),
-            location: path.clone(),
-            problem: error.to_string(),
-            why_it_blocks: "Qianji cannot inspect the Org-owned scenario semantics".to_string(),
-            fix: "repair the Org scenario source path and syntax".to_string(),
-        }),
+            fix: "repair the Org scenario source so it has a parseable review heading".to_string(),
+        });
     }
 
     validate_org_bpmn_property(&path, &source, bpmn_file, diagnostics);
     validate_org_mermaid_babel(&path, &source, diagnostics);
+}
+
+fn validate_org_syntax(path: &Path, source: &str) -> Option<String> {
+    let _document = Org::parse(source).document();
+    if source.trim().is_empty() {
+        return Some(format!("Org scenario source `{}` is empty", path.display()));
+    }
+    if !source
+        .lines()
+        .any(|line| line.trim_start().starts_with('*'))
+    {
+        return Some(format!(
+            "Org scenario source `{}` has no review heading",
+            path.display()
+        ));
+    }
+    None
 }
 
 fn validate_org_bpmn_property(

@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use orgize::{Org, ast::OrgElementSelector};
 use serde::Deserialize;
 use xiuxian_qianji_bpmn_engine::{BpmnSourceFile, lint_bpmn_source};
-use xiuxian_wendao_parsers::{OrgizeLintOutputFormat, OrgizeLintRequest, lint_org_files};
 
+use super::org_lint::validate_org_syntax;
 use crate::QianjiClientError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -248,26 +248,14 @@ fn validate_required_org_surface(
     surface_path: &Path,
     diagnostics: &mut Vec<String>,
 ) -> Result<bool, QianjiClientError> {
-    let request = OrgizeLintRequest {
-        paths: vec![surface_path.to_path_buf()],
-        output_format: OrgizeLintOutputFormat::Compact,
-        priority_highest: None,
-        priority_lowest: None,
-        priority_default: None,
-        fix: false,
-    };
-    let report = lint_org_files(&request).map_err(|error| {
+    let source = read_to_string(surface_path, "required Flowhub Org surface").map_err(|error| {
         QianjiClientError::message(format!(
-            "Failed to lint required Flowhub Org surface `{}` from manifest `{}`: {error}",
+            "Failed to read required Flowhub Org surface `{}` from manifest `{}`: {error}",
             required_surface,
             manifest_path.display()
         ))
     })?;
-    if report.is_clean() {
-        return Ok(true);
-    }
-    diagnostics.push(report.render(OrgizeLintOutputFormat::Compact));
-    Ok(false)
+    Ok(validate_org_syntax(surface_path, &source, diagnostics))
 }
 
 fn validate_required_bpmn_surface(
@@ -325,24 +313,7 @@ fn validate_policy_org_source(
     passed &=
         validate_policy_contract_graph_selector(policy_path, &source, &properties, diagnostics);
 
-    let request = OrgizeLintRequest {
-        paths: vec![policy_path.to_path_buf()],
-        output_format: OrgizeLintOutputFormat::Compact,
-        priority_highest: None,
-        priority_lowest: None,
-        priority_default: None,
-        fix: false,
-    };
-    let report = lint_org_files(&request).map_err(|error| {
-        QianjiClientError::message(format!(
-            "Failed to lint Flowhub policy entry `{}`: {error}",
-            policy_path.display()
-        ))
-    })?;
-    if !report.is_clean() {
-        diagnostics.push(report.render(OrgizeLintOutputFormat::Compact));
-        passed = false;
-    }
+    passed &= validate_org_syntax(policy_path, &source, diagnostics);
     Ok(passed)
 }
 
@@ -685,24 +656,7 @@ fn validate_org_source(
         passed = false;
     }
 
-    let request = OrgizeLintRequest {
-        paths: vec![source_pair.org_source.clone()],
-        output_format: OrgizeLintOutputFormat::Compact,
-        priority_highest: None,
-        priority_lowest: None,
-        priority_default: None,
-        fix: false,
-    };
-    let report = lint_org_files(&request).map_err(|error| {
-        QianjiClientError::message(format!(
-            "Failed to lint Flowhub Org source `{}`: {error}",
-            source_pair.org_source.display()
-        ))
-    })?;
-    if !report.is_clean() {
-        diagnostics.push(report.render(OrgizeLintOutputFormat::Compact));
-        passed = false;
-    }
+    passed &= validate_org_syntax(&source_pair.org_source, &source, diagnostics);
     Ok(passed)
 }
 

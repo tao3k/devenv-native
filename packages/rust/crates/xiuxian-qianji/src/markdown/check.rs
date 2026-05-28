@@ -101,6 +101,7 @@ pub(crate) fn render_validation_failed(
 }
 
 /// Render the shared bounded-repair follow-up SQL section.
+#[cfg(feature = "wendao-integration")]
 #[must_use]
 pub(crate) fn render_follow_up_query_section(surface_names: &[String], query_text: &str) -> String {
     match CHECK_TEMPLATE_CATALOG
@@ -160,6 +161,7 @@ fn render_diagnostic_body_lines(diagnostic: &MarkdownDiagnostic<'_>) -> Vec<Stri
     ]
 }
 
+#[cfg(feature = "wendao-integration")]
 fn render_follow_up_query_section_inline(surface_names: &[String], query_text: &str) -> String {
     format!(
         "## Follow-up Query\nSurfaces: {}\nSQL:\n```sql\n{}\n```",

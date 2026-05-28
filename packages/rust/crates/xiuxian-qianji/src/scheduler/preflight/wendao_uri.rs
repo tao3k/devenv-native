@@ -1,18 +1,36 @@
+#[cfg(feature = "wendao-integration")]
 use super::mounts::runtime_wendao_mounts_snapshot;
+#[cfg(feature = "wendao-integration")]
 use crate::runtime_config::{resolve_process_env_path, resolve_process_project_root};
+#[cfg(feature = "wendao-integration")]
 use std::fs;
+#[cfg(feature = "wendao-integration")]
 use std::path::{Path, PathBuf};
+#[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::SkillRuntimeResolver;
+#[cfg(feature = "wendao-integration")]
 use xiuxian_wendao_core::WendaoResourceUri;
+#[cfg(feature = "wendao-integration")]
 use xiuxian_wendao_runtime::artifacts::zhixing::embedded_resource_text_from_wendao_uri;
+#[cfg(feature = "wendao-integration")]
 use xiuxian_zhenfa::ZhenfaTransmuter;
 
 /// Resolve one `wendao://` URI and delegate validation/refinement to Zhenfa.
+#[cfg(feature = "wendao-integration")]
 pub(crate) fn resolve_wendao_uri_with_zhenfa(uri: &str) -> Result<String, String> {
     ZhenfaTransmuter::resolve_and_wash(uri, resolve_wendao_uri_text)
         .map_err(|error| error.to_string())
 }
 
+/// Resolve one `wendao://` URI and delegate validation/refinement to Zhenfa.
+#[cfg(not(feature = "wendao-integration"))]
+pub(crate) fn resolve_wendao_uri_with_zhenfa(uri: &str) -> Result<String, String> {
+    Err(format!(
+        "`wendao://` semantic resource `{uri}` requires the `wendao-integration` feature"
+    ))
+}
+
+#[cfg(feature = "wendao-integration")]
 fn normalize_relative_path(path: &str) -> String {
     path.trim()
         .replace('\\', "/")
@@ -22,6 +40,7 @@ fn normalize_relative_path(path: &str) -> String {
         .join("/")
 }
 
+#[cfg(feature = "wendao-integration")]
 fn resolve_wendao_uri_from_runtime_mounts(uri: &str) -> Option<String> {
     let parsed = WendaoResourceUri::parse(uri).ok()?;
     let semantic_name = parsed.semantic_name();
@@ -49,6 +68,7 @@ fn resolve_wendao_uri_from_runtime_mounts(uri: &str) -> Option<String> {
 }
 
 /// Resolve semantic resources through the shared skill runtime loader.
+#[cfg(feature = "wendao-integration")]
 fn resolve_wendao_uri_from_skill_loader(uri: &str) -> Option<String> {
     WendaoResourceUri::parse(uri).ok()?;
     let roots = resolve_skill_runtime_roots();
@@ -60,6 +80,7 @@ fn resolve_wendao_uri_from_skill_loader(uri: &str) -> Option<String> {
 }
 
 /// Direct-path fallback for internal callers that pass an explicit file path.
+#[cfg(feature = "wendao-integration")]
 fn resolve_wendao_uri_from_explicit_path(uri_or_path: &str) -> Option<String> {
     let trimmed = uri_or_path.trim();
     if trimmed.is_empty() || trimmed.contains("://") {
@@ -81,6 +102,7 @@ fn resolve_wendao_uri_from_explicit_path(uri_or_path: &str) -> Option<String> {
     None
 }
 
+#[cfg(feature = "wendao-integration")]
 fn resolve_skill_runtime_roots() -> Vec<PathBuf> {
     let project_root = resolve_process_project_root().unwrap_or_else(|| PathBuf::from("."));
     let mut roots = discover_crate_skill_roots(
@@ -114,6 +136,7 @@ fn resolve_skill_runtime_roots() -> Vec<PathBuf> {
     roots
 }
 
+#[cfg(feature = "wendao-integration")]
 fn discover_crate_skill_roots(crates_root: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(crates_root) else {
         return Vec::new();
@@ -126,6 +149,7 @@ fn discover_crate_skill_roots(crates_root: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
+#[cfg(feature = "wendao-integration")]
 fn dedup_paths(paths: &mut Vec<PathBuf>) {
     *paths = std::mem::take(paths)
         .into_iter()
@@ -137,6 +161,7 @@ fn dedup_paths(paths: &mut Vec<PathBuf>) {
         });
 }
 
+#[cfg(feature = "wendao-integration")]
 pub(super) fn resolve_wendao_uri_text(uri: &str) -> Option<String> {
     resolve_wendao_uri_from_runtime_mounts(uri)
         .or_else(|| embedded_resource_text_from_wendao_uri(uri).map(str::to_string))
@@ -144,6 +169,7 @@ pub(super) fn resolve_wendao_uri_text(uri: &str) -> Option<String> {
         .or_else(|| resolve_wendao_uri_from_explicit_path(uri))
 }
 
+#[cfg(feature = "wendao-integration")]
 #[cfg(test)]
 #[path = "../../../tests/unit/scheduler/preflight/wendao_uri.rs"]
 mod tests;

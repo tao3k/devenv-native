@@ -1,4 +1,5 @@
 #![allow(missing_docs, unused_imports, clippy::doc_markdown)]
+#![cfg(feature = "wendao-integration")]
 
 use serde_json::json;
 use std::collections::HashMap;

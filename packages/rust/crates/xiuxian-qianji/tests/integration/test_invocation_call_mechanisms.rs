@@ -1,5 +1,7 @@
 //! Integration tests for contract-validated HTTP and CLI invocation nodes.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;

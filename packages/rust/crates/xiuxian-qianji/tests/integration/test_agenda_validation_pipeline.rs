@@ -1,5 +1,7 @@
 //! Agenda validation pipeline integration tests.
 
+#![cfg(feature = "wendao-integration")]
+
 use async_trait::async_trait;
 #[cfg(feature = "llm")]
 use futures::stream;

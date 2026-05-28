@@ -1,5 +1,7 @@
 //! Integration coverage for the Qianji contract-feedback pipeline.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;

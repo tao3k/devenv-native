@@ -2,6 +2,7 @@
 
 mod bpmn_cli;
 mod construct_cli;
+#[cfg(feature = "wendao-integration")]
 mod contract_feedback_cli;
 mod control_cli;
 mod dir_cli;
@@ -18,31 +19,29 @@ mod template_cli;
 pub(crate) mod test_exports;
 mod usage;
 mod workspace;
-#[cfg(test)]
-pub(crate) use control_cli::{
-    ActivityExecutorKindArg, ActivitySettleOutcomeArg, ActivityWorkerOnceOutput,
-    ActivityWorkerOnceStoreRequest, worker_once_output_for_run_with_hot_state,
-};
 pub(crate) use input::{invalid_input, parse_flag_value, resolve_cli_path};
 #[cfg(test)]
 pub(crate) use test_exports::{
     BpmnCliCheckpointBackend, BpmnCliCommand, BpmnHostSessionCliCommand, BpmnRunCliCommand,
     BpmnStartAtCliCommand, BpmnStartCliCommand, BpmnStatusCliCommand, BpmnTaskClaimCliCommand,
     BpmnTaskCompleteCliCommand, BpmnTaskCompleteCliKind, BpmnTaskReleaseCliCommand,
-    BpmnTaskWorklistCliCommand, ConstructCliCommand, ContractFeedbackCliCommand,
-    DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, EmitCliCommand, LintCliCommand,
-    REST_DOCS_PACK_ID, RestDocsCliCommand, ShowCliTarget, TemplateCliCommand,
-    build_contract_feedback_config, build_rest_docs_collection_context, normalize_prj_data_home,
-    parse_bpmn_command, parse_construct_command, parse_contract_feedback_command,
+    BpmnTaskWorklistCliCommand, ConstructCliCommand, DirCliCommand, EmitCliCommand, LintCliCommand,
+    ShowCliTarget, TemplateCliCommand, parse_bpmn_command, parse_construct_command,
     parse_dir_command, parse_emit_command, parse_lint_command, parse_template_command,
-    resolve_bpmn_checkpoint_store_with_env, resolve_workspace_root, run_bpmn_command,
+    resolve_bpmn_checkpoint_store_with_env, run_bpmn_command,
     run_bpmn_run_command_with_runtime_env, run_bpmn_start_at_command_with_runtime_env,
     run_bpmn_status_command_with_runtime_env, run_bpmn_task_claim_command_with_runtime_env,
     run_bpmn_task_complete_command_with_runtime_env,
     run_bpmn_task_release_command_with_runtime_env,
-    run_bpmn_task_worklist_command_with_runtime_env, run_construct_command,
-    run_deterministic_rest_docs_contract_feedback, run_dir_command, run_emit_command,
-    run_lint_command, run_scaffold_rest_docs_contract_feedback, run_template_command,
+    run_bpmn_task_worklist_command_with_runtime_env, run_construct_command, run_dir_command,
+    run_emit_command, run_lint_command, run_template_command,
+};
+#[cfg(all(test, feature = "wendao-integration"))]
+pub(crate) use test_exports::{
+    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, REST_DOCS_PACK_ID,
+    RestDocsCliCommand, build_contract_feedback_config, build_rest_docs_collection_context,
+    normalize_prj_data_home, parse_contract_feedback_command, resolve_workspace_root,
+    run_deterministic_rest_docs_contract_feedback, run_scaffold_rest_docs_contract_feedback,
 };
 #[path = "facade.rs"]
 mod facade;

@@ -66,7 +66,7 @@ pub(crate) fn resolve_project_root_from_value(
     resolve_project_root_or_cwd_from_value(raw_project_root, current_dir)
 }
 
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub(crate) fn resolve_process_project_root() -> Option<PathBuf> {
     let current_dir = env::current_dir().ok();
     let raw_project_root = env::var("PRJ_ROOT").ok();
@@ -79,13 +79,13 @@ pub(crate) fn resolve_process_project_root() -> Option<PathBuf> {
     ))
 }
 
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub(crate) fn resolve_process_project_root_from_cwd(current_dir: &Path) -> PathBuf {
     let raw_project_root = env::var("PRJ_ROOT").ok();
     resolve_project_root_from_value(raw_project_root.as_deref(), Some(current_dir))
 }
 
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub(crate) fn resolve_process_env_path(key: &str, project_root: &Path) -> Option<PathBuf> {
     let raw_value = env::var(key).ok();
     resolve_path_from_value(Some(project_root), raw_value.as_deref())

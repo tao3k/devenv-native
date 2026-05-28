@@ -1,6 +1,7 @@
 //! Integration coverage for the live LLM-backed contract-feedback pipeline.
 
 #![cfg(feature = "llm")]
+#![cfg(feature = "wendao-integration")]
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

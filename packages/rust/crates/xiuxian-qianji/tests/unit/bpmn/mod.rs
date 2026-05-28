@@ -5,6 +5,9 @@ mod control;
 mod flowhub_activity_adapter;
 mod http;
 mod llm_activity_adapter;
+#[cfg(feature = "duckdb")]
+mod run_console_flight;
+mod run_console_read_model;
 mod runtime;
 mod runtime_identity;
 mod runtime_lease;

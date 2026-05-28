@@ -11679,6 +11679,8 @@ version = "0.1.1"
 dependencies = [
  "anyhow",
  "ariadne",
+ "arrow",
+ "arrow-flight",
  "async-trait",
  "axum",
  "criterion",
@@ -11690,6 +11692,8 @@ dependencies = [
  "log",
  "md5",
  "merman-core",
+ "num-traits",
+ "orgize",
  "petgraph 0.7.1",
  "quick-xml 0.39.4",
  "rand 0.8.6",
@@ -11704,11 +11708,12 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-stream",
  "tokio-util",
  "toml 0.8.23",
+ "tonic",
  "tower",
  "walkdir",
- "xiuxian-ast",
  "xiuxian-config-core",
  "xiuxian-db-store",
  "xiuxian-llm",
@@ -11762,7 +11767,6 @@ dependencies = [
  "thiserror 2.0.18",
  "toml 0.8.23",
  "xiuxian-qianji-bpmn-engine",
- "xiuxian-wendao-parsers",
 ]
 
 [[package]]

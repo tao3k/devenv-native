@@ -5,7 +5,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
-use xiuxian_wendao_parsers::{OrgizeLintOutputFormat, OrgizeLintRequest, lint_org_files};
 
 use crate::flowhub::contract::{
     FlowhubSourcePair, list_flowhub_source_pairs, parse_org_properties, property_value,
@@ -17,6 +16,7 @@ use crate::flowhub::model::{
     FlowhubScenarioRegistry, FlowhubScenarioRegistrySourcePair, FlowhubScenarioRegistryValidation,
     FlowhubSourcePairSummary, FlowhubValidation,
 };
+use crate::flowhub::org_lint::validate_org_syntax;
 use crate::flowhub::parse::{FlowhubAction, FlowhubCommand};
 use crate::flowhub::render::{RenderInput, render_output};
 
@@ -480,26 +480,17 @@ fn validate_generated_org_files(
     generated_files: &[FlowhubGeneratedFile],
     diagnostics: &mut Vec<String>,
 ) -> Result<bool, QianjiClientError> {
-    let paths = generated_files
-        .iter()
-        .map(|file| file.path.clone())
-        .collect::<Vec<_>>();
-    let request = OrgizeLintRequest {
-        paths,
-        output_format: OrgizeLintOutputFormat::Compact,
-        priority_highest: None,
-        priority_lowest: None,
-        priority_default: None,
-        fix: false,
-    };
-    let report = lint_org_files(&request).map_err(|error| {
-        QianjiClientError::message(format!("Failed to lint generated agent Org files: {error}"))
-    })?;
-    if report.is_clean() {
-        return Ok(true);
+    let mut passed = true;
+    for file in generated_files {
+        let source = fs::read_to_string(&file.path).map_err(|error| {
+            QianjiClientError::message(format!(
+                "Failed to read generated agent Org file `{}`: {error}",
+                file.path.display()
+            ))
+        })?;
+        passed &= validate_org_syntax(&file.path, &source, diagnostics);
     }
-    diagnostics.push(report.render(OrgizeLintOutputFormat::Compact));
-    Ok(false)
+    Ok(passed)
 }
 
 fn validate_generated_source_metadata(

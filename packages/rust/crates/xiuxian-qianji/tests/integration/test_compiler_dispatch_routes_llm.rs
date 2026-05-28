@@ -1,6 +1,7 @@
 //! LLM-feature integration tests for compiler dispatch route coverage.
 
 #![cfg(feature = "llm")]
+#![cfg(feature = "wendao-integration")]
 
 use async_trait::async_trait;
 use futures::stream;

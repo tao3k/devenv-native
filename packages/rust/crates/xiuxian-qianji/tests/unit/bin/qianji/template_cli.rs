@@ -8,6 +8,7 @@ use xiuxian_qianji_bpmn_engine::{
     BpmnParseOptions, BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source,
     parse_bpmn_package, snapshot_bpmn_source,
 };
+#[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::LinkGraphIndex;
 
 #[test]
@@ -124,15 +125,20 @@ fn run_template_command_renders_semantic_guard_route_manifest() {
 #[test]
 fn run_template_command_renders_compilable_semantic_guard_route_manifest() {
     let output = run_template_command(&TemplateCliCommand::SemanticGuardRoute);
-    let temp = tempfile::tempdir().unwrap_or_else(|error| {
-        panic!("temporary index root should be created: {error}");
-    });
-    let index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap_or_else(|error| {
-        panic!("link graph index should build: {error}");
-    }));
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
     let registry = Arc::new(PersonaRegistry::with_builtins());
-    let compiler = QianjiCompiler::new(index, orchestrator, registry, None);
+    #[cfg(feature = "wendao-integration")]
+    let compiler = {
+        let temp = tempfile::tempdir().unwrap_or_else(|error| {
+            panic!("temporary index root should be created: {error}");
+        });
+        let index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap_or_else(|error| {
+            panic!("link graph index should build: {error}");
+        }));
+        QianjiCompiler::new(index, orchestrator, registry, None)
+    };
+    #[cfg(not(feature = "wendao-integration"))]
+    let compiler = QianjiCompiler::new(orchestrator, registry, None);
 
     compiler
         .compile(&output.rendered)

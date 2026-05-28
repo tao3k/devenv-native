@@ -1,5 +1,7 @@
 //! Wendao ingester mechanism integration tests.
 
+#![cfg(feature = "wendao-integration")]
+
 use serde_json::json;
 use xiuxian_qianji::contracts::QianjiMechanism;
 use xiuxian_qianji::executors::WendaoIngesterMechanism;

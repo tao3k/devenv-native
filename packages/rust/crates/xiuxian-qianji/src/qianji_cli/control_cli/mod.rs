@@ -52,12 +52,9 @@ pub(crate) use activity_worker_loop::ActivityWorkerLoopStoreRequest;
 #[cfg(test)]
 pub(crate) use activity_worker_loop::worker_loop_with_hot_state;
 #[cfg(test)]
-pub(crate) use activity_worker_once::worker_once_with_hot_state;
+pub(crate) use activity_worker_once::ActivityWorkerOnceStoreRequest;
 #[cfg(test)]
-pub(crate) use activity_worker_once::{
-    ActivityWorkerOnceOutput, ActivityWorkerOnceStoreRequest,
-    worker_once_output_for_run_with_hot_state,
-};
+pub(crate) use activity_worker_once::worker_once_with_hot_state;
 #[cfg(test)]
 pub(crate) use api::run_control_command;
 pub(crate) use api::{handle_control_command_async, parse_control_command};

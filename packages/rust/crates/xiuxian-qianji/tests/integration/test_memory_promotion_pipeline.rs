@@ -1,5 +1,7 @@
 //! Memory promotion pipeline integration tests.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::sync::Arc;
 
 use serde_json::json;

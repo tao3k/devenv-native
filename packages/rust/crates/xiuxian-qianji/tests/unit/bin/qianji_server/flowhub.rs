@@ -445,6 +445,7 @@ fn server_command_with_valkey(
 ) -> QianjiServerServeCommand {
     QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some(valkey_url),
         require_valkey_ready: None,
         flowhub_root: Some(flowhub_root),

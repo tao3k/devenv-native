@@ -47,7 +47,7 @@ let
 in
 {
   imports = [
-    nixosModules.claude
+    # nixosModules.claude
     nixosModules.flake-parts.omnibus
     nixosModules.files
     nixosModules.prek
@@ -144,6 +144,7 @@ in
 
   # https://devenv.sh/pre-commit-hooks/
   git-hooks.hooks = {
+    nixfmt.enable = true;
     ruff.enable = true;
     rustfmt.enable = true;
     clippy.enable = true;

@@ -1,6 +1,7 @@
 //! Integration tests for Phase F node-level LLM multi-tenancy behavior.
 
 #![cfg(feature = "llm")]
+#![cfg(feature = "wendao-integration")]
 
 use async_trait::async_trait;
 use futures::stream;

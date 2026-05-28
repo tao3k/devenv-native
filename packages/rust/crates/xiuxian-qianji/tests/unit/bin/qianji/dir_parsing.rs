@@ -1,8 +1,13 @@
+#[cfg(feature = "wendao-integration")]
 use super::{
-    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand, PathBuf,
-    ShowCliTarget, must_ok, must_some, parse_contract_feedback_command, parse_dir_command, to_args,
+    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME,
+    parse_contract_feedback_command,
+};
+use super::{
+    DirCliCommand, PathBuf, ShowCliTarget, must_ok, must_some, parse_dir_command, to_args,
 };
 
+#[cfg(feature = "wendao-integration")]
 #[test]
 fn parse_rest_docs_contract_feedback_command_uses_defaults() {
     let command = must_some(
@@ -26,6 +31,7 @@ fn parse_rest_docs_contract_feedback_command_uses_defaults() {
     assert!(command.roles.is_empty());
 }
 
+#[cfg(feature = "wendao-integration")]
 #[test]
 fn parse_rest_docs_contract_feedback_command_supports_advisory_flags() {
     let command = must_some(

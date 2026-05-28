@@ -4,6 +4,7 @@ mod contract;
 mod facade;
 mod materialize;
 mod model;
+mod org_lint;
 mod parse;
 mod render;
 

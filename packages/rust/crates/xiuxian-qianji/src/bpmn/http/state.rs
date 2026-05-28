@@ -21,8 +21,9 @@ pub struct QianjiBpmnWorkflowHttpState<H> {
     pub recovery_hot_state: Option<Arc<dyn HotStateStore>>,
     /// Optional runtime config environment override for embedders and tests.
     ///
-    /// Production `qianji-server` leaves this empty so route handlers resolve
-    /// `qianji.toml` and environment from the current process.
+    /// Production `qianji-server` installs a default runtime environment so
+    /// route handlers resolve `qianji.toml` and environment from the current
+    /// process while still enabling server-owned LLM activity admission.
     pub runtime_env: Option<QianjiRuntimeEnv>,
 }
 

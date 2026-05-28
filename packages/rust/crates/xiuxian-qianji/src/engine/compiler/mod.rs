@@ -22,8 +22,11 @@ mod stateful_mechanisms;
 mod task_mechanisms;
 mod task_type;
 mod topology_validation;
+#[cfg(feature = "wendao-integration")]
 mod wendao_ingester;
+#[cfg(feature = "wendao-integration")]
 mod wendao_refresh;
+#[cfg(feature = "wendao-integration")]
 #[path = "../../engine_compiler_wendao_sql.rs"]
 mod wendao_sql;
 

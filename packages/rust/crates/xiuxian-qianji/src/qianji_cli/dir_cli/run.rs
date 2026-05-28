@@ -6,10 +6,11 @@ use crate::{
     classify_flowhub_dir, looks_like_flowhub_scenario_dir, looks_like_workdir_dir,
     render_flowhub_check_markdown, render_flowhub_graph_show,
     render_flowhub_scenario_check_markdown, render_flowhub_scenario_show, render_flowhub_show,
-    render_wendao_docs_contract_show, render_workdir_advance, render_workdir_check_markdown,
-    render_workdir_show, show_flowhub, show_flowhub_anchored_scenario, show_flowhub_graph,
-    show_flowhub_scenario, show_wendao_docs_contract, show_workdir,
+    render_workdir_advance, render_workdir_check_markdown, render_workdir_show, show_flowhub,
+    show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario, show_workdir,
 };
+#[cfg(feature = "wendao-integration")]
+use crate::{render_wendao_docs_contract_show, show_wendao_docs_contract};
 
 use super::output::{render_missing_workdir_root_output, render_uninitialized_workdir_root_output};
 use super::types::{DirCliCommand, DirCliOutput, ShowCliTarget};
@@ -92,11 +93,21 @@ fn run_show_graph_command(graph: &Path) -> Result<DirCliOutput, QianjiError> {
 }
 
 fn run_show_contract_command(contract_name: &str) -> Result<DirCliOutput, QianjiError> {
-    let show = show_wendao_docs_contract(contract_name)?;
-    Ok(DirCliOutput {
-        rendered: render_wendao_docs_contract_show(&show),
-        exit_code: 0,
-    })
+    #[cfg(not(feature = "wendao-integration"))]
+    {
+        let _ = contract_name;
+        Err(QianjiError::Topology(
+            "`show --contract` requires the `wendao-integration` feature".to_string(),
+        ))
+    }
+    #[cfg(feature = "wendao-integration")]
+    {
+        let show = show_wendao_docs_contract(contract_name)?;
+        Ok(DirCliOutput {
+            rendered: render_wendao_docs_contract_show(&show),
+            exit_code: 0,
+        })
+    }
 }
 
 fn run_show_anchored_scenario_command(

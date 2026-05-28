@@ -411,6 +411,7 @@ fn control_history_event_kinds(history_body: &Value) -> Vec<&str> {
 pub(super) fn server_router_without_control_ledger(flowhub_root: PathBuf) -> Router {
     let command = QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some("redis://127.0.0.1:0".to_string()),
         require_valkey_ready: None,
         flowhub_root: Some(flowhub_root),
@@ -429,6 +430,7 @@ fn server_router_with_valkey_and_control_ledger(
 ) -> Router {
     let command = QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some(valkey_url),
         require_valkey_ready: None,
         flowhub_root: Some(flowhub_root),
@@ -451,6 +453,7 @@ fn server_router_with_valkey_control_ledger_and_in_memory_hot_state(
     );
     let command = QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some(valkey_url),
         require_valkey_ready: None,
         flowhub_root: Some(flowhub_root),
@@ -477,6 +480,7 @@ fn server_router_with_valkey_control_ledger_only(
     );
     let command = QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some(valkey_url),
         require_valkey_ready: None,
         flowhub_root: Some(flowhub_root),

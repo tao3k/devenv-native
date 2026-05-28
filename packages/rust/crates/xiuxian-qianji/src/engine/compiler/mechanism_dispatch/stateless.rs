@@ -1,4 +1,6 @@
+#[cfg(feature = "wendao-integration")]
 use crate::executors::KnowledgeSeeker;
+#[cfg(feature = "wendao-integration")]
 use std::sync::Arc;
 
 use super::resolver_chain;
@@ -13,6 +15,7 @@ pub(super) fn build(
         node_def,
     } = context;
     match task_type {
+        #[cfg(feature = "wendao-integration")]
         task_type::TaskType::Knowledge => Some(Ok(Arc::new(KnowledgeSeeker {
             index: compiler.index.clone(),
         }))),

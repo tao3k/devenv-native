@@ -10,8 +10,9 @@ LOG_DIR="${QIANJI_SERVER_LOG_DIR:-$PROJECT_RUNTIME_ROOT/logs}"
 RUNTIME_DIR="${QIANJI_SERVER_RUNTIME_DIR:-$PROJECT_RUNTIME_ROOT/qianji-server}"
 PIDFILE="${QIANJI_SERVER_PIDFILE:-$RUNTIME_DIR/qianji-server.pid}"
 QIANJI_SERVER_BIN="${QIANJI_SERVER_BIN:-$PROJECT_ROOT/target/debug/qianji-server}"
-QIANJI_SERVER_CARGO_FEATURES="${QIANJI_SERVER_CARGO_FEATURES:-valkey}"
+QIANJI_SERVER_CARGO_FEATURES="${QIANJI_SERVER_CARGO_FEATURES:-valkey,qianji-full}"
 BIND_ADDR="${QIANJI_SERVER_BIND_ADDR:-127.0.0.1:38130}"
+FLIGHT_BIND_ADDR="${QIANJI_SERVER_FLIGHT_BIND_ADDR:-127.0.0.1:38131}"
 QIANJI_VALKEY_URL="${QIANJI_SERVER_VALKEY_URL:-${VALKEY_URL:-redis://127.0.0.1:6379/0}}"
 FLOWHUB_ROOT="${QIANJI_FLOWHUB_ROOT:-$PROJECT_ROOT/qianji-flowhub}"
 CONTROL_LEDGER_PATH="${QIANJI_SERVER_CONTROL_LEDGER:-${QIANJI_SERVER_CONTROL_LEDGER_PATH:-$RUNTIME_DIR/control-ledger.duckdb}}"
@@ -30,38 +31,59 @@ source "$PROJECT_ROOT/scripts/runtime/process-runtime.sh"
 mkdir -p "$RUNTIME_DIR" "$LOG_DIR"
 
 PORT="${BIND_ADDR##*:}"
+FLIGHT_PORT="${FLIGHT_BIND_ADDR##*:}"
 managed_cleanup_pidfile_process "$PIDFILE" qianji-server "$QIANJI_SERVER_BIN" "qianji-server"
 managed_cleanup_listener "$PORT" qianji-server "$QIANJI_SERVER_BIN" "qianji-server"
+managed_cleanup_listener "$FLIGHT_PORT" qianji-server-flight "$QIANJI_SERVER_BIN" "qianji-server"
 rm -f "$PIDFILE"
+
+build_qianji_server_binary() {
+  if ! command -v cargo >/dev/null 2>&1; then
+    echo "Error: cargo not found and Qianji server binary needs to be built: $QIANJI_SERVER_BIN" >&2
+    exit 1
+  fi
+  if [ -n "$QIANJI_SERVER_CARGO_FEATURES" ]; then
+    cargo build -p xiuxian-qianji --bin qianji-server --features "$QIANJI_SERVER_CARGO_FEATURES" --locked
+  else
+    cargo build -p xiuxian-qianji --bin qianji-server --locked
+  fi
+}
+
+qianji_server_binary_needs_build() {
+  if [ ! -x "$QIANJI_SERVER_BIN" ]; then
+    return 0
+  fi
+  for path in \
+    "$PROJECT_ROOT/Cargo.lock" \
+    "$PROJECT_ROOT/Cargo.toml" \
+    "$PROJECT_ROOT/packages/rust/crates/xiuxian-qianji/Cargo.toml" \
+    "$SCRIPT_DIR/entrypoint.sh"
+  do
+    if [ -e "$path" ] && [ "$path" -nt "$QIANJI_SERVER_BIN" ]; then
+      return 0
+    fi
+  done
+  for dir in \
+    "$PROJECT_ROOT/packages/rust/crates/xiuxian-qianji/resources" \
+    "$PROJECT_ROOT/packages/rust/crates/xiuxian-qianji/src"
+  do
+    if [ -d "$dir" ] && find "$dir" -type f -newer "$QIANJI_SERVER_BIN" -print -quit | grep -q .; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 cd "$PROJECT_ROOT"
 case "$BUILD_MODE" in
   0|false|False|FALSE|off|OFF)
     ;;
   1|true|True|TRUE|on|ON)
-    if command -v cargo >/dev/null 2>&1; then
-      if [ -n "$QIANJI_SERVER_CARGO_FEATURES" ]; then
-        cargo build -p xiuxian-qianji --bin qianji-server --features "$QIANJI_SERVER_CARGO_FEATURES" --locked
-      else
-        cargo build -p xiuxian-qianji --bin qianji-server --locked
-      fi
-    elif [ ! -x "$QIANJI_SERVER_BIN" ]; then
-      echo "Error: cargo not found and Qianji server binary is missing: $QIANJI_SERVER_BIN" >&2
-      exit 1
-    fi
+    build_qianji_server_binary
     ;;
   auto|"")
-    if [ ! -x "$QIANJI_SERVER_BIN" ]; then
-      if command -v cargo >/dev/null 2>&1; then
-        if [ -n "$QIANJI_SERVER_CARGO_FEATURES" ]; then
-          cargo build -p xiuxian-qianji --bin qianji-server --features "$QIANJI_SERVER_CARGO_FEATURES" --locked
-        else
-          cargo build -p xiuxian-qianji --bin qianji-server --locked
-        fi
-      else
-        echo "Error: cargo not found and Qianji server binary is missing: $QIANJI_SERVER_BIN" >&2
-        exit 1
-      fi
+    if qianji_server_binary_needs_build; then
+      build_qianji_server_binary
     fi
     ;;
   *)
@@ -72,6 +94,7 @@ esac
 
 "$QIANJI_SERVER_BIN" \
   --bind "$BIND_ADDR" \
+  --flight-bind "$FLIGHT_BIND_ADDR" \
   --valkey-url "$QIANJI_VALKEY_URL" \
   --flowhub-root "$FLOWHUB_ROOT" \
   --control-ledger "$CONTROL_LEDGER_PATH" \

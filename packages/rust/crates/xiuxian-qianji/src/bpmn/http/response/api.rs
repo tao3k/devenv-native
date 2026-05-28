@@ -1,10 +1,5 @@
 //! HTTP response DTOs for BPMN workflow routes.
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-use crate::QianjiServerOpenAiCompatibleLlmWorkerLoopOutput;
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCancelReport, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskReleaseReport,
@@ -13,6 +8,15 @@ use crate::bpmn::driver::QianjiBpmnExecutionReport;
 use crate::bpmn::identity::{
     QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
 };
+use crate::bpmn::run_console_read_model::{
+    QIANJI_CONTROL_RUN_STREAM_SCHEMA_VERSION, QianjiControlRunStreamRow,
+    qianji_control_run_stream_rows,
+};
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+use crate::qianji_server::llm_worker::QianjiServerOpenAiCompatibleLlmWorkerLoopOutput;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use xiuxian_qianji_bpmn_engine::{
@@ -23,7 +27,7 @@ use xiuxian_qianji_bpmn_engine::{
     build_pending_host_work_requests,
 };
 use xiuxian_qianji_control::{
-    ControlEventRecord, RecoveryLoopApplication, RunOperatorDiagnostics, RunOperatorSummary,
+    ControlEventRecord, RecoveryLoopApplication, RunId, RunOperatorDiagnostics, RunOperatorSummary,
     RunRecoverySnapshot,
 };
 
@@ -248,6 +252,35 @@ impl QianjiControlHistoryHttpResponse {
     }
 }
 
+/// HTTP response for one server-owned durable run stream query.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiControlRunStreamHttpResponse {
+    /// Stable control-plane run identifier.
+    pub run_id: String,
+    /// Stable stream schema version.
+    pub schema_version: String,
+    /// Number of stream rows returned.
+    pub row_count: usize,
+    /// Ordered durable stream rows.
+    #[serde(default)]
+    pub rows: Vec<QianjiControlRunStreamRow>,
+}
+
+impl QianjiControlRunStreamHttpResponse {
+    pub(in crate::bpmn::http_transport) fn from_events(
+        run_id: &RunId,
+        events: &[ControlEventRecord],
+    ) -> Self {
+        let rows = qianji_control_run_stream_rows(run_id, events);
+        Self {
+            run_id: run_id.as_str().to_owned(),
+            schema_version: QIANJI_CONTROL_RUN_STREAM_SCHEMA_VERSION.to_owned(),
+            row_count: rows.len(),
+            rows,
+        }
+    }
+}
+
 /// HTTP response carrying the server-recorded BPMN source for one control run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QianjiControlBpmnSourceHttpResponse {
@@ -280,6 +313,45 @@ impl QianjiControlBpmnSourceHttpResponse {
             source_ref,
             media_type: QianjiControlBpmnSourceMediaType::ApplicationBpmnXml,
             bpmn_xml,
+        }
+    }
+}
+
+/// HTTP response for one server-owned BPMN source admission.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlBpmnSourceAdmissionHttpResponse {
+    /// Server-normalized source identifier.
+    pub source_id: String,
+    /// Server-owned BPMN source reference.
+    pub source_ref: String,
+    /// Filesystem path accepted by the existing workflow start route.
+    pub bpmn_path: String,
+    /// Media type of the admitted source payload.
+    pub media_type: QianjiControlBpmnSourceMediaType,
+    /// BPMN process identifier validated against the parsed package.
+    pub process_id: QianjiBpmnProcessId,
+    /// Stable SHA-256 digest of the admitted XML payload.
+    pub source_sha256: String,
+    /// Blocking lint issue count. This is zero for admitted sources.
+    pub lint_issue_count: usize,
+}
+
+impl QianjiControlBpmnSourceAdmissionHttpResponse {
+    pub(in crate::bpmn::http_transport) fn new(
+        source_id: String,
+        source_ref: String,
+        process_id: QianjiBpmnProcessId,
+        source_sha256: String,
+        lint_issue_count: usize,
+    ) -> Self {
+        Self {
+            source_id,
+            bpmn_path: source_ref.clone(),
+            source_ref,
+            media_type: QianjiControlBpmnSourceMediaType::ApplicationBpmnXml,
+            process_id,
+            source_sha256,
+            lint_issue_count,
         }
     }
 }
@@ -370,9 +442,9 @@ impl QianjiControlRecoveryApplyHttpResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
     /// Stable control-plane run identifier.
-    pub run_id: String,
+    run_id: String,
     /// Bounded qianji-server worker-loop trace.
-    pub worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
+    worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
 }
 
 #[cfg(any(
@@ -397,14 +469,14 @@ impl QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
 #[derive(Debug, Clone, Serialize)]
 pub struct QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
     /// Stable control-plane run identifier.
-    pub run_id: String,
+    run_id: String,
     /// Bounded worker-loop traces executed by qianji-server.
-    pub worker_runs: Vec<QianjiServerOpenAiCompatibleLlmWorkerLoopOutput>,
+    worker_runs: Vec<QianjiServerOpenAiCompatibleLlmWorkerLoopOutput>,
     /// Number of BPMN host-work completions applied by qianji-server.
-    pub completed_count: usize,
+    completed_count: usize,
     /// Last workflow response after server-owned BPMN completion.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
+    final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
 }
 
 #[cfg(any(

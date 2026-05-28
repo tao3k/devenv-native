@@ -1,7 +1,6 @@
-use super::{
-    MarkdownDiagnostic, render_follow_up_query_section, render_validation_failed,
-    render_validation_pass,
-};
+#[cfg(feature = "wendao-integration")]
+use super::render_follow_up_query_section;
+use super::{MarkdownDiagnostic, render_validation_failed, render_validation_pass};
 
 #[test]
 fn render_validation_pass_uses_shared_header() {
@@ -33,6 +32,7 @@ fn render_validation_failed_uses_shared_shape() {
     );
 }
 
+#[cfg(feature = "wendao-integration")]
 #[test]
 fn render_follow_up_query_section_uses_shared_shape() {
     let rendered = render_follow_up_query_section(

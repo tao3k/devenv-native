@@ -7,6 +7,7 @@ use serde_json::Value;
 async fn qianji_server_healthz_reports_valkey_default_backend() {
     let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,
@@ -35,6 +36,7 @@ async fn qianji_server_healthz_reports_valkey_default_backend() {
 async fn qianji_server_capabilities_reports_workflow_control_routes() {
     let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,
@@ -58,72 +60,39 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
     let capabilities = body["capabilities"]
         .as_array()
         .unwrap_or_else(|| panic!("capabilities should be an array: {body}"));
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "bpmn.workflow.task.complete-batch"),
-        "capabilities should include batch completion: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "bpmn.workflow.task.fail"),
-        "capabilities should include task failure evidence: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.bpmn-source"),
-        "capabilities should include server-owned BPMN source query: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.execution-graph"),
-        "capabilities should include server-owned execution graph query: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.history"),
-        "capabilities should include control history query: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.summary"),
-        "capabilities should include control summary query: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.recovery"),
-        "capabilities should include control recovery query: {body}"
-    );
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.diagnostics"),
-        "capabilities should include control diagnostics query: {body}"
+    for capability in [
+        "bpmn.workflow.task.complete-batch",
+        "bpmn.workflow.task.fail",
+        "qianji.control.bpmn-source.admit",
+        "qianji.control.bpmn-source",
+        "qianji.control.execution-graph",
+        "qianji.control.history",
+        "qianji.control.summary",
+        "qianji.control.recovery",
+        "qianji.control.diagnostics",
+        "flowhub.scenarios",
+    ] {
+        assert_has_capability(capabilities, capability, &body);
+    }
+    #[cfg(feature = "duckdb")]
+    assert_has_capability(
+        capabilities,
+        "qianji.control.run-console.arrow-flight",
+        &body,
     );
     #[cfg(feature = "valkey")]
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.recovery.apply"),
-        "capabilities should include control recovery apply when Valkey hot-state is compiled: {body}"
+    assert_has_capability(capabilities, "qianji.control.recovery.apply", &body);
+    #[cfg(all(feature = "duckdb", feature = "valkey", feature = "qianji-full"))]
+    assert_has_capability(
+        capabilities,
+        "qianji.control.worker.openai-compatible-llm.run",
+        &body,
     );
     #[cfg(all(feature = "duckdb", feature = "valkey", feature = "qianji-full"))]
-    assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "qianji.control.worker.openai-compatible-llm.run"),
-        "capabilities should include server LLM worker route when the full Valkey server worker is compiled: {body}"
-    );
-    assert!(
-        capabilities.iter().any(|capability| capability
-            == "qianji.control.worker.openai-compatible-llm.run-and-complete"),
-        "capabilities should include server LLM worker completion route when the full Valkey server worker is compiled: {body}"
+    assert_has_capability(
+        capabilities,
+        "qianji.control.worker.openai-compatible-llm.run-and-complete",
+        &body,
     );
     #[cfg(not(feature = "valkey"))]
     assert!(
@@ -132,11 +101,12 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
             .all(|capability| capability != "qianji.control.recovery.apply"),
         "capabilities should not advertise control recovery apply without Valkey hot-state: {body}"
     );
+}
+
+fn assert_has_capability(capabilities: &[Value], expected: &str, body: &Value) {
     assert!(
-        capabilities
-            .iter()
-            .any(|capability| capability == "flowhub.scenarios"),
-        "capabilities should include Flowhub registry: {body}"
+        capabilities.iter().any(|capability| capability == expected),
+        "capabilities should include {expected}: {body}"
     );
 }
 
@@ -144,6 +114,7 @@ async fn qianji_server_capabilities_reports_workflow_control_routes() {
 async fn qianji_server_startup_readiness_gate_is_opt_in() {
     enforce_qianji_server_startup_readiness(&QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: Some(false),
         flowhub_root: None,
@@ -158,6 +129,7 @@ async fn qianji_server_startup_readiness_gate_fails_fast() {
     let error = must_err(
         enforce_qianji_server_startup_readiness(&QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: Some("not-a-valkey-url".to_string()),
             require_valkey_ready: Some(true),
             flowhub_root: None,
@@ -177,6 +149,7 @@ async fn qianji_server_startup_readiness_gate_fails_fast() {
 async fn qianji_server_readyz_reports_valkey_probe_failure() {
     let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
         bind_addr: None,
+        flight_bind_addr: None,
         valkey_url: Some("not-a-valkey-url".to_string()),
         require_valkey_ready: None,
         flowhub_root: None,

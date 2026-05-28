@@ -1,7 +1,7 @@
-use crate::markdown::{
-    MarkdownDiagnostic, render_follow_up_query_section, render_validation_failed,
-    render_validation_pass,
-};
+#[cfg(feature = "wendao-integration")]
+use crate::markdown::render_follow_up_query_section;
+use crate::markdown::{MarkdownDiagnostic, render_validation_failed, render_validation_pass};
+#[cfg(feature = "wendao-integration")]
 use crate::workdir::build_workdir_check_follow_up_query;
 
 use super::model::{WorkdirCheckReport, WorkdirMarkdownSurface};
@@ -26,8 +26,10 @@ pub(super) fn render_workdir_check_markdown_impl(report: &WorkdirCheckReport) ->
         })
         .collect::<Vec<_>>();
 
-    let mut rendered = render_validation_failed(&[], &diagnostics);
+    let rendered = render_validation_failed(&[], &diagnostics);
+    #[cfg(feature = "wendao-integration")]
     if let Some(follow_up_query) = build_workdir_check_follow_up_query(report) {
+        let mut rendered = rendered;
         let surface_names = follow_up_query
             .surfaces
             .iter()
@@ -41,6 +43,7 @@ pub(super) fn render_workdir_check_markdown_impl(report: &WorkdirCheckReport) ->
             &surface_names,
             &follow_up_query.query_text,
         ));
+        return rendered;
     }
 
     rendered

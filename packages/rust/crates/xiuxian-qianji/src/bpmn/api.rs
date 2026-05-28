@@ -54,12 +54,12 @@ pub use super::http_transport::{
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceAdmissionHttpRequest,
+    QianjiControlBpmnSourceAdmissionHttpResponse, QianjiControlBpmnSourceHttpResponse,
     QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
-    QianjiControlHistoryHttpResponse, QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest,
-    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
-    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
-    qianji_bpmn_workflow_router,
+    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
+    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse, qianji_bpmn_workflow_router,
 };
 pub use super::identity::{
     QianjiBpmnActivityId, QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId,

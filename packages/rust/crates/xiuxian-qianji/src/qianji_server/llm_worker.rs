@@ -21,7 +21,7 @@ const BPMN_LLM_ACTIVITY_METADATA_SCHEMA: &str = "qianji.bpmn.host_work.llm_activ
 
 /// qianji-server request for one bounded OpenAI-compatible LLM worker loop.
 #[derive(Clone, Copy)]
-pub struct QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'a> {
+pub(crate) struct QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'a> {
     /// Durable control run that owns the queued `llm.*` work.
     pub run_id: &'a RunId,
     /// Server worker identity used for claims and lifecycle events.
@@ -61,7 +61,7 @@ pub struct QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'a> {
 /// qianji-server result of one bounded OpenAI-compatible LLM worker loop.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct QianjiServerOpenAiCompatibleLlmWorkerLoopOutput {
+pub(crate) struct QianjiServerOpenAiCompatibleLlmWorkerLoopOutput {
     /// Server worker identity used for claims and lifecycle events.
     pub worker_id: String,
     /// Optional `llm.*` task queue filter.
@@ -90,7 +90,7 @@ pub struct QianjiServerOpenAiCompatibleLlmWorkerLoopOutput {
 /// qianji-server trace row for one OpenAI-compatible LLM worker poll.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct QianjiServerOpenAiCompatibleLlmWorkerStepOutput {
+pub(crate) struct QianjiServerOpenAiCompatibleLlmWorkerStepOutput {
     /// Poll index inside the bounded loop.
     pub poll_index: u32,
     /// Logical poll timestamp.
@@ -116,7 +116,7 @@ pub struct QianjiServerOpenAiCompatibleLlmWorkerStepOutput {
 /// activity finishes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate {
+pub(crate) struct QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate {
     /// BPMN workflow instance id stored in the checkpoint backend.
     pub instance_id: String,
     /// BPMN source path recorded when qianji-server admitted the activity.
@@ -129,6 +129,9 @@ pub struct QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate {
     pub activity_id: String,
     /// Pending host-work completion kind.
     pub completion_kind: String,
+    /// Declared BPMN output binding names for deterministic single-output
+    /// completion shaping.
+    pub output_bindings: Vec<String>,
     /// Provider response artifact URI.
     pub output_ref_uri: String,
     /// Provider response content hash, when recorded by the worker.
@@ -149,7 +152,7 @@ pub struct QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate {
 /// Returns an I/O error when task-queue parsing, hot-state mirroring,
 /// provider execution, artifact writing, or durable activity lifecycle
 /// recording fails.
-pub async fn run_qianji_server_openai_compatible_llm_worker_loop<L, H>(
+pub(crate) async fn run_qianji_server_openai_compatible_llm_worker_loop<L, H>(
     ledger: &L,
     hot_state: &H,
     request: QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'_>,
@@ -194,86 +197,173 @@ where
     L: ControlLedger + ?Sized,
     H: HotStateStore + ?Sized,
 {
-    let mut iterations = Vec::new();
-    let mut processed = 0;
-    let mut empty_polls = 0;
-    let mut empty_streak = 0;
-    let mut released = 0;
-    let mut heartbeats = 0;
-    let mut stopped_reason = "PollLimit";
     let worker_count = request.worker_count.max(1);
+    let poll_plan = worker_poll_plan(&request, worker_count)?;
+    let mut accumulator = WorkerLoopAccumulator::new();
 
-    for poll_index in 0..request.poll_limit {
-        let worker_id = scoped_worker_id(request.worker_id, worker_count, poll_index);
-        let now_ms = stepped_ms(request.now_ms, request.now_step_ms, poll_index)?;
-        let settled_at_ms = stepped_ms(request.settled_at_ms, request.settled_step_ms, poll_index)?;
-        let output = run_openai_compatible_worker_once_for_run(
-            ledger,
-            hot_state,
-            request.run_id,
-            &OpenAiCompatibleWorkerOnceRequest {
-                worker_id: worker_id.as_str(),
-                task_queue: request.task_queue,
-                now_ms,
-                lease_ttl_ms: request.lease_ttl_ms,
-                heartbeat_ttl_ms: request.heartbeat_ttl_ms,
-                settled_at_ms,
-                output_artifact_id: None,
-                output_artifact_kind: request.output_artifact_kind,
-                output_artifact_dir: request.output_artifact_dir,
-                openai_compatible_base_url: request.openai_compatible_base_url,
-                openai_compatible_api_key: request.openai_compatible_api_key,
-                openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
-            },
-        )
-        .await?;
-        let activity_id = output
-            .claimed
-            .as_ref()
-            .map(|claimed| claimed.activity_task.task.activity_id.as_str().to_owned());
-        let bpmn_completion = bpmn_completion_candidate(&output)?;
-        if output.claimed.is_some() {
-            processed += 1;
-            empty_streak = 0;
-        } else {
-            empty_polls += 1;
-            empty_streak += 1;
+    for poll in poll_plan {
+        let poll_output = execute_worker_poll(ledger, hot_state, &request, poll).await?;
+        if accumulator.record(poll_output, request.empty_limit) {
+            break;
         }
-        if output.released {
-            released += 1;
-        }
-        if output.heartbeat.is_some() {
-            heartbeats += 1;
-        }
-        iterations.push(QianjiServerOpenAiCompatibleLlmWorkerStepOutput {
-            poll_index,
-            now_ms,
-            settled_at_ms,
+    }
+
+    Ok(accumulator.into_output(&request, worker_count))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WorkerPollPlan {
+    poll_index: u32,
+    worker_id: String,
+    now_ms: u64,
+    settled_at_ms: u64,
+}
+
+fn worker_poll_plan(
+    request: &QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'_>,
+    worker_count: u32,
+) -> io::Result<Vec<WorkerPollPlan>> {
+    (0..request.poll_limit)
+        .map(|poll_index| {
+            Ok(WorkerPollPlan {
+                poll_index,
+                worker_id: scoped_worker_id(request.worker_id, worker_count, poll_index),
+                now_ms: stepped_ms(request.now_ms, request.now_step_ms, poll_index)?,
+                settled_at_ms: stepped_ms(
+                    request.settled_at_ms,
+                    request.settled_step_ms,
+                    poll_index,
+                )?,
+            })
+        })
+        .collect()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WorkerPollOutput {
+    step: QianjiServerOpenAiCompatibleLlmWorkerStepOutput,
+    claimed: bool,
+    released: bool,
+    heartbeat: bool,
+}
+
+async fn execute_worker_poll<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: &QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'_>,
+    poll: WorkerPollPlan,
+) -> io::Result<WorkerPollOutput>
+where
+    L: ControlLedger + ?Sized,
+    H: HotStateStore + ?Sized,
+{
+    let output = run_openai_compatible_worker_once_for_run(
+        ledger,
+        hot_state,
+        request.run_id,
+        &OpenAiCompatibleWorkerOnceRequest {
+            worker_id: poll.worker_id.as_str(),
+            task_queue: request.task_queue,
+            now_ms: poll.now_ms,
+            lease_ttl_ms: request.lease_ttl_ms,
+            heartbeat_ttl_ms: request.heartbeat_ttl_ms,
+            settled_at_ms: poll.settled_at_ms,
+            output_artifact_id: None,
+            output_artifact_kind: request.output_artifact_kind,
+            output_artifact_dir: request.output_artifact_dir,
+            openai_compatible_base_url: request.openai_compatible_base_url,
+            openai_compatible_api_key: request.openai_compatible_api_key,
+            openai_compatible_timeout_ms: request.openai_compatible_timeout_ms,
+        },
+    )
+    .await?;
+    let activity_id = output
+        .claimed
+        .as_ref()
+        .map(|claimed| claimed.activity_task.task.activity_id.as_str().to_owned());
+    let bpmn_completion = bpmn_completion_candidate(&output)?;
+    Ok(WorkerPollOutput {
+        step: QianjiServerOpenAiCompatibleLlmWorkerStepOutput {
+            poll_index: poll.poll_index,
+            now_ms: poll.now_ms,
+            settled_at_ms: poll.settled_at_ms,
             activity_id,
             start_recorded: output.start.is_some(),
             terminal_recorded: output.terminal.is_some(),
             released: output.released,
             bpmn_completion,
-        });
-        if empty_streak >= request.empty_limit {
-            stopped_reason = "EmptyLimit";
-            break;
+        },
+        claimed: output.claimed.is_some(),
+        released: output.released,
+        heartbeat: output.heartbeat.is_some(),
+    })
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WorkerLoopAccumulator {
+    iterations: Vec<QianjiServerOpenAiCompatibleLlmWorkerStepOutput>,
+    processed: u32,
+    empty_polls: u32,
+    empty_streak: u32,
+    released: u32,
+    heartbeats: u32,
+    stopped_reason: &'static str,
+}
+
+impl WorkerLoopAccumulator {
+    fn new() -> Self {
+        Self {
+            iterations: Vec::new(),
+            processed: 0,
+            empty_polls: 0,
+            empty_streak: 0,
+            released: 0,
+            heartbeats: 0,
+            stopped_reason: "PollLimit",
         }
     }
 
-    Ok(QianjiServerOpenAiCompatibleLlmWorkerLoopOutput {
-        worker_id: request.worker_id.to_owned(),
-        task_queue: request.task_queue.map(str::to_owned),
-        poll_limit: request.poll_limit,
-        empty_limit: request.empty_limit,
-        worker_count,
-        iterations,
-        processed,
-        empty_polls,
-        released,
-        heartbeats,
-        stopped_reason: stopped_reason.to_owned(),
-    })
+    fn record(&mut self, poll: WorkerPollOutput, empty_limit: u32) -> bool {
+        if poll.claimed {
+            self.processed += 1;
+            self.empty_streak = 0;
+        } else {
+            self.empty_polls += 1;
+            self.empty_streak += 1;
+        }
+        if poll.released {
+            self.released += 1;
+        }
+        if poll.heartbeat {
+            self.heartbeats += 1;
+        }
+        self.iterations.push(poll.step);
+        if self.empty_streak >= empty_limit {
+            self.stopped_reason = "EmptyLimit";
+            return true;
+        }
+        false
+    }
+
+    fn into_output(
+        self,
+        request: &QianjiServerOpenAiCompatibleLlmWorkerLoopRequest<'_>,
+        worker_count: u32,
+    ) -> QianjiServerOpenAiCompatibleLlmWorkerLoopOutput {
+        QianjiServerOpenAiCompatibleLlmWorkerLoopOutput {
+            worker_id: request.worker_id.to_owned(),
+            task_queue: request.task_queue.map(str::to_owned),
+            poll_limit: request.poll_limit,
+            empty_limit: request.empty_limit,
+            worker_count,
+            iterations: self.iterations,
+            processed: self.processed,
+            empty_polls: self.empty_polls,
+            released: self.released,
+            heartbeats: self.heartbeats,
+            stopped_reason: self.stopped_reason.to_owned(),
+        }
+    }
 }
 
 fn bpmn_completion_candidate(
@@ -305,6 +395,7 @@ fn bpmn_completion_candidate(
             process_id: required_metadata_str(metadata, "process_id")?.to_owned(),
             activity_id: required_metadata_str(metadata, "activity_id")?.to_owned(),
             completion_kind: completion_kind_from_metadata(metadata)?,
+            output_bindings: metadata_string_array(metadata, "output_bindings"),
             output_ref_uri: output_ref.uri.clone(),
             output_hash: result.output_hash.clone(),
         },
@@ -332,6 +423,19 @@ fn required_metadata_u64(metadata: &serde_json::Value, field: &'static str) -> i
         .get(field)
         .and_then(serde_json::Value::as_u64)
         .ok_or_else(|| invalid_input(format!("BPMN LLM activity metadata is missing `{field}`")))
+}
+
+fn metadata_string_array(metadata: &serde_json::Value, field: &'static str) -> Vec<String> {
+    metadata
+        .get(field)
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .collect()
 }
 
 fn completion_kind_from_metadata(metadata: &serde_json::Value) -> io::Result<String> {

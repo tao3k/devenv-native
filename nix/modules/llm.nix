@@ -29,6 +29,18 @@ in
     #   #   sha256 = "sha256-ONSOVvDLfs8IDq4hI+XYAcMwjXSTBDIJlHB5Xwq107Q=";
     #   # };
     # })
+    (__inputs__.llm-agents.packages.${system}.reasonix.overrideAttrs rec {
+      # version = "0.53.0";
+      # src = pkgs.fetchFromGitHub {
+      #    owner = "esengine";
+      #    repo = "DeepSeek-Reasonix";
+      #   rev = "984e830df42ad065774df2c2a0ce06deb09dfa78";
+      #   sha256 = "sha256-DzTb9V8z9R+NTjvhuLq19jWZCHEYkhyQRH8DoQOBgLo=";
+      #   };
+      #  npmDeps = pkgs.importNpmLock {
+      #    npmRoot = src;
+      #  };
+      })        
     __inputs__.llm-agents.packages.${system}.gemini-cli
     __inputs__.llm-agents.packages.${system}.rtk
   ];

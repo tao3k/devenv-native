@@ -9,6 +9,7 @@ use crate::runtime_config::{
 use crate::{QianjiCompiler, QianjiLlmClient, QianjiScheduler};
 use xiuxian_llm::llm::{OpenAICompatibleClient, OpenAIWireApi};
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
+#[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
 pub(crate) async fn run_manifest_execution(
@@ -69,16 +70,6 @@ pub(crate) async fn run_manifest_execution(
         checkpoint_runtime.valkey_url
     );
 
-    let index = Arc::new(match LinkGraphIndex::build(std::path::Path::new(repo_path)) {
-        Ok(index) => index,
-        Err(primary_error) => {
-            LinkGraphIndex::build(std::env::temp_dir().as_path()).map_err(|fallback_error| {
-                io::Error::other(format!(
-                    "Failed to build LinkGraph index at repo path ({primary_error}); fallback temp index also failed ({fallback_error})"
-                ))
-            })?
-        }
-    });
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
         "Safety Rules".to_string(),
         None,
@@ -93,7 +84,23 @@ pub(crate) async fn run_manifest_execution(
         }) as Arc<QianjiLlmClient>
     });
 
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry), llm_client);
+    #[cfg(feature = "wendao-integration")]
+    let compiler = {
+        let index = Arc::new(match LinkGraphIndex::build(std::path::Path::new(repo_path)) {
+            Ok(index) => index,
+            Err(primary_error) => {
+                LinkGraphIndex::build(std::env::temp_dir().as_path()).map_err(|fallback_error| {
+                    io::Error::other(format!(
+                        "Failed to build LinkGraph index at repo path ({primary_error}); fallback temp index also failed ({fallback_error})"
+                    ))
+                })?
+            }
+        });
+        QianjiCompiler::new(index, orchestrator, Arc::new(registry), llm_client)
+    };
+    #[cfg(not(feature = "wendao-integration"))]
+    let compiler = QianjiCompiler::new(orchestrator, Arc::new(registry), llm_client);
+
     let engine = compiler.compile(&manifest_toml)?;
     let scheduler = QianjiScheduler::new(engine);
 

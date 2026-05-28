@@ -15,7 +15,7 @@ pub use super::request_api::{
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest, QianjiControlRecoveryApplyHttpRequest,
+    QianjiControlBpmnSourceAdmissionHttpRequest, QianjiControlRecoveryApplyHttpRequest,
 };
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
@@ -31,10 +31,11 @@ pub use super::response_api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceHttpResponse,
-    QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
-    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpResponse,
-    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceAdmissionHttpResponse,
+    QianjiControlBpmnSourceHttpResponse, QianjiControlBpmnSourceMediaType,
+    QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse,
 };
 pub use super::state::QianjiBpmnWorkflowHttpState;
 

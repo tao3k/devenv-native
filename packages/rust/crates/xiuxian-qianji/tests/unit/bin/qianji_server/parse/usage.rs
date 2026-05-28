@@ -26,6 +26,10 @@ fn qianji_server_usage_documents_valkey_only_http_checkpoints() {
         "usage should document explicit Flowhub root binding: {usage}"
     );
     assert!(
+        usage.contains("--flight-bind <addr>"),
+        "usage should document Arrow Flight listener binding: {usage}"
+    );
+    assert!(
         usage.contains("--control-ledger <path>"),
         "usage should document control-ledger activity evidence: {usage}"
     );

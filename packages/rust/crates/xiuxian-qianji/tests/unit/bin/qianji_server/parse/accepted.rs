@@ -17,6 +17,7 @@ fn qianji_server_leaves_default_bind_to_runtime_config() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: None,
@@ -36,6 +37,7 @@ fn qianji_server_accepts_custom_bind_address() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: Some(must_parse_addr("127.0.0.1:0")),
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: None,
@@ -55,6 +57,47 @@ fn qianji_server_accepts_equals_bind_address() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: Some(must_parse_addr("127.0.0.1:0")),
+            flight_bind_addr: None,
+            valkey_url: None,
+            require_valkey_ready: None,
+            flowhub_root: None,
+            control_ledger_path: None,
+        })
+    );
+}
+
+#[test]
+fn qianji_server_accepts_custom_flight_bind_address() {
+    let command = must_ok(
+        parse_qianji_server_args(["--flight-bind", "127.0.0.1:0"]),
+        "custom Flight bind address should parse",
+    );
+
+    assert_eq!(
+        command,
+        QianjiServerCommand::Serve(QianjiServerServeCommand {
+            bind_addr: None,
+            flight_bind_addr: Some(must_parse_addr("127.0.0.1:0")),
+            valkey_url: None,
+            require_valkey_ready: None,
+            flowhub_root: None,
+            control_ledger_path: None,
+        })
+    );
+}
+
+#[test]
+fn qianji_server_accepts_equals_flight_bind_address() {
+    let command = must_ok(
+        parse_qianji_server_args(["--flight-bind=127.0.0.1:0"]),
+        "equals Flight bind address should parse",
+    );
+
+    assert_eq!(
+        command,
+        QianjiServerCommand::Serve(QianjiServerServeCommand {
+            bind_addr: None,
+            flight_bind_addr: Some(must_parse_addr("127.0.0.1:0")),
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: None,
@@ -74,6 +117,7 @@ fn qianji_server_accepts_custom_valkey_url() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: Some("redis://127.0.0.1:6380/0".to_string()),
             require_valkey_ready: None,
             flowhub_root: None,
@@ -93,6 +137,7 @@ fn qianji_server_accepts_equals_valkey_url() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: Some("redis://127.0.0.1:6381/0".to_string()),
             require_valkey_ready: None,
             flowhub_root: None,
@@ -112,6 +157,7 @@ fn qianji_server_accepts_custom_flowhub_root() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: Some(PathBuf::from("qianji-flowhub")),
@@ -131,6 +177,7 @@ fn qianji_server_accepts_equals_flowhub_root() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: Some(PathBuf::from("/tmp/qianji-flowhub")),
@@ -150,6 +197,7 @@ fn qianji_server_accepts_custom_control_ledger_path() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: None,
@@ -169,6 +217,7 @@ fn qianji_server_accepts_equals_control_ledger_path() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: None,
             flowhub_root: None,
@@ -188,6 +237,7 @@ fn qianji_server_accepts_require_valkey_ready() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: Some(true),
             flowhub_root: None,
@@ -207,6 +257,7 @@ fn qianji_server_accepts_no_require_valkey_ready() {
         command,
         QianjiServerCommand::Serve(QianjiServerServeCommand {
             bind_addr: None,
+            flight_bind_addr: None,
             valkey_url: None,
             require_valkey_ready: Some(false),
             flowhub_root: None,
