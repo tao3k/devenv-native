@@ -17,10 +17,10 @@ use xiuxian_db_store::{
     validate_record_batch_schema_with_options,
 };
 
-pub(super) const STATUS_DIAGNOSTICS_TABLE: &str = "status_rollup_rows";
-pub(super) const STATUS_REASON_DIAGNOSTICS_TABLE: &str = "status_reason_rows";
-pub(super) const QUERY_TELEMETRY_DIAGNOSTICS_TABLE: &str = "query_telemetry_rows";
-pub(super) const REPO_READ_PRESSURE_DIAGNOSTICS_TABLE: &str = "repo_read_pressure_rows";
+pub const STATUS_DIAGNOSTICS_TABLE: &str = "status_rollup_rows";
+pub const STATUS_REASON_DIAGNOSTICS_TABLE: &str = "status_reason_rows";
+pub const QUERY_TELEMETRY_DIAGNOSTICS_TABLE: &str = "query_telemetry_rows";
+pub const REPO_READ_PRESSURE_DIAGNOSTICS_TABLE: &str = "repo_read_pressure_rows";
 
 pub(super) fn status_snapshot_relation(
     snapshot: &SearchPlaneStatusSnapshot,
@@ -199,7 +199,7 @@ pub(super) fn repo_read_pressure_relation(
     Ok(Some((schema, vec![batch])))
 }
 
-fn status_snapshot_contract() -> ArrowSchemaContract {
+pub fn status_snapshot_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         STATUS_DIAGNOSTICS_TABLE,
         true,
@@ -216,7 +216,7 @@ fn status_snapshot_contract() -> ArrowSchemaContract {
     )
 }
 
-fn query_telemetry_contract() -> ArrowSchemaContract {
+pub fn query_telemetry_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         QUERY_TELEMETRY_DIAGNOSTICS_TABLE,
         true,
@@ -239,7 +239,7 @@ fn query_telemetry_contract() -> ArrowSchemaContract {
     )
 }
 
-fn status_reason_contract() -> ArrowSchemaContract {
+pub fn status_reason_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         STATUS_REASON_DIAGNOSTICS_TABLE,
         true,
@@ -254,7 +254,7 @@ fn status_reason_contract() -> ArrowSchemaContract {
     )
 }
 
-fn repo_read_pressure_contract() -> ArrowSchemaContract {
+pub fn repo_read_pressure_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
         true,
@@ -270,7 +270,7 @@ fn repo_read_pressure_contract() -> ArrowSchemaContract {
     )
 }
 
-fn diagnostics_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+pub fn diagnostics_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
     let mut metadata = HashMap::new();
     metadata.insert(
         WENDAO_TABLE_METADATA_KEY.to_string(),
@@ -443,54 +443,4 @@ pub(super) fn collect_query_telemetry_relation_columns(
             .map(|entry| bounded_u64_to_i64(entry.dropped_candidate_count))
             .collect(),
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        QUERY_TELEMETRY_DIAGNOSTICS_TABLE, REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
-        STATUS_DIAGNOSTICS_TABLE, STATUS_REASON_DIAGNOSTICS_TABLE, diagnostics_schema_ref,
-        query_telemetry_contract, repo_read_pressure_contract, status_reason_contract,
-        status_snapshot_contract,
-    };
-    use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
-
-    #[test]
-    fn diagnostics_relation_schemas_use_db_store_table_metadata() {
-        let cases = [
-            (
-                STATUS_DIAGNOSTICS_TABLE,
-                status_snapshot_contract(),
-                "corpus",
-            ),
-            (
-                QUERY_TELEMETRY_DIAGNOSTICS_TABLE,
-                query_telemetry_contract(),
-                "captured_at",
-            ),
-            (
-                STATUS_REASON_DIAGNOSTICS_TABLE,
-                status_reason_contract(),
-                "code",
-            ),
-            (
-                REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
-                repo_read_pressure_contract(),
-                "budget",
-            ),
-        ];
-
-        for (table_name, contract, first_column) in cases {
-            let schema = diagnostics_schema_ref(&contract);
-
-            assert_eq!(
-                schema
-                    .metadata()
-                    .get(WENDAO_TABLE_METADATA_KEY)
-                    .map(String::as_str),
-                Some(table_name)
-            );
-            assert_eq!(schema.field(0).name(), first_column);
-        }
-    }
 }

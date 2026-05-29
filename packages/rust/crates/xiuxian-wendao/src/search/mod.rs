@@ -54,7 +54,7 @@ pub(crate) mod real_repo_precision;
 mod reference_occurrence;
 #[cfg(feature = "search-runtime")]
 #[path = "repo_content_chunk/mod.rs"]
-mod repo_content_chunk;
+pub(crate) mod repo_content_chunk;
 #[cfg(feature = "search-runtime")]
 #[path = "repo_entity/mod.rs"]
 mod repo_entity;

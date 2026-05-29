@@ -48,7 +48,7 @@ async fn spawn_openai_compat_server(state: OpenAiCompatMockState) -> Option<Stri
     };
     let addr = listener
         .local_addr()
-        .expect("test server should expose a local address");
+        .unwrap_or_else(|_| panic!("test server should expose a local address"));
     tokio::spawn(async move {
         let _ = axum::serve(listener, app).await;
     });

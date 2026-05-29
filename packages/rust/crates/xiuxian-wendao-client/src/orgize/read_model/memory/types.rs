@@ -3,13 +3,13 @@
 use xiuxian_memory_engine::InferredMemoryObject;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub(super) enum MemoryObjectSourceKind {
+pub(in crate::orgize::read_model) enum MemoryObjectSourceKind {
     Property,
     Reflection,
 }
 
 impl MemoryObjectSourceKind {
-    pub(super) const fn as_str(self) -> &'static str {
+    pub(in crate::orgize::read_model) const fn as_str(self) -> &'static str {
         match self {
             Self::Property => "property",
             Self::Reflection => "reflection",
@@ -18,8 +18,8 @@ impl MemoryObjectSourceKind {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub(super) struct OrgInferredMemoryObject {
-    pub(super) source_kind: MemoryObjectSourceKind,
-    pub(super) source_key: String,
-    pub(super) object: InferredMemoryObject,
+pub(in crate::orgize::read_model) struct OrgInferredMemoryObject {
+    pub(in crate::orgize::read_model) source_kind: MemoryObjectSourceKind,
+    pub(in crate::orgize::read_model) source_key: String,
+    pub(in crate::orgize::read_model) object: InferredMemoryObject,
 }

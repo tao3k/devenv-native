@@ -1,4 +1,4 @@
-//! Verifies the default `xiuxian-llm` feature profile keeps routing and LiteLLM enabled.
+//! Verifies the default `xiuxian-llm` feature profile keeps routing and `LiteLLM` enabled.
 
 #[test]
 fn default_feature_profile_enables_model_routing_and_litellm_provider() {

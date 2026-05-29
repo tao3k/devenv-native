@@ -67,8 +67,8 @@ fn runtime_profile_resolves_default_provider_and_responses_wire() {
 
 #[test]
 fn runtime_profile_system_defaults_use_direct_deepseek_provider() {
-    let config =
-        llm_runtime_profile_system_default_config().expect("source LLM defaults should parse");
+    let config = llm_runtime_profile_system_default_config()
+        .unwrap_or_else(|_| panic!("source LLM defaults should parse"));
     assert_eq!(config.backend.as_deref(), Some("litellm"));
     assert_eq!(config.default_provider.as_deref(), Some("deepseek"));
     assert_eq!(config.default_model.as_deref(), Some("deepseek-chat"));
@@ -85,7 +85,7 @@ fn runtime_profile_system_defaults_use_direct_deepseek_provider() {
         ..LlmRuntimeProfileEnv::default()
     };
     let resolved = resolve_openai_runtime_profile(&profile, &env, &LlmRuntimeDefaults::default())
-        .expect("DeepSeek provider should resolve from source defaults");
+        .unwrap_or_else(|_| panic!("DeepSeek provider should resolve from source defaults"));
 
     assert_eq!(resolved.provider_name, "deepseek");
     assert_eq!(resolved.model, "deepseek-chat");
@@ -111,7 +111,7 @@ fn runtime_profile_project_toml_can_select_openrouter_provider() {
     "#;
 
     let config = llm_runtime_profile_toml_config_from_str(toml)
-        .expect("wendao.toml LLM config should parse");
+        .unwrap_or_else(|_| panic!("wendao.toml LLM config should parse"));
     assert_eq!(config.backend.as_deref(), Some("litellm"));
     assert_eq!(config.default_provider.as_deref(), Some("openrouter"));
     assert!(config.providers.contains_key("deepseek"));
@@ -125,7 +125,7 @@ fn runtime_profile_project_toml_can_select_openrouter_provider() {
         ..LlmRuntimeProfileEnv::default()
     };
     let resolved = resolve_openai_runtime_profile(&profile, &env, &LlmRuntimeDefaults::default())
-        .expect("OpenRouter provider should resolve from wendao.toml");
+        .unwrap_or_else(|_| panic!("OpenRouter provider should resolve from wendao.toml"));
 
     assert_eq!(resolved.provider_name, "openrouter");
     assert_eq!(resolved.model, "deepseek/deepseek-v4-pro");

@@ -19,6 +19,8 @@ use axum::Router;
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
+#[cfg(feature = "valkey")]
+use xiuxian_qianji_control::DuckDbControlLedger;
 use xiuxian_qianji_control::{
     ActivityId, ActivityTask, ActivityType, AdmittedLlmActivityScheduleRecord, ArtifactId,
     ArtifactKind, ArtifactRef, ControlLedger, HotStateStore, IdempotencyKey, InMemoryControlLedger,
@@ -217,6 +219,79 @@ async fn qianji_server_llm_worker_http_route_executes_openai_compatible_activity
 #[tokio::test]
 async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -> Result<(), String>
 {
+    let fixture = workflow_start_llm_fixture().await?;
+    let instance_id = "qianji_server_llm_start_bridge";
+    let client = test_http_client()?;
+    start_llm_service_boundary(&client, &fixture, instance_id).await?;
+
+    let run_id = format!("bpmn.workflow.{instance_id}");
+    let worker_json = run_llm_worker_and_complete(
+        &client,
+        &fixture.server_url,
+        &fixture.output_dir,
+        &run_id,
+        2,
+        1,
+    )
+    .await?;
+    assert_workflow_start_llm_worker_output(&worker_json);
+    let provider_request = tokio::time::timeout(Duration::from_secs(10), fixture.request_rx)
+        .await
+        .map_err(|_| "provider request should be captured before timeout".to_owned())?
+        .map_err(|error| format!("provider request should be captured: {error}"))?;
+    assert_workflow_start_provider_request(&provider_request);
+    Ok(())
+}
+
+#[cfg(feature = "valkey")]
+#[tokio::test]
+async fn qianji_server_server_repair_run_and_complete_executes_llm_boundaries() -> Result<(), String>
+{
+    let mut fixture = server_repair_llm_fixture().await?;
+    let client = test_http_client()?;
+    let admit_json = admit_server_repair_workflow_source(&client, &fixture.server_url).await?;
+    let run_id = admit_json["repair_run"]["run_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("repair response should include run id: {admit_json}"));
+
+    let worker_json = run_llm_worker_and_complete(
+        &client,
+        &fixture.server_url,
+        &fixture.output_dir,
+        run_id,
+        4,
+        10,
+    )
+    .await?;
+    assert_server_repair_worker_output(&worker_json, &admit_json);
+    assert_server_repair_provider_requests(&mut fixture.request_rx).await?;
+
+    let history_json = load_control_history(&client, &fixture.server_url, run_id).await?;
+    assert_server_repair_history(&history_json);
+    Ok(())
+}
+
+#[cfg(feature = "valkey")]
+struct WorkflowStartLlmFixture {
+    _valkey: TestValkey,
+    _temp_dir: TempDir,
+    server_url: String,
+    bpmn_path: std::path::PathBuf,
+    output_dir: std::path::PathBuf,
+    request_rx: tokio::sync::oneshot::Receiver<String>,
+}
+
+#[cfg(feature = "valkey")]
+struct ServerRepairLlmFixture {
+    _valkey: TestValkey,
+    _temp_dir: TempDir,
+    server_url: String,
+    output_dir: std::path::PathBuf,
+    request_rx: tokio::sync::mpsc::UnboundedReceiver<String>,
+}
+
+#[cfg(feature = "valkey")]
+async fn workflow_start_llm_fixture() -> Result<WorkflowStartLlmFixture, String> {
     let valkey = TestValkey::spawn()
         .await
         .map_err(|error| format!("valkey should start for workflow LLM bridge: {error}"))?;
@@ -232,14 +307,9 @@ async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -
     let bpmn_path = write_llm_service_boundary_bpmn(temp_dir.path())?;
     let output_dir = temp_dir.path().join("llm-output");
     let ledger = Arc::new(InMemoryControlLedger::new());
-    let hot_state_config = ValkeyHotStateConfig::new(valkey.url())
-        .map_err(|error| format!("valkey hot-state config should build: {error}"))?
-        .with_namespace("qianji:test:workflow-start-llm")
-        .map_err(|error| format!("valkey hot-state namespace should build: {error}"))?;
-    let hot_state = Arc::new(ValkeyHotStateStore::new(hot_state_config));
+    let hot_state = workflow_start_hot_state(valkey.url())?;
     enqueue_stale_openai_compatible_activity(hot_state.as_ref()).await?;
-    let control_ledger: Arc<dyn ControlLedger> = ledger.clone();
-    let control_hot_state: Arc<dyn HotStateStore> = hot_state.clone();
+    let control_ledger: Arc<dyn ControlLedger> = ledger;
     let router = qianji_bpmn_workflow_router(
         QianjiBpmnWorkflowHttpState::new(
             QianjiBpmnWorkflowControlService::new().with_runtime_env(QianjiRuntimeEnv {
@@ -249,26 +319,138 @@ async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -
             QianjiBpmnHostBridge::default(),
         )
         .with_activity_evidence_ledger(control_ledger)
-        .with_recovery_hot_state(control_hot_state)
-        .with_runtime_env(QianjiRuntimeEnv {
-            prj_root: Some(project_root),
-            prj_config_home: Some(temp_dir.path().join("config-home")),
-            extra_env: vec![("DEEPSEEK_API_KEY".to_owned(), "server-key".to_owned())],
-            ..QianjiRuntimeEnv::default()
-        }),
+        .with_recovery_hot_state(hot_state)
+        .with_runtime_env(runtime_env_for_llm_fixture(
+            project_root,
+            temp_dir.path().join("config-home"),
+            Some(valkey.url().to_string()),
+        )),
     );
     let server_url = spawn_http_router(router).await?;
-    let instance_id = "qianji_server_llm_start_bridge";
+    Ok(WorkflowStartLlmFixture {
+        _valkey: valkey,
+        _temp_dir: temp_dir,
+        server_url,
+        bpmn_path,
+        output_dir,
+        request_rx,
+    })
+}
 
-    let client = reqwest::Client::builder()
+#[cfg(feature = "valkey")]
+async fn server_repair_llm_fixture() -> Result<ServerRepairLlmFixture, String> {
+    let valkey = TestValkey::spawn()
+        .await
+        .map_err(|error| format!("valkey should start for server repair bridge: {error}"))?;
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("temporary directory should allocate: {error}"))?;
+    let (base_url, request_rx) = spawn_server_repair_provider().await?;
+    let project_root = temp_dir.path().join("project-root");
+    write_qianji_runtime_config_fixture(&project_root, base_url.as_str())?;
+    let output_dir = temp_dir.path().join("server-repair-llm-output");
+    let ledger = Arc::new(
+        DuckDbControlLedger::open(temp_dir.path().join("control-ledger.duckdb"))
+            .map_err(|error| format!("control ledger should open: {error}"))?,
+    );
+    let hot_state = server_repair_hot_state(valkey.url())?;
+    let router = qianji_bpmn_workflow_router(
+        QianjiBpmnWorkflowHttpState::new(
+            QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env_for_llm_fixture(
+                project_root.clone(),
+                temp_dir.path().join("config-home"),
+                Some(valkey.url().to_string()),
+            )),
+            QianjiBpmnHostBridge::default(),
+        )
+        .with_activity_evidence_ledger(ledger)
+        .with_recovery_hot_state(hot_state)
+        .with_runtime_env(runtime_env_for_llm_fixture(
+            project_root,
+            temp_dir.path().join("config-home"),
+            Some(valkey.url().to_string()),
+        )),
+    );
+    let server_url = spawn_http_router(router).await?;
+    Ok(ServerRepairLlmFixture {
+        _valkey: valkey,
+        _temp_dir: temp_dir,
+        server_url,
+        output_dir,
+        request_rx,
+    })
+}
+
+#[cfg(feature = "valkey")]
+fn workflow_start_hot_state(valkey_url: &str) -> Result<Arc<dyn HotStateStore>, String> {
+    let hot_state_config = ValkeyHotStateConfig::new(valkey_url)
+        .map_err(|error| format!("valkey hot-state config should build: {error}"))?
+        .with_namespace("qianji:test:workflow-start-llm")
+        .map_err(|error| format!("valkey hot-state namespace should build: {error}"))?;
+    Ok(Arc::new(ValkeyHotStateStore::new(hot_state_config)))
+}
+
+#[cfg(feature = "valkey")]
+fn server_repair_hot_state(valkey_url: &str) -> Result<Arc<dyn HotStateStore>, String> {
+    let hot_state_config = ValkeyHotStateConfig::new(valkey_url)
+        .map_err(|error| format!("valkey hot-state config should build: {error}"))?
+        .with_namespace("qianji:test:server-repair-run-and-complete")
+        .map_err(|error| format!("valkey hot-state namespace should build: {error}"))?;
+    Ok(Arc::new(ValkeyHotStateStore::new(hot_state_config)))
+}
+
+#[cfg(feature = "valkey")]
+fn runtime_env_for_llm_fixture(
+    project_root: std::path::PathBuf,
+    config_home: std::path::PathBuf,
+    valkey_url: Option<String>,
+) -> QianjiRuntimeEnv {
+    QianjiRuntimeEnv {
+        prj_root: Some(project_root),
+        prj_config_home: Some(config_home),
+        qianji_checkpoint_valkey_url: valkey_url,
+        extra_env: vec![("DEEPSEEK_API_KEY".to_owned(), "server-key".to_owned())],
+        ..QianjiRuntimeEnv::default()
+    }
+}
+
+#[cfg(feature = "valkey")]
+async fn spawn_server_repair_provider()
+-> Result<(String, tokio::sync::mpsc::UnboundedReceiver<String>), String> {
+    let draft_content = serde_json::json!({
+        "candidateBpmn": repair_candidate_bpmn("Process_wf_repair_llm"),
+    })
+    .to_string();
+    let reason_content = serde_json::json!({
+        "lintPassed": true,
+        "repairRequired": false,
+        "repairPlan": "admit lint-clean candidate BPMN",
+    })
+    .to_string();
+    spawn_openai_compatible_sequence_server(vec![
+        openai_compatible_chat_response(&draft_content),
+        openai_compatible_chat_response(&reason_content),
+    ])
+    .await
+}
+
+#[cfg(feature = "valkey")]
+fn test_http_client() -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
-        .map_err(|error| format!("HTTP client should build: {error}"))?;
+        .map_err(|error| format!("HTTP client should build: {error}"))
+}
 
-    let start_response = client
-        .post(format!("{server_url}/workflows/start"))
+#[cfg(feature = "valkey")]
+async fn start_llm_service_boundary(
+    client: &reqwest::Client,
+    fixture: &WorkflowStartLlmFixture,
+    instance_id: &str,
+) -> Result<serde_json::Value, String> {
+    let response = client
+        .post(format!("{}/workflows/start", fixture.server_url))
         .json(&serde_json::json!({
-            "bpmn_path": bpmn_path.display().to_string(),
+            "bpmn_path": fixture.bpmn_path.display().to_string(),
             "process_id": "llm_service_boundary",
             "instance_id": instance_id,
             "initial_variables": {
@@ -278,41 +460,86 @@ async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -
         .send()
         .await
         .map_err(|error| format!("workflow start route should respond: {error}"))?;
-    let start_status = start_response.status();
-    let start_json: serde_json::Value = start_response
-        .json()
-        .await
-        .map_err(|error| format!("workflow start JSON should decode: {error}"))?;
-    assert_eq!(start_status, reqwest::StatusCode::OK, "{start_json}");
+    let status = response.status();
+    let body = json_response(response, "workflow start").await?;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    Ok(body)
+}
 
-    let run_id = format!("bpmn.workflow.{instance_id}");
-    let worker_response = client
+#[cfg(feature = "valkey")]
+async fn admit_server_repair_workflow_source(
+    client: &reqwest::Client,
+    server_url: &str,
+) -> Result<serde_json::Value, String> {
+    let response = client
+        .post(format!("{server_url}/control/workflow-source/admit"))
+        .json(&serde_json::json!({
+            "source_id": "daily report/server repair llm",
+            "process_id": "Process_wf_repair_llm",
+            "source_media_type": "text/markdown",
+            "source_text": "# Daily Report Generator\n\nGather metrics and write a report.",
+            "workflow_name": "Daily Report Generator",
+            "workflow_description": "Repair this free-form workflow source through qianji-server.",
+            "compiler_mode": "server_repair",
+        }))
+        .send()
+        .await
+        .map_err(|error| format!("workflow-source admission route should respond: {error}"))?;
+    let status = response.status();
+    let body = json_response(response, "workflow-source admission").await?;
+    assert_eq!(status, reqwest::StatusCode::ACCEPTED, "{body}");
+    Ok(body)
+}
+
+#[cfg(feature = "valkey")]
+async fn run_llm_worker_and_complete(
+    client: &reqwest::Client,
+    server_url: &str,
+    output_dir: &Path,
+    run_id: &str,
+    poll_limit: u32,
+    step_ms: u64,
+) -> Result<serde_json::Value, String> {
+    let response = client
         .post(format!(
             "{server_url}/control/runs/{run_id}/workers/openai-compatible-llm/run-and-complete"
         ))
         .json(&serde_json::json!({
-            "worker_id": "qianji-server-start-llm-worker",
+            "worker_id": "qianji-server-test-llm-worker",
             "now_ms": 8_000,
-            "now_step_ms": 1,
+            "now_step_ms": step_ms,
             "lease_ttl_ms": 500,
-            "poll_limit": 2,
+            "poll_limit": poll_limit,
             "empty_limit": 1,
             "worker_count": 1,
             "settled_at_ms": 9_000,
-            "settled_step_ms": 1,
+            "settled_step_ms": step_ms,
             "output_artifact_dir": output_dir.display().to_string(),
             "output_artifact_kind": "llm.response",
             "openai_compatible_timeout_ms": 5_000
         }))
         .send()
         .await
-        .map_err(|error| format!("HTTP worker route should respond: {error}"))?;
-    let worker_status = worker_response.status();
-    let worker_json: serde_json::Value = worker_response
+        .map_err(|error| format!("HTTP run-and-complete route should respond: {error}"))?;
+    let status = response.status();
+    let body = json_response(response, "run-and-complete").await?;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    Ok(body)
+}
+
+#[cfg(feature = "valkey")]
+async fn json_response(
+    response: reqwest::Response,
+    context: &str,
+) -> Result<serde_json::Value, String> {
+    response
         .json()
         .await
-        .map_err(|error| format!("worker route JSON should decode: {error}"))?;
-    assert_eq!(worker_status, reqwest::StatusCode::OK, "{worker_json}");
+        .map_err(|error| format!("{context} JSON should decode: {error}"))
+}
+
+#[cfg(feature = "valkey")]
+fn assert_workflow_start_llm_worker_output(worker_json: &serde_json::Value) {
     assert_eq!(worker_json["completed_count"], 1, "{worker_json}");
     assert_eq!(
         worker_json["worker_runs"][0]["processed"], 1,
@@ -331,16 +558,111 @@ async fn qianji_server_workflow_start_schedules_toml_configured_llm_activity() -
         "Project resolved by qianji-server LLM worker.",
         "{worker_json}"
     );
-    let provider_request = tokio::time::timeout(Duration::from_secs(10), request_rx)
-        .await
-        .map_err(|_| "provider request should be captured before timeout".to_owned())?
-        .map_err(|error| format!("provider request should be captured: {error}"))?;
+}
 
+#[cfg(feature = "valkey")]
+fn assert_workflow_start_provider_request(provider_request: &str) {
     assert!(provider_request.contains("authorization: Bearer server-key"));
     assert!(provider_request.contains("\"model\":\"deepseek-test\""));
     assert!(provider_request.contains("qianji_bpmn_host_work"));
     assert!(provider_request.contains("resolvedProject"));
+}
+
+#[cfg(feature = "valkey")]
+fn assert_server_repair_worker_output(
+    worker_json: &serde_json::Value,
+    admit_json: &serde_json::Value,
+) {
+    let instance_id = admit_json["repair_run"]["instance_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("repair response should include instance id: {admit_json}"));
+    assert_eq!(worker_json["completed_count"], 2, "{worker_json}");
+    assert_eq!(
+        worker_json["worker_runs"][0]["processed"], 1,
+        "{worker_json}"
+    );
+    assert_eq!(
+        worker_json["worker_runs"][1]["processed"], 1,
+        "{worker_json}"
+    );
+    assert_eq!(
+        worker_json["worker_runs"][0]["iterations"][0]["activityId"],
+        format!("bpmn-llm-{instance_id}-draft_bpmn-1"),
+        "{worker_json}",
+    );
+    let reason_activity_id = worker_json["worker_runs"][1]["iterations"][0]["activityId"]
+        .as_str()
+        .unwrap_or_else(|| panic!("reasoning activity id should be present: {worker_json}"));
+    assert!(
+        reason_activity_id.contains("reason_lint_diagnostics"),
+        "{worker_json}"
+    );
+    assert_eq!(
+        worker_json["final_workflow"]["workflow"]["lifecycle"], "completed",
+        "{worker_json}",
+    );
+    assert_eq!(
+        worker_json["final_workflow"]["workflow"]["pending_host_work_count"], 0,
+        "{worker_json}",
+    );
+    let admitted_ref =
+        worker_json["final_workflow"]["workflow"]["variables"]["admittedBpmnSourceRef"]
+            .as_str()
+            .unwrap_or_else(|| {
+                panic!("final workflow should include admitted BPMN ref: {worker_json}")
+            });
+    assert!(
+        Path::new(admitted_ref).exists(),
+        "server repair must persist the admitted BPMN source: {worker_json}",
+    );
+}
+
+#[cfg(feature = "valkey")]
+async fn assert_server_repair_provider_requests(
+    request_rx: &mut tokio::sync::mpsc::UnboundedReceiver<String>,
+) -> Result<(), String> {
+    let first_request = receive_provider_request(request_rx).await?;
+    let second_request = receive_provider_request(request_rx).await?;
+    assert!(first_request.contains("authorization: Bearer server-key"));
+    assert!(first_request.contains("\"model\":\"deepseek-test\""));
+    assert!(first_request.contains("draft_bpmn"));
+    assert!(first_request.contains("candidateBpmn"));
+    assert!(second_request.contains("reason_lint_diagnostics"));
+    assert!(second_request.contains("lintDiagnostics"));
     Ok(())
+}
+
+#[cfg(feature = "valkey")]
+async fn load_control_history(
+    client: &reqwest::Client,
+    server_url: &str,
+    run_id: &str,
+) -> Result<serde_json::Value, String> {
+    let response = client
+        .get(format!("{server_url}/control/runs/{run_id}/history"))
+        .send()
+        .await
+        .map_err(|error| format!("history route should respond: {error}"))?;
+    let status = response.status();
+    let body = json_response(response, "history").await?;
+    assert_eq!(status, reqwest::StatusCode::OK, "{body}");
+    Ok(body)
+}
+
+#[cfg(feature = "valkey")]
+fn assert_server_repair_history(history_json: &serde_json::Value) {
+    let history_wire = history_json.to_string();
+    assert!(history_wire.contains("draft_bpmn"), "{history_json}");
+    assert!(history_wire.contains("run_qianji_lint"), "{history_json}");
+    assert!(
+        history_wire.contains("reason_lint_diagnostics"),
+        "{history_json}"
+    );
+    assert!(history_wire.contains("admit_bpmn_source"), "{history_json}");
+    assert!(
+        history_wire.contains("activity_completed"),
+        "{history_json}"
+    );
 }
 
 fn seed_openai_compatible_llm_activity(
@@ -394,7 +716,7 @@ fn seed_openai_compatible_llm_activity(
 
 #[cfg(feature = "valkey")]
 async fn enqueue_stale_openai_compatible_activity(
-    hot_state: &impl HotStateStore,
+    hot_state: &(impl HotStateStore + ?Sized),
 ) -> Result<(), String> {
     hot_state
         .enqueue_activity_task(RunnableActivityTask {
@@ -519,6 +841,76 @@ async fn spawn_openai_compatible_server(
         }
     });
     Ok((format!("http://{address}/v1"), request_rx))
+}
+
+#[cfg(feature = "valkey")]
+async fn spawn_openai_compatible_sequence_server(
+    bodies: Vec<String>,
+) -> Result<(String, tokio::sync::mpsc::UnboundedReceiver<String>), String> {
+    if bodies.is_empty() {
+        return Err("test provider sequence requires at least one response".to_owned());
+    }
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .map_err(|error| format!("test provider server should bind: {error}"))?;
+    let address = listener
+        .local_addr()
+        .map_err(|error| format!("test provider address should resolve: {error}"))?;
+    let (request_tx, request_rx) = tokio::sync::mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        for body in bodies {
+            let Ok((mut stream, _peer)) = listener.accept().await else {
+                break;
+            };
+            if let Ok(request) = read_http_request(&mut stream).await {
+                let _ = request_tx.send(request);
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(response.as_bytes()).await;
+            }
+        }
+    });
+    Ok((format!("http://{address}/v1"), request_rx))
+}
+
+#[cfg(feature = "valkey")]
+fn openai_compatible_chat_response(content: &str) -> String {
+    serde_json::json!({
+        "choices": [{
+            "message": {
+                "content": content,
+            },
+        }],
+    })
+    .to_string()
+}
+
+#[cfg(feature = "valkey")]
+async fn receive_provider_request(
+    request_rx: &mut tokio::sync::mpsc::UnboundedReceiver<String>,
+) -> Result<String, String> {
+    tokio::time::timeout(Duration::from_secs(10), request_rx.recv())
+        .await
+        .map_err(|_| "provider request should be captured before timeout".to_owned())?
+        .ok_or_else(|| "provider request channel closed before request arrived".to_owned())
+}
+
+#[cfg(feature = "valkey")]
+fn repair_candidate_bpmn(process_id: &str) -> String {
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="defs_{process_id}">
+  <bpmn:process id="{process_id}" isExecutable="true">
+    <bpmn:startEvent id="start" />
+    <bpmn:serviceTask id="step-1" name="Gather Inputs" />
+    <bpmn:endEvent id="done" />
+    <bpmn:sequenceFlow id="flow_start_step_1" sourceRef="start" targetRef="step-1" />
+    <bpmn:sequenceFlow id="flow_step_1_done" sourceRef="step-1" targetRef="done" />
+  </bpmn:process>
+</bpmn:definitions>"#
+    )
 }
 
 async fn spawn_http_router(router: Router) -> Result<String, String> {

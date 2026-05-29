@@ -13,7 +13,7 @@ use super::{
     WENDAO_CHAT_ROUTE_MODEL_ENV, WENDAO_CHAT_ROUTE_PROVIDER_ENV,
     WENDAO_IMAGE_EXTRACT_ROUTE_BACKEND_PROFILE_ENV, WENDAO_IMAGE_EXTRACT_ROUTE_MODEL_ENV,
     WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER_ENV, WENDAO_MODEL_ROUTING_MODE_ENV,
-    WENDAO_VLLM_SR_BASE_URL_ENV,
+    WENDAO_VLLM_SR_BASE_URL_ENV, WendaoModelRoutingMode,
 };
 
 /// System-level Wendao model-routing defaults shipped by `xiuxian-llm`.
@@ -25,7 +25,7 @@ pub const WENDAO_MODEL_ROUTING_SYSTEM_DEFAULT_TOML: &str =
 pub struct WendaoModelRoutingTomlConfig {
     /// Routing mode, for example `deterministic` or `vllm-sr`.
     #[serde(default)]
-    pub mode: Option<String>,
+    pub mode: Option<WendaoModelRoutingMode>,
     /// vLLM-SR base URL used when vLLM-SR mode is enabled.
     #[serde(default)]
     pub vllm_sr_base_url: Option<String>,
@@ -154,7 +154,7 @@ fn toml_value_for_env_key(
 ) -> Option<String> {
     let config = config?;
     let raw = match key {
-        WENDAO_MODEL_ROUTING_MODE_ENV => config.mode.as_deref(),
+        WENDAO_MODEL_ROUTING_MODE_ENV => config.mode.map(WendaoModelRoutingMode::as_str),
         WENDAO_VLLM_SR_BASE_URL_ENV => config.vllm_sr_base_url.as_deref(),
         WENDAO_CHAT_ROUTE_PROVIDER_ENV => route_provider(&config.chat, config),
         WENDAO_CHAT_ROUTE_MODEL_ENV => config.chat.model.as_deref(),

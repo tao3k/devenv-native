@@ -21,7 +21,7 @@ use crate::query_core::types::{WendaoQueryCoreError, WendaoRelation};
 use crate::search::SearchPlaneService;
 use crate::search::contracts::SearchHit;
 
-const GRAPH_NEIGHBORS_RELATION_TABLE: &str = "query_core_graph_neighbors";
+pub const GRAPH_NEIGHBORS_RELATION_TABLE: &str = "query_core_graph_neighbors";
 
 /// Retrieval backend that delegates to the existing Wendao search plane.
 pub struct SearchPlaneRetrievalBackend {
@@ -179,7 +179,7 @@ impl GraphBackend for LinkGraphNeighborsBackend {
     }
 }
 
-fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
+pub fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         GRAPH_NEIGHBORS_RELATION_TABLE,
         true,
@@ -193,7 +193,7 @@ fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
     )
 }
 
-fn graph_neighbors_relation_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+pub fn graph_neighbors_relation_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
     let mut metadata = HashMap::new();
     metadata.insert(
         WENDAO_TABLE_METADATA_KEY.to_string(),
@@ -263,29 +263,5 @@ fn graph_direction_label(direction: GraphDirection) -> &'static str {
         GraphDirection::Incoming => "incoming",
         GraphDirection::Outgoing => "outgoing",
         GraphDirection::Both => "both",
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        GRAPH_NEIGHBORS_RELATION_TABLE, graph_neighbors_relation_contract,
-        graph_neighbors_relation_schema_ref,
-    };
-    use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
-
-    #[test]
-    fn graph_neighbors_relation_schema_uses_db_store_table_metadata() {
-        let contract = graph_neighbors_relation_contract();
-        let schema = graph_neighbors_relation_schema_ref(&contract);
-
-        assert_eq!(
-            schema
-                .metadata()
-                .get(WENDAO_TABLE_METADATA_KEY)
-                .map(String::as_str),
-            Some(GRAPH_NEIGHBORS_RELATION_TABLE)
-        );
-        assert_eq!(schema.field(0).name(), "node_id");
     }
 }

@@ -12,7 +12,7 @@ use crate::repo_index::RepoCodeDocument;
 
 const CHUNK_SIZE: usize = 2_000;
 
-const COLUMN_ID: &str = "id";
+pub const COLUMN_ID: &str = "id";
 const COLUMN_PATH: &str = "path";
 const COLUMN_PATH_FOLDED: &str = "path_folded";
 const COLUMN_LANGUAGE: &str = "language";
@@ -44,7 +44,7 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
     ]))
 }
 
-pub(crate) fn repo_content_chunk_engine_schema() -> SchemaRef {
+pub fn repo_content_chunk_engine_schema() -> SchemaRef {
     let contract = repo_content_chunk_engine_contract();
     let mut metadata = HashMap::new();
     metadata.insert(
@@ -205,24 +205,4 @@ pub(super) const fn path_folded_column() -> &'static str {
 
 pub(super) const fn line_text_folded_column() -> &'static str {
     COLUMN_LINE_TEXT_FOLDED
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{COLUMN_ID, repo_content_chunk_engine_schema};
-    use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
-
-    #[test]
-    fn repo_content_chunk_engine_schema_uses_db_store_table_metadata() {
-        let schema = repo_content_chunk_engine_schema();
-
-        assert_eq!(
-            schema
-                .metadata()
-                .get(WENDAO_TABLE_METADATA_KEY)
-                .map(String::as_str),
-            Some("repo_content_chunk")
-        );
-        assert_eq!(schema.field(0).name(), COLUMN_ID);
-    }
 }

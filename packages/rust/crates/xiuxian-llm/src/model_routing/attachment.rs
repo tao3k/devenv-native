@@ -54,11 +54,11 @@ pub struct WendaoAttachmentRouteConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WendaoAttachmentRouteInput {
     /// Gateway task kind.
-    pub task_kind: String,
+    pub task_kind: WendaoRouteTaskKind,
     /// Source modality.
     pub modality: String,
     /// Source kind.
-    pub source_kind: String,
+    pub source_kind: WendaoRouteSourceKind,
     /// Precision tier required by Gateway.
     pub precision_tier: String,
     /// Privacy tier used by route policy.
@@ -139,9 +139,9 @@ pub fn wendao_image_extract_route_config_with_model_routing_config(
 #[must_use]
 pub fn wendao_attachment_route_intent(input: &WendaoAttachmentRouteInput) -> WendaoRouteIntent {
     WendaoRouteIntent {
-        task_kind: WendaoRouteTaskKind::new(input.task_kind.clone()),
+        task_kind: input.task_kind.clone(),
         modality: input.modality.clone(),
-        source_kind: WendaoRouteSourceKind::new(input.source_kind.clone()),
+        source_kind: input.source_kind.clone(),
         precision_tier: input.precision_tier.clone(),
         privacy_tier: input.privacy_tier.clone(),
         latency_budget_ms: input.latency_budget_ms,

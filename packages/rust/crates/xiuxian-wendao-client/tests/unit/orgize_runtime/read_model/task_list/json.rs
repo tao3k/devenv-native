@@ -257,7 +257,7 @@ fn standalone_orgize_task_list_json_renders_matched_org_elements() {
     );
     let matched_elements = parsed["recallPacket"]["rows"][0]["matchedOrgElements"]
         .as_array()
-        .expect("matched org elements should be an array");
+        .unwrap_or_else(|| panic!("matched org elements should be an array"));
     assert!(
         matched_elements
             .iter()

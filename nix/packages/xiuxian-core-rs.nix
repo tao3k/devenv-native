@@ -114,11 +114,17 @@ python3Packages.buildPythonPackage {
     export RUST_LANG_PROJECT_HARNESS_REV="$(cargo_lock_git_rev "https://github.com/tao3k/rust-lang-project-harness")"
     export LANCE_REV="$(cargo_lock_git_rev "https://github.com/lancedb/lance.git")"
     export LITELLM_RS_REV="$(cargo_lock_git_rev "https://github.com/majiayu000/litellm-rs")"
+    export LITCHI_REV="$(cargo_lock_git_rev "https://github.com/DevExzh/litchi.git")"
 
     cat > .cargo/git-sources.toml <<EOF
     [source."git+https://github.com/majiayu000/litellm-rs?rev=''${LITELLM_RS_REV}"]
     git = "https://github.com/majiayu000/litellm-rs"
     rev = "''${LITELLM_RS_REV}"
+    replace-with = "vendored-sources"
+
+    [source."git+https://github.com/DevExzh/litchi.git?rev=''${LITCHI_REV}"]
+    git = "https://github.com/DevExzh/litchi.git"
+    rev = "''${LITCHI_REV}"
     replace-with = "vendored-sources"
 
     [source."git+https://github.com/J-F-Liu/lopdf?rev=''${LOPDF_REV}"]

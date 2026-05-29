@@ -45,7 +45,7 @@ fn cache_layer_blocks_projection_and_recall() {
     assert!(!decision.projection_allowed);
     assert!(!decision.default_recall_allowed);
     assert!(!decision.scoped_recall_allowed);
-    assert_eq!(decision.recall_prior, 0.0);
+    assert!((decision.recall_prior - 0.0).abs() < f32::EPSILON);
     assert_eq!(decision.reason_code, "cache_not_memory");
 }
 

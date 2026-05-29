@@ -27,7 +27,7 @@ mod llm_runtime_profile;
 #[path = "unit/llm_vision.rs"]
 mod llm_vision;
 #[cfg(feature = "model-routing")]
-#[path = "unit/model_routing.rs"]
+#[path = "unit/model_routing/mod.rs"]
 mod model_routing;
 #[path = "unit/test_embedding_runtime.rs"]
 mod test_embedding_runtime;

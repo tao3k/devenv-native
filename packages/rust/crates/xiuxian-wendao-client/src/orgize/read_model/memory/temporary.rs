@@ -9,10 +9,10 @@ use xiuxian_memory_engine::{
     TwoPhaseSearchRequest, infer_memory_lifecycle_facts_from_properties,
 };
 
+use super::inferred_memory_objects_for_row;
 use crate::orgize::read_model::model::AgentOrgTaskListRow;
 use crate::orgize::read_model::row_view::property_value;
 use crate::orgize::read_model::section_lens::TaskSectionLens;
-use super::inferred_memory_objects_for_row;
 
 const TEMPORARY_MEMORY_SCOPE: &str = "wendao-client:agent-org-temporary-memory";
 const EMBEDDING_DIMENSION: usize = 128;
