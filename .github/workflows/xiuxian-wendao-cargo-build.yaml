@@ -91,7 +91,7 @@ jobs:
           toolchain: ${{ steps.rust.outputs.channel }}
 
       - name: Install sccache
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
         with:
           tool: sccache@0.7.5
 
@@ -222,7 +222,7 @@ jobs:
           toolchain: ${{ steps.rust.outputs.channel }}
 
       - name: Install sccache
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
         with:
           tool: sccache@0.7.5
 
@@ -352,7 +352,7 @@ jobs:
           toolchain: ${{ steps.rust.outputs.channel }}
 
       - name: Install sccache
-        uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
+        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
         with:
           tool: sccache@0.7.5
 
