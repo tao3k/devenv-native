@@ -37,42 +37,49 @@ pub(super) fn build_reasoning_packet_rows(
 
     let input = read_structural_facts_input(request.structural_facts_json.as_path())?;
     let document_anchors = document_root_anchors(&input.anchors)?;
-    let mut seen_packet_ids = BTreeSet::new();
-    let mut rows = Vec::new();
-    let mut skipped_by_filter_count = 0;
-    let mut skipped_by_limit_count = 0;
-
-    for document in &input.documents {
-        validate_document(document, &document_anchors)?;
-        if !matches_filters(document, request) {
-            skipped_by_filter_count += 1;
-            continue;
-        }
-        if rows.len() >= request.limit {
-            skipped_by_limit_count += 1;
-            continue;
-        }
-        let Some(anchor) = document_anchors.get(document.document_id.as_str()) else {
-            bail!(
-                "structural document `{}` has no document_root anchor",
-                document.document_id
-            );
-        };
-        let row = packet_row(document, anchor, request.run_id.as_str());
-        if !seen_packet_ids.insert(row.packet_id.clone()) {
-            bail!("duplicate reasoning packet id: {}", row.packet_id);
-        }
-        rows.push(row);
+    #[derive(Default)]
+    struct PacketSelection {
+        seen_packet_ids: BTreeSet<String>,
+        rows: Vec<EpistemeOntologyStructuralFactsReasoningPacketRow>,
+        skipped_by_filter_count: usize,
+        skipped_by_limit_count: usize,
     }
 
-    if rows.is_empty() {
+    let selection = input.documents.iter().try_fold(
+        PacketSelection::default(),
+        |mut selection, document| {
+            validate_document(document, &document_anchors)?;
+            if !matches_filters(document, request) {
+                selection.skipped_by_filter_count += 1;
+                return Ok(selection);
+            }
+            if selection.rows.len() >= request.limit {
+                selection.skipped_by_limit_count += 1;
+                return Ok(selection);
+            }
+            let Some(anchor) = document_anchors.get(document.document_id.as_str()) else {
+                bail!(
+                    "structural document `{}` has no document_root anchor",
+                    document.document_id
+                );
+            };
+            let row = packet_row(document, anchor, request.run_id.as_str());
+            if !selection.seen_packet_ids.insert(row.packet_id.clone()) {
+                bail!("duplicate reasoning packet id: {}", row.packet_id);
+            }
+            selection.rows.push(row);
+            Ok::<_, anyhow::Error>(selection)
+        },
+    )?;
+
+    if selection.rows.is_empty() {
         bail!("reasoning packet selection produced no rows");
     }
 
     Ok(ReasoningPacketBuild {
-        rows,
-        skipped_by_filter_count,
-        skipped_by_limit_count,
+        rows: selection.rows,
+        skipped_by_filter_count: selection.skipped_by_filter_count,
+        skipped_by_limit_count: selection.skipped_by_limit_count,
     })
 }
 

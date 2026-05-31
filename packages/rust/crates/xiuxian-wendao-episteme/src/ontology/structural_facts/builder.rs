@@ -286,44 +286,56 @@ impl<'a> StructuralFactsBuilder<'a> {
         file: &EpistemeFileRow,
         root_anchor_id: &str,
     ) -> Result<String> {
-        let mut parent = root_anchor_id.to_string();
-        let mut accumulated = Vec::new();
-        for component in parent_components(file.relative_path.as_str())? {
-            accumulated.push(component);
-            let relative_path = accumulated.join("/");
-            let key = (manifest.source_contract_id.clone(), relative_path.clone());
-            if let Some(existing) = self.folder_anchors.get(&key) {
-                parent.clone_from(existing);
-                continue;
-            }
-            let anchor_id = stable_id(
-                "structural_facts.anchor",
-                &format!("{}:path:{}", manifest.source_contract_id, relative_path),
-            );
-            if !self.seen_anchor_ids.insert(anchor_id.clone()) {
-                bail!("duplicate structural path anchor id: {anchor_id}");
-            }
-            self.push_path_anchor(
-                domain_id,
-                manifest,
-                file,
-                &parent,
-                &relative_path,
-                &anchor_id,
-            );
-            self.add_relation(StructuralRelationInput {
-                relation_kind: "contains",
-                source_anchor_id: parent.as_str(),
-                target_anchor_id: anchor_id.as_str(),
-                document_id: "",
-                file,
-                domain_id,
-                source_contract_id: manifest.source_contract_id.as_str(),
-            });
-            self.folder_anchors.insert(key, anchor_id.clone());
-            parent = anchor_id;
+        struct PathAnchorSelection {
+            parent: String,
+            accumulated: Vec<String>,
         }
-        Ok(parent)
+
+        let selection = parent_components(file.relative_path.as_str())?
+            .into_iter()
+            .try_fold(
+                PathAnchorSelection {
+                    parent: root_anchor_id.to_string(),
+                    accumulated: Vec::new(),
+                },
+                |mut selection, component| {
+                    selection.accumulated.push(component);
+                    let relative_path = selection.accumulated.join("/");
+                    let key = (manifest.source_contract_id.clone(), relative_path.clone());
+                    if let Some(existing) = self.folder_anchors.get(&key) {
+                        selection.parent.clone_from(existing);
+                        return Ok(selection);
+                    }
+                    let anchor_id = stable_id(
+                        "structural_facts.anchor",
+                        &format!("{}:path:{}", manifest.source_contract_id, relative_path),
+                    );
+                    if !self.seen_anchor_ids.insert(anchor_id.clone()) {
+                        bail!("duplicate structural path anchor id: {anchor_id}");
+                    }
+                    self.push_path_anchor(
+                        domain_id,
+                        manifest,
+                        file,
+                        &selection.parent,
+                        &relative_path,
+                        &anchor_id,
+                    );
+                    self.add_relation(StructuralRelationInput {
+                        relation_kind: "contains",
+                        source_anchor_id: selection.parent.as_str(),
+                        target_anchor_id: anchor_id.as_str(),
+                        document_id: "",
+                        file,
+                        domain_id,
+                        source_contract_id: manifest.source_contract_id.as_str(),
+                    });
+                    self.folder_anchors.insert(key, anchor_id.clone());
+                    selection.parent = anchor_id;
+                    Ok::<_, anyhow::Error>(selection)
+                },
+            )?;
+        Ok(selection.parent)
     }
 
     fn push_path_anchor(

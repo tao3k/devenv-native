@@ -7,6 +7,14 @@ from pathlib import Path
 import qianji_wendao_ai_live_gate as live_gate
 
 
+def gate_args() -> argparse.Namespace:
+    return argparse.Namespace(
+        min_stream_rows=1,
+        require_source=("bpmn", "tool", "llm"),
+        allow_non_incremental_stream=False,
+    )
+
+
 def test_console_status_prefers_control_summary() -> None:
     assert (
         live_gate.console_status(
@@ -29,7 +37,6 @@ def test_blocked_status_is_intermediate_not_terminal_failure() -> None:
 
 
 def test_validate_console_summary_counts_sources_and_errors() -> None:
-    args = argparse.Namespace(min_stream_rows=1, require_source=("bpmn", "tool", "llm"))
     summary = live_gate.validate_console_summary(
         name="wf-test",
         workflow_id="wf-test",
@@ -38,7 +45,7 @@ def test_validate_console_summary_counts_sources_and_errors() -> None:
         status="completed",
         worker_iterations=3,
         elapsed_ms=42,
-        args=args,
+        args=gate_args(),
         console={
             "stream": {
                 "rows": [
@@ -56,8 +63,6 @@ def test_validate_console_summary_counts_sources_and_errors() -> None:
 
 
 def test_validate_console_summary_rejects_missing_required_source() -> None:
-    args = argparse.Namespace(min_stream_rows=1, require_source=("bpmn", "tool", "llm"))
-
     try:
         live_gate.validate_console_summary(
             name="wf-test",
@@ -67,13 +72,89 @@ def test_validate_console_summary_rejects_missing_required_source() -> None:
             status="completed",
             worker_iterations=1,
             elapsed_ms=1,
-            args=args,
+            args=gate_args(),
             console={"stream": {"rows": [{"source": "bpmn", "kind": "step_started"}]}},
         )
     except RuntimeError as exc:
         assert "missing required sources" in str(exc)
     else:
         raise AssertionError("expected missing-source rejection")
+
+
+def test_validate_incremental_stream_accepts_growing_pre_completion_rows() -> None:
+    live_gate.validate_incremental_stream(
+        "wf-test",
+        [
+            live_gate.StreamObservation(
+                iteration=1,
+                status="blocked",
+                row_count=14,
+                source_counts={"bpmn": 8, "tool": 4, "llm": 2},
+            ),
+            live_gate.StreamObservation(
+                iteration=2,
+                status="running",
+                row_count=28,
+                source_counts={"bpmn": 16, "tool": 8, "llm": 4},
+            ),
+            live_gate.StreamObservation(
+                iteration=3,
+                status="completed",
+                row_count=42,
+                source_counts={"bpmn": 24, "tool": 12, "llm": 6},
+            ),
+        ],
+    )
+
+
+def test_validate_incremental_stream_rejects_completion_only_visibility() -> None:
+    try:
+        live_gate.validate_incremental_stream(
+            "wf-test",
+            [
+                live_gate.StreamObservation(
+                    iteration=1,
+                    status="completed",
+                    row_count=42,
+                    source_counts={"bpmn": 24, "tool": 12, "llm": 6},
+                ),
+                live_gate.StreamObservation(
+                    iteration=2,
+                    status="completed",
+                    row_count=43,
+                    source_counts={"bpmn": 25, "tool": 12, "llm": 6},
+                ),
+            ],
+        )
+    except RuntimeError as exc:
+        assert "only visible after completion" in str(exc)
+    else:
+        raise AssertionError("expected completion-only stream rejection")
+
+
+def test_validate_incremental_stream_rejects_row_count_regression() -> None:
+    try:
+        live_gate.validate_incremental_stream(
+            "wf-test",
+            [
+                live_gate.StreamObservation(
+                    iteration=1,
+                    status="blocked",
+                    row_count=42,
+                    source_counts={"bpmn": 24, "tool": 12, "llm": 6},
+                ),
+                live_gate.StreamObservation(
+                    iteration=2,
+                    status="running",
+                    row_count=41,
+                    source_counts={"bpmn": 23, "tool": 12, "llm": 6},
+                ),
+            ],
+        )
+    except RuntimeError as exc:
+        assert "regressed" in str(exc)
+    else:
+        raise AssertionError("expected row-count regression rejection")
 
 
 def test_bpmn_process_id_reads_namespaced_process() -> None:

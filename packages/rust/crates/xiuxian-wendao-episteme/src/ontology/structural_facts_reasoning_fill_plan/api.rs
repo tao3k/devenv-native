@@ -68,33 +68,43 @@ fn build_fill_plan_items(
     Vec<EpistemeOntologyStructuralFactsReasoningFillPlanItem>,
     usize,
 )> {
-    let mut seen_seed_ids = BTreeSet::new();
-    let mut seen_fill_item_ids = BTreeSet::new();
-    let mut fill_items = Vec::new();
-    let mut skipped_by_limit_count = 0;
-
-    for seed in seed_rows {
-        if !seen_seed_ids.insert(seed.seed_id.as_str()) {
-            bail!("duplicate reasoning ledger seed id: {}", seed.seed_id);
-        }
-        if seen_seed_ids.len() > limit {
-            skipped_by_limit_count += 1;
-            continue;
-        }
-        let item = fill_plan_item(seed, run_id)?;
-        if !seen_fill_item_ids.insert(item.fill_item_id.clone()) {
-            bail!(
-                "duplicate reasoning fill-plan item id: {}",
-                item.fill_item_id
-            );
-        }
-        fill_items.push(item);
+    #[derive(Default)]
+    struct FillPlanSelection {
+        seen_seed_ids: BTreeSet<String>,
+        seen_fill_item_ids: BTreeSet<String>,
+        fill_items: Vec<EpistemeOntologyStructuralFactsReasoningFillPlanItem>,
+        skipped_by_limit_count: usize,
     }
 
-    if fill_items.is_empty() {
+    let selection =
+        seed_rows
+            .iter()
+            .try_fold(FillPlanSelection::default(), |mut selection, seed| {
+                if !selection.seen_seed_ids.insert(seed.seed_id.clone()) {
+                    bail!("duplicate reasoning ledger seed id: {}", seed.seed_id);
+                }
+                if selection.seen_seed_ids.len() > limit {
+                    selection.skipped_by_limit_count += 1;
+                    return Ok(selection);
+                }
+                let item = fill_plan_item(seed, run_id)?;
+                if !selection
+                    .seen_fill_item_ids
+                    .insert(item.fill_item_id.clone())
+                {
+                    bail!(
+                        "duplicate reasoning fill-plan item id: {}",
+                        item.fill_item_id
+                    );
+                }
+                selection.fill_items.push(item);
+                Ok::<_, anyhow::Error>(selection)
+            })?;
+
+    if selection.fill_items.is_empty() {
         bail!("reasoning fill-plan selection produced no rows");
     }
-    Ok((fill_items, skipped_by_limit_count))
+    Ok((selection.fill_items, selection.skipped_by_limit_count))
 }
 
 fn fill_plan_item(

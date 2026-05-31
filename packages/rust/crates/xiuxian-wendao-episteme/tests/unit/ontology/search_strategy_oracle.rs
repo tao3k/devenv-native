@@ -1,4 +1,4 @@
-use std::fs;
+use std::{collections::BTreeSet, fs};
 
 use serde_json::Value;
 use tempfile::tempdir;
@@ -42,6 +42,10 @@ fn search_strategy_oracle_compiles_from_org_review_ledgers()
     assert_eq!(cases["sourceMutationAllowed"], false);
     assert_eq!(cases["ontologyTruth"], false);
     let case = &cases["cases"][0];
+    assert_eq!(
+        case["caseId"],
+        "oracle_seed.episteme---medical-episteme-extension"
+    );
     assert_eq!(case["ontologyTruth"], false);
     assert!(
         case["expectedSelectedCandidateIds"]
@@ -80,6 +84,20 @@ fn search_strategy_oracle_compiles_from_org_review_ledgers()
     assert!(candidates_json.contains("\"expectedAction\": \"reject\""));
     assert!(candidates_json.contains("\"routeRole\": \"validation\""));
     assert!(candidates_json.contains("\"requiredEvidence\": \"page_index_seed\""));
+
+    let candidate_ids = candidates["candidates"]
+        .as_array()
+        .ok_or("candidates missing")?
+        .iter()
+        .filter_map(|candidate| candidate["candidateId"].as_str())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        candidate_ids.len(),
+        candidates["candidates"]
+            .as_array()
+            .ok_or("candidates missing")?
+            .len()
+    );
     Ok(())
 }
 

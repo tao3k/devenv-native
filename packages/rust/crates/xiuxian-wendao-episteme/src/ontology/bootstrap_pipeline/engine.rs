@@ -208,22 +208,26 @@ fn restore_episteme_ontology_bootstrap_pipeline_artifacts_impl(
     options: &EpistemeOntologyBootstrapArtifactCacheOptions,
 ) -> Result<EpistemeOntologyBootstrapArtifactCacheRestoreReport> {
     validate_bootstrap_artifact_cache_options(options)?;
-    let mut restored = Vec::new();
-    let mut missing = Vec::new();
-    for target in bootstrap_stage_targets(request)? {
-        let identity = target.identity(options);
-        if let Some(report) =
-            restore_episteme_ontology_artifact_bundle(cache, &identity, target.run_dir.as_path())?
-        {
-            restored.push(report);
-        } else {
-            missing.push(EpistemeOntologyBootstrapArtifactCacheRestoreMiss {
-                stage: target.stage,
-                run_digest: identity.run_digest,
-                target_dir: target.run_dir,
-            });
-        }
-    }
+    let (restored, missing) = bootstrap_stage_targets(request)?.into_iter().try_fold(
+        (Vec::new(), Vec::new()),
+        |(mut restored, mut missing), target| {
+            let identity = target.identity(options);
+            if let Some(report) = restore_episteme_ontology_artifact_bundle(
+                cache,
+                &identity,
+                target.run_dir.as_path(),
+            )? {
+                restored.push(report);
+            } else {
+                missing.push(EpistemeOntologyBootstrapArtifactCacheRestoreMiss {
+                    stage: target.stage,
+                    run_digest: identity.run_digest,
+                    target_dir: target.run_dir,
+                });
+            }
+            Ok::<_, anyhow::Error>((restored, missing))
+        },
+    )?;
     Ok(EpistemeOntologyBootstrapArtifactCacheRestoreReport { restored, missing })
 }
 

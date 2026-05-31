@@ -19,6 +19,14 @@ DEFAULT_REQUIRED_SOURCES = ("bpmn", "tool", "llm")
 
 
 @dataclass(frozen=True)
+class StreamObservation:
+    iteration: int
+    status: str
+    row_count: int
+    source_counts: dict[str, int]
+
+
+@dataclass(frozen=True)
 class RunSummary:
     name: str
     workflow_id: str
@@ -30,6 +38,7 @@ class RunSummary:
     row_count: int
     source_counts: dict[str, int]
     error_count: int
+    stream_observations: list[StreamObservation]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -95,6 +104,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--poll-delay-seconds", type=float, default=0.2)
     parser.add_argument("--request-timeout-seconds", type=float, default=120.0)
     parser.add_argument("--min-stream-rows", type=int, default=1)
+    parser.add_argument(
+        "--allow-non-incremental-stream",
+        action="store_true",
+        help="Do not require multi-step runs to expose growing stream rows before completion.",
+    )
     parser.add_argument(
         "--require-source",
         action="append",
@@ -183,6 +197,7 @@ def drive_worker_until_complete(
 ) -> RunSummary:
     console: dict[str, Any] | None = None
     last_worker_result: dict[str, Any] | None = None
+    observations: list[StreamObservation] = []
     for iteration in range(1, args.max_worker_iterations + 1):
         last_worker_result = post_json(
             (
@@ -199,6 +214,7 @@ def drive_worker_until_complete(
         )
         console = get_console(args, workflow_id, instance_id, control_run_id)
         status = console_status(console)
+        observations.append(stream_observation(iteration, status, console))
         if status == "completed":
             return validate_console_summary(
                 name=name,
@@ -209,6 +225,7 @@ def drive_worker_until_complete(
                 worker_iterations=iteration,
                 elapsed_ms=int((time.time() - started_at) * 1000),
                 console=console,
+                observations=observations,
                 args=args,
             )
         if terminal_failure_status(status):
@@ -253,6 +270,7 @@ def validate_console_summary(
     worker_iterations: int,
     elapsed_ms: int,
     console: dict[str, Any],
+    observations: list[StreamObservation] | None = None,
     args: argparse.Namespace,
 ) -> RunSummary:
     rows = durable_stream_rows(console)
@@ -265,6 +283,9 @@ def validate_console_summary(
         raise RuntimeError(f"{name} stream is missing required sources: {missing_sources}")
     if error_count > 0:
         raise RuntimeError(f"{name} stream contains {error_count} error row(s)")
+    stream_observations = observations or []
+    if not args.allow_non_incremental_stream:
+        validate_incremental_stream(name, stream_observations)
     return RunSummary(
         name=name,
         workflow_id=workflow_id,
@@ -276,7 +297,42 @@ def validate_console_summary(
         row_count=len(rows),
         source_counts=source_counts,
         error_count=error_count,
+        stream_observations=stream_observations,
     )
+
+
+def stream_observation(
+    iteration: int,
+    status: str,
+    console: dict[str, Any],
+) -> StreamObservation:
+    rows = durable_stream_rows(console)
+    return StreamObservation(
+        iteration=iteration,
+        status=status,
+        row_count=len(rows),
+        source_counts=count_sources(rows),
+    )
+
+
+def validate_incremental_stream(name: str, observations: list[StreamObservation]) -> None:
+    if len(observations) < 2:
+        return
+    previous_count = -1
+    grew = False
+    saw_pre_completion_rows = False
+    for observation in observations:
+        if observation.row_count < previous_count:
+            raise RuntimeError(f"{name} stream row count regressed across worker iterations")
+        if previous_count >= 0 and observation.row_count > previous_count:
+            grew = True
+        if observation.status != "completed" and observation.row_count > 0:
+            saw_pre_completion_rows = True
+        previous_count = observation.row_count
+    if not grew:
+        raise RuntimeError(f"{name} stream did not grow across worker iterations")
+    if not saw_pre_completion_rows:
+        raise RuntimeError(f"{name} stream was only visible after completion")
 
 
 def durable_stream_rows(console: dict[str, Any]) -> list[dict[str, Any]]:
@@ -426,6 +482,15 @@ def summary_to_json(summary: RunSummary) -> dict[str, Any]:
         "row_count": summary.row_count,
         "source_counts": summary.source_counts,
         "error_count": summary.error_count,
+        "stream_observations": [
+            {
+                "iteration": observation.iteration,
+                "status": observation.status,
+                "row_count": observation.row_count,
+                "source_counts": observation.source_counts,
+            }
+            for observation in summary.stream_observations
+        ],
     }
 
 

@@ -506,26 +506,3 @@ fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<()> {
         .with_context(|| format!("failed to write `{}`", path.display()))?;
     writeln!(file).with_context(|| format!("failed to finish `{}`", path.display()))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn stable_case_suffix_is_ascii_safe() {
-        assert_eq!(
-            stable_case_suffix("episteme://medical-episteme/10_LongTermCare"),
-            "episteme---medical-episteme-10-longtermcare"
-        );
-    }
-
-    #[test]
-    fn duplicate_candidate_ids_are_not_introduced() {
-        let rows = candidate_rows(&[], &[]);
-        let ids = rows
-            .iter()
-            .map(|row| row.candidate_id.as_str())
-            .collect::<BTreeSet<_>>();
-        assert_eq!(ids.len(), rows.len());
-    }
-}

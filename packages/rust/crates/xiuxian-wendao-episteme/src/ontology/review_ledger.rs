@@ -110,10 +110,18 @@ fn validate_review_ledger_documents(
     documents: &[ReviewLedgerDocument],
     field: &str,
 ) -> Result<(), EpistemeOntologyError> {
+    let object_ids = collect_review_object_ids(documents, field)?;
+    validate_review_relation_ids(documents, &object_ids, field)
+}
+
+fn collect_review_object_ids(
+    documents: &[ReviewLedgerDocument],
+    field: &str,
+) -> Result<BTreeSet<String>, EpistemeOntologyError> {
     let mut object_ids = BTreeSet::new();
     for document in documents {
         for row in &document.object_rows {
-            if !object_ids.insert(row.object_id.as_str()) {
+            if !object_ids.insert(row.object_id.clone()) {
                 return Err(invalid_contract(format!(
                     "{field} `{}` contains duplicate object_id `{}`",
                     document.path, row.object_id
@@ -121,11 +129,18 @@ fn validate_review_ledger_documents(
             }
         }
     }
+    Ok(object_ids)
+}
 
+fn validate_review_relation_ids(
+    documents: &[ReviewLedgerDocument],
+    object_ids: &BTreeSet<String>,
+    field: &str,
+) -> Result<(), EpistemeOntologyError> {
     let mut relation_ids = BTreeSet::new();
     for document in documents {
         for row in &document.relation_rows {
-            if !relation_ids.insert(row.relation_id.as_str()) {
+            if !relation_ids.insert(row.relation_id.clone()) {
                 return Err(invalid_contract(format!(
                     "{field} `{}` contains duplicate relation_id `{}`",
                     document.path, row.relation_id
@@ -348,28 +363,59 @@ fn extract_review_rows(
 ) -> Result<(Vec<ObjectInstanceRow>, Vec<InstanceRelationRow>), EpistemeOntologyError> {
     let mut objects = Vec::new();
     let mut relations = Vec::new();
-    for section in &document.sections {
-        for table in &section.tables {
-            match table.kind.as_str() {
-                OBJECT_INSTANCE_REVIEW_TABLE => {
-                    for (row_index, row) in table.rows.iter().enumerate() {
-                        objects.push(object_instance_row(
-                            raw_path, domain_id, table, row, row_index, field,
-                        )?);
-                    }
-                }
-                INSTANCE_RELATION_REVIEW_TABLE => {
-                    for (row_index, row) in table.rows.iter().enumerate() {
-                        relations.push(instance_relation_row(
-                            raw_path, domain_id, table, row, row_index, field,
-                        )?);
-                    }
-                }
-                _ => {}
-            }
-        }
+    for table in document
+        .sections
+        .iter()
+        .flat_map(|section| section.tables.iter())
+    {
+        append_review_table_rows(
+            raw_path,
+            domain_id,
+            table,
+            field,
+            &mut objects,
+            &mut relations,
+        )?;
     }
     Ok((objects, relations))
+}
+
+fn append_review_table_rows(
+    raw_path: &str,
+    domain_id: &str,
+    table: &OrgOntologyAuthoringTable,
+    field: &str,
+    objects: &mut Vec<ObjectInstanceRow>,
+    relations: &mut Vec<InstanceRelationRow>,
+) -> Result<(), EpistemeOntologyError> {
+    match table.kind.as_str() {
+        OBJECT_INSTANCE_REVIEW_TABLE => {
+            objects.extend(
+                table
+                    .rows
+                    .iter()
+                    .enumerate()
+                    .map(|(row_index, row)| {
+                        object_instance_row(raw_path, domain_id, table, row, row_index, field)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            );
+        }
+        INSTANCE_RELATION_REVIEW_TABLE => {
+            relations.extend(
+                table
+                    .rows
+                    .iter()
+                    .enumerate()
+                    .map(|(row_index, row)| {
+                        instance_relation_row(raw_path, domain_id, table, row, row_index, field)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+            );
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 fn object_instance_row(

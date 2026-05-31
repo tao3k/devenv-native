@@ -212,6 +212,15 @@ struct CandidateEvidenceRow {
     text_char_count: usize,
 }
 
+#[derive(Default)]
+struct QianjiReviewCandidateImportBuild {
+    objects: Vec<CandidateObjectRow>,
+    relations: Vec<CandidateRelationRow>,
+    evidence: Vec<CandidateEvidenceRow>,
+    zero_candidate_review_count: usize,
+    review_blocker_count: usize,
+}
+
 /// Import Qianji review artifacts into candidate rows and run the review gate.
 ///
 /// # Errors
@@ -231,25 +240,24 @@ fn import_episteme_ontology_qianji_review_candidates_impl(
     if request.review_artifacts.is_empty() {
         bail!("Qianji review candidate import requires at least one review artifact");
     }
-    let mut objects = Vec::new();
-    let mut relations = Vec::new();
-    let mut evidence = Vec::new();
-    let mut zero_candidate_review_count = 0;
-    let mut review_blocker_count = 0;
-    for artifact_path in &request.review_artifacts {
-        let review = read_review_artifact(artifact_path.as_path())?;
-        review_blocker_count += review.blockers.len();
-        if review.candidate_patch_count == 0 {
-            zero_candidate_review_count += 1;
-        }
-        append_review_candidates(
-            &review,
-            artifact_path.as_path(),
-            &mut objects,
-            &mut relations,
-            &mut evidence,
-        )?;
-    }
+    let build = request.review_artifacts.iter().try_fold(
+        QianjiReviewCandidateImportBuild::default(),
+        |mut build, artifact_path| {
+            let review = read_review_artifact(artifact_path.as_path())?;
+            build.review_blocker_count += review.blockers.len();
+            if review.candidate_patch_count == 0 {
+                build.zero_candidate_review_count += 1;
+            }
+            append_review_candidates(
+                &review,
+                artifact_path.as_path(),
+                &mut build.objects,
+                &mut build.relations,
+                &mut build.evidence,
+            )?;
+            Ok::<_, anyhow::Error>(build)
+        },
+    )?;
 
     fs::create_dir_all(request.run_dir()).with_context(|| {
         format!(
@@ -261,9 +269,9 @@ fn import_episteme_ontology_qianji_review_candidates_impl(
     let relations_tsv = request.run_dir().join(RELATIONS_TSV);
     let evidence_tsv = request.run_dir().join(EVIDENCE_TSV);
     let import_report_json = request.run_dir().join(IMPORT_REPORT_JSON);
-    write_objects_tsv(objects_tsv.as_path(), &objects)?;
-    write_relations_tsv(relations_tsv.as_path(), &relations)?;
-    write_evidence_tsv(evidence_tsv.as_path(), &evidence)?;
+    write_objects_tsv(objects_tsv.as_path(), &build.objects)?;
+    write_relations_tsv(relations_tsv.as_path(), &build.relations)?;
+    write_evidence_tsv(evidence_tsv.as_path(), &build.evidence)?;
     let candidate_review = review_episteme_ontology_candidates(
         &EpistemeOntologyCandidateReviewRequest::new(request.run_dir()),
     )?;
@@ -275,11 +283,11 @@ fn import_episteme_ontology_qianji_review_candidates_impl(
         candidate_relations_tsv: relations_tsv,
         candidate_evidence_tsv: evidence_tsv,
         import_report_json,
-        candidate_object_count: objects.len(),
-        candidate_relation_count: relations.len(),
-        candidate_evidence_count: evidence.len(),
-        zero_candidate_review_count,
-        review_blocker_count,
+        candidate_object_count: build.objects.len(),
+        candidate_relation_count: build.relations.len(),
+        candidate_evidence_count: build.evidence.len(),
+        zero_candidate_review_count: build.zero_candidate_review_count,
+        review_blocker_count: build.review_blocker_count,
         candidate_review,
         ontology_truth: false,
         raw_to_rdf_promotion_allowed: false,
