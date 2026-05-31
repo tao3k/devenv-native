@@ -4,6 +4,112 @@ tool_parallelism = true
 multi_agent = true
 unified_exec = true
 
-# [mcp_servers.omniAgent]
-# url = "http://127.0.0.1:3002/mcp"
-# enabled = true
+# BEGIN rs-harness agent hooks
+# Search-first flow:
+# - Rust source reads are routed through rs-harness search packets.
+# - Subagents should receive bounded search commands, not raw file inventories.
+# - Pipe broad external candidates into `rs-harness search ingest items tests`.
+# - Run one search command at a time; do not chain denied-read recovery commands.
+
+[[hooks.SessionStart]]
+matcher = "startup|resume|clear|compact"
+
+[[hooks.SessionStart.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Loading rs-harness search protocol"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex session-start "$repo_root"
+'''
+
+[[hooks.UserPromptSubmit]]
+
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Planning rs-harness search flow"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex user-prompt "$repo_root"
+'''
+
+[[hooks.PreToolUse]]
+matcher = ".*(Read|readFile|readDirectory|read_file|FsReadFile|FsReadDirectory|fs\\.read|fs\\.readDirectory|fs/readFile|fs/readDirectory|fs\\.readbin|writeFile|FsWriteFile|fs\\.write|fs/write|fs\\.writeFile|fs/writeFile|FsRemove|fs\\.remove|fs/remove|FsCopy|fs\\.copy|fs/copy|fs\\.rename|fs/rename|mcp__.*__read.*|Bash|exec_command|command_execution|apply_patch|Edit|Write).*"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Checking rs-harness search flow"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex pre-tool "$repo_root"
+'''
+
+[[hooks.PermissionRequest]]
+matcher = ".*(Read|readFile|readDirectory|read_file|FsReadFile|FsReadDirectory|fs\\.read|fs\\.readDirectory|fs/readFile|fs/readDirectory|fs\\.readbin|writeFile|FsWriteFile|fs\\.write|fs/write|fs\\.writeFile|fs/writeFile|FsRemove|fs\\.remove|fs/remove|FsCopy|fs\\.copy|fs/copy|fs\\.rename|fs/rename|mcp__.*__read.*|Bash|exec_command|command_execution|apply_patch|Edit|Write).*"
+
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Checking rs-harness approval flow"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex permission-request "$repo_root"
+'''
+
+[[hooks.PostToolUse]]
+matcher = ".*(Read|readFile|readDirectory|read_file|FsReadFile|FsReadDirectory|fs\\.read|fs\\.readDirectory|fs/readFile|fs/readDirectory|fs\\.readbin|writeFile|FsWriteFile|fs\\.write|fs/write|fs\\.writeFile|fs/writeFile|FsRemove|fs\\.remove|fs/remove|FsCopy|fs\\.copy|fs/copy|fs\\.rename|fs/rename|mcp__.*__read.*|Bash|exec_command|command_execution|apply_patch|Edit|Write).*"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Updating rs-harness search flow state"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex post-tool "$repo_root"
+'''
+
+[[hooks.SubagentStart]]
+matcher = ".*"
+
+[[hooks.SubagentStart.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Preparing rs-harness subagent context"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex subagent-start "$repo_root"
+'''
+
+[[hooks.SubagentStop]]
+matcher = ".*"
+
+[[hooks.SubagentStop.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Checking rs-harness subagent evidence"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex subagent-stop "$repo_root"
+'''
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+timeout = 5
+statusMessage = "Checking rs-harness changed files"
+command = '''
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+cd "$repo_root"
+exec rs-harness agent hook --client codex stop "$repo_root"
+'''
+# END rs-harness agent hooks
