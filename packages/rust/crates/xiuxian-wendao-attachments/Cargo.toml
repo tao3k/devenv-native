@@ -59,6 +59,9 @@ tar = { workspace = true, optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 orgize = { workspace = true }
 rust-lang-project-harness = { workspace = true }

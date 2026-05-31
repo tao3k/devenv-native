@@ -49,6 +49,9 @@ thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 criterion = { workspace = true }
 rust-lang-project-harness = { workspace = true }

@@ -93,7 +93,9 @@ pub use api::{
     QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
     QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
     QianjiControlWorkflowSourceAdmissionHttpRequest,
-    QianjiControlWorkflowSourceAdmissionHttpResponse, QianjiControlWorkflowSourceCompilerMode,
+    QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
+    QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
     dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
     load_bpmn_package_from_files, load_bpmn_package_from_files_with_options,
     qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
@@ -107,8 +109,8 @@ pub use api::{
 pub use flowhub_activity_adapter::{
     FLOWHUB_SERVICE_ACTIVITY_TYPE, FLOWHUB_SERVICE_COMPLETION_METADATA_KEY, FlowhubScenarioIdRef,
     FlowhubServiceActivityHttpScheduleInput, FlowhubServiceActivityScheduleInput,
-    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
-    build_flowhub_service_activity_schedule_record,
+    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs, QianjiRuntimeLeaseTtlMs,
+    QianjiRuntimeWorkerIdRef, build_flowhub_service_activity_schedule_record,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
     build_flowhub_service_task_completion_payload,
@@ -130,7 +132,8 @@ pub use llm_activity_adapter::{
 pub use run_console_flight::{QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleFlightService};
 pub use run_console_read_model::{
     QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE, QIANJI_RUN_CONSOLE_EVENT_ROUTE,
-    QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiRunConsoleElementState,
+    QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiControlRunStreamSource, QianjiRunConsoleElementState,
+    qianji_control_run_stream_rows,
 };
 #[cfg(feature = "duckdb")]
 pub use run_console_read_model::{

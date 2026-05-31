@@ -7,6 +7,24 @@ use anyhow::Result;
 
 use crate::{EpisodeStore, StoreConfig};
 
+/// Stable episode identifier for atomic state updates.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MemoryEpisodeId(String);
+
+impl MemoryEpisodeId {
+    /// Creates a memory episode identifier.
+    #[must_use]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    /// Borrows the episode identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 /// Persistence abstraction for memory state (episodes + Q-values).
 pub trait MemoryStateStore: Send + Sync {
     /// Backend identifier for logs and metrics.
@@ -39,7 +57,7 @@ pub trait MemoryStateStore: Send + Sync {
     /// # Errors
     ///
     /// Returns an error when a backend-specific atomic write fails.
-    fn update_q_atomic(&self, _episode_id: &str, _new_q: f32) -> Result<()> {
+    fn update_q_atomic(&self, _episode_id: &MemoryEpisodeId, _new_q: f32) -> Result<()> {
         Ok(())
     }
 

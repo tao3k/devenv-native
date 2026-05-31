@@ -77,6 +77,51 @@ async fn qianji_server_http_run_stream_returns_durable_ui_rows() {
     assert_stream_row(&body, "run_created", "bpmn");
     assert_stream_row(&body, "activity_scheduled", "llm");
     assert_stream_element(&body, "resolve_project");
+
+    let incremental_response = proof
+        .router
+        .clone()
+        .oneshot(get(format!(
+            "/control/runs/bpmn.workflow.{}/stream?after_sequence=1",
+            proof.instance_id
+        )
+        .as_str()))
+        .await
+        .unwrap_or_else(|error| {
+            panic!("incremental control run stream route should respond: {error}")
+        });
+    let incremental_status = incremental_response.status();
+    let incremental_body = response_json(incremental_response).await;
+    assert_eq!(
+        incremental_status,
+        StatusCode::OK,
+        "incremental control run stream route should succeed: {incremental_body}"
+    );
+    assert_eq!(incremental_body["after_sequence"], 1);
+    assert_eq!(
+        incremental_body["total_row_count"], body["total_row_count"],
+        "cursor filtering must not change total stream row count"
+    );
+    assert!(
+        incremental_body["next_after_sequence"]
+            .as_u64()
+            .unwrap_or_default()
+            >= 2,
+        "incremental stream should expose the next cursor: {incremental_body}"
+    );
+    assert!(
+        incremental_body["rows"]
+            .as_array()
+            .unwrap_or_else(|| panic!(
+                "incremental run stream should include rows: {incremental_body}"
+            ))
+            .iter()
+            .all(|row| row["sequence"]
+                .as_u64()
+                .is_some_and(|sequence| sequence > 1)),
+        "incremental stream should return only rows after the requested cursor: {incremental_body}"
+    );
+    assert_stream_row(&incremental_body, "activity_scheduled", "llm");
 }
 
 #[tokio::test(flavor = "current_thread")]

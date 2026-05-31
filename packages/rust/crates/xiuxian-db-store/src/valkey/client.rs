@@ -1,3 +1,5 @@
+//! Shared multiplexed Valkey client execution and reconnect handling.
+
 use std::sync::Arc;
 
 use redis::FromRedisValue;

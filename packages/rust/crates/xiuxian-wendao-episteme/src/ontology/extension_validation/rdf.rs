@@ -1,3 +1,5 @@
+//! RDF validation for Episteme extension contracts.
+
 use std::{collections::BTreeMap, path::Path};
 
 use anyhow::{Context, Result, bail};
@@ -7,10 +9,9 @@ use quick_xml::{
     events::{BytesStart, Event},
 };
 
-use super::{
-    super::manifest::{EpistemeOntologyManifest, resolve_ontology_artifact_path},
-    pathing::{has_cjk, read_to_string},
-};
+use crate::ontology::manifest::{EpistemeOntologyManifest, resolve_ontology_artifact_path};
+
+use super::pathing::{has_cjk, read_to_string};
 
 #[derive(Debug, Default)]
 pub(super) struct ExtensionRdfTerms {

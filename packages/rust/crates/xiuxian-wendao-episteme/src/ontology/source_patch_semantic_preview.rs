@@ -59,7 +59,7 @@ impl EpistemeOntologySourcePatchSemanticPreviewRequest {
 /// Semantic object row compiled from an approved object-instance row.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologySemanticObjectRow {
+pub(crate) struct EpistemeOntologySemanticObjectRow {
     /// Stable semantic object id.
     pub id: String,
     /// Ontology object kind.
@@ -91,7 +91,7 @@ pub struct EpistemeOntologySemanticObjectRow {
 /// Semantic relation row compiled from an approved instance-relation row.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologySemanticRelationRow {
+pub(crate) struct EpistemeOntologySemanticRelationRow {
     /// Stable semantic relation id.
     pub id: String,
     /// Ontology relation kind or predicate.
@@ -123,7 +123,7 @@ pub struct EpistemeOntologySemanticRelationRow {
 /// Semantic evidence row preserving row-level provenance.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologySemanticEvidenceRow {
+pub(crate) struct EpistemeOntologySemanticEvidenceRow {
     /// Stable semantic evidence row id.
     pub id: String,
     /// Original evidence id from the review ledger.
@@ -261,6 +261,12 @@ struct SourcePatchApplyPlanRow {
 /// missing, unsafe, not admitted, or cannot be projected into a deterministic
 /// semantic object/relation/evidence/projection-state read model.
 pub fn write_episteme_ontology_source_patch_semantic_preview(
+    request: &EpistemeOntologySourcePatchSemanticPreviewRequest,
+) -> Result<EpistemeOntologySourcePatchSemanticPreviewReport> {
+    write_episteme_ontology_source_patch_semantic_preview_impl(request)
+}
+
+fn write_episteme_ontology_source_patch_semantic_preview_impl(
     request: &EpistemeOntologySourcePatchSemanticPreviewRequest,
 ) -> Result<EpistemeOntologySourcePatchSemanticPreviewReport> {
     let run_dir = request.run_dir();

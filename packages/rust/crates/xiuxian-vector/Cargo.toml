@@ -53,6 +53,9 @@ xiuxian-types = { path = "../xiuxian-types" }
 # Logging
 log = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 lance = { workspace = true }

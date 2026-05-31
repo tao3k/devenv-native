@@ -1,3 +1,5 @@
+//! Generic BPMN host-work activity schedule construction.
+
 use std::path::Path;
 
 use serde_json::json;

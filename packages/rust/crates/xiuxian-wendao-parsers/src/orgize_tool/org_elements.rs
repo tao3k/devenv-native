@@ -4,10 +4,142 @@ use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
 use orgize::Org;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::OrgizeToolError;
 use super::io::{collect_org_paths, read_to_string};
+
+/// Source-grounded Org element category token.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OrgElementCategory {
+    /// Structural section row.
+    Section,
+    /// Body element row.
+    Element,
+    /// Property drawer row.
+    Property,
+    /// Keyword row.
+    Keyword,
+    /// Unknown category retained as a forward-compatible token.
+    Unknown(String),
+}
+
+impl OrgElementCategory {
+    /// Parse an org-elements category label.
+    #[must_use]
+    pub fn from_label(value: impl Into<String>) -> Self {
+        let value = value.into();
+        match value.as_str() {
+            "section" => Self::Section,
+            "element" => Self::Element,
+            "property" => Self::Property,
+            "keyword" => Self::Keyword,
+            _ => Self::Unknown(value),
+        }
+    }
+
+    /// Return the stable read-model label for this category.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Section => "section",
+            Self::Element => "element",
+            Self::Property => "property",
+            Self::Keyword => "keyword",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for OrgElementCategory {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for OrgElementCategory {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer).map(Self::from_label)
+    }
+}
+
+/// Source-grounded Org element kind token.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum OrgElementKind {
+    /// Headline element.
+    Headline,
+    /// Paragraph element.
+    Paragraph,
+    /// Node-property element.
+    NodeProperty,
+    /// Source block element.
+    SrcBlock,
+    /// Table element.
+    Table,
+    /// Keyword element.
+    Keyword,
+    /// Drawer element.
+    Drawer,
+    /// Unknown kind retained as a forward-compatible token.
+    Unknown(String),
+}
+
+impl OrgElementKind {
+    /// Parse an org-elements kind label.
+    #[must_use]
+    pub fn from_label(value: impl Into<String>) -> Self {
+        let value = value.into();
+        match value.as_str() {
+            "headline" => Self::Headline,
+            "paragraph" => Self::Paragraph,
+            "node-property" => Self::NodeProperty,
+            "src-block" => Self::SrcBlock,
+            "table" => Self::Table,
+            "keyword" => Self::Keyword,
+            "drawer" => Self::Drawer,
+            _ => Self::Unknown(value),
+        }
+    }
+
+    /// Return the stable read-model label for this kind.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Headline => "headline",
+            Self::Paragraph => "paragraph",
+            Self::NodeProperty => "node-property",
+            Self::SrcBlock => "src-block",
+            Self::Table => "table",
+            Self::Keyword => "keyword",
+            Self::Drawer => "drawer",
+            Self::Unknown(value) => value.as_str(),
+        }
+    }
+}
+
+impl Serialize for OrgElementKind {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for OrgElementKind {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer).map(Self::from_label)
+    }
+}
 
 /// Options for extracting SQL-shaped Org element rows from Org files.
 #[derive(Clone, Debug)]
@@ -26,9 +158,9 @@ pub struct OrgizeOrgElementRow {
     /// Document-local org-elements ordinal.
     pub ordinal: u64,
     /// Org element category, for example `section`, `element`, or `property`.
-    pub category: String,
+    pub category: OrgElementCategory,
     /// Org element kind, for example `headline`, `paragraph`, or `node-property`.
-    pub kind: String,
+    pub kind: OrgElementKind,
     /// Optional affiliated `#+name` value.
     pub affiliated_name: Option<String>,
     /// JSON-encoded outline path from the org-elements SQL projection.
@@ -81,8 +213,8 @@ pub fn collect_org_element_rows(
                 source_path: path.display().to_string(),
                 source_modified_unix_ms,
                 ordinal: row.ordinal as u64,
-                category: row.category,
-                kind: row.kind,
+                category: OrgElementCategory::from_label(row.category),
+                kind: OrgElementKind::from_label(row.kind),
                 affiliated_name: row.affiliated_name,
                 outline_path_json: row.outline_path_json,
                 context: row.context,

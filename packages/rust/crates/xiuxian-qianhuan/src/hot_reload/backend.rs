@@ -14,7 +14,7 @@ pub trait HotReloadVersionBackend: Send + Sync {
     /// # Errors
     ///
     /// Returns an error when the backend read operation fails.
-    fn read_version(&self, target_id: &str) -> Result<Option<u64>>;
+    fn read_version(&self, target_id: &HotReloadTargetId) -> Result<Option<u64>>;
 
     /// Atomically increments and returns the new version for a target
     /// identifier.
@@ -22,7 +22,7 @@ pub trait HotReloadVersionBackend: Send + Sync {
     /// # Errors
     ///
     /// Returns an error when the backend update operation fails.
-    fn bump_version(&self, target_id: &str) -> Result<u64>;
+    fn bump_version(&self, target_id: &HotReloadTargetId) -> Result<u64>;
 }
 
 /// In-memory version backend for local testing and single-process usage.
@@ -41,11 +41,17 @@ impl HotReloadTargetId {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
+
+    /// Borrows the target identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
 }
 
 impl AsRef<str> for HotReloadTargetId {
     fn as_ref(&self) -> &str {
-        &self.0
+        self.as_str()
     }
 }
 
@@ -68,21 +74,25 @@ impl InMemoryHotReloadVersionBackend {
 }
 
 impl HotReloadVersionBackend for InMemoryHotReloadVersionBackend {
-    fn read_version(&self, target_id: &str) -> Result<Option<u64>> {
+    fn read_version(&self, target_id: &HotReloadTargetId) -> Result<Option<u64>> {
         let guard = self
             .versions
             .lock()
             .map_err(|_| anyhow::anyhow!("hot reload version backend lock poisoned"))?;
-        Ok(guard.get(target_id).copied())
+        Ok(guard.get(target_id.as_str()).copied())
     }
 
-    fn bump_version(&self, target_id: &str) -> Result<u64> {
+    fn bump_version(&self, target_id: &HotReloadTargetId) -> Result<u64> {
         let mut guard = self
             .versions
             .lock()
             .map_err(|_| anyhow::anyhow!("hot reload version backend lock poisoned"))?;
-        let next = guard.get(target_id).copied().unwrap_or(0).saturating_add(1);
-        guard.insert(target_id.to_string(), next);
+        let next = guard
+            .get(target_id.as_str())
+            .copied()
+            .unwrap_or(0)
+            .saturating_add(1);
+        guard.insert(target_id.as_str().to_string(), next);
         Ok(next)
     }
 }
@@ -115,13 +125,13 @@ impl ValkeyHotReloadVersionBackend {
         })
     }
 
-    fn key_for_target(&self, target_id: &str) -> String {
-        format!("{}:version:{target_id}", self.key_prefix)
+    fn key_for_target(&self, target_id: &HotReloadTargetId) -> String {
+        format!("{}:version:{}", self.key_prefix, target_id.as_str())
     }
 }
 
 impl HotReloadVersionBackend for ValkeyHotReloadVersionBackend {
-    fn read_version(&self, target_id: &str) -> Result<Option<u64>> {
+    fn read_version(&self, target_id: &HotReloadTargetId) -> Result<Option<u64>> {
         let mut conn = self
             .client
             .get_connection()
@@ -136,7 +146,7 @@ impl HotReloadVersionBackend for ValkeyHotReloadVersionBackend {
         Ok(value)
     }
 
-    fn bump_version(&self, target_id: &str) -> Result<u64> {
+    fn bump_version(&self, target_id: &HotReloadTargetId) -> Result<u64> {
         let mut conn = self
             .client
             .get_connection()

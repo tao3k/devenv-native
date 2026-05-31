@@ -22,6 +22,9 @@ xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
 tempfile = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [lints]
 workspace = true
 

@@ -24,12 +24,6 @@ pub struct RefineDocRequest {
     pub user_hints: Option<String>,
 }
 
-impl PartialEq<(String, String, Option<String>)> for RefineDocRequest {
-    fn eq(&self, other: &(String, String, Option<String>)) -> bool {
-        self.repo_id == other.0 && self.entity_id == other.1 && self.user_hints == other.2
-    }
-}
-
 /// Validate the stable refine-doc request contract.
 ///
 /// # Errors

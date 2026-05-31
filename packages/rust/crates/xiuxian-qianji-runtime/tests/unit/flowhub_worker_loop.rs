@@ -16,10 +16,12 @@ use xiuxian_qianji_control::{
     ControlEventKind, ControlLedger, InMemoryControlLedger, InMemoryHotStateStore, RunId,
 };
 use xiuxian_qianji_runtime::{
-    FLOWHUB_SERVICE_WORKER_RUN_SCHEMA, FlowhubServiceWorkerLoopRequest,
-    QianjiRuntimeWorkflowControlPort, QianjiRuntimeWorkflowResumeRequest,
-    QianjiRuntimeWorkflowStatusRequest, QianjiRuntimeWorkflowStatusView,
-    QianjiRuntimeWorkflowTaskCompleteRequest, run_flowhub_service_worker_completion_loop,
+    FLOWHUB_SERVICE_WORKER_RUN_SCHEMA, FlowhubScenarioIdRef, FlowhubServiceWorkerLoopRequest,
+    FlowhubServiceWorkerLoopRuntime, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+    QianjiRuntimeLeaseTtlMs, QianjiRuntimeWorkerIdRef, QianjiRuntimeWorkflowControlPort,
+    QianjiRuntimeWorkflowResumeRequest, QianjiRuntimeWorkflowStatusRequest,
+    QianjiRuntimeWorkflowStatusView, QianjiRuntimeWorkflowTaskCompleteRequest,
+    run_flowhub_service_worker_completion_loop,
 };
 
 #[tokio::test(flavor = "current_thread")]
@@ -35,20 +37,22 @@ async fn flowhub_worker_loop_completes_service_work_through_runtime_port()
     let host = NoopHost;
 
     let output = run_flowhub_service_worker_completion_loop(
-        &port,
-        &host,
-        &ledger,
-        &hot_state,
+        FlowhubServiceWorkerLoopRuntime {
+            control_port: &port,
+            host: &host,
+            ledger: &ledger,
+            hot_state: &hot_state,
+        },
         &FlowhubServiceWorkerLoopRequest {
             run_id: &run_id,
-            scenario_id: "agent-coding",
-            instance_id: "flowhub_agent_coding_runtime_loop",
+            scenario_id: FlowhubScenarioIdRef::new("agent-coding"),
+            instance_id: QianjiRuntimeBpmnInstanceIdRef::new("flowhub_agent_coding_runtime_loop"),
             bpmn_source: Path::new("qianji-flowhub/plan/agent-coding.bpmn"),
-            worker_id: "flowhub-service-worker",
+            worker_id: QianjiRuntimeWorkerIdRef::new("flowhub-service-worker"),
             checkpoint_backend: FakeCheckpointBackend::Memory,
-            now_ms: 42,
-            lease_ttl_ms: 1_000,
-            settled_at_ms: 84,
+            now_ms: QianjiRuntimeInstantMs::from_millis(42),
+            lease_ttl_ms: QianjiRuntimeLeaseTtlMs::from_millis(1_000),
+            settled_at_ms: QianjiRuntimeInstantMs::from_millis(84),
             max_steps: 8,
         },
     )

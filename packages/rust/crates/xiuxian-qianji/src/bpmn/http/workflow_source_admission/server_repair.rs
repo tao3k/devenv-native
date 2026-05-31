@@ -7,6 +7,7 @@ use crate::bpmn::http_transport::request_api::{
     QianjiControlBpmnSourceAdmissionHttpRequest, QianjiControlWorkflowSourceAdmissionHttpRequest,
 };
 use crate::bpmn::http_transport::response_api::QianjiControlWorkflowSourceRepairRunHttpResponse;
+use crate::bpmn::http_transport::source_authoring::QianjiControlWorkflowSourceAuthoringMediaType;
 use crate::bpmn::http_transport::state::QianjiBpmnWorkflowHttpState;
 use crate::bpmn::{
     QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowCheckpointBackend,
@@ -52,7 +53,7 @@ pub(super) struct ServerRepairCompilerRequest {
 impl ServerRepairCompilerRequest {
     pub(super) fn from_admission_request(
         request: &QianjiControlWorkflowSourceAdmissionHttpRequest,
-        source_media_type: &str,
+        source_media_type: &QianjiControlWorkflowSourceAuthoringMediaType,
     ) -> Self {
         let source_sha256 = sha256_digest(request.source_text.as_bytes());
         Self {
@@ -61,7 +62,7 @@ impl ServerRepairCompilerRequest {
             engine: SERVER_REPAIR_ENGINE,
             lint_evidence: SERVER_REPAIR_LINT_EVIDENCE,
             lint_judge: SERVER_REPAIR_LINT_JUDGE,
-            source_media_type: source_media_type.to_owned(),
+            source_media_type: source_media_type.as_str().to_owned(),
             workflow_name: request.workflow_name.trim().to_owned(),
             workflow_description_present: !request.workflow_description.trim().is_empty(),
             process_id: request.process_id.as_str().to_owned(),
@@ -100,7 +101,7 @@ pub(super) async fn start_server_repair_workflow<H>(
     state: &QianjiBpmnWorkflowHttpState<H>,
     request: &QianjiControlWorkflowSourceAdmissionHttpRequest,
     repair_request: &ServerRepairCompilerRequest,
-    authoring_media_type: &str,
+    authoring_media_type: &QianjiControlWorkflowSourceAuthoringMediaType,
     authoring_source_sha256: &str,
 ) -> Result<QianjiControlWorkflowSourceRepairRunHttpResponse, QianjiBpmnWorkflowHttpError>
 where
@@ -119,7 +120,7 @@ where
             "schema": "xiuxian_qianji.workflow_source_repair.input.v1",
             "sourceId": request.source_id,
             "targetProcessId": request.process_id.as_str(),
-            "sourceMediaType": authoring_media_type,
+            "sourceMediaType": authoring_media_type.as_str(),
             "sourceText": request.source_text,
             "workflowName": request.workflow_name,
             "workflowDescription": request.workflow_description,
@@ -442,78 +443,5 @@ fn sanitize_id_fragment(value: &str) -> String {
         "unknown".to_owned()
     } else {
         out
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ServerRepairCompilerRequest;
-    use crate::bpmn::QianjiBpmnProcessId;
-    use crate::bpmn::http_transport::request_api::{
-        QianjiControlWorkflowSourceAdmissionHttpRequest, QianjiControlWorkflowSourceCompilerMode,
-    };
-
-    #[test]
-    fn server_repair_request_pins_llm_repair_contract() {
-        let request = QianjiControlWorkflowSourceAdmissionHttpRequest {
-            source_id: "daily-report/freeform".to_owned(),
-            process_id: QianjiBpmnProcessId::new("Process_daily_report"),
-            source_media_type: "text/markdown".to_owned(),
-            source_text: "# Daily Report\n\nWrite a report.".to_owned(),
-            workflow_name: "Daily Report".to_owned(),
-            workflow_description: "Compile daily facts.".to_owned(),
-            compiler_mode: QianjiControlWorkflowSourceCompilerMode::ServerRepair,
-        };
-
-        let repair_request =
-            ServerRepairCompilerRequest::from_admission_request(&request, "text/markdown");
-
-        assert_eq!(
-            repair_request.compiler,
-            "qianji-server-skill-repair-compiler-v1"
-        );
-        assert_eq!(repair_request.flow, "qianji.workflow_source_repair.v1");
-        assert_eq!(repair_request.engine, "qianji-bpmn-engine");
-        assert_eq!(repair_request.lint_evidence, "qianji-lint-diagnostics-v1");
-        assert_eq!(
-            repair_request.lint_judge,
-            "qianji-llm-reasoned-lint-judge-v1"
-        );
-        assert_eq!(
-            repair_request.output_contract,
-            "qianji_workflow_source_repair_result"
-        );
-        assert_eq!(repair_request.process_id, "Process_daily_report");
-        assert_eq!(repair_request.workflow_name, "Daily Report");
-        assert!(repair_request.workflow_description_present);
-        assert_eq!(
-            repair_request.source_sha256,
-            "sha256:608ba212948404cccb98d2aeb38f491a1769e35cf566a5e411dbf01e70e2d595"
-        );
-    }
-
-    #[test]
-    fn server_repair_unavailable_message_requires_bpmn_repair_flow() {
-        let request = QianjiControlWorkflowSourceAdmissionHttpRequest {
-            source_id: "meeting/freeform".to_owned(),
-            process_id: QianjiBpmnProcessId::new("Process_meeting"),
-            source_media_type: "text/markdown".to_owned(),
-            source_text: "# Meeting\n\nSummarize the meeting.".to_owned(),
-            workflow_name: "Meeting".to_owned(),
-            workflow_description: String::new(),
-            compiler_mode: QianjiControlWorkflowSourceCompilerMode::ServerRepair,
-        };
-
-        let repair_request =
-            ServerRepairCompilerRequest::from_admission_request(&request, "text/markdown");
-        let message = repair_request.unavailable_message();
-
-        assert!(message.contains("BPMN repair flow `qianji.workflow_source_repair.v1`"));
-        assert!(message.contains("run on `qianji-bpmn-engine`"));
-        assert!(message.contains("deterministic lint evidence `qianji-lint-diagnostics-v1`"));
-        assert!(message.contains("LLM reasoning lint judge `qianji-llm-reasoned-lint-judge-v1`"));
-        assert!(message.contains("final qianji-server BPMN admission"));
-        assert!(!message.contains("prompt_schema"));
-        assert!(!message.contains("prompt_sha256"));
     }
 }

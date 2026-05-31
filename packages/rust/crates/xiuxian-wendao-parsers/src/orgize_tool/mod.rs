@@ -21,13 +21,14 @@ pub use eval::{
     OrgizeEvalPatchRequest, OrgizeEvalPlanRequest, render_eval_patch, render_eval_plan,
 };
 pub use format::{OrgizeFormatReport, OrgizeFormatRequest, format_org_files};
+pub(in crate::orgize_tool) use io::{collect_org_paths, read_to_string};
 pub use lint::{
-    OrgizeLintFileReport, OrgizeLintOutputFormat, OrgizeLintRequest, OrgizeLintRunReport,
-    lint_org_files,
+    OrgizeLintFileReport, OrgizeLintFixReport, OrgizeLintOutputFormat, OrgizeLintRequest,
+    OrgizeLintRunReport, lint_org_files,
 };
 pub use org_elements::{
-    OrgizeOrgElementReadModelReport, OrgizeOrgElementReadModelRequest, OrgizeOrgElementRow,
-    collect_org_element_rows,
+    OrgElementCategory, OrgElementKind, OrgizeOrgElementReadModelReport,
+    OrgizeOrgElementReadModelRequest, OrgizeOrgElementRow, collect_org_element_rows,
 };
 pub use sdd::{
     OrgizeSddGraphDiffRequest, OrgizeSddStatusRequest, count_sdd_graph_drift,

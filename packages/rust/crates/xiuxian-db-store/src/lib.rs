@@ -133,12 +133,3 @@ pub use xiuxian_vector::{
 
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{ColumnarScanOptions, TableInfo, VectorStore};
-
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::db_store_rust_harness_config()
-);

@@ -1,5 +1,4 @@
-use super::compile::{xml_attr, xml_id, xml_text};
-use super::markdown::WorkflowTask;
+use super::contract::{WorkflowTask, xml_attr, xml_id, xml_text};
 use std::fmt::Write as _;
 
 pub(super) fn render_workflow_bpmn_xml(

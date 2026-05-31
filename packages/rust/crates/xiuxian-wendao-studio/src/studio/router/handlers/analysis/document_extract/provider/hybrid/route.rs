@@ -612,7 +612,7 @@ impl StudioDocumentExtractFlightRouteProvider {
             request.source_path
         );
         let output_string = output.to_string_lossy().to_string();
-        self.document_extract_batch(
+        self.sync_document_extract_batch(
             request.source_path.as_str(),
             output_string.as_str(),
             request.force,

@@ -34,12 +34,12 @@ impl std::fmt::Debug for StudioRepoSyncFlightRouteProvider {
 impl RepoSyncFlightRouteProvider for StudioRepoSyncFlightRouteProvider {
     async fn repo_sync_batch(
         &self,
-        repo_id: &str,
+        repo_key: &str,
         mode: &str,
     ) -> Result<AnalysisFlightRouteResponse, String> {
         let response = run_repo_sync(
             Arc::clone(&self.state),
-            repo_id.to_string(),
+            repo_key.to_string(),
             parse_repo_sync_mode(mode)?,
         )
         .await

@@ -4,9 +4,9 @@ use crate::{
     ActivityQueueProjection, ActivityTaskLease, ControlEvent, ControlEventRecord, ControlResult,
     CostInventoryProjection, GateResult, HotStateLeasedActivityTask, HotStateSnapshot,
     LlmActivityInventoryProjection, RunId, RunOperatorDiagnostics, RunOperatorSummary,
-    RunRecoveryPlan, RunRecoverySnapshot, RunView, RunnableActivityTask, RunnableStep,
-    SignalInventoryProjection, StepLease, StepView, TaskQueue, TimerInventoryProjection,
-    WorkerActivityTask, WorkerHeartbeat, WorkerId, WorkerRef,
+    RunRecoveryPlan, RunRecoverySnapshot, RunScopedActivityTaskClaimRequest, RunView,
+    RunnableActivityTask, RunnableStep, SignalInventoryProjection, StepLease, StepView, TaskQueue,
+    TimerInventoryProjection, WorkerActivityTask, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 /// Durable append-only event ledger.
@@ -270,11 +270,7 @@ pub trait HotStateStore: Send + Sync {
     /// Returns a store-specific control error when acquisition fails.
     async fn claim_activity_task_for_run(
         &self,
-        worker: WorkerRef,
-        run_id: &RunId,
-        task_queue: Option<&TaskQueue>,
-        now_ms: u64,
-        lease_ttl_ms: u64,
+        request: RunScopedActivityTaskClaimRequest,
     ) -> ControlResult<Option<HotStateLeasedActivityTask>>;
 
     /// Releases an activity-task lease if the caller still owns it.

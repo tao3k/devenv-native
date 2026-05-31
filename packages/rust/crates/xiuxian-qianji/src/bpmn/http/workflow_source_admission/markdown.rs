@@ -1,9 +1,4 @@
-#[derive(Debug, Clone)]
-pub(super) struct WorkflowTask {
-    pub id: String,
-    pub name: String,
-    pub documentation: String,
-}
+use super::contract::{WorkflowSourceCompileError, WorkflowTask};
 
 pub(super) fn markdown_workflow_tasks(
     workflow_name: &str,
@@ -95,4 +90,3 @@ fn parse_step_heading(line: &str) -> Option<(&str, &str)> {
     }
     Some((step_number, title))
 }
-use super::compile::WorkflowSourceCompileError;

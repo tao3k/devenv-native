@@ -322,6 +322,14 @@ async fn worker_loop_with_hot_state_records_heartbeat_for_claimed_task() -> Resu
         json["iterations"][0]["output"]["heartbeat"]["event"]["kind"]["event"],
         "worker_heartbeat_observed"
     );
+    assert_eq!(
+        json["iterations"][0]["output"]["heartbeat"]["event"]["kind"]["heartbeat"]["metadata"]["executor"],
+        "fixture"
+    );
+    assert_eq!(
+        json["iterations"][0]["output"]["heartbeat"]["event"]["kind"]["heartbeat"]["metadata"]["phase"],
+        "activity_execution_active"
+    );
     assert_eq!(snapshot.live_heartbeat_count(), 1);
     assert_eq!(heartbeat_count, 1);
     Ok(())

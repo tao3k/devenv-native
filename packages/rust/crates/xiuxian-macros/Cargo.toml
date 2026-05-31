@@ -16,6 +16,9 @@ syn = { workspace = true }
 proc-macro2 = { workspace = true }
 uuid = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

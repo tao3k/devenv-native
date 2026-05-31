@@ -23,12 +23,6 @@ pub struct RepoProjectedPageIndexTreeRequest {
     pub page_id: String,
 }
 
-impl PartialEq<(String, String)> for RepoProjectedPageIndexTreeRequest {
-    fn eq(&self, other: &(String, String)) -> bool {
-        self.repo_id == other.0 && self.page_id == other.1
-    }
-}
-
 /// Validate the stable projected page-index tree request contract.
 ///
 /// # Errors

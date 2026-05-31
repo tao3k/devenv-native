@@ -3,7 +3,7 @@
   "info": {
     "title": "Wendao Gateway",
     "version": "v1",
-    "description": "Stable contract surface for the Wendao HTTP gateway, including health, studio, VFS, graph, and search endpoints. Public callers use HTTPS JSON with bearer authentication. User-facing streaming routes use server-sent events through Accept: text/event-stream; Arrow Flight, FlightSQL, gRPC-Web, and HTTP/1 compatibility are deployment transport controls outside this OpenAPI surface."
+    "description": "Stable contract surface for the Wendao HTTP gateway, including health, studio, VFS, graph, and search endpoints. Public HTTPS callers use JSON/SSE with bearer authentication. Gateway Arrow Flight is a parallel public protocol surface with the same bearer-token semantics, but its gRPC schema is outside this OpenAPI artifact; FlightSQL, standalone Flight hosts, gRPC-Web, and HTTP/1 compatibility remain deployment transport controls outside this OpenAPI surface."
   },
   "security": [
     {
@@ -22,7 +22,7 @@
         "operationId": "gatewayCreateResponse",
         "tags": ["gateway"],
         "summary": "Create a public query response",
-        "description": "Execute one public Wendao query response over the HTTPS JSON gateway. This route is intentionally JSON/SSE-facing; Arrow Flight and gRPC-Web transport controls are not part of this public contract.",
+        "description": "Execute one public Wendao query response over the HTTPS JSON gateway. This route is intentionally JSON/SSE-facing; Gateway Arrow Flight is a parallel public protocol surface outside this OpenAPI schema, and gRPC-Web transport controls are not part of this HTTPS contract.",
         "requestBody": {
           "required": true,
           "content": {

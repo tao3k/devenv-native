@@ -10,7 +10,7 @@ use litchi::ole::xls::records::{
 
 use super::panic_guard;
 
-type SheetRows = BTreeMap<u16, BTreeMap<u16, String>>;
+pub(crate) type SheetRows = BTreeMap<u16, BTreeMap<u16, String>>;
 
 pub(crate) fn extract_text(path: &Path) -> Result<String, String> {
     panic_guard::run("Excel 97-2003 workbook", path, || extract_text_inner(path))
@@ -79,7 +79,10 @@ fn shared_strings(records: &[Record], encoding: &XlsEncoding) -> Result<Vec<Stri
         .map_err(|error| format!("parse XLS shared string table: {error}"))
 }
 
-fn parse_sst_records(records: &[Record], encoding: &XlsEncoding) -> Result<Vec<String>, String> {
+pub(crate) fn parse_sst_records(
+    records: &[Record],
+    encoding: &XlsEncoding,
+) -> Result<Vec<String>, String> {
     let first = records
         .first()
         .ok_or_else(|| "missing SST record".to_string())?;
@@ -245,7 +248,7 @@ fn cell_text(cell: &CellRecord, shared_strings: &[String]) -> Result<Option<Stri
     }
 }
 
-fn formula_text(value: &FormulaValue, formula: &[u8]) -> String {
+pub(crate) fn formula_text(value: &FormulaValue, formula: &[u8]) -> String {
     match value {
         FormulaValue::Number(value) => format_number(*value),
         FormulaValue::String(value) => value.clone(),
@@ -269,7 +272,7 @@ fn format_number(value: f64) -> String {
     }
 }
 
-fn render_sheets(sheets: &[SheetRows]) -> String {
+pub(crate) fn render_sheets(sheets: &[SheetRows]) -> String {
     let mut output = String::new();
     for (sheet_index, rows) in sheets.iter().filter(|rows| !rows.is_empty()).enumerate() {
         if !output.is_empty() {
@@ -393,71 +396,4 @@ fn read_u32_le(data: &[u8], offset: usize) -> Result<u32, String> {
         .get(offset..offset + 4)
         .ok_or_else(|| format!("expected 4 bytes at offset {offset}"))?;
     Ok(u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_sheets_preserves_sparse_cell_order() {
-        let mut rows = SheetRows::new();
-        rows.entry(2).or_default().insert(1, "name".to_string());
-        rows.entry(2).or_default().insert(3, "value".to_string());
-        assert_eq!(render_sheets(&[rows]), "\tname\t\tvalue\n");
-    }
-
-    #[test]
-    fn formula_text_prefers_cached_value() {
-        assert_eq!(formula_text(&FormulaValue::Number(12.0), &[1, 2, 3]), "12");
-        assert_eq!(
-            formula_text(&FormulaValue::Empty, &[1, 2, 3]),
-            "Formula(3 bytes)"
-        );
-    }
-
-    #[test]
-    fn parse_sst_records_handles_unicode_continuation_flags() {
-        use litchi::ole::xls::records::RecordHeader;
-
-        fn utf16(ch: char) -> [u8; 2] {
-            let value = u16::try_from(ch as u32).unwrap_or(0);
-            value.to_le_bytes()
-        }
-
-        let mut first = Vec::new();
-        first.extend_from_slice(&1_u32.to_le_bytes());
-        first.extend_from_slice(&1_u32.to_le_bytes());
-        first.extend_from_slice(&3_u16.to_le_bytes());
-        first.push(1);
-        first.extend_from_slice(&utf16('你'));
-        let mut continuation = vec![1];
-        continuation.extend_from_slice(&utf16('好'));
-        continuation.extend_from_slice(&utf16('啊'));
-        let records = vec![
-            Record {
-                header: RecordHeader {
-                    record_type: 0x00FC,
-                    data_len: first.len() as u16,
-                },
-                data: first,
-            },
-            Record {
-                header: RecordHeader {
-                    record_type: 0x003C,
-                    data_len: continuation.len() as u16,
-                },
-                data: continuation,
-            },
-        ];
-        let encoding = match XlsEncoding::from_codepage(1252) {
-            Ok(encoding) => encoding,
-            Err(error) => panic!("test encoding failed: {error}"),
-        };
-        let strings = match parse_sst_records(&records, &encoding) {
-            Ok(strings) => strings,
-            Err(error) => panic!("parse SST failed: {error}"),
-        };
-        assert_eq!(strings, ["你好啊"]);
-    }
 }

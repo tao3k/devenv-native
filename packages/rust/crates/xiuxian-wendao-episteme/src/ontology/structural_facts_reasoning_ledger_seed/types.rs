@@ -1,3 +1,5 @@
+//! Data contracts for structural-facts reasoning ledger seeds.
+
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -141,8 +143,8 @@ pub(super) struct ReasoningLedgerSeedOutputPaths {
 }
 
 impl ReasoningLedgerSeedOutputPaths {
-    pub fn new(run_root: &Path, run_id: &str) -> Self {
-        let run_dir = run_root.join(run_id);
+    pub fn new(run_root: &Path, run_key: &str) -> Self {
+        let run_dir = run_root.join(run_key);
         Self {
             seed_tsv: run_dir.join("reasoning_ledger_seed.tsv"),
             seed_json: run_dir.join("reasoning_ledger_seed.json"),

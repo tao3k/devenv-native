@@ -1,3 +1,5 @@
+//! Legacy Office parser-quality metrics.
+
 use super::LegacyOfficeFormat;
 
 /// Lightweight parser-quality counters for legacy Office projections.
@@ -34,23 +36,25 @@ pub fn legacy_office_quality_metrics(
     text: &str,
     markdown: &str,
 ) -> LegacyOfficeQualityMetrics {
-    let mut line_count = 0;
-    let mut non_empty_line_count = 0;
-    let mut tab_delimited_row_count = 0;
-    let mut max_column_count = 0;
-
-    for line in text.lines() {
-        line_count += 1;
-        if line.trim().is_empty() {
-            continue;
-        }
-        non_empty_line_count += 1;
-        let column_count = line.split('\t').count();
-        max_column_count = max_column_count.max(column_count);
-        if line.contains('\t') {
-            tab_delimited_row_count += 1;
-        }
-    }
+    let line_count = text.lines().count();
+    let (non_empty_line_count, tab_delimited_row_count, max_column_count) = text
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| {
+            let column_count = line.split('\t').count();
+            let has_tab = usize::from(line.contains('\t'));
+            (has_tab, column_count)
+        })
+        .fold(
+            (0, 0, 0),
+            |(non_empty, tab_rows, max_columns), (has_tab, column_count)| {
+                (
+                    non_empty + 1,
+                    tab_rows + has_tab,
+                    max_columns.max(column_count),
+                )
+            },
+        );
 
     LegacyOfficeQualityMetrics {
         text_char_count: text.chars().count(),
@@ -60,26 +64,5 @@ pub fn legacy_office_quality_metrics(
         tab_delimited_row_count,
         max_column_count,
         markdown_fenced_block_count: markdown.matches("```").count() / 2,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{LegacyOfficeFormat, legacy_office_quality_metrics};
-
-    #[test]
-    fn xls_metrics_preserve_tabular_boundary_signal() {
-        let metrics = legacy_office_quality_metrics(
-            LegacyOfficeFormat::Xls,
-            "name\tvalue\nalpha\t42\nnotes",
-            "# rates\n\n```tsv\nname\tvalue\nalpha\t42\nnotes\n```\n",
-        );
-
-        assert_eq!(metrics.line_count, 3);
-        assert_eq!(metrics.non_empty_line_count, 3);
-        assert_eq!(metrics.tab_delimited_row_count, 2);
-        assert_eq!(metrics.max_column_count, 2);
-        assert_eq!(metrics.markdown_fenced_block_count, 1);
-        assert!(metrics.has_tabular_boundary_signal(LegacyOfficeFormat::Xls));
     }
 }

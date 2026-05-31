@@ -16,6 +16,7 @@ mod activity_start;
 mod activity_take;
 mod activity_worker_loop;
 mod activity_worker_once;
+mod activity_worker_once_args;
 mod api;
 mod heartbeat;
 mod llm_inventory;

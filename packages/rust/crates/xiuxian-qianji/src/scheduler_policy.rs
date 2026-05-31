@@ -47,17 +47,44 @@ impl Default for SchedulerExecutionPolicy {
     }
 }
 
+/// Borrowed cluster identifier excluded from scheduler role probes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SchedulerExcludedClusterRef<'a>(&'a str);
+
+impl<'a> SchedulerExcludedClusterRef<'a> {
+    /// Creates a borrowed scheduler cluster-exclusion reference.
+    #[must_use]
+    pub const fn new(value: &'a str) -> Self {
+        Self(value)
+    }
+
+    /// Borrows the excluded cluster identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
 /// Probe interface used by scheduler affinity logic to check global role availability.
 #[async_trait]
 pub trait RoleAvailabilityRegistry: Send + Sync {
     /// Returns true when at least one candidate exists for `role_class`.
-    async fn has_role(&self, role_class: &str, exclude_cluster_id: Option<&str>) -> bool;
+    async fn has_role(
+        &self,
+        role_class: &str,
+        excluded_cluster: Option<SchedulerExcludedClusterRef<'_>>,
+    ) -> bool;
 }
 
 #[async_trait]
 impl RoleAvailabilityRegistry for GlobalSwarmRegistry {
-    async fn has_role(&self, role_class: &str, exclude_cluster_id: Option<&str>) -> bool {
-        match self.pick_candidate(role_class, exclude_cluster_id).await {
+    async fn has_role(
+        &self,
+        role_class: &str,
+        excluded_cluster: Option<SchedulerExcludedClusterRef<'_>>,
+    ) -> bool {
+        let excluded_cluster = excluded_cluster.map(SchedulerExcludedClusterRef::as_str);
+        match self.pick_candidate(role_class, excluded_cluster).await {
             Ok(candidate) => candidate.is_some(),
             Err(error) => {
                 log::warn!("role availability probe failed for role '{role_class}': {error}");

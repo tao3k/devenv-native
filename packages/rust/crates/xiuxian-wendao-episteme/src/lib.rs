@@ -4,6 +4,7 @@
 //! deterministic Rust admission surface for Episteme source contracts.
 
 mod cache;
+pub mod cli;
 mod ontology;
 mod runtime_config;
 mod source_contract;
@@ -50,17 +51,16 @@ pub use ontology::{
     EpistemeOntologyRegistryRdfClassTerm, EpistemeOntologyRegistryRdfTerms,
     EpistemeOntologyRegistryReadModelInput, EpistemeOntologyRegistryRule,
     EpistemeOntologyRegistrySnapshot, EpistemeOntologyRegistrySnapshotReport,
-    EpistemeOntologyRegistrySourceContract, EpistemeOntologySemanticEvidenceRow,
-    EpistemeOntologySemanticObjectRow, EpistemeOntologySemanticProjectionStateRow,
-    EpistemeOntologySemanticRelationRow, EpistemeOntologySourcePatchAppliedTarget,
-    EpistemeOntologySourcePatchApplyPlanReport, EpistemeOntologySourcePatchApplyPlanRequest,
-    EpistemeOntologySourcePatchApplyPreviewReport, EpistemeOntologySourcePatchApplyPreviewRequest,
-    EpistemeOntologySourcePatchApplyPreviewTarget, EpistemeOntologySourcePatchApplyReport,
-    EpistemeOntologySourcePatchApplyRequest, EpistemeOntologySourcePatchDraftReport,
-    EpistemeOntologySourcePatchDraftRequest, EpistemeOntologySourcePatchPreflightReport,
-    EpistemeOntologySourcePatchPreflightRequest, EpistemeOntologySourcePatchRdfReadModelReport,
-    EpistemeOntologySourcePatchRdfReadModelRequest, EpistemeOntologySourcePatchReviewPacketReport,
-    EpistemeOntologySourcePatchReviewPacketRequest, EpistemeOntologySourcePatchReviewPacketTarget,
+    EpistemeOntologyRegistrySourceContract, EpistemeOntologySemanticProjectionStateRow,
+    EpistemeOntologySourcePatchAppliedTarget, EpistemeOntologySourcePatchApplyPlanReport,
+    EpistemeOntologySourcePatchApplyPlanRequest, EpistemeOntologySourcePatchApplyPreviewReport,
+    EpistemeOntologySourcePatchApplyPreviewRequest, EpistemeOntologySourcePatchApplyPreviewTarget,
+    EpistemeOntologySourcePatchApplyReport, EpistemeOntologySourcePatchApplyRequest,
+    EpistemeOntologySourcePatchDraftReport, EpistemeOntologySourcePatchDraftRequest,
+    EpistemeOntologySourcePatchPreflightReport, EpistemeOntologySourcePatchPreflightRequest,
+    EpistemeOntologySourcePatchRdfReadModelReport, EpistemeOntologySourcePatchRdfReadModelRequest,
+    EpistemeOntologySourcePatchReviewPacketReport, EpistemeOntologySourcePatchReviewPacketRequest,
+    EpistemeOntologySourcePatchReviewPacketTarget,
     EpistemeOntologySourcePatchSemanticPreviewReport,
     EpistemeOntologySourcePatchSemanticPreviewRequest,
     EpistemeOntologyStructuralFactsConfiguredRequest,
@@ -120,16 +120,3 @@ pub use source_contract::{
     EpistemeSourceContractPaths, configured_episteme_corpus_root_env, read_source_manifest,
     source_contract_paths,
 };
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = {
-        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
-            rust_lang_project_harness::RustVerificationProfileHint::new(
-                "src/lib.rs",
-                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-            )
-            .with_rationale("crate root owns the public package API for cargo-test verification"),
-        )
-    }
-);

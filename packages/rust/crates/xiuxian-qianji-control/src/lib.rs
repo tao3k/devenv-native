@@ -5,19 +5,6 @@
 //! crate when they need auditable lifecycle, lease, evidence, gate, and cost
 //! tracking.
 
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = {
-        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
-            rust_lang_project_harness::RustVerificationProfileHint::new(
-                "src/lib.rs",
-                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-            )
-            .with_rationale("crate root owns the public control-plane API"),
-        )
-    }
-);
-
 mod activity_journal;
 mod activity_queue;
 mod activity_schedule_plan;
@@ -130,9 +117,10 @@ pub use {
         ActivityFailure, ActivityResult, ActivityRetryDecision, ActivityRetryPolicy,
         ActivityRetryStopReason, ActivityTask, ActivityTaskLease, ArtifactRef, Budget,
         CostObservation, EvidenceRef, GateResult, HotStateLeasedActivityTask, HotStateLeasedStep,
-        HotStateSnapshot, LlmActivityRequest, LlmActivityTask, RecoveryPolicy, RunStatus,
-        RunnableActivityTask, RunnableStep, SignalRecord, StepLease, StepStatus, TimerRecord,
-        VersionPin, WaitReason, WorkerHeartbeat, WorkerRef,
+        HotStateSnapshot, LlmActivityRequest, LlmActivityTask, RecoveryPolicy,
+        RunScopedActivityTaskClaimRequest, RunStatus, RunnableActivityTask, RunnableStep,
+        SignalRecord, StepLease, StepStatus, TimerRecord, VersionPin, WaitReason, WorkerHeartbeat,
+        WorkerRef,
     },
     observation_journal::{
         CostObservationJournalRecord, StepEvidenceJournalRecord, StepGateResultJournalRecord,

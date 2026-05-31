@@ -51,7 +51,7 @@ async fn worker_once_with_hot_state_executes_openai_compatible_llm_to_artifact()
                 task_queue: Some("llm.openrouter"),
                 now_ms: 8_000,
                 lease_ttl_ms: 500,
-                heartbeat_ttl_ms: None,
+                heartbeat_ttl_ms: Some(1_000),
                 executor: ActivityExecutorKindArg::OpenAiCompatibleLlm,
                 outcome: ActivitySettleOutcomeArg::Complete,
                 settled_at_ms: 9_000,
@@ -98,6 +98,22 @@ async fn worker_once_with_hot_state_executes_openai_compatible_llm_to_artifact()
     assert_openai_compatible_artifact(&artifact);
     assert_openai_compatible_worker_output(&json, output_path.as_path());
     assert_eq!(json["released"], true);
+    assert_eq!(
+        json["heartbeat"]["event"]["kind"]["heartbeat"]["metadata"]["executor"],
+        "openai-compatible-llm"
+    );
+    assert_eq!(
+        json["heartbeat"]["event"]["kind"]["heartbeat"]["metadata"]["phase"],
+        "provider_request_active"
+    );
+    assert_eq!(
+        json["heartbeat"]["event"]["kind"]["heartbeat"]["metadata"]["activity_type"],
+        "llm.plan"
+    );
+    assert_eq!(
+        json["heartbeat"]["event"]["kind"]["heartbeat"]["metadata"]["task_queue"],
+        "llm.openrouter"
+    );
     assert_eq!(queue.summary.completed, 1);
     Ok(())
 }

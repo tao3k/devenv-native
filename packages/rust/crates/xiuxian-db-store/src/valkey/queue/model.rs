@@ -1,3 +1,5 @@
+//! Typed Valkey queue identifiers, entries, and lease models.
+
 use crate::valkey::{
     ValkeyLeaseOwnership,
     error::{ValkeyStoreError, non_blank},

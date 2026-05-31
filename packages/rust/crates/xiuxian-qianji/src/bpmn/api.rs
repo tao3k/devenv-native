@@ -60,7 +60,9 @@ pub use super::http_transport::{
     QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
     QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpRequest,
-    QianjiControlWorkflowSourceAdmissionHttpResponse, QianjiControlWorkflowSourceCompilerMode,
+    QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
+    QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
     qianji_bpmn_workflow_router,
 };
 pub use super::identity::{

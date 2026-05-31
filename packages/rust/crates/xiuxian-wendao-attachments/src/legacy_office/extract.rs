@@ -1,3 +1,5 @@
+//! Legacy Office extraction orchestration across format-specific parsers.
+
 use std::path::Path;
 
 use super::format::{LegacyOfficeFormat, legacy_office_format};

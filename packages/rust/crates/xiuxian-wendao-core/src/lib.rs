@@ -30,6 +30,8 @@ pub mod repo_intelligence;
 pub mod resource_uri;
 /// Stable semantic-document and cognitive-trace payload records.
 pub mod semantic_document;
+/// Stable semantic-scope metadata DTOs shared with runtime consumers.
+pub mod semantic_scope;
 /// Stable SQL result DTOs shared across Wendao consumers.
 pub mod sql_query;
 /// Stable transport endpoint and transport kind records.
@@ -61,6 +63,16 @@ pub use semantic_document::{
     LinkGraphSemanticDocument, LinkGraphSemanticDocumentKind, SemanticAnchorId, SemanticDocId,
     SemanticDocumentPath,
 };
+pub use semantic_scope::{
+    SEMANTIC_PROJECTION_POLICY_EVIDENCE_METADATA_KEY, SEMANTIC_SCOPE_BUNDLE_METADATA_KEY,
+    SEMANTIC_SQL_GUARD_EVIDENCE_METADATA_KEY, SemanticProjectionFreshnessPolicyEntry,
+    SemanticProjectionFreshnessPolicyReport, SemanticScopeBundle, SemanticScopeChangeIntent,
+    SemanticScopeMetadataEnvelope, SemanticScopeObject, SemanticScopeObjectKind,
+    SemanticScopeProjectionPolicyStatus, SemanticScopeProjectionStaleness,
+    SemanticScopeRelationEdge, SemanticScopeRelationKind, SemanticScopeStatus,
+    parse_semantic_scope_metadata_envelope_json, semantic_scope_metadata_envelope,
+    semantic_scope_metadata_envelope_to_vec,
+};
 pub use sql_query::{SqlBatchPayload, SqlColumnPayload, SqlQueryMetadata, SqlQueryPayload};
 pub use transport::{PluginTransportEndpoint, PluginTransportKind};
 pub use xiuxian_types::KnowledgeCategory;
@@ -68,8 +80,3 @@ pub use xiuxian_types::KnowledgeCategory;
 #[cfg(test)]
 #[path = "../tests/unit/lib_policy.rs"]
 mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::wendao_core_rust_harness_config()
-);

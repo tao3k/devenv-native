@@ -16,8 +16,11 @@ use xiuxian_db_store::{
 
 use super::LinkGraphIndex;
 
+/// Arrow table name for encoded core document rows.
 pub const CORE_DOCS_TABLE: &str = "link_graph_perf_core_docs";
+/// Arrow table name for encoded core edge rows.
 pub const CORE_EDGES_TABLE: &str = "link_graph_perf_core_edges";
+/// Arrow table name for encoded core alias rows.
 pub const CORE_ALIASES_TABLE: &str = "link_graph_perf_core_aliases";
 
 /// Native Arrow IPC streams for the core link-graph cache shape.
@@ -208,6 +211,7 @@ fn build_aliases_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
     Ok(batch)
 }
 
+/// Build the Arrow schema contract for core document rows.
 pub fn core_docs_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         CORE_DOCS_TABLE,
@@ -228,6 +232,7 @@ pub fn core_docs_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build the Arrow schema contract for core directed-edge rows.
 pub fn core_edges_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         CORE_EDGES_TABLE,
@@ -236,6 +241,7 @@ pub fn core_edges_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build the Arrow schema contract for core alias rows.
 pub fn core_aliases_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         CORE_ALIASES_TABLE,
@@ -244,6 +250,7 @@ pub fn core_aliases_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build an Arrow schema reference with Wendao table metadata attached.
 pub fn core_stream_schema_ref(contract: &ArrowSchemaContract) -> Arc<arrow::datatypes::Schema> {
     let mut metadata = HashMap::new();
     metadata.insert(

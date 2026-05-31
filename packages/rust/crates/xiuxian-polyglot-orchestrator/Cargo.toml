@@ -16,6 +16,9 @@ wendao-contracts = ["dep:xiuxian-wendao-runtime"]
 serde = { workspace = true, features = ["derive"] }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 serde_json = { workspace = true }

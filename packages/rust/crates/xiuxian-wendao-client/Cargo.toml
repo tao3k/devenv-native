@@ -41,8 +41,11 @@ xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, opt
 xiuxian-graph-core = { path = "../xiuxian-graph-core", default-features = false, optional = true }
 xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-memory-engine = { path = "../xiuxian-memory-engine", optional = true }
-xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

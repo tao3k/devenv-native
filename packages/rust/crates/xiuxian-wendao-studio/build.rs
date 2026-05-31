@@ -15,8 +15,11 @@ fn main() {
                 rust_lang_project_harness::RustOwnerResponsibility::ExternalDependency,
                 rust_lang_project_harness::RustOwnerResponsibility::LatencySensitive,
             ],
-        ));
-    rust_lang_project_harness::assert_rust_project_harness_build_clean_from_env_with_config(
+        ))
+        .with_cargo_check_advice_allow_explanation(
+            "Studio still exposes several stable Flight provider trait surfaces inherited from xiuxian-wendao-server; typed request migration is tracked separately while build-time harness warnings remain blocking.",
+        );
+    rust_lang_project_harness::assert_rust_project_harness_cargo_check_clean_from_env_with_config(
         &config,
     );
 }

@@ -37,7 +37,10 @@ pub use super::response_api::{
     QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
     QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse,
+    QianjiControlWorkflowSourceRepairStartedHttpResponse,
 };
+pub use super::source_authoring::QianjiControlWorkflowSourceAuthoringMediaType;
 pub use super::state::QianjiBpmnWorkflowHttpState;
 
 /// Builds an embeddable BPMN workflow-control HTTP router.

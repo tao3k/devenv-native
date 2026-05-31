@@ -330,7 +330,10 @@ fn audio_shard_request_options_for_document_extract(
     AudioShardFlightRequestOptions {
         audio_worker: request.audio_worker.clone(),
         hosted_provider: request.audio_hosted_provider.clone(),
-        hosted_base_url: request.audio_hosted_base_url.clone(),
+        hosted_base_url: request
+            .audio_hosted_base_url
+            .as_ref()
+            .map(|value| value.as_str().to_owned()),
         hosted_endpoint: request.audio_hosted_endpoint.clone(),
         hosted_model: request.audio_hosted_model.clone(),
         route_intent: route_intent.cloned(),
@@ -373,9 +376,9 @@ fn audio_route_input_for_document_extract(
     duration_ms: u64,
 ) -> WendaoAttachmentRouteInput {
     WendaoAttachmentRouteInput {
-        task_kind: AUDIO_ROUTE_TASK_KIND.to_owned(),
+        task_kind: AUDIO_ROUTE_TASK_KIND.to_owned().into(),
         modality: AUDIO_ROUTE_MODALITY.to_owned(),
-        source_kind: AUDIO_ROUTE_SOURCE_KIND.to_owned(),
+        source_kind: AUDIO_ROUTE_SOURCE_KIND.to_owned().into(),
         precision_tier: AUDIO_ROUTE_PRECISION_TIER.to_owned(),
         privacy_tier: AUDIO_ROUTE_PRIVACY_TIER.to_owned(),
         latency_budget_ms: audio_route_latency_budget_ms(duration_ms),
@@ -453,7 +456,7 @@ fn audio_cache_manifest(
         "routeSelectedBackendProfile": route_selected_backend_profile,
         "requestAudioWorker": request.audio_worker.as_deref(),
         "hostedProvider": request.audio_hosted_provider.as_deref(),
-        "hostedBaseUrl": request.audio_hosted_base_url.as_deref(),
+        "hostedBaseUrl": request.audio_hosted_base_url.as_ref().map(|value| value.as_str()),
         "hostedEndpoint": request.audio_hosted_endpoint.as_deref(),
         "hostedModel": request.audio_hosted_model.as_deref(),
     }))

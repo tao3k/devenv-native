@@ -52,15 +52,6 @@
 //! let q_value = q_table.get_q("ep-001");
 //! ```
 
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::memory_engine_rust_harness_config()
-);
-
 // ============================================================================
 // Core modules
 // ============================================================================
@@ -110,7 +101,7 @@ pub use schema::EpisodeMetadata;
 #[cfg(feature = "valkey")]
 pub use state_backend::ValkeyMemoryStateStore;
 pub use state_backend::{
-    LocalMemoryStateStore, MemoryStateStore, ValkeyStateHashKeys,
+    LocalMemoryStateStore, MemoryEpisodeId, MemoryStateStore, ValkeyStateHashKeys,
     default_valkey_recall_feedback_hash_key, default_valkey_state_hash_keys,
     default_valkey_state_key,
 };

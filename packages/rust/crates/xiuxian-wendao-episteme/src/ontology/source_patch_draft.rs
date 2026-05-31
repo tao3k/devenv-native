@@ -132,6 +132,12 @@ struct RenderedResource {
 pub fn export_episteme_ontology_source_patch_draft(
     request: &EpistemeOntologySourcePatchDraftRequest,
 ) -> Result<EpistemeOntologySourcePatchDraftReport> {
+    export_episteme_ontology_source_patch_draft_impl(request)
+}
+
+fn export_episteme_ontology_source_patch_draft_impl(
+    request: &EpistemeOntologySourcePatchDraftRequest,
+) -> Result<EpistemeOntologySourcePatchDraftReport> {
     let run_dir = request.run_dir();
     let source_patch_preflight_tsv = run_dir.join(SOURCE_PATCH_PREFLIGHT_TSV);
     let receipt = read_preflight_receipt(run_dir.join(SOURCE_PATCH_PREFLIGHT_JSON).as_path())?;

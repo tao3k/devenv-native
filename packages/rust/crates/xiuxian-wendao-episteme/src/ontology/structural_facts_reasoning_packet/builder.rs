@@ -1,3 +1,5 @@
+//! Row builder for structural-facts reasoning packets.
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{Result, bail};

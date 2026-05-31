@@ -25,5 +25,8 @@ xiuxian-types = { path = "../xiuxian-types" }
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [lints]
 workspace = true

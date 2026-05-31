@@ -1,3 +1,5 @@
+//! Builder implementation for source-contract structural facts.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -9,7 +11,6 @@ use xiuxian_wendao_parsers::{
     parse_episteme_source_manifest_toml,
 };
 
-use super::super::manifest::resolve_ontology_artifact_path;
 use super::{
     ids::{repo_relative_path, stable_document_id, stable_id},
     types::{
@@ -23,6 +24,7 @@ use super::{
         validate_source_manifest,
     },
 };
+use crate::ontology::manifest::resolve_ontology_artifact_path;
 
 pub(super) struct StructuralFactsBuilder<'a> {
     request: &'a EpistemeOntologyStructuralFactsRequest,

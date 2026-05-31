@@ -9,6 +9,9 @@ regex = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 

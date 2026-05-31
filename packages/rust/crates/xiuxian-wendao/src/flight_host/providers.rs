@@ -311,14 +311,14 @@ impl RepoSearchFlightRouteProvider for RepoSearchFlightHostProvider {
 impl RepoProjectedPageIndexTreeFlightRouteProvider for RepoSearchFlightHostProvider {
     async fn repo_projected_page_index_tree_batch(
         &self,
-        repo_id: &str,
-        page_id: &str,
+        repo_key: &str,
+        page_key: &str,
     ) -> Result<AnalysisFlightRouteResponse, Status> {
-        let effective_repo_id = effective_repo_id(repo_id, self.repo_id.as_str());
+        let effective_repo_id = effective_repo_id(repo_key, self.repo_id.as_str());
         let bootstrap_projection_cache = self.bootstrap_projection_cache()?;
         let response = resolve_projected_page_index_tree(
             effective_repo_id.as_str(),
-            page_id,
+            page_key,
             self.config_path.as_deref(),
             self.project_root.as_path(),
             self.bootstrap_analysis.as_deref(),
@@ -335,26 +335,26 @@ impl RepoProjectedPageIndexTreeFlightRouteProvider for RepoSearchFlightHostProvi
 impl RepoProjectedRetrievalContextFlightRouteProvider for RepoSearchFlightHostProvider {
     async fn repo_projected_retrieval_context_batch(
         &self,
-        repo_id: &str,
-        page_id: &str,
-        node_id: Option<&str>,
+        repo_key: &str,
+        page_key: &str,
+        node_key: Option<&str>,
         related_limit: usize,
     ) -> Result<AnalysisFlightRouteResponse, Status> {
-        let effective_repo_id = effective_repo_id(repo_id, self.repo_id.as_str());
+        let effective_repo_id = effective_repo_id(repo_key, self.repo_id.as_str());
         let bootstrap_projection_cache = self.bootstrap_projection_cache()?;
         let response = resolve_projected_retrieval_context(ProjectedRetrievalContextInput {
             repo_id: effective_repo_id.as_str(),
-            page_id,
-            node_id,
+            page_id: page_key,
+            node_id: node_key,
             related_limit,
             config_path: self.config_path.as_deref(),
             project_root: self.project_root.as_path(),
             bootstrap_analysis: self.bootstrap_analysis.as_deref(),
             bootstrap_projection_cache: bootstrap_projection_cache.as_deref(),
         })?;
-        let batch =
-            repo_projected_retrieval_context_batch(&response, node_id).map_err(Status::internal)?;
-        let metadata = repo_projected_retrieval_context_metadata(&response, node_id)
+        let batch = repo_projected_retrieval_context_batch(&response, node_key)
+            .map_err(Status::internal)?;
+        let metadata = repo_projected_retrieval_context_metadata(&response, node_key)
             .map_err(Status::internal)?;
         Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(metadata))
     }
@@ -364,14 +364,14 @@ impl RepoProjectedRetrievalContextFlightRouteProvider for RepoSearchFlightHostPr
 impl GraphNeighborsFlightRouteProvider for RepoSearchFlightHostProvider {
     async fn graph_neighbors_batch(
         &self,
-        node_id: &str,
+        node_key: &str,
         direction: &str,
         hops: usize,
         limit: usize,
     ) -> Result<GraphNeighborsFlightRouteResponse, Status> {
         let direction = graph_direction_from_token(direction);
         let mut attempted_errors = Vec::new();
-        for node_id in graph_node_id_variants(self.repo_id.as_str(), node_id) {
+        for node_id in graph_node_id_variants(self.repo_id.as_str(), node_key) {
             match query_graph_neighbors_projection(
                 Arc::clone(&self.link_graph_index),
                 node_id.as_str(),
@@ -395,7 +395,7 @@ impl GraphNeighborsFlightRouteProvider for RepoSearchFlightHostProvider {
             }
         }
         Err(Status::internal(format!(
-            "graph node `{node_id}` not found after repo-id normalization: {}",
+            "graph node `{node_key}` not found after repo-id normalization: {}",
             attempted_errors.join("; ")
         )))
     }

@@ -13,6 +13,9 @@ toml = { workspace = true }
 thiserror = { workspace = true }
 xiuxian-macros = { path = "../xiuxian-macros" }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }

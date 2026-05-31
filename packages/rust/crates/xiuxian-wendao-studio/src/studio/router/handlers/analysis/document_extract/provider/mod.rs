@@ -42,8 +42,16 @@ use xiuxian_wendao_attachments::pdf::render::{
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]
 use xiuxian_wendao_attachments::pdf::structure::build_document_structure_batch;
 
+#[cfg(all(
+    test,
+    any(
+        feature = "document-extract-pdf-source-range",
+        feature = "document-extract-legacy-office"
+    )
+))]
+use super::arrow_cache::DOCUMENT_RESOURCE_ARROW_CACHE_NAME;
 #[cfg(test)]
-use super::arrow_cache::{DOCUMENT_RESOURCE_ARROW_CACHE_NAME, read_arrow_file, write_arrow_file};
+use super::arrow_cache::{read_arrow_file, write_arrow_file};
 #[cfg(test)]
 use super::registry::DocumentExtractJobRegistry;
 #[cfg(all(test, feature = "document-extract-pdf-source-range"))]

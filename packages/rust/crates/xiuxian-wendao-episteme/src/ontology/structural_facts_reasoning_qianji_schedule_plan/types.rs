@@ -1,3 +1,5 @@
+//! Data contracts for Qianji schedule plans derived from reasoning fill plans.
+
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -345,8 +347,8 @@ pub(super) struct QianjiSchedulePlanOutputPaths {
 }
 
 impl QianjiSchedulePlanOutputPaths {
-    pub fn new(run_root: &Path, run_id: &str) -> Self {
-        let run_dir = run_root.join(run_id);
+    pub fn new(run_root: &Path, run_key: &str) -> Self {
+        let run_dir = run_root.join(run_key);
         Self {
             prompt_artifact_dir: run_dir.join("prompt_artifacts"),
             context_artifact_dir: run_dir.join("context_artifacts"),

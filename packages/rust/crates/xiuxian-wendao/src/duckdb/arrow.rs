@@ -135,11 +135,13 @@ pub(crate) struct WendaoArrowRelationInitData {
 
 pub(crate) struct WendaoArrowRelationVTab;
 
+type DuckDbVTabResult<T> = Result<T, Box<dyn std::error::Error>>;
+
 impl VTab for WendaoArrowRelationVTab {
     type InitData = WendaoArrowRelationInitData;
     type BindData = WendaoArrowRelationBindData;
 
-    fn bind(bind: &BindInfo) -> Result<Self::BindData, Box<dyn std::error::Error>> {
+    fn bind(bind: &BindInfo) -> DuckDbVTabResult<Self::BindData> {
         let namespace = bind.get_parameter(0).to_string();
         let table_name = bind.get_parameter(1).to_string();
         let relation = DuckDbArrowRelationStore::lookup_relation(&namespace, &table_name)?;
@@ -150,16 +152,13 @@ impl VTab for WendaoArrowRelationVTab {
         Ok(WendaoArrowRelationBindData { relation })
     }
 
-    fn init(_: &InitInfo) -> Result<Self::InitData, Box<dyn std::error::Error>> {
+    fn init(_: &InitInfo) -> DuckDbVTabResult<Self::InitData> {
         Ok(WendaoArrowRelationInitData {
             next_batch_index: AtomicUsize::new(0),
         })
     }
 
-    fn func(
-        func: &TableFunctionInfo<Self>,
-        output: &mut DataChunkHandle,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn func(func: &TableFunctionInfo<Self>, output: &mut DataChunkHandle) -> DuckDbVTabResult<()> {
         let init_data = func.get_init_data();
         let bind_data = func.get_bind_data();
         let batch_index = init_data.next_batch_index.fetch_add(1, Ordering::Relaxed);

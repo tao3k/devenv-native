@@ -1,3 +1,5 @@
+//! Structured Valkey queue operations.
+
 use crate::valkey::{
     ValkeyClient,
     error::{ValkeyStoreError, validate_positive_ttl},

@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use xiuxian_qianji_control::{
     ActivityJournalWriteOutcome, ActivityResult, ArtifactRef, ControlEventRecord, ControlLedger,
-    ErrorCode, HotStateLeasedActivityTask, HotStateStore, RunId, TaskQueue, WorkerActivityTask,
-    WorkerId, WorkerRef,
+    ErrorCode, HotStateLeasedActivityTask, HotStateStore, RunId, RunScopedActivityTaskClaimRequest,
+    TaskQueue, WorkerActivityTask, WorkerId, WorkerRef,
 };
 
 use super::{
@@ -78,13 +78,13 @@ where
         metadata: serde_json::Value::Null,
     };
     let claimed = hot_state
-        .claim_activity_task_for_run(
+        .claim_activity_task_for_run(run_scoped_claim_request(
             worker,
             run_id,
             task_queue.as_ref(),
             request.now_ms,
             request.lease_ttl_ms,
-        )
+        ))
         .await
         .map_err(|error| control_error(&error))?;
     let Some(claimed_task) = claimed.clone() else {
@@ -99,6 +99,22 @@ where
         claimed_task,
     )
     .await
+}
+
+fn run_scoped_claim_request(
+    worker: WorkerRef,
+    run_id: &RunId,
+    task_queue: Option<&TaskQueue>,
+    now_ms: u64,
+    lease_ttl_ms: u64,
+) -> RunScopedActivityTaskClaimRequest {
+    let request =
+        RunScopedActivityTaskClaimRequest::new(worker, run_id.clone(), now_ms, lease_ttl_ms);
+    if let Some(task_queue) = task_queue {
+        request.with_task_queue(task_queue.clone())
+    } else {
+        request
+    }
 }
 
 fn empty_output(
@@ -425,7 +441,10 @@ where
 fn heartbeat_metadata(claimed_task: &HotStateLeasedActivityTask) -> serde_json::Value {
     serde_json::json!({
         "source": "qianji-activity-worker",
+        "executor": "openai-compatible-llm",
+        "phase": "provider_request_active",
         "activity_id": claimed_task.activity_task.task.activity_id.as_str(),
+        "activity_type": claimed_task.activity_task.task.activity_type.as_str(),
         "task_queue": claimed_task.activity_task.task.task_queue.as_str(),
         "next_attempt": claimed_task.activity_task.task.next_attempt,
     })

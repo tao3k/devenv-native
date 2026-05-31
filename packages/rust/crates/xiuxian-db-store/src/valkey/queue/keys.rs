@@ -1,3 +1,5 @@
+//! Structured Valkey queue key derivation.
+
 use crate::valkey::{
     error::{ValkeyStoreError, non_blank},
     queue::ValkeyQueueEntryId,

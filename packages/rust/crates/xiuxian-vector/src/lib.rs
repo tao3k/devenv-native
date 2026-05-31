@@ -95,12 +95,3 @@ mod arrow_codec;
 mod search_impl;
 #[cfg(feature = "vector-store")]
 mod store;
-
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::vector_rust_harness_config()
-);

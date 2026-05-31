@@ -1,3 +1,5 @@
+//! API surface for compiling structural-facts reasoning fill plans.
+
 use std::{collections::BTreeSet, fs, path::Path};
 
 use anyhow::{Context, Result, bail};

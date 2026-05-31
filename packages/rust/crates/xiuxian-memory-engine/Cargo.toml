@@ -40,6 +40,9 @@ default = []
 valkey = ["dep:redis"]
 # lance = []  # Reserved for future LanceDB upgrade
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 xiuxian-io = { path = "../xiuxian-io" }

@@ -5,6 +5,7 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskReleaseReport,
 };
 use crate::bpmn::driver::QianjiBpmnExecutionReport;
+use crate::bpmn::http_transport::source_authoring::QianjiControlWorkflowSourceAuthoringMediaType;
 use crate::bpmn::identity::{
     QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
 };
@@ -259,23 +260,41 @@ pub struct QianjiControlRunStreamHttpResponse {
     pub run_id: String,
     /// Stable stream schema version.
     pub schema_version: String,
+    /// Cursor supplied by the caller.
+    #[serde(default)]
+    pub after_sequence: Option<u64>,
     /// Number of stream rows returned.
     pub row_count: usize,
+    /// Number of stream rows available before cursor filtering.
+    pub total_row_count: usize,
+    /// Cursor clients should send as `after_sequence` on the next poll.
+    #[serde(default)]
+    pub next_after_sequence: Option<u64>,
     /// Ordered durable stream rows.
     #[serde(default)]
     pub rows: Vec<QianjiControlRunStreamRow>,
 }
 
 impl QianjiControlRunStreamHttpResponse {
-    pub(in crate::bpmn::http_transport) fn from_events(
+    pub(in crate::bpmn::http_transport) fn from_events_after(
         run_id: &RunId,
         events: &[ControlEventRecord],
+        after_sequence: Option<u64>,
     ) -> Self {
-        let rows = qianji_control_run_stream_rows(run_id, events);
+        let all_rows = qianji_control_run_stream_rows(run_id, events);
+        let total_row_count = all_rows.len();
+        let rows = all_rows
+            .into_iter()
+            .filter(|row| after_sequence.is_none_or(|cursor| row.sequence > cursor))
+            .collect::<Vec<_>>();
+        let next_after_sequence = rows.last().map(|row| row.sequence).or(after_sequence);
         Self {
             run_id: run_id.as_str().to_owned(),
             schema_version: QIANJI_CONTROL_RUN_STREAM_SCHEMA_VERSION.to_owned(),
+            after_sequence,
             row_count: rows.len(),
+            total_row_count,
+            next_after_sequence,
             rows,
         }
     }
@@ -361,44 +380,52 @@ impl QianjiControlBpmnSourceAdmissionHttpResponse {
 #[serde(tag = "status", rename_all = "snake_case")]
 pub enum QianjiControlWorkflowSourceAdmissionHttpResponse {
     /// The source was compiled and admitted as server-owned BPMN.
-    Admitted {
-        /// Server-normalized source identifier.
-        source_id: String,
-        /// Server-owned BPMN source reference.
-        source_ref: String,
-        /// Filesystem path accepted by the existing workflow start route.
-        bpmn_path: String,
-        /// Media type of the admitted executable source payload.
-        media_type: QianjiControlBpmnSourceMediaType,
-        /// BPMN process identifier validated against the parsed package.
-        process_id: QianjiBpmnProcessId,
-        /// Stable SHA-256 digest of the admitted BPMN XML payload.
-        source_sha256: String,
-        /// Blocking lint issue count. This is zero for admitted sources.
-        lint_issue_count: usize,
-        /// Media type of the original authoring source.
-        authoring_media_type: String,
-        /// Stable SHA-256 digest of the original authoring source.
-        authoring_source_sha256: String,
-        /// Server compiler/admission path used for this source.
-        compiler: String,
-    },
+    Admitted(QianjiControlWorkflowSourceAdmittedHttpResponse),
     /// The source requires model-assisted repair and a durable repair workflow
     /// has been started.
-    RepairStarted {
-        /// Server-normalized source identifier.
-        source_id: String,
-        /// Target BPMN process identifier requested by the authoring caller.
-        target_process_id: QianjiBpmnProcessId,
-        /// Media type of the original authoring source.
-        authoring_media_type: String,
-        /// Stable SHA-256 digest of the original authoring source.
-        authoring_source_sha256: String,
-        /// Server compiler/admission path used for this source.
-        compiler: String,
-        /// Durable repair workflow run details.
-        repair_run: QianjiControlWorkflowSourceRepairRunHttpResponse,
-    },
+    RepairStarted(QianjiControlWorkflowSourceRepairStartedHttpResponse),
+}
+
+/// Admitted workflow-source response payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlWorkflowSourceAdmittedHttpResponse {
+    /// Server-normalized source identifier.
+    pub source_id: String,
+    /// Server-owned BPMN source reference.
+    pub source_ref: String,
+    /// Filesystem path accepted by the existing workflow start route.
+    pub bpmn_path: String,
+    /// Media type of the admitted executable source payload.
+    pub media_type: QianjiControlBpmnSourceMediaType,
+    /// BPMN process identifier validated against the parsed package.
+    pub process_id: QianjiBpmnProcessId,
+    /// Stable SHA-256 digest of the admitted BPMN XML payload.
+    pub source_sha256: String,
+    /// Blocking lint issue count. This is zero for admitted sources.
+    pub lint_issue_count: usize,
+    /// Media type of the original authoring source.
+    pub authoring_media_type: QianjiControlWorkflowSourceAuthoringMediaType,
+    /// Stable SHA-256 digest of the original authoring source.
+    pub authoring_source_sha256: String,
+    /// Server compiler/admission path used for this source.
+    pub compiler: String,
+}
+
+/// Repair-started workflow-source response payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlWorkflowSourceRepairStartedHttpResponse {
+    /// Server-normalized source identifier.
+    pub source_id: String,
+    /// Target BPMN process identifier requested by the authoring caller.
+    pub target_process_id: QianjiBpmnProcessId,
+    /// Media type of the original authoring source.
+    pub authoring_media_type: QianjiControlWorkflowSourceAuthoringMediaType,
+    /// Stable SHA-256 digest of the original authoring source.
+    pub authoring_source_sha256: String,
+    /// Server compiler/admission path used for this source.
+    pub compiler: String,
+    /// Durable repair workflow run details.
+    pub repair_run: QianjiControlWorkflowSourceRepairRunHttpResponse,
 }
 
 /// Durable repair workflow run details for model-assisted source admission.
@@ -441,11 +468,11 @@ impl QianjiControlWorkflowSourceRepairRunHttpResponse {
 impl QianjiControlWorkflowSourceAdmissionHttpResponse {
     pub(in crate::bpmn::http_transport) fn new(
         admitted: QianjiControlBpmnSourceAdmissionHttpResponse,
-        authoring_media_type: String,
+        authoring_media_type: QianjiControlWorkflowSourceAuthoringMediaType,
         authoring_source_sha256: String,
         compiler: impl Into<String>,
     ) -> Self {
-        Self::Admitted {
+        Self::Admitted(QianjiControlWorkflowSourceAdmittedHttpResponse {
             source_id: admitted.source_id,
             source_ref: admitted.source_ref,
             bpmn_path: admitted.bpmn_path,
@@ -456,25 +483,25 @@ impl QianjiControlWorkflowSourceAdmissionHttpResponse {
             authoring_media_type,
             authoring_source_sha256,
             compiler: compiler.into(),
-        }
+        })
     }
 
     pub(in crate::bpmn::http_transport) fn repair_started(
         source_id: String,
         target_process_id: QianjiBpmnProcessId,
-        authoring_media_type: String,
+        authoring_media_type: QianjiControlWorkflowSourceAuthoringMediaType,
         authoring_source_sha256: String,
         compiler: impl Into<String>,
         repair_run: QianjiControlWorkflowSourceRepairRunHttpResponse,
     ) -> Self {
-        Self::RepairStarted {
+        Self::RepairStarted(QianjiControlWorkflowSourceRepairStartedHttpResponse {
             source_id,
             target_process_id,
             authoring_media_type,
             authoring_source_sha256,
             compiler: compiler.into(),
             repair_run,
-        }
+        })
     }
 }
 

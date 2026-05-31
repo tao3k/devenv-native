@@ -6,6 +6,7 @@
 
 use super::activity_evidence::now_unix_ms;
 use super::error_api::QianjiBpmnWorkflowHttpError;
+use super::llm_task_documentation::bpmn_task_documentation;
 use super::response_api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
 };
@@ -59,6 +60,7 @@ pub(super) fn record_bpmn_llm_host_work_schedules(
     let source_ref = bpmn_source.map(|path| path.display().to_string());
     let now_ms = now_unix_ms();
     ensure_llm_host_work_steps(ledger, &run_id, &pending_work, now_ms)?;
+    let mut scheduled_activity_ids = existing_step_activity_ids(ledger, &run_id)?;
 
     for (index, work) in pending_work.iter().enumerate() {
         let prompt_ref = write_prompt_artifact(
@@ -82,13 +84,18 @@ pub(super) fn record_bpmn_llm_host_work_schedules(
         .map_err(schedule_error)?;
         let admission =
             LlmActivityAdmission::from_activity(route.llm_activity).map_err(schedule_error)?;
+        let step_id = StepId::new(route.activity_id.clone()).map_err(schedule_error)?;
+        let activity_id = admission.activity_task().activity_id.as_str().to_owned();
+        if !scheduled_activity_ids.insert((step_id.as_str().to_owned(), activity_id)) {
+            continue;
+        }
         let occurred_at_ms =
             now_ms.saturating_add(u64::try_from(index).unwrap_or(u64::MAX).saturating_add(1));
         record_admitted_llm_activity_schedule_idempotent(
             ledger,
             AdmittedLlmActivityScheduleRecord::step(
                 run_id.clone(),
-                StepId::new(route.activity_id).map_err(schedule_error)?,
+                step_id,
                 occurred_at_ms,
                 admission,
             ),
@@ -96,6 +103,23 @@ pub(super) fn record_bpmn_llm_host_work_schedules(
         .map_err(schedule_error)?;
     }
     Ok(())
+}
+
+fn existing_step_activity_ids(
+    ledger: &dyn ControlLedger,
+    run_id: &RunId,
+) -> Result<BTreeSet<(String, String)>, QianjiBpmnWorkflowHttpError> {
+    let view = ledger.load_run_view(run_id).map_err(schedule_error)?;
+    Ok(view
+        .steps
+        .iter()
+        .flat_map(|(step_id, step)| {
+            step.activities
+                .keys()
+                .map(|activity_id| (step_id.as_str().to_owned(), activity_id.as_str().to_owned()))
+                .collect::<Vec<_>>()
+        })
+        .collect())
 }
 
 fn ensure_llm_host_work_steps(
@@ -236,6 +260,10 @@ fn prompt_text(
     work: &QianjiBpmnPendingHostWorkHttpResponse,
     bpmn_source_ref: Option<&str>,
 ) -> String {
+    let task_documentation = bpmn_task_documentation(
+        bpmn_source_ref,
+        work.activity_id.as_ref().map(QianjiBpmnActivityId::as_str),
+    );
     let payload = json!({
         "schema": PROMPT_ARTIFACT_SCHEMA,
         "bpmnSourceRef": bpmn_source_ref,
@@ -247,12 +275,14 @@ fn prompt_text(
         "kind": format!("{:?}", work.kind),
         "variables": work.variables,
         "inputs": work.inputs,
+        "taskDocumentation": task_documentation,
         "outputBindings": work.output_bindings,
     });
     format!(
         "You are the Qianji server-owned LLM worker for one BPMN host-work item.\n\
-         Follow the BPMN task identity exactly. Use only the supplied variables and inputs.\n\
-         If outputBindings is non-empty, return a compact JSON object whose keys match the declared output binding names.\n\
+         Follow the BPMN task identity exactly. Use only the supplied variables, inputs, and taskDocumentation.\n\
+         If taskDocumentation is present, treat it as the executable task instruction for this BPMN node.\n\
+         If outputBindings is non-empty, return JSON only, with no Markdown fences or prose, and include every declared output binding name.\n\
          If outputBindings is empty, return concise raw text suitable for an operator-facing workflow trace.\n\n\
          <qianji_bpmn_host_work>\n{}\n</qianji_bpmn_host_work>\n",
         pretty_json(&payload),

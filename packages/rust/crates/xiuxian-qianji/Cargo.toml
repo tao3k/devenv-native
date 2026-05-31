@@ -51,11 +51,10 @@ qianji-full = [
 wendao-integration = [
   "qianji-full",
   "dep:xiuxian-wendao",
-  "xiuxian-wendao/search-runtime",
+  "xiuxian-wendao/duckdb",
   "dep:xiuxian-wendao-sql",
   "dep:xiuxian-wendao-core",
   "dep:xiuxian-wendao-runtime",
-  "dep:xiuxian-wendao-parsers",
 ]
 
 [dependencies]
@@ -96,7 +95,6 @@ xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optiona
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", optional = true }
-xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan", optional = true }
 xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
@@ -116,6 +114,9 @@ insta = { workspace = true }
 reqwest = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 tower = { workspace = true }
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [lints]
 workspace = true

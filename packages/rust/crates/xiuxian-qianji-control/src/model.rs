@@ -762,6 +762,43 @@ pub struct RunnableActivityTask {
     pub metadata: serde_json::Value,
 }
 
+/// Request for claiming an activity task within one durable run.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct RunScopedActivityTaskClaimRequest {
+    /// Worker requesting the lease.
+    pub worker: WorkerRef,
+    /// Owning run id.
+    pub run_id: RunId,
+    /// Optional task queue filter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_queue: Option<TaskQueue>,
+    /// Claim timestamp.
+    pub now_ms: u64,
+    /// Lease TTL.
+    pub lease_ttl_ms: u64,
+}
+
+impl RunScopedActivityTaskClaimRequest {
+    /// Creates a run-scoped activity task claim request.
+    #[must_use]
+    pub const fn new(worker: WorkerRef, run_id: RunId, now_ms: u64, lease_ttl_ms: u64) -> Self {
+        Self {
+            worker,
+            run_id,
+            task_queue: None,
+            now_ms,
+            lease_ttl_ms,
+        }
+    }
+
+    /// Filters the claim to one task queue.
+    #[must_use]
+    pub fn with_task_queue(mut self, task_queue: TaskQueue) -> Self {
+        self.task_queue = Some(task_queue);
+        self
+    }
+}
+
 /// Worker requesting hot-state leases.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct WorkerRef {

@@ -419,14 +419,16 @@ impl HotStateStore for ValkeyHotStateStore {
 
     async fn claim_activity_task_for_run(
         &self,
-        worker: WorkerRef,
-        run_id: &RunId,
-        task_queue: Option<&TaskQueue>,
-        now_ms: u64,
-        lease_ttl_ms: u64,
+        request: crate::RunScopedActivityTaskClaimRequest,
     ) -> ControlResult<Option<HotStateLeasedActivityTask>> {
-        self.claim_matching_activity_task(worker, Some(run_id), task_queue, now_ms, lease_ttl_ms)
-            .await
+        self.claim_matching_activity_task(
+            request.worker,
+            Some(&request.run_id),
+            request.task_queue.as_ref(),
+            request.now_ms,
+            request.lease_ttl_ms,
+        )
+        .await
     }
 
     async fn release_activity_task_lease(&self, lease: &ActivityTaskLease) -> ControlResult<bool> {

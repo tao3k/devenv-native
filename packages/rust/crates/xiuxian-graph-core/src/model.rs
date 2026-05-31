@@ -181,7 +181,7 @@ impl GraphProjection {
         for node in &self.nodes {
             if !ids.insert(node.id()) {
                 return Err(GraphProjectionError::DuplicateNodeId {
-                    id: node.id().to_string(),
+                    id: node.id().clone(),
                 });
             }
         }
@@ -189,14 +189,14 @@ impl GraphProjection {
         for edge in &self.edges {
             if !ids.contains(edge.source()) {
                 return Err(GraphProjectionError::MissingSourceNode {
-                    source_id: edge.source().to_string(),
-                    target_id: edge.target().to_string(),
+                    source_id: edge.source().clone(),
+                    target_id: edge.target().clone(),
                 });
             }
             if !ids.contains(edge.target()) {
                 return Err(GraphProjectionError::MissingTargetNode {
-                    source_id: edge.source().to_string(),
-                    target_id: edge.target().to_string(),
+                    source_id: edge.source().clone(),
+                    target_id: edge.target().clone(),
                 });
             }
         }
@@ -212,22 +212,22 @@ pub enum GraphProjectionError {
     #[error("duplicate graph node id `{id}`")]
     DuplicateNodeId {
         /// Duplicated node id.
-        id: String,
+        id: GraphNodeId,
     },
     /// An edge source endpoint is not declared as a node.
     #[error("graph edge `{source_id}` -> `{target_id}` references a missing source node")]
     MissingSourceNode {
         /// Source node id.
-        source_id: String,
+        source_id: GraphNodeId,
         /// Target node id.
-        target_id: String,
+        target_id: GraphNodeId,
     },
     /// An edge target endpoint is not declared as a node.
     #[error("graph edge `{source_id}` -> `{target_id}` references a missing target node")]
     MissingTargetNode {
         /// Source node id.
-        source_id: String,
+        source_id: GraphNodeId,
         /// Target node id.
-        target_id: String,
+        target_id: GraphNodeId,
     },
 }

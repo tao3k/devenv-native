@@ -1,3 +1,5 @@
+//! Data contracts for deterministic ontology bootstrap pipeline runs.
+
 use std::path::{Path, PathBuf};
 
 use serde::{Serialize, Serializer, ser::SerializeStruct};

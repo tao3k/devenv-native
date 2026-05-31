@@ -22,3 +22,9 @@ fn openai_finish_reason(provider_response: &Value) -> Option<&str> {
 pub(super) fn body_preview(body: &str) -> String {
     body.chars().take(4096).collect()
 }
+
+pub(super) fn response_preview(content: &str) -> String {
+    const MAX_CHARS: usize = 512;
+    let compact = content.split_whitespace().collect::<Vec<_>>().join(" ");
+    compact.chars().take(MAX_CHARS).collect()
+}

@@ -10,5 +10,6 @@ mod types;
 
 pub use self::types::{QianjiScheduler, SchedulerRuntimeServices};
 pub use crate::{
-    QianjiStateSnapshot, RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExecutionPolicy,
+    QianjiStateSnapshot, RoleAvailabilityRegistry, SchedulerAgentIdentity,
+    SchedulerExcludedClusterRef, SchedulerExecutionPolicy,
 };

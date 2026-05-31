@@ -1,5 +1,6 @@
 use crate::engine::NodeExecutionAffinity;
 use crate::scheduler::core::QianjiScheduler;
+use crate::scheduler_policy::SchedulerExcludedClusterRef;
 use petgraph::stable_graph::NodeIndex;
 
 pub(in crate::scheduler::core) enum AuthVerdict {
@@ -122,7 +123,10 @@ impl QianjiScheduler {
             return true;
         };
         registry
-            .has_role(role_class, Some(self.cluster_id.as_str()))
+            .has_role(
+                role_class,
+                Some(SchedulerExcludedClusterRef::new(self.cluster_id.as_str())),
+            )
             .await
     }
 }

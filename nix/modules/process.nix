@@ -1,13 +1,12 @@
-{ __inputs__
-, ...
+{
+  __inputs__,
+  ...
 }:
 let
-  processScript =
-    processName: scriptName:
-    ''
-      ROOT_DIR="''${PRJ_ROOT:-''${DEVENV_ROOT:-$(pwd)}}"
-      exec bash "$ROOT_DIR/scripts/runtime/processes/${processName}/${scriptName}.sh"
-    '';
+  processScript = processName: scriptName: ''
+    ROOT_DIR="''${PRJ_ROOT:-''${DEVENV_ROOT:-$(pwd)}}"
+    exec bash "$ROOT_DIR/scripts/runtime/processes/${processName}/${scriptName}.sh"
+  '';
   processEntrypoint = processName: processScript processName "entrypoint";
   processHealthcheck = processName: processScript processName "healthcheck";
 in
@@ -101,6 +100,7 @@ in
       exec = processEntrypoint "wendao-ai";
       process-compose = {
         depends_on = {
+          qianji-server.condition = "process_healthy";
           wendao-gateway.condition = "process_healthy";
         };
         readiness_probe = {

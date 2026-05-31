@@ -35,15 +35,15 @@ impl std::fmt::Debug for StudioRefineDocFlightRouteProvider {
 impl RefineDocFlightRouteProvider for StudioRefineDocFlightRouteProvider {
     async fn refine_doc_batch(
         &self,
-        repo_id: &str,
-        entity_id: &str,
+        repo_key: &str,
+        entity_key: &str,
         user_hints: Option<&str>,
     ) -> Result<AnalysisFlightRouteResponse, Status> {
         let response = run_refine_entity_doc(
             Arc::clone(&self.state),
             RefineEntityDocRequest {
-                repo_id: repo_id.to_string(),
-                entity_id: entity_id.to_string(),
+                repo_id: repo_key.to_string(),
+                entity_id: entity_key.to_string(),
                 user_hints: user_hints.map(ToString::to_string),
             },
         )

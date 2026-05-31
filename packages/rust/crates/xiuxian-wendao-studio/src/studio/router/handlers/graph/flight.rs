@@ -40,14 +40,14 @@ impl std::fmt::Debug for StudioGraphNeighborsFlightRouteProvider {
 impl GraphNeighborsFlightRouteProvider for StudioGraphNeighborsFlightRouteProvider {
     async fn graph_neighbors_batch(
         &self,
-        node_id: &str,
+        node_key: &str,
         direction: &str,
         hops: usize,
         limit: usize,
     ) -> Result<GraphNeighborsFlightRouteResponse, Status> {
         load_graph_neighbors_flight_response(
             Arc::clone(&self.state),
-            node_id,
+            node_key,
             direction,
             hops,
             limit,

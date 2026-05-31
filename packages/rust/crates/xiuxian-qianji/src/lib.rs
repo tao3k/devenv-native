@@ -143,11 +143,15 @@ pub use bpmn::{
     QianjiBpmnWorkflowWorklistRoutingFilter, QianjiControlDiagnosticsHttpResponse,
     QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
-    QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpRequest,
-    QianjiControlWorkflowSourceAdmissionHttpResponse, QianjiControlWorkflowSourceCompilerMode,
+    QianjiControlRunStreamSource, QianjiControlRunSummaryHttpResponse,
+    QianjiControlWorkflowSourceAdmissionHttpRequest,
+    QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
+    QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
     QianjiRunConsoleElementState, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
-    build_bpmn_host_work_activity_result, build_bpmn_host_work_activity_schedule_record,
-    build_bpmn_host_work_llm_activity_route, build_flowhub_service_activity_schedule_record,
+    QianjiRuntimeLeaseTtlMs, QianjiRuntimeWorkerIdRef, build_bpmn_host_work_activity_result,
+    build_bpmn_host_work_activity_schedule_record, build_bpmn_host_work_llm_activity_route,
+    build_flowhub_service_activity_schedule_record,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
     build_flowhub_service_task_completion_payload,
@@ -155,7 +159,7 @@ pub use bpmn::{
     build_flowhub_service_task_contract_completion_data, dispatch_pending_host_work_request,
     dispatch_pending_host_work_requests, load_bpmn_package_from_files,
     load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
-    resolve_pending_host_work, resolve_waiting_external_event,
+    qianji_control_run_stream_rows, resolve_pending_host_work, resolve_waiting_external_event,
 };
 #[cfg(feature = "duckdb")]
 pub use bpmn::{
@@ -236,7 +240,9 @@ pub use scheduler::QianjiScheduler;
 #[cfg(feature = "qianji-full")]
 pub use scheduler_checkpoint::QianjiStateSnapshot;
 #[cfg(feature = "qianji-full")]
-pub use scheduler_policy::{RoleAvailabilityRegistry, SchedulerExecutionPolicy};
+pub use scheduler_policy::{
+    RoleAvailabilityRegistry, SchedulerExcludedClusterRef, SchedulerExecutionPolicy,
+};
 #[cfg(feature = "qianji-full")]
 pub use swarm::{
     ClusterNodeIdentity, ClusterNodeRecord, GlobalSwarmRegistry, RemoteNodeRequest,
@@ -293,15 +299,6 @@ pub use {
     qianji_server_cli::{QianjiServerCliError, run_qianji_server_cli},
 };
 
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
 #[path = "../tests/unit/support/valkey.rs"]
-pub(crate) mod qianji_test_valkey_support;
-
 #[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::qianji_rust_harness_config()
-);
+pub(crate) mod qianji_test_valkey_support;

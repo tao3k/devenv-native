@@ -1,3 +1,5 @@
+//! API surface for compiling source-contract structural facts.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     env, fs,
@@ -6,7 +8,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 
-use super::super::manifest::read_ontology_manifest;
+use crate::ontology::manifest::read_ontology_manifest;
 use crate::{configured_episteme_corpus_root_env, load_episteme_runtime_config};
 
 use super::{
@@ -67,6 +69,13 @@ pub fn write_episteme_ontology_structural_facts_from_config(
 /// files are missing or drift from the selected validation mode, or output
 /// artifacts cannot be written.
 pub fn write_episteme_ontology_structural_facts(
+    request: &EpistemeOntologyStructuralFactsRequest,
+    run_root: impl AsRef<Path>,
+) -> Result<EpistemeOntologyStructuralFactsReport> {
+    write_episteme_ontology_structural_facts_impl(request, run_root)
+}
+
+fn write_episteme_ontology_structural_facts_impl(
     request: &EpistemeOntologyStructuralFactsRequest,
     run_root: impl AsRef<Path>,
 ) -> Result<EpistemeOntologyStructuralFactsReport> {

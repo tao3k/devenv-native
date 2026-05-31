@@ -7,11 +7,10 @@ mod schema;
 pub use projection::{
     QIANJI_CONTROL_RUN_STREAM_SCHEMA_VERSION, QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE,
     QIANJI_RUN_CONSOLE_EVENT_ROUTE, QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiControlRunStreamRow,
-    QianjiControlRunStreamSource, QianjiRunConsoleElementState,
+    QianjiControlRunStreamSource, QianjiRunConsoleElementState, qianji_control_run_stream_rows,
 };
 pub(crate) use projection::{
-    QianjiRunConsoleElementProjection, qianji_control_run_stream_rows,
-    qianji_run_console_element_projections,
+    QianjiRunConsoleElementProjection, qianji_run_console_element_projections,
 };
 #[cfg(feature = "duckdb")]
 pub use schema::{

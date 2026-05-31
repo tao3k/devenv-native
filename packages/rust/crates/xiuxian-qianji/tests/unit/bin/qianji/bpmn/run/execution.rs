@@ -107,8 +107,8 @@ async fn host_session_surfaces_service_task_without_host_fixture() {
                     host_fixture_path: None,
                     event_fixture_path: None,
                     trace_stream: false,
-                    external_host: true,
-                    continue_until_human_boundary: true,
+                    external_host: false,
+                    continue_until_human_boundary: false,
                 },
             },
         )))

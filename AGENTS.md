@@ -4,6 +4,8 @@ metadata:
   title: "Sovereign Engineering Protocol"
 ---
 
+@.codex/skills/rs-harness/SKILL.org
+
 # Sovereign Engineering Protocol
 
 ## 1. Engineering Values (The Triad of Rigor)
@@ -61,12 +63,12 @@ To prevent context bloating and "hallucination spirals," all Agents MUST follow 
   `$DEVENV_PROFILE/bin/<command>`.
 - **RTK Output Discipline**: For project-scoped commands with a real RTK
   filtered wrapper, put RTK inside the project environment: `direnv exec . rtk
-  <filtered-command>`. Use `direnv exec . rtk --ultra-compact
-  <filtered-command>` for high-volume validation gates where failure summaries
+<filtered-command>`. Use `direnv exec . rtk --ultra-compact
+<filtered-command>` for high-volume validation gates where failure summaries
   are enough, especially Cargo, npm, pytest, ruff, and TypeScript checks. Use
   direct RTK for small environment-independent inspections such as `rtk git
-  status --short`, `rtk git diff -- <paths>`, `rtk read <path>`, and `rtk ls
-  <path>`. Do not force RTK for commands without filtered wrappers; use raw
+status --short`, `rtk git diff -- <paths>`, `rtk read <path>`, and `rtk ls
+<path>`. Do not force RTK for commands without filtered wrappers; use raw
   `direnv exec . <command>` for `wendao-client`, Julia checks,
   artifact-producing commands, exact parser output, and machine-parsed output.
   Use `rtk rewrite <raw-command>` when unsure whether a wrapper exists.

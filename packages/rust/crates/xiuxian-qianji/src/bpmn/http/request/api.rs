@@ -10,6 +10,7 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
 };
 use crate::bpmn::http_transport::error_api::QianjiBpmnWorkflowHttpError;
+use crate::bpmn::http_transport::source_authoring::QianjiControlWorkflowSourceAuthoringMediaType;
 use crate::bpmn::identity::{
     QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
     QianjiBpmnWorkflowInstanceId,
@@ -80,7 +81,7 @@ pub struct QianjiControlWorkflowSourceAdmissionHttpRequest {
     /// Expected BPMN process identifier after source compilation.
     pub process_id: QianjiBpmnProcessId,
     /// Authoring source media type, for example `text/markdown`.
-    pub source_media_type: String,
+    pub source_media_type: QianjiControlWorkflowSourceAuthoringMediaType,
     /// Authoring source body. This is not executable until qianji-server
     /// admits a linted BPMN source derived from it.
     pub source_text: String,
@@ -587,6 +588,14 @@ pub struct QianjiBpmnWorkflowStatusHttpQuery {
     /// `runtime_valkey` and defaults to it when omitted.
     #[serde(default)]
     pub checkpoint_backend: Option<String>,
+}
+
+/// Query parameters for the durable control run-stream projection.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlRunStreamHttpQuery {
+    /// Return only rows with a sequence greater than this cursor.
+    #[serde(default)]
+    pub after_sequence: Option<u64>,
 }
 
 impl QianjiBpmnWorkflowStatusHttpQuery {

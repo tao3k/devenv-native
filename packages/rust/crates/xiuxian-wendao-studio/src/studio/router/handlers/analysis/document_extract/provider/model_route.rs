@@ -174,9 +174,9 @@ fn image_route_input(
         .map(str::to_ascii_lowercase)
         .unwrap_or_default();
     WendaoAttachmentRouteInput {
-        task_kind: IMAGE_ROUTE_TASK_KIND.to_owned(),
+        task_kind: IMAGE_ROUTE_TASK_KIND.to_owned().into(),
         modality: IMAGE_ROUTE_MODALITY.to_owned(),
-        source_kind: IMAGE_ROUTE_SOURCE_KIND.to_owned(),
+        source_kind: IMAGE_ROUTE_SOURCE_KIND.to_owned().into(),
         precision_tier: IMAGE_ROUTE_PRECISION_TIER.to_owned(),
         privacy_tier: IMAGE_ROUTE_PRIVACY_TIER.to_owned(),
         latency_budget_ms: IMAGE_ROUTE_LATENCY_BUDGET_MS,

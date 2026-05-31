@@ -1,3 +1,5 @@
+//! Legacy Office source format detection.
+
 use std::path::Path;
 
 /// Legacy Office formats handled without LibreOffice or Java.

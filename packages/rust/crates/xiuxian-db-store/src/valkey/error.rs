@@ -1,3 +1,5 @@
+//! Typed Valkey storage errors and shared input validators.
+
 use crate::valkey::queue::{ValkeyLeaseId, ValkeyWorkerId};
 
 /// A typed lease ownership fact returned by Valkey scripts.

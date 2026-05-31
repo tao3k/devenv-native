@@ -1,6 +1,6 @@
 //! Hot-reload runtime coordination for registered Qianhuan targets.
 
-use super::{HotReloadTarget, HotReloadVersionBackend};
+use super::{HotReloadTarget, HotReloadTargetId, HotReloadVersionBackend};
 use anyhow::{Result, anyhow};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -67,8 +67,9 @@ impl HotReloadRuntime {
     /// Returns an error when the state lock is poisoned.
     pub fn register_target(&self, target: HotReloadTarget) -> Result<()> {
         let target_id = target.id().to_string();
+        let backend_target_id = HotReloadTargetId::new(target.id());
         let initial_version = match self.backend.as_ref() {
-            Some(backend) => backend.read_version(&target_id)?.unwrap_or(0),
+            Some(backend) => backend.read_version(&backend_target_id)?.unwrap_or(0),
             None => 0,
         };
 
@@ -172,7 +173,8 @@ impl HotReloadRuntime {
 
         let mut outcomes = Vec::new();
         for (target_id, target, local_version) in snapshot {
-            let remote_version = backend.read_version(&target_id)?.unwrap_or(0);
+            let backend_target_id = HotReloadTargetId::new(target_id.as_str());
+            let remote_version = backend.read_version(&backend_target_id)?.unwrap_or(0);
             if remote_version <= local_version {
                 continue;
             }
@@ -236,7 +238,8 @@ impl HotReloadRuntime {
 
     fn bump_version_and_persist(&self, target_id: &str, current: u64) -> Result<u64> {
         if let Some(backend) = self.backend.as_ref() {
-            return backend.bump_version(target_id);
+            let backend_target_id = HotReloadTargetId::new(target_id);
+            return backend.bump_version(&backend_target_id);
         }
         Ok(current.saturating_add(1))
     }

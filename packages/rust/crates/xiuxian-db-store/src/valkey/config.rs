@@ -1,3 +1,5 @@
+//! Valkey connection and key namespace configuration.
+
 use crate::valkey::error::{ValkeyStoreError, non_blank};
 
 const DEFAULT_KEY_NAMESPACE: &str = "xiuxian:db-store";

@@ -36,13 +36,13 @@ impl std::fmt::Debug for StudioRepoDocCoverageFlightRouteProvider {
 impl RepoDocCoverageFlightRouteProvider for StudioRepoDocCoverageFlightRouteProvider {
     async fn repo_doc_coverage_batch(
         &self,
-        repo_id: &str,
-        module_id: Option<&str>,
+        repo_key: &str,
+        module_key: Option<&str>,
     ) -> Result<AnalysisFlightRouteResponse, String> {
         let response = run_repo_doc_coverage(
             Arc::clone(&self.state),
-            repo_id.to_string(),
-            module_id.map(ToString::to_string),
+            repo_key.to_string(),
+            module_key.map(ToString::to_string),
         )
         .await
         .map_err(|error| map_studio_api_error(&error))?;

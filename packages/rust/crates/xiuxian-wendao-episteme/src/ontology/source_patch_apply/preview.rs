@@ -123,6 +123,12 @@ pub struct EpistemeOntologySourcePatchApplyPreviewReport {
 pub fn write_episteme_ontology_source_patch_apply_preview(
     request: &EpistemeOntologySourcePatchApplyPreviewRequest,
 ) -> Result<EpistemeOntologySourcePatchApplyPreviewReport> {
+    write_episteme_ontology_source_patch_apply_preview_impl(request)
+}
+
+fn write_episteme_ontology_source_patch_apply_preview_impl(
+    request: &EpistemeOntologySourcePatchApplyPreviewRequest,
+) -> Result<EpistemeOntologySourcePatchApplyPreviewReport> {
     let expected_hash = request.expected_apply_plan_tsv_sha256.trim();
     if expected_hash.is_empty() {
         anyhow::bail!("source-patch apply preview requires an expected apply-plan TSV hash");

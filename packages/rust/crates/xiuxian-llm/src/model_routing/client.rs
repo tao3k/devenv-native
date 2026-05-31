@@ -1,11 +1,15 @@
 //! vLLM-SR route-decision probe client.
 
+use std::sync::OnceLock;
+
 use reqwest::header::AUTHORIZATION;
 use serde_json::json;
 
 use super::constants::VLLM_SR_AUTO_MODEL;
 use super::route_helpers::normalize_base_url;
 use super::types::{WendaoModelDecision, WendaoRouteIntent};
+
+static VLLM_SR_ROUTE_HTTP_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 /// OpenAI-compatible vLLM-SR route-decision probe client.
 #[derive(Clone)]
@@ -19,7 +23,7 @@ impl VllmSrRouteDecisionClient {
     /// Build a route decision client.
     #[must_use]
     pub fn new(base_url: impl Into<String>) -> Self {
-        Self::with_http_client(base_url, reqwest::Client::new())
+        Self::with_http_client(base_url, shared_vllm_sr_route_http_client())
     }
 
     /// Build a route decision client with an injected HTTP client.
@@ -105,4 +109,10 @@ impl VllmSrRouteDecisionClient {
             selected_backend_profile,
         )
     }
+}
+
+fn shared_vllm_sr_route_http_client() -> reqwest::Client {
+    VLLM_SR_ROUTE_HTTP_CLIENT
+        .get_or_init(reqwest::Client::new)
+        .clone()
 }

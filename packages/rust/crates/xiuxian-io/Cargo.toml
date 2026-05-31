@@ -27,6 +27,9 @@ default = []
 assembler = []  # Enable context assembly functionality
 notify = ["xiuxian-event", "dep:notify", "dep:globset"]  # Enable file watching with event publishing
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }

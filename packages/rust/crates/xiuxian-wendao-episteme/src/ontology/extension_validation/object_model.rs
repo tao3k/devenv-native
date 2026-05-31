@@ -1,3 +1,5 @@
+//! Object-model validation for Episteme extension contracts.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
@@ -6,8 +8,9 @@ use std::{
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 
+use crate::ontology::manifest::{EpistemeOntologyManifest, resolve_ontology_artifact_path};
+
 use super::{
-    super::manifest::{EpistemeOntologyManifest, resolve_ontology_artifact_path},
     pathing::{has_cjk, read_to_string},
     rdf::ExtensionRdfTerms,
 };

@@ -36,15 +36,6 @@ pub struct GraphNeighborsRequest {
     pub limit: usize,
 }
 
-impl PartialEq<(String, String, usize, usize)> for GraphNeighborsRequest {
-    fn eq(&self, other: &(String, String, usize, usize)) -> bool {
-        self.node_id == other.0
-            && self.direction == other.1
-            && self.hops == other.2
-            && self.limit == other.3
-    }
-}
-
 /// Validate and normalize the stable graph-neighbors request contract.
 ///
 /// # Errors

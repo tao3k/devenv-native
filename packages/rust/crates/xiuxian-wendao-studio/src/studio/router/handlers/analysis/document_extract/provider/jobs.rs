@@ -273,7 +273,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 request.source_path.as_str(),
                 Some(output_string.as_str()),
                 request.force,
-                request.wait_ms,
+                request.wait_ms.as_millis(),
             )
             .await?;
 
@@ -289,7 +289,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 Err(status.error_message)
             }
         } else {
-            if request.wait_ms > 0
+            if request.wait_ms.as_millis() > 0
                 && let Some(current) = self.status(status.job_id.as_str())?
             {
                 status = current;
@@ -483,13 +483,15 @@ impl StudioDocumentExtractFlightRouteProvider {
         artifact_dir: &Path,
     ) -> Result<(), String> {
         let request = DocumentExtractFlightRequest {
-            source_path: status.source_path.clone(),
+            source_path: xiuxian_wendao_server::transport::DocumentExtractSourcePath::new(
+                status.source_path.clone(),
+            ),
             output_dir: status.artifact_dir.clone(),
             force: true,
             error_row: false,
             profile: DOCUMENT_EXTRACT_FULL_PROFILE.to_string(),
             mode: DocumentExtractMode::AudioShards,
-            wait_ms: 0,
+            wait_ms: xiuxian_wendao_server::transport::DocumentExtractWaitBudgetMs::from_millis(0),
             audio_worker: None,
             audio_hosted_provider: None,
             audio_hosted_base_url: None,

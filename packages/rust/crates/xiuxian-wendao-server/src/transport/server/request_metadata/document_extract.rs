@@ -4,7 +4,8 @@ use tonic::Status;
 use tonic::metadata::MetadataMap;
 
 use crate::transport::query_contract::{
-    DocumentExtractFlightRequest, DocumentExtractMode, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+    DocumentExtractFlightRequest, DocumentExtractMode, DocumentExtractSourcePath,
+    DocumentExtractWaitBudgetMs, HostedAudioBaseUrl, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
     WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER, WENDAO_AUDIO_HOSTED_MODEL_HEADER,
     WENDAO_AUDIO_HOSTED_PROVIDER_HEADER, WENDAO_AUDIO_WORKER_HEADER,
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
@@ -56,13 +57,13 @@ pub(crate) fn validate_document_extract_request_metadata(
         0,
     )?;
     Ok(DocumentExtractFlightRequest {
-        source_path,
+        source_path: DocumentExtractSourcePath::new(source_path),
         output_dir,
         force,
         error_row,
         profile,
         mode,
-        wait_ms,
+        wait_ms: DocumentExtractWaitBudgetMs::from_millis(wait_ms),
         audio_worker: optional_document_extract_string(metadata, WENDAO_AUDIO_WORKER_HEADER),
         audio_hosted_provider: optional_document_extract_string(
             metadata,
@@ -71,7 +72,8 @@ pub(crate) fn validate_document_extract_request_metadata(
         audio_hosted_base_url: optional_document_extract_string(
             metadata,
             WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
-        ),
+        )
+        .map(HostedAudioBaseUrl::new),
         audio_hosted_endpoint: optional_document_extract_string(
             metadata,
             WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER,

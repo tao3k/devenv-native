@@ -8,7 +8,8 @@ use xiuxian_qianji::error::QianjiError;
 use xiuxian_qianji::scheduler::SchedulerRuntimeServices;
 use xiuxian_qianji::{
     FlowInstruction, QianjiEngine, QianjiMechanism, QianjiOutput, QianjiScheduler,
-    RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExecutionPolicy,
+    RoleAvailabilityRegistry, SchedulerAgentIdentity, SchedulerExcludedClusterRef,
+    SchedulerExecutionPolicy,
 };
 
 struct StaticOutputMechanism {
@@ -37,7 +38,11 @@ struct MockRoleRegistry {
 
 #[async_trait]
 impl RoleAvailabilityRegistry for MockRoleRegistry {
-    async fn has_role(&self, _role_class: &str, _exclude_cluster_id: Option<&str>) -> bool {
+    async fn has_role(
+        &self,
+        _role_class: &str,
+        _excluded_cluster: Option<SchedulerExcludedClusterRef<'_>>,
+    ) -> bool {
         self.has_remote_candidate
     }
 }

@@ -12,5 +12,8 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 schemars = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

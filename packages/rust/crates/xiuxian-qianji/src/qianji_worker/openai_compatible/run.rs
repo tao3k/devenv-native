@@ -55,6 +55,7 @@ pub(crate) async fn execute_openai_compatible_llm(
         Err(outcome) => return Ok(outcome),
     };
     let response_chars = response_text.chars().count();
+    let response_preview = response::response_preview(response_text.as_str());
     let artifact = artifact::write_openai_response_artifact(
         request,
         &audit,
@@ -70,6 +71,7 @@ pub(crate) async fn execute_openai_compatible_llm(
                 "executor": "openai-compatible-llm",
                 "model": audit.model,
                 "response_chars": response_chars,
+                "response_preview": response_preview,
             }),
         },
     })

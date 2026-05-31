@@ -14,21 +14,22 @@ pub use ontology::{
 pub use sample_host::run_wendao_flight_server_from_args;
 pub use types::{
     AnalysisFlightRouteResponse, AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
-    AutocompleteFlightRouteProvider, AutocompleteFlightRouteResponse,
-    CodeAstAnalysisFlightRouteProvider, DefinitionFlightRouteProvider,
-    DefinitionFlightRouteResponse, DocumentExtractFlightRouteProvider,
-    DocumentExtractFlightRouteResponse, GraphNeighborsFlightRouteProvider,
-    GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
-    RefineDocFlightRouteProvider, RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
+    AttachmentSearchFlightRouteRequest, AutocompleteFlightRouteProvider,
+    AutocompleteFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
+    DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
+    DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
+    GraphNeighborsFlightRouteProvider, GraphNeighborsFlightRouteResponse,
+    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
+    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider,
     RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRequest,
     RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider, RerankFlightRouteHandler,
-    SearchFlightRouteProvider, SearchFlightRouteResponse, SemanticScopeFlightRouteProvider,
-    SqlFlightRouteProvider, SqlFlightRouteResponse, Topology3dFlightRouteProvider,
-    Topology3dFlightRouteResponse, VfsContentFlightRouteProvider, VfsContentFlightRouteResponse,
-    VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse, VfsScanFlightRouteProvider,
-    VfsScanFlightRouteResponse, WendaoFlightRouteProviders,
+    SearchFlightRouteProvider, SearchFlightRouteRequest, SearchFlightRouteResponse,
+    SemanticScopeFlightRouteProvider, SqlFlightRouteProvider, SqlFlightRouteResponse,
+    Topology3dFlightRouteProvider, Topology3dFlightRouteResponse, VfsContentFlightRouteProvider,
+    VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
+    VfsScanFlightRouteProvider, VfsScanFlightRouteResponse, WendaoFlightRouteProviders,
 };
 
 pub(crate) use request_metadata::{

@@ -214,7 +214,3 @@ fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
         .with_pass_criteria(["exit=0", "findings=triaged"])
         .with_receipt_fields(["route_surface", "finding_summary", "artifact"])
 }
-
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = wendao_studio_harness_config()
-);

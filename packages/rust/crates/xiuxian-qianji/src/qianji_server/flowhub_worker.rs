@@ -9,7 +9,8 @@ use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
 use xiuxian_qianji_control::{ControlLedger, HotStateStore};
 use xiuxian_qianji_runtime::{
     FlowhubServiceWorkerLoopOutput, FlowhubServiceWorkerLoopRequest,
-    FlowhubServiceWorkerStepOutput, run_flowhub_service_worker_completion_loop,
+    FlowhubServiceWorkerLoopRuntime, FlowhubServiceWorkerStepOutput,
+    run_flowhub_service_worker_completion_loop,
 };
 
 use crate::bpmn::{
@@ -47,10 +48,12 @@ where
     B: BpmnHostBridge + Send + Sync,
 {
     run_flowhub_service_worker_completion_loop(
-        &state.service,
-        &state.host,
-        ledger,
-        hot_state,
+        FlowhubServiceWorkerLoopRuntime {
+            control_port: &state.service,
+            host: &state.host,
+            ledger,
+            hot_state,
+        },
         request,
     )
     .await

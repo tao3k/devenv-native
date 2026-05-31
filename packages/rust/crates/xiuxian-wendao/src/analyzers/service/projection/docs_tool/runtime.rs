@@ -21,31 +21,31 @@ pub(crate) trait DocsToolRuntime: Send + Sync {
         limit: usize,
     ) -> Result<DocsSearchResult, RepoIntelligenceError>;
 
-    fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError>;
+    fn get_document(&self, page_key: &str) -> Result<DocsPageResult, RepoIntelligenceError>;
 
     fn get_page_index_tree(
         &self,
-        page_id: &str,
+        page_key: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError>;
 
     fn get_page_index_outline(
         &self,
-        page_id: &str,
+        page_key: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError>;
 
     fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError>;
 
     fn get_document_segment(
         &self,
-        page_id: &str,
+        page_key: &str,
         line_start: usize,
         line_end: usize,
     ) -> Result<DocsDocumentSegmentResult, RepoIntelligenceError>;
 
     fn get_document_node(
         &self,
-        page_id: &str,
-        node_id: &str,
+        page_key: &str,
+        node_key: &str,
     ) -> Result<DocsPageIndexNodeResult, RepoIntelligenceError>;
 
     fn search_page_index(
@@ -59,13 +59,13 @@ pub(crate) trait DocsToolRuntime: Send + Sync {
 
     fn get_navigation_with_options(
         &self,
-        page_id: &str,
+        page_key: &str,
         options: DocsNavigationOptions,
     ) -> Result<DocsNavigationResult, RepoIntelligenceError>;
 
     fn get_retrieval_context_with_options(
         &self,
-        page_id: &str,
+        page_key: &str,
         options: DocsRetrievalContextOptions,
     ) -> Result<DocsRetrievalContextResult, RepoIntelligenceError>;
 }
@@ -80,22 +80,22 @@ impl DocsToolRuntime for DocsToolService {
         DocsToolService::search_documents(self, query, kind, limit)
     }
 
-    fn get_document(&self, page_id: &str) -> Result<DocsPageResult, RepoIntelligenceError> {
-        DocsToolService::get_document(self, page_id)
+    fn get_document(&self, page_key: &str) -> Result<DocsPageResult, RepoIntelligenceError> {
+        DocsToolService::get_document(self, page_key)
     }
 
     fn get_page_index_tree(
         &self,
-        page_id: &str,
+        page_key: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
-        DocsToolService::get_page_index_tree(self, page_id)
+        DocsToolService::get_page_index_tree(self, page_key)
     }
 
     fn get_page_index_outline(
         &self,
-        page_id: &str,
+        page_key: &str,
     ) -> Result<DocsPageIndexTreeResult, RepoIntelligenceError> {
-        DocsToolService::get_page_index_outline(self, page_id)
+        DocsToolService::get_page_index_outline(self, page_key)
     }
 
     fn get_page_index(&self) -> Result<DocsPageIndexTreesResult, RepoIntelligenceError> {
@@ -104,19 +104,19 @@ impl DocsToolRuntime for DocsToolService {
 
     fn get_document_segment(
         &self,
-        page_id: &str,
+        page_key: &str,
         line_start: usize,
         line_end: usize,
     ) -> Result<DocsDocumentSegmentResult, RepoIntelligenceError> {
-        DocsToolService::get_document_segment(self, page_id, line_start, line_end)
+        DocsToolService::get_document_segment(self, page_key, line_start, line_end)
     }
 
     fn get_document_node(
         &self,
-        page_id: &str,
-        node_id: &str,
+        page_key: &str,
+        node_key: &str,
     ) -> Result<DocsPageIndexNodeResult, RepoIntelligenceError> {
-        DocsToolService::get_document_node(self, page_id, node_id)
+        DocsToolService::get_document_node(self, page_key, node_key)
     }
 
     fn search_page_index(
@@ -134,18 +134,18 @@ impl DocsToolRuntime for DocsToolService {
 
     fn get_navigation_with_options(
         &self,
-        page_id: &str,
+        page_key: &str,
         options: DocsNavigationOptions,
     ) -> Result<DocsNavigationResult, RepoIntelligenceError> {
-        DocsToolService::get_navigation_with_options(self, page_id, options)
+        DocsToolService::get_navigation_with_options(self, page_key, options)
     }
 
     fn get_retrieval_context_with_options(
         &self,
-        page_id: &str,
+        page_key: &str,
         options: DocsRetrievalContextOptions,
     ) -> Result<DocsRetrievalContextResult, RepoIntelligenceError> {
-        DocsToolService::get_retrieval_context_with_options(self, page_id, options)
+        DocsToolService::get_retrieval_context_with_options(self, page_key, options)
     }
 }
 

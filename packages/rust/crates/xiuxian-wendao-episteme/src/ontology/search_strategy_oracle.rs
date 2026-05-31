@@ -161,6 +161,13 @@ pub fn write_episteme_search_strategy_oracle(
     request: &EpistemeSearchStrategyOracleRequest,
     run_root: impl AsRef<Path>,
 ) -> Result<EpistemeSearchStrategyOracleReport> {
+    write_episteme_search_strategy_oracle_impl(request, run_root)
+}
+
+fn write_episteme_search_strategy_oracle_impl(
+    request: &EpistemeSearchStrategyOracleRequest,
+    run_root: impl AsRef<Path>,
+) -> Result<EpistemeSearchStrategyOracleReport> {
     validate_run_id(request.run_id())?;
     let manifest = read_ontology_manifest(request.episteme_root())
         .context("failed to read ontology manifest for search oracle projection")?;

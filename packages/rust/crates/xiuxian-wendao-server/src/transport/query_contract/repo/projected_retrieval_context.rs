@@ -91,19 +91,6 @@ pub struct RepoProjectedRetrievalContextRequest {
     pub related_limit: usize,
 }
 
-impl PartialEq<(String, String, Option<String>, usize)> for RepoProjectedRetrievalContextRequest {
-    fn eq(&self, other: &(String, String, Option<String>, usize)) -> bool {
-        self.repo_id.as_str() == other.0
-            && self.page_id.as_str() == other.1
-            && self
-                .node_id
-                .as_ref()
-                .map(RepoProjectedRetrievalContextNodeId::as_str)
-                == other.2.as_deref()
-            && self.related_limit == other.3
-    }
-}
-
 /// Validate the stable projected retrieval-context request contract.
 ///
 /// # Errors

@@ -1,3 +1,5 @@
+//! Data contracts for Episteme extension validation.
+
 use std::path::{Path, PathBuf};
 
 /// Episteme extension-pack corpus validation depth.

@@ -49,7 +49,8 @@ import urllib.error
 import urllib.request
 
 host, port, timeout_secs = sys.argv[1], sys.argv[2], float(sys.argv[3])
-url = f"http://{host}:{port}/readyz"
+origin = f"http://{host}:{port}"
+url = f"{origin}/readyz"
 try:
     with urllib.request.urlopen(url, timeout=timeout_secs) as response:
         status = response.getcode()
@@ -62,5 +63,32 @@ except Exception as exc:
 
 if status < 200 or status >= 300:
     print(f"Error: qianji-server readiness failed with HTTP {status}: {url}", file=sys.stderr)
+    raise SystemExit(1)
+
+worker_route = f"{origin}/control/runs/__health__/workers/openai-compatible-llm/run-and-complete"
+request = urllib.request.Request(
+    worker_route,
+    data=b"{}",
+    headers={"content-type": "application/json"},
+    method="POST",
+)
+try:
+    with urllib.request.urlopen(request, timeout=timeout_secs) as response:
+        route_status = response.getcode()
+except urllib.error.HTTPError as exc:
+    route_status = exc.code
+except Exception as exc:
+    print(
+        f"Error: qianji-server LLM worker route probe failed for {worker_route}: {exc}",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
+if route_status == 404:
+    print(
+        "Error: qianji-server LLM worker route is missing: "
+        f"{worker_route}",
+        file=sys.stderr,
+    )
     raise SystemExit(1)
 PY

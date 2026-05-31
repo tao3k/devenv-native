@@ -1,3 +1,5 @@
+//! Generic BPMN host-work completion result construction.
+
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use xiuxian_qianji_control::{ActivityResult, ControlError, ControlResult};

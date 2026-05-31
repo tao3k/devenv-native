@@ -640,7 +640,9 @@ execution. The trace exposes semantic status and evidence; the route exposes
 the configured `semanticScopeGuardPolicy`, the current guard status, whether
 execution is continuing, and the recommended semantic action. The default
 policy remains advisory, and Qianji still consumes semantic truth without
-owning it.
+owning it. The semantic-scope metadata DTO is imported from
+[`xiuxian-wendao-core`](../xiuxian-wendao-core/README.md), keeping Qianji on a
+stable read-model contract rather than parser or AST implementation crates.
 Router nodes may opt into that route with `semantic_guard_route = true`, or
 with `semantic_guard_route_key` for a custom context key. When enabled,
 `semanticScopeGuardRoute.recommendedAction` selects a matching branch such as

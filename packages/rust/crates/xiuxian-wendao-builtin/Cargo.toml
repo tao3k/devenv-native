@@ -17,6 +17,9 @@ xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features 
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 toml = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 

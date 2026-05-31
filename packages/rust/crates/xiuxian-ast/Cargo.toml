@@ -20,6 +20,9 @@ blake3 = { workspace = true }
 tree-sitter = { workspace = true }
 tree-sitter-python = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 insta = { workspace = true }

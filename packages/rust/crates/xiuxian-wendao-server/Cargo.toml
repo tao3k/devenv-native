@@ -44,6 +44,9 @@ tokio = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 criterion = { workspace = true }
 rust-lang-project-harness = { workspace = true }

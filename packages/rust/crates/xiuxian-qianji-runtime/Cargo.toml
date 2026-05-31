@@ -18,6 +18,9 @@ xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 rust-lang-project-harness = { workspace = true }
 tokio = { workspace = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [lints]
 workspace = true
 

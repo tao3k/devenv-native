@@ -1,3 +1,5 @@
+//! Data contracts for structural-facts reasoning fill plans.
+
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -143,8 +145,8 @@ pub(super) struct ReasoningFillPlanOutputPaths {
 }
 
 impl ReasoningFillPlanOutputPaths {
-    pub fn new(run_root: &Path, run_id: &str) -> Self {
-        let run_dir = run_root.join(run_id);
+    pub fn new(run_root: &Path, run_key: &str) -> Self {
+        let run_dir = run_root.join(run_key);
         Self {
             fill_plan_tsv: run_dir.join("reasoning_fill_plan.tsv"),
             fill_plan_json: run_dir.join("reasoning_fill_plan.json"),

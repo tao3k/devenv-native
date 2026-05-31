@@ -100,7 +100,8 @@ fn replace_agent_org_element_rows(
             .with_context(|| {
                 format!(
                     "failed to insert Org element `{}` from `{}`",
-                    row.kind, row.source_path
+                    row.kind.as_str(),
+                    row.source_path
                 )
             })?;
     }

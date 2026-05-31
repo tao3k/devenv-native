@@ -139,9 +139,7 @@ pub use source_patch_review_packet::{
     write_episteme_ontology_source_patch_review_packet,
 };
 pub use source_patch_semantic_preview::{
-    EpistemeOntologySemanticEvidenceRow, EpistemeOntologySemanticObjectRow,
-    EpistemeOntologySemanticProjectionStateRow, EpistemeOntologySemanticRelationRow,
-    EpistemeOntologySourcePatchSemanticPreviewReport,
+    EpistemeOntologySemanticProjectionStateRow, EpistemeOntologySourcePatchSemanticPreviewReport,
     EpistemeOntologySourcePatchSemanticPreviewRequest,
     write_episteme_ontology_source_patch_semantic_preview,
 };

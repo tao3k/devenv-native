@@ -1,3 +1,5 @@
+//! Data contracts for source-contract structural facts.
+
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -117,7 +119,7 @@ impl EpistemeOntologyStructuralFactsConfiguredRequest {
 /// Source-contract summary represented in a structural facts seed.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologyStructuralFactsSourceContractSummary {
+pub(crate) struct EpistemeOntologyStructuralFactsSourceContractSummary {
     /// Ontology domain id.
     pub domain_id: String,
     /// Source contract id from the source manifest.
@@ -135,7 +137,7 @@ pub struct EpistemeOntologyStructuralFactsSourceContractSummary {
 /// Document-level structural facts row.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologyStructuralFactsDocumentRow {
+pub(crate) struct EpistemeOntologyStructuralFactsDocumentRow {
     /// Stable document seed id.
     pub document_id: String,
     /// Source file id from `files.tsv`.
@@ -175,7 +177,7 @@ pub struct EpistemeOntologyStructuralFactsDocumentRow {
 /// Structural anchor row emitted for corpus roots, path segments, and files.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologyStructuralFactsAnchorRow {
+pub(crate) struct EpistemeOntologyStructuralFactsAnchorRow {
     /// Stable anchor id.
     pub anchor_id: String,
     /// Anchor kind.
@@ -211,7 +213,7 @@ pub struct EpistemeOntologyStructuralFactsAnchorRow {
 /// Structural relation row linking anchors and documents.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologyStructuralFactsRelationRow {
+pub(crate) struct EpistemeOntologyStructuralFactsRelationRow {
     /// Stable relation id.
     pub relation_id: String,
     /// Relation kind.
@@ -241,7 +243,7 @@ pub struct EpistemeOntologyStructuralFactsRelationRow {
 /// Full structural facts snapshot.
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologyStructuralFactsSnapshot {
+pub(crate) struct EpistemeOntologyStructuralFactsSnapshot {
     /// Snapshot schema version.
     pub schema_version: &'static str,
     /// Safe ASCII run id.

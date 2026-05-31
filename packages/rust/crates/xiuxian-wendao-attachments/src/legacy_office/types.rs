@@ -1,3 +1,5 @@
+//! Legacy Office extraction DTOs.
+
 use super::LegacyOfficeFormat;
 use super::metrics::LegacyOfficeQualityMetrics;
 

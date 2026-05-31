@@ -15,7 +15,7 @@ use xiuxian_db_store::{
     validate_record_batch_schema_with_options,
 };
 
-use super::super::model::{
+use crate::ontology::candidates::model::{
     CandidateEvidenceRow, CandidateGenerationOutputPaths, CandidateObjectRow, CandidateRelationRow,
     CandidateRows,
 };

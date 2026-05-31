@@ -36,6 +36,10 @@ This crate owns:
 - Studio OpenAPI and route-contract exports.
 - Studio Flight route providers backed by Wendao services.
 - Frontend-facing API response shaping and gateway startup health checks.
+- Gateway bearer-token enforcement for both HTTPS JSON/SSE routes and the
+  same-listener Gateway Arrow Flight route. Health checks stay
+  unauthenticated; Qianji and other internal services do not validate user API
+  tokens.
 
 `xiuxian-wendao-server` owns only the high-throughput Flight/gRPC transport
 boundary. `xiuxian-wendao` continues to own graph, search, repository indexing,

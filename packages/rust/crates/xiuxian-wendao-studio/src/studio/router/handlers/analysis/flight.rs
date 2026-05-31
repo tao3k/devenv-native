@@ -98,11 +98,11 @@ impl CodeAstAnalysisFlightRouteProvider for StudioCodeAstAnalysisFlightRouteProv
     async fn code_ast_analysis_batch(
         &self,
         path: &str,
-        repo_id: &str,
+        repo_key: &str,
         line_hint: Option<usize>,
     ) -> Result<AnalysisFlightRouteResponse, String> {
         let response =
-            load_code_ast_analysis_response(self.state.as_ref(), path, repo_id, line_hint)
+            load_code_ast_analysis_response(self.state.as_ref(), path, repo_key, line_hint)
                 .await
                 .map_err(|error| map_studio_api_error(&error))?;
         let batch = build_retrieval_chunks_flight_batch(response.retrieval_atoms.as_slice())?;

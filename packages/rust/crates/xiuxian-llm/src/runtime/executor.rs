@@ -55,14 +55,14 @@ impl ExecutorId {
 }
 
 impl From<&str> for ExecutorId {
-    fn from(id: &str) -> Self {
-        Self(Arc::from(id.to_string()))
+    fn from(value: &str) -> Self {
+        Self(Arc::from(value.to_string()))
     }
 }
 
 impl From<String> for ExecutorId {
-    fn from(id: String) -> Self {
-        Self(Arc::from(id))
+    fn from(value: String) -> Self {
+        Self(Arc::from(value))
     }
 }
 

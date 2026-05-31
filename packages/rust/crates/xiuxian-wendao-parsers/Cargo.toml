@@ -7,6 +7,10 @@ authors.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+default = ["ast-validation"]
+ast-validation = ["dep:xiuxian-ast"]
+
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -19,10 +23,13 @@ blake3 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
 uuid = { workspace = true }
 walkdir = { workspace = true }
-xiuxian-ast = { path = "../xiuxian-ast" }
+xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 
 [lints]
 workspace = true
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 jsonschema = { workspace = true }

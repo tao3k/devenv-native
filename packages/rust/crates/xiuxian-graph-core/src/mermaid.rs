@@ -71,14 +71,14 @@ impl CompactMermaidGraph {
             for edge in projection.edges() {
                 let source = projection.node(edge.source()).ok_or_else(|| {
                     GraphProjectionError::MissingSourceNode {
-                        source_id: edge.source().to_string(),
-                        target_id: edge.target().to_string(),
+                        source_id: edge.source().clone(),
+                        target_id: edge.target().clone(),
                     }
                 })?;
                 let target = projection.node(edge.target()).ok_or_else(|| {
                     GraphProjectionError::MissingTargetNode {
-                        source_id: edge.source().to_string(),
-                        target_id: edge.target().to_string(),
+                        source_id: edge.source().clone(),
+                        target_id: edge.target().clone(),
                     }
                 })?;
 

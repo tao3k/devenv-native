@@ -6,7 +6,8 @@ use anyhow::{Context, Result, bail};
 use redis::Commands;
 
 use super::{
-    MemoryStateStore, default_valkey_recall_feedback_hash_key, default_valkey_state_hash_keys,
+    MemoryEpisodeId, MemoryStateStore, default_valkey_recall_feedback_hash_key,
+    default_valkey_state_hash_keys,
 };
 use crate::{Episode, EpisodeStore, MemoryStateSnapshot, normalize_feedback_bias};
 
@@ -198,8 +199,8 @@ impl MemoryStateStore for ValkeyMemoryStateStore {
         Ok(())
     }
 
-    fn update_q_atomic(&self, episode_id: &str, new_q: f32) -> Result<()> {
-        if episode_id.trim().is_empty() {
+    fn update_q_atomic(&self, episode_id: &MemoryEpisodeId, new_q: f32) -> Result<()> {
+        if episode_id.as_str().trim().is_empty() {
             return Ok(());
         }
         let mut connection = self
@@ -207,9 +208,12 @@ impl MemoryStateStore for ValkeyMemoryStateStore {
             .get_connection()
             .context("failed to open valkey connection for atomic q update")?;
         connection
-            .hset::<_, _, _, ()>(&self.q_values_hash_key, episode_id, new_q)
+            .hset::<_, _, _, ()>(&self.q_values_hash_key, episode_id.as_str(), new_q)
             .with_context(|| {
-                format!("failed to write atomic q update for episode `{episode_id}`")
+                format!(
+                    "failed to write atomic q update for episode `{}`",
+                    episode_id.as_str()
+                )
             })?;
         Ok(())
     }

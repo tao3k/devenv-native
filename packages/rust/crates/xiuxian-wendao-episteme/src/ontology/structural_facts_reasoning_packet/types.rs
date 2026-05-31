@@ -1,3 +1,5 @@
+//! Data contracts for structural-facts reasoning packets.
+
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
@@ -146,8 +148,8 @@ pub(super) struct ReasoningPacketOutputPaths {
 }
 
 impl ReasoningPacketOutputPaths {
-    pub fn new(run_root: &Path, run_id: &str) -> Self {
-        let run_dir = run_root.join(run_id);
+    pub fn new(run_root: &Path, run_key: &str) -> Self {
+        let run_dir = run_root.join(run_key);
         Self {
             packet_tsv: run_dir.join("reasoning_packet.tsv"),
             packet_json: run_dir.join("reasoning_packet.json"),

@@ -35,27 +35,63 @@ use super::FLOWHUB_SERVICE_COMPLETION_METADATA_KEY;
 /// Metadata schema for Flowhub service worker control run creation.
 pub const FLOWHUB_SERVICE_WORKER_RUN_SCHEMA: &str = "xiuxian_qianji.flowhub.worker_run.v1";
 
+/// Borrowed worker id recorded on Flowhub service worker activity attempts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct QianjiRuntimeWorkerIdRef<'a>(&'a str);
+
+impl<'a> QianjiRuntimeWorkerIdRef<'a> {
+    /// Creates a borrowed worker id reference.
+    #[must_use]
+    pub const fn new(value: &'a str) -> Self {
+        Self(value)
+    }
+
+    /// Borrows the serialized worker id.
+    #[must_use]
+    pub const fn as_str(self) -> &'a str {
+        self.0
+    }
+}
+
+/// Runtime lease TTL in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct QianjiRuntimeLeaseTtlMs(u64);
+
+impl QianjiRuntimeLeaseTtlMs {
+    /// Creates a runtime lease TTL from milliseconds.
+    #[must_use]
+    pub const fn from_millis(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Returns the TTL in milliseconds.
+    #[must_use]
+    pub const fn as_millis(self) -> u64 {
+        self.0
+    }
+}
+
 /// Request for one bounded Flowhub service worker loop.
 #[derive(Clone)]
 pub struct FlowhubServiceWorkerLoopRequest<'a, C> {
     /// Control-plane run that owns the durable activity task journal.
     pub run_id: &'a RunId,
     /// Flowhub scenario id used to derive the service task queue.
-    pub scenario_id: &'a str,
+    pub scenario_id: FlowhubScenarioIdRef<'a>,
     /// BPMN workflow instance id stored in the checkpoint backend.
-    pub instance_id: &'a str,
+    pub instance_id: QianjiRuntimeBpmnInstanceIdRef<'a>,
     /// BPMN source used by the checkpoint-backed workflow.
     pub bpmn_source: &'a Path,
     /// Worker identity recorded on durable activity start events.
-    pub worker_id: &'a str,
+    pub worker_id: QianjiRuntimeWorkerIdRef<'a>,
     /// Checkpoint backend that owns the BPMN workflow frontier.
     pub checkpoint_backend: C,
     /// Timestamp used for schedule, mirror, and start events.
-    pub now_ms: u64,
+    pub now_ms: QianjiRuntimeInstantMs,
     /// Hot-state activity lease TTL in milliseconds.
-    pub lease_ttl_ms: u64,
+    pub lease_ttl_ms: QianjiRuntimeLeaseTtlMs,
     /// Timestamp used for durable activity completion events.
-    pub settled_at_ms: u64,
+    pub settled_at_ms: QianjiRuntimeInstantMs,
     /// Maximum service tasks to complete before returning.
     pub max_steps: usize,
 }
@@ -65,7 +101,7 @@ impl<C: Clone> FlowhubServiceWorkerLoopRequest<'_, C> {
     #[must_use]
     pub fn workflow_status_request(&self) -> QianjiRuntimeWorkflowStatusRequest<C> {
         QianjiRuntimeWorkflowStatusRequest {
-            instance_id: QianjiRuntimeBpmnInstanceId::new(self.instance_id),
+            instance_id: QianjiRuntimeBpmnInstanceId::new(self.instance_id.as_str()),
             checkpoint_backend: self.checkpoint_backend.clone(),
         }
     }
@@ -76,7 +112,7 @@ impl<C: Clone> FlowhubServiceWorkerLoopRequest<'_, C> {
         QianjiRuntimeWorkflowResumeRequest {
             bpmn_source: QianjiRuntimeBpmnSourcePath::new(self.bpmn_source.to_path_buf()),
             dmn_sources: QianjiRuntimeDmnSourcePaths::empty(),
-            instance_id: QianjiRuntimeBpmnInstanceId::new(self.instance_id),
+            instance_id: QianjiRuntimeBpmnInstanceId::new(self.instance_id.as_str()),
             checkpoint_backend: self.checkpoint_backend.clone(),
         }
     }
@@ -97,7 +133,7 @@ impl<C: Clone> FlowhubServiceWorkerLoopRequest<'_, C> {
         Ok(QianjiRuntimeWorkflowTaskCompleteRequest {
             bpmn_source: QianjiRuntimeBpmnSourcePath::new(self.bpmn_source.to_path_buf()),
             dmn_sources: QianjiRuntimeDmnSourcePaths::empty(),
-            instance_id: QianjiRuntimeBpmnInstanceId::new(self.instance_id),
+            instance_id: QianjiRuntimeBpmnInstanceId::new(self.instance_id.as_str()),
             checkpoint_backend: self.checkpoint_backend.clone(),
             completion: QianjiRuntimeWorkflowTaskCompletionPayload {
                 token_id: completion.token_id,
@@ -140,6 +176,25 @@ pub struct FlowhubServiceWorkerStepOutput {
     pub released: bool,
 }
 
+/// Runtime dependencies for one bounded Flowhub service worker loop.
+#[derive(Clone, Copy)]
+pub struct FlowhubServiceWorkerLoopRuntime<'a, P, L, S, Host>
+where
+    P: ?Sized,
+    L: ?Sized,
+    S: ?Sized,
+    Host: ?Sized,
+{
+    /// Workflow-control port that owns checkpoint replay.
+    pub control_port: &'a P,
+    /// BPMN host bridge used while completing prepared service tasks.
+    pub host: &'a Host,
+    /// Durable control ledger.
+    pub ledger: &'a L,
+    /// Hot-state queue and lease store.
+    pub hot_state: &'a S,
+}
+
 /// Runs a bounded Flowhub service worker loop.
 ///
 /// # Errors
@@ -148,10 +203,7 @@ pub struct FlowhubServiceWorkerStepOutput {
 /// hot-state claim/release, durable lifecycle journaling, Flowhub completion
 /// derivation, or BPMN task completion fails.
 pub async fn run_flowhub_service_worker_completion_loop<P, L, S, Host>(
-    control_port: &P,
-    host: &Host,
-    ledger: &L,
-    hot_state: &S,
+    runtime: FlowhubServiceWorkerLoopRuntime<'_, P, L, S, Host>,
     request: &FlowhubServiceWorkerLoopRequest<'_, P::CheckpointBackend>,
 ) -> io::Result<FlowhubServiceWorkerLoopOutput<P::TaskCompleteReport>>
 where
@@ -160,18 +212,45 @@ where
     S: HotStateStore + ?Sized,
     Host: BpmnHostBridge + Send + Sync,
 {
-    ensure_flowhub_service_worker_control_run(ledger, request)?;
+    ensure_flowhub_service_worker_control_run(runtime.ledger, request)?;
+    let (completed_steps, final_report) =
+        run_completion_steps(&runtime, request, request.max_steps).await?;
+    let final_pending_host_work_count =
+        load_pending_host_work_count(runtime.control_port, request).await?;
+    Ok(FlowhubServiceWorkerLoopOutput {
+        completed_steps,
+        final_pending_host_work_count,
+        final_report,
+    })
+}
+
+async fn run_completion_steps<P, L, S, Host>(
+    runtime: &FlowhubServiceWorkerLoopRuntime<'_, P, L, S, Host>,
+    request: &FlowhubServiceWorkerLoopRequest<'_, P::CheckpointBackend>,
+    max_steps: usize,
+) -> io::Result<(
+    Vec<FlowhubServiceWorkerStepOutput>,
+    Option<P::TaskCompleteReport>,
+)>
+where
+    P: QianjiRuntimeWorkflowControlPort<Host> + ?Sized,
+    L: ControlLedger + ?Sized,
+    S: HotStateStore + ?Sized,
+    Host: BpmnHostBridge + Send + Sync,
+{
     let mut completed_steps = Vec::new();
     let mut final_report = None;
-    for step_index in 0..request.max_steps {
-        let Some(pending_work) = load_next_service_work(control_port, request).await? else {
+    let mut step_index = 0;
+    while step_index < max_steps {
+        let Some(pending_work) = load_next_service_work(runtime.control_port, request).await?
+        else {
             break;
         };
         let step = complete_one_service_work(
-            control_port,
-            host,
-            ledger,
-            hot_state,
+            runtime.control_port,
+            runtime.host,
+            runtime.ledger,
+            runtime.hot_state,
             request,
             step_index,
             &pending_work,
@@ -179,13 +258,9 @@ where
         .await?;
         final_report = step.report;
         completed_steps.push(step.output);
+        step_index += 1;
     }
-    let final_pending_host_work_count = load_pending_host_work_count(control_port, request).await?;
-    Ok(FlowhubServiceWorkerLoopOutput {
-        completed_steps,
-        final_pending_host_work_count,
-        final_report,
-    })
+    Ok((completed_steps, final_report))
 }
 
 fn ensure_flowhub_service_worker_control_run<L, C>(
@@ -206,16 +281,17 @@ where
         request.run_id.clone(),
         format!(
             "Flowhub service worker for scenario {} instance {}",
-            request.scenario_id, request.instance_id
+            request.scenario_id.as_str(),
+            request.instance_id.as_str()
         ),
-        request.now_ms,
+        request.now_ms.as_millis(),
     )
     .with_metadata(serde_json::json!({
         "schema": FLOWHUB_SERVICE_WORKER_RUN_SCHEMA,
-        "scenarioId": request.scenario_id,
-        "instanceId": request.instance_id,
+        "scenarioId": request.scenario_id.as_str(),
+        "instanceId": request.instance_id.as_str(),
         "bpmnSource": request.bpmn_source.display().to_string(),
-        "workerId": request.worker_id,
+        "workerId": request.worker_id.as_str(),
         "maxSteps": request.max_steps,
     }));
     record_run_created(ledger, record)
@@ -243,14 +319,18 @@ where
     S: HotStateStore + ?Sized,
     Host: BpmnHostBridge + Send + Sync,
 {
-    let occurred_at_ms = add_step_offset(request.now_ms, step_index, "now_ms")?;
-    let settled_at_ms = add_step_offset(request.settled_at_ms, step_index, "settled_at_ms")?;
+    let occurred_at_ms = add_step_offset(request.now_ms.as_millis(), step_index, "now_ms")?;
+    let settled_at_ms = add_step_offset(
+        request.settled_at_ms.as_millis(),
+        step_index,
+        "settled_at_ms",
+    )?;
     let schedule_record =
         build_flowhub_service_activity_schedule_record(FlowhubServiceActivityScheduleInput {
             run_id: request.run_id,
             occurred_at_ms: QianjiRuntimeInstantMs::from_millis(occurred_at_ms),
-            scenario_id: FlowhubScenarioIdRef::new(request.scenario_id),
-            instance_id: QianjiRuntimeBpmnInstanceIdRef::new(request.instance_id),
+            scenario_id: request.scenario_id,
+            instance_id: request.instance_id,
             bpmn_source: request.bpmn_source,
             pending_work,
         })
@@ -269,7 +349,7 @@ where
     .map_err(control_io_error)?;
     let claimed =
         claim_flowhub_service_task(hot_state, request, &task_queue, occurred_at_ms).await?;
-    let worker_id = WorkerId::new(request.worker_id).map_err(control_io_error)?;
+    let worker_id = WorkerId::new(request.worker_id.as_str()).map_err(control_io_error)?;
     let durable_start = record_worker_activity_started_idempotent(
         ledger,
         WorkerActivityStartRecord::new(
@@ -379,7 +459,7 @@ async fn claim_flowhub_service_task<S, C>(
 where
     S: HotStateStore + ?Sized,
 {
-    let worker_id = WorkerId::new(request.worker_id).map_err(control_io_error)?;
+    let worker_id = WorkerId::new(request.worker_id.as_str()).map_err(control_io_error)?;
     hot_state
         .claim_activity_task(
             WorkerRef {
@@ -389,7 +469,7 @@ where
             },
             Some(task_queue),
             now_ms,
-            request.lease_ttl_ms,
+            request.lease_ttl_ms.as_millis(),
         )
         .await
         .map_err(control_io_error)?

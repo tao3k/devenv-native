@@ -1,3 +1,5 @@
+//! Arrow and Lance schema contracts for repo content chunks.
+
 use std::{collections::HashMap, sync::Arc};
 
 use arrow::datatypes::SchemaRef;
@@ -12,6 +14,7 @@ use crate::repo_index::RepoCodeDocument;
 
 const CHUNK_SIZE: usize = 2_000;
 
+/// Stable row identifier column name for repo content chunks.
 pub const COLUMN_ID: &str = "id";
 const COLUMN_PATH: &str = "path";
 const COLUMN_PATH_FOLDED: &str = "path_folded";
@@ -44,6 +47,7 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
     ]))
 }
 
+/// Build the Arrow engine schema for repo content chunk rows.
 pub fn repo_content_chunk_engine_schema() -> SchemaRef {
     let contract = repo_content_chunk_engine_contract();
     let mut metadata = HashMap::new();

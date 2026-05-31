@@ -22,12 +22,6 @@ impl PropertyDrawerLine {
     }
 }
 
-impl PartialEq<(String, String)> for PropertyDrawerLine {
-    fn eq(&self, other: &(String, String)) -> bool {
-        self.key == other.0 && self.value == other.1
-    }
-}
-
 /// Parse one property drawer line such as `:ID: value`.
 #[must_use]
 pub fn parse_property_drawer(line: &str) -> Option<PropertyDrawerLine> {

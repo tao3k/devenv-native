@@ -36,6 +36,11 @@ use xiuxian_qianji_bpmn_engine::{
 
 use super::{unique_instance_id, valkey_support::TestValkey};
 
+#[path = "http/llm_completion_shape.rs"]
+mod llm_completion_shape;
+#[path = "http/llm_task_documentation.rs"]
+mod llm_task_documentation;
+
 #[test]
 fn bpmn_workflow_http_requests_default_to_runtime_valkey_backend() {
     let start = serde_json::from_value::<QianjiBpmnWorkflowStartHttpRequest>(json!({

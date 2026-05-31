@@ -287,14 +287,7 @@ pub(crate) fn build_gateway_router(
         .route(GATEWAY_QUERY_AXUM_PATH, post(query))
         .route(GATEWAY_RESPONSES_AXUM_PATH, post(responses))
         .merge(studio_app);
-    let protected_app = if let Some(token) = bearer_token {
-        protected_app.route_layer(middleware::from_fn_with_state(
-            GatewayBearerAuth { token },
-            require_gateway_bearer_auth,
-        ))
-    } else {
-        protected_app
-    };
+    let protected_app = with_gateway_bearer_auth(protected_app, bearer_token.clone());
     let app = Router::new()
         .route(openapi_paths::API_HEALTH_AXUM_PATH, get(health))
         .merge(protected_app)
@@ -307,6 +300,7 @@ pub(crate) fn build_gateway_router(
         flight_concurrency_limit,
         flight_request_timeout,
         flight_grpc_web_enabled,
+        bearer_token,
     )?;
     #[cfg(not(feature = "zhenfa-router"))]
     let _ = (
@@ -321,6 +315,20 @@ pub(crate) fn build_gateway_router(
 #[derive(Clone)]
 struct GatewayBearerAuth {
     token: Arc<str>,
+}
+
+fn with_gateway_bearer_auth<S>(router: Router<S>, bearer_token: Option<Arc<str>>) -> Router<S>
+where
+    S: Clone + Send + Sync + 'static,
+{
+    if let Some(token) = bearer_token {
+        router.route_layer(middleware::from_fn_with_state(
+            GatewayBearerAuth { token },
+            require_gateway_bearer_auth,
+        ))
+    } else {
+        router
+    }
 }
 
 async fn require_gateway_bearer_auth(
@@ -354,6 +362,7 @@ fn mount_gateway_flight_service(
     flight_concurrency_limit: usize,
     flight_request_timeout: Duration,
     flight_grpc_web_enabled: bool,
+    bearer_token: Option<Arc<str>>,
 ) -> Result<Router> {
     let effective_settings = resolve_gateway_effective_search_host_settings()?;
     let flight_service = build_studio_flight_service_with_weights(
@@ -373,10 +382,11 @@ fn mount_gateway_flight_service(
             .timeout(flight_request_timeout)
             .concurrency_limit(flight_concurrency_limit)
             .service(flight_service);
-        return Ok(app.route(
+        let flight_router = Router::new().route(
             GATEWAY_FLIGHT_SERVICE_AXUM_PATH,
             any_service(flight_service),
-        ));
+        );
+        return Ok(app.merge(with_gateway_bearer_auth(flight_router, bearer_token)));
     }
 
     let flight_service = ServiceBuilder::new()
@@ -385,10 +395,11 @@ fn mount_gateway_flight_service(
         .timeout(flight_request_timeout)
         .concurrency_limit(flight_concurrency_limit)
         .service(flight_service);
-    Ok(app.route(
+    let flight_router = Router::new().route(
         GATEWAY_FLIGHT_SERVICE_AXUM_PATH,
         any_service(flight_service),
-    ))
+    );
+    Ok(app.merge(with_gateway_bearer_auth(flight_router, bearer_token)))
 }
 
 #[cfg(feature = "zhenfa-router")]

@@ -21,6 +21,7 @@ use crate::query_core::types::{WendaoQueryCoreError, WendaoRelation};
 use crate::search::SearchPlaneService;
 use crate::search::contracts::SearchHit;
 
+/// Arrow table name for graph-neighbor query-core relation rows.
 pub const GRAPH_NEIGHBORS_RELATION_TABLE: &str = "query_core_graph_neighbors";
 
 /// Retrieval backend that delegates to the existing Wendao search plane.
@@ -179,6 +180,7 @@ impl GraphBackend for LinkGraphNeighborsBackend {
     }
 }
 
+/// Build the Arrow schema contract for graph-neighbor relation rows.
 pub fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         GRAPH_NEIGHBORS_RELATION_TABLE,
@@ -193,6 +195,7 @@ pub fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build an Arrow schema reference with graph-neighbor table metadata.
 pub fn graph_neighbors_relation_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
     let mut metadata = HashMap::new();
     metadata.insert(

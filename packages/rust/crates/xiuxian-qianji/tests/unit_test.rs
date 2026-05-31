@@ -27,16 +27,17 @@ pub use xiuxian_qianji::{
     QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
     QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
     QianjiControlDiagnosticsHttpResponse, QianjiControlRecoveryApplyHttpRequest,
-    QianjiControlRecoveryApplyHttpResponse, QianjiRunConsoleArrowReadModel,
-    QianjiRunConsoleElementState, QianjiRunConsoleFlightService, QianjiRuntimeBpmnInstanceIdRef,
-    QianjiRuntimeInstantMs, SchedulerAgentIdentity, build_flowhub_service_activity_schedule_record,
+    QianjiControlRecoveryApplyHttpResponse, QianjiControlRunStreamSource,
+    QianjiRunConsoleArrowReadModel, QianjiRunConsoleElementState, QianjiRunConsoleFlightService,
+    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs, SchedulerAgentIdentity,
+    build_flowhub_service_activity_schedule_record,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
     build_flowhub_service_task_completion_payload,
     build_flowhub_service_task_contract_activity_result,
     build_flowhub_service_task_contract_completion_data, dispatch_pending_host_work_request,
-    load_bpmn_package_from_files, qianji_bpmn_workflow_router, qianji_run_console_arrow_read_model,
-    resolve_pending_host_work, resolve_waiting_external_event,
+    load_bpmn_package_from_files, qianji_bpmn_workflow_router, qianji_control_run_stream_rows,
+    qianji_run_console_arrow_read_model, resolve_pending_host_work, resolve_waiting_external_event,
 };
 pub use xiuxian_qianji::{bpmn, runtime_config, workflow_config};
 

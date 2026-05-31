@@ -130,6 +130,12 @@ struct SourcePatchApplyPlanRow {
 pub fn write_episteme_ontology_source_patch_review_packet(
     request: &EpistemeOntologySourcePatchReviewPacketRequest,
 ) -> Result<EpistemeOntologySourcePatchReviewPacketReport> {
+    write_episteme_ontology_source_patch_review_packet_impl(request)
+}
+
+fn write_episteme_ontology_source_patch_review_packet_impl(
+    request: &EpistemeOntologySourcePatchReviewPacketRequest,
+) -> Result<EpistemeOntologySourcePatchReviewPacketReport> {
     let episteme_root = request.episteme_root();
     let run_dir = request.run_dir();
     let apply_plan_tsv = run_dir.join(SOURCE_PATCH_APPLY_PLAN_TSV);

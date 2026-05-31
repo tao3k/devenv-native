@@ -191,18 +191,6 @@ impl StudioDocumentExtractFlightRouteProvider {
 
 #[async_trait]
 impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProvider {
-    async fn document_extract_batch(
-        &self,
-        source_path: &str,
-        output_dir: &str,
-        force: bool,
-        error_row: bool,
-        profile: &str,
-    ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        self.sync_document_extract_batch(source_path, output_dir, force, error_row, profile)
-            .await
-    }
-
     async fn document_extract_batch_for_request(
         &self,
         request: &DocumentExtractFlightRequest,
@@ -213,7 +201,7 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
                     request.source_path.as_str(),
                     request.profile.as_str(),
                 );
-                self.document_extract_batch(
+                self.sync_document_extract_batch(
                     request.source_path.as_str(),
                     request.output_dir.as_str(),
                     request.force,
@@ -257,11 +245,11 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
 
     async fn document_extract_status_batch(
         &self,
-        job_id: &str,
+        job_key: &str,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
         let status = self
-            .status(job_id)?
-            .ok_or_else(|| format!("unknown document extract job id `{job_id}`"))?;
+            .status(job_key)?
+            .ok_or_else(|| format!("unknown document extract job id `{job_key}`"))?;
         Ok(DocumentExtractFlightRouteResponse::new(build_status_batch(
             &status,
         )?))
@@ -270,7 +258,9 @@ impl DocumentExtractFlightRouteProvider for StudioDocumentExtractFlightRouteProv
 
 fn gateway_document_extract_mode(request: &DocumentExtractFlightRequest) -> DocumentExtractMode {
     match request.mode {
-        DocumentExtractMode::Auto => gateway_document_extract_mode_for_source(&request.source_path),
+        DocumentExtractMode::Auto => {
+            gateway_document_extract_mode_for_source(request.source_path.as_str())
+        }
         mode => mode,
     }
 }

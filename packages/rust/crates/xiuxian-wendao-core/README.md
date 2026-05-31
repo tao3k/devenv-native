@@ -21,6 +21,8 @@ Current ownership:
 - stable link-graph query contracts such as `LinkGraphSearchOptions`
 - stable SQL result DTOs such as `SqlQueryPayload`
 - stable semantic-document and cognitive-trace payload records
+- stable semantic-scope metadata DTOs for runtime consumers that must not
+  depend on Wendao parser or AST crates
 - transport endpoint and transport kind descriptors
 - stable repo-intelligence contract shapes
 - stable `wendao://` resource URI parsing and normalization

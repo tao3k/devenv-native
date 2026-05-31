@@ -19,6 +19,7 @@ pub use service_completion::{
 };
 pub use worker::{
     FLOWHUB_SERVICE_WORKER_RUN_SCHEMA, FlowhubServiceWorkerLoopOutput,
-    FlowhubServiceWorkerLoopRequest, FlowhubServiceWorkerStepOutput,
+    FlowhubServiceWorkerLoopRequest, FlowhubServiceWorkerLoopRuntime,
+    FlowhubServiceWorkerStepOutput, QianjiRuntimeLeaseTtlMs, QianjiRuntimeWorkerIdRef,
     run_flowhub_service_worker_completion_loop,
 };

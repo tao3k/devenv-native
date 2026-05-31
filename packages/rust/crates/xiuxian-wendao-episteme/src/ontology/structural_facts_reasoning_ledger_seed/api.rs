@@ -1,3 +1,5 @@
+//! API surface for compiling structural-facts reasoning ledger seeds.
+
 use std::{collections::BTreeSet, fs, path::Path};
 
 use anyhow::{Context, Result, bail};

@@ -47,8 +47,11 @@ tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
-xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

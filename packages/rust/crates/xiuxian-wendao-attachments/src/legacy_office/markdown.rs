@@ -1,3 +1,5 @@
+//! Markdown projection for legacy Office parser output.
+
 use std::path::Path;
 
 use super::LegacyOfficeFormat;
@@ -19,26 +21,5 @@ pub(crate) fn legacy_office_markdown(
         LegacyOfficeFormat::Doc | LegacyOfficeFormat::Ppt => {
             Ok(format!("# {file_name}\n\n{}\n\n{text}\n", format.label()))
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::{LegacyOfficeFormat, legacy_office_markdown};
-
-    #[test]
-    fn xls_markdown_preserves_tabular_boundaries() {
-        let markdown = match legacy_office_markdown(
-            Path::new("rates.xls"),
-            LegacyOfficeFormat::Xls,
-            "name\tvalue\nalpha\t42",
-        ) {
-            Ok(markdown) => markdown,
-            Err(error) => panic!("markdown failed: {error}"),
-        };
-
-        assert!(markdown.contains("```tsv\nname\tvalue\nalpha\t42\n```"));
     }
 }

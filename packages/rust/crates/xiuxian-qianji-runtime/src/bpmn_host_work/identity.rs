@@ -1,3 +1,5 @@
+//! Generic BPMN host-work identity matching helpers.
+
 use xiuxian_qianji_bpmn_engine::{PendingHostWork, PendingHostWorkKind};
 
 use crate::flowhub::{

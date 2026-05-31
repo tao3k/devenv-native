@@ -25,6 +25,7 @@ zhenfa-router = [
   "dep:reqwest",
   "dep:tower",
   "dep:xiuxian-ast",
+  "xiuxian-wendao-parsers/ast-validation",
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/gateway",
   "search-runtime",
@@ -50,6 +51,7 @@ search-runtime = [
   "dep:graphql-parser",
   "dep:xiuxian-ast",
   "dep:xiuxian-code-intelligence",
+  "xiuxian-wendao-parsers/ast-validation",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/engine",
@@ -66,6 +68,7 @@ studio = [
   "search-runtime",
   "repo-lexical-index",
   "dep:xiuxian-ast",
+  "xiuxian-wendao-parsers/ast-validation",
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/native",
 ]
@@ -95,6 +98,7 @@ duckdb = [
   "dep:xiuxian-db-store",
   "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/duckdb",
+  "xiuxian-wendao-runtime/duckdb-config",
 ]
 
 [[bench]]
@@ -137,7 +141,7 @@ xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-llm = { path = "../xiuxian-llm" }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme" }
-xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client" }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
@@ -208,6 +212,9 @@ reqwest = { workspace = true, optional = true }
 tantivy = { version = "0.25", optional = true }
 graphql-parser = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
+
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

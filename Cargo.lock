@@ -6957,7 +6957,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=d9a307eef420781b2a91084e1e1bef4bd4b683d5#d9a307eef420781b2a91084e1e1bef4bd4b683d5"
+source = "git+https://github.com/tao3k/orgize?rev=1799417d88347cdc7caf8fd7a3b793ac838fc66c#1799417d88347cdc7caf8fd7a3b793ac838fc66c"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -8334,7 +8334,7 @@ dependencies = [
 [[package]]
 name = "rust-lang-project-harness"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67#acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=2184bf574e4cf48b90752bdc71d58743603b7114#2184bf574e4cf48b90752bdc71d58743603b7114"
 dependencies = [
  "cargo_toml",
  "proc-macro2",
@@ -11726,7 +11726,6 @@ dependencies = [
  "xiuxian-qianji-runtime",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
- "xiuxian-wendao-parsers",
  "xiuxian-wendao-runtime",
  "xiuxian-wendao-sql",
  "xiuxian-window",

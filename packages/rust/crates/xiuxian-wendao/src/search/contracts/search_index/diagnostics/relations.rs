@@ -1,3 +1,5 @@
+//! Arrow read-model relations for search-index diagnostics.
+
 use std::{collections::HashMap, sync::Arc};
 
 use arrow::array::{ArrayRef, BooleanArray, Int64Array, RecordBatch, StringArray};
@@ -17,9 +19,13 @@ use xiuxian_db_store::{
     validate_record_batch_schema_with_options,
 };
 
+/// Arrow table name for search status rollup diagnostics.
 pub const STATUS_DIAGNOSTICS_TABLE: &str = "status_rollup_rows";
+/// Arrow table name for status reason diagnostics.
 pub const STATUS_REASON_DIAGNOSTICS_TABLE: &str = "status_reason_rows";
+/// Arrow table name for query telemetry diagnostics.
 pub const QUERY_TELEMETRY_DIAGNOSTICS_TABLE: &str = "query_telemetry_rows";
+/// Arrow table name for repo read-pressure diagnostics.
 pub const REPO_READ_PRESSURE_DIAGNOSTICS_TABLE: &str = "repo_read_pressure_rows";
 
 pub(super) fn status_snapshot_relation(
@@ -199,6 +205,7 @@ pub(super) fn repo_read_pressure_relation(
     Ok(Some((schema, vec![batch])))
 }
 
+/// Build the Arrow schema contract for status snapshot diagnostics.
 pub fn status_snapshot_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         STATUS_DIAGNOSTICS_TABLE,
@@ -216,6 +223,7 @@ pub fn status_snapshot_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build the Arrow schema contract for query telemetry diagnostics.
 pub fn query_telemetry_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         QUERY_TELEMETRY_DIAGNOSTICS_TABLE,
@@ -239,6 +247,7 @@ pub fn query_telemetry_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build the Arrow schema contract for status reason diagnostics.
 pub fn status_reason_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         STATUS_REASON_DIAGNOSTICS_TABLE,
@@ -254,6 +263,7 @@ pub fn status_reason_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build the Arrow schema contract for repo read-pressure diagnostics.
 pub fn repo_read_pressure_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
@@ -270,6 +280,7 @@ pub fn repo_read_pressure_contract() -> ArrowSchemaContract {
     )
 }
 
+/// Build a diagnostics Arrow schema reference with Wendao table metadata.
 pub fn diagnostics_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
     let mut metadata = HashMap::new();
     metadata.insert(

@@ -24,12 +24,6 @@ impl ParsedHeadingLine {
     }
 }
 
-impl PartialEq<(usize, String)> for ParsedHeadingLine {
-    fn eq(&self, other: &(usize, String)) -> bool {
-        self.level == other.0 && self.title == other.1
-    }
-}
-
 /// Find the insertion point for one missing Markdown heading path.
 ///
 /// The result captures the byte offset where new content should be inserted,

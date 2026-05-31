@@ -174,7 +174,10 @@ backend_profile = "hosted-vlm-image-extract-v1"
     let Some(config) = load_model_routing_config_from_wendao_toml(temp.path())? else {
         panic!("model routing config should load");
     };
-    assert_eq!(config.mode.as_deref(), Some("deterministic"));
+    assert!(matches!(
+        config.mode,
+        Some(xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic)
+    ));
     assert_eq!(config.default_provider.as_deref(), Some("openrouter"));
     assert_eq!(
         config.chat.model.as_deref(),

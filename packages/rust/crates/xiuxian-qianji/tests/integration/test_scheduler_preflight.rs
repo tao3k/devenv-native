@@ -3,7 +3,9 @@
 use async_trait::async_trait;
 use serde_json::{Value, json};
 use std::sync::Arc;
-use xiuxian_qianji::executors::{ProbabilisticRouter, ShellMechanism};
+#[cfg(feature = "wendao-integration")]
+use xiuxian_qianji::executors::ProbabilisticRouter;
+use xiuxian_qianji::executors::ShellMechanism;
 use xiuxian_qianji::{
     FlowInstruction, QianjiEngine, QianjiMechanism, QianjiOutput, QianjiScheduler,
 };
@@ -30,6 +32,7 @@ impl QianjiMechanism for EchoAssetMechanism {
 #[derive(Debug, Default)]
 struct ProduceAgendaMechanism;
 
+#[cfg(feature = "wendao-integration")]
 #[derive(Debug, Default)]
 struct EchoSemanticScopeTraceMechanism;
 
@@ -51,6 +54,7 @@ impl QianjiMechanism for ProduceAgendaMechanism {
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 #[async_trait]
 impl QianjiMechanism for EchoSemanticScopeTraceMechanism {
     async fn execute(&self, context: &Value) -> Result<QianjiOutput, String> {
@@ -75,6 +79,7 @@ impl QianjiMechanism for EchoSemanticScopeTraceMechanism {
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_resolves_wendao_placeholder_before_node_execution() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("echo", Arc::new(EchoAssetMechanism));
@@ -97,6 +102,7 @@ async fn scheduler_preflight_resolves_wendao_placeholder_before_node_execution()
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_returns_error_when_wendao_placeholder_is_unresolvable() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("echo", Arc::new(EchoAssetMechanism));
@@ -141,6 +147,7 @@ async fn scheduler_preflight_resolves_context_path_placeholder_after_upstream_me
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_expands_dynamic_query_into_xml_lite_bundle() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("echo", Arc::new(EchoAssetMechanism));
@@ -187,6 +194,7 @@ async fn shell_mechanism_resolves_semantic_placeholder_in_command_field() {
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_injects_semantic_scope_guard_trace_into_context() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
@@ -216,6 +224,7 @@ async fn scheduler_preflight_injects_semantic_scope_guard_trace_into_context() {
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_routes_review_required_semantic_scope_without_blocking() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
@@ -244,6 +253,7 @@ async fn scheduler_preflight_routes_review_required_semantic_scope_without_block
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_routes_semantic_guard_action_through_router() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism(
@@ -271,6 +281,7 @@ async fn scheduler_preflight_routes_semantic_guard_action_through_router() {
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_blocks_review_required_semantic_scope_when_policy_requires_it() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
@@ -301,6 +312,7 @@ async fn scheduler_preflight_blocks_review_required_semantic_scope_when_policy_r
 }
 
 #[tokio::test]
+#[cfg(feature = "wendao-integration")]
 async fn scheduler_preflight_blocks_unresolved_semantic_scope_when_policy_requires_blocked() {
     let mut engine = QianjiEngine::new();
     let _ = engine.add_mechanism("semantic-trace", Arc::new(EchoSemanticScopeTraceMechanism));
@@ -330,6 +342,7 @@ async fn scheduler_preflight_blocks_unresolved_semantic_scope_when_policy_requir
     );
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_metadata_value(projection_staleness: &str, unresolved_ids: &[&str]) -> Value {
     json!({
         "semanticScopeBundle": {

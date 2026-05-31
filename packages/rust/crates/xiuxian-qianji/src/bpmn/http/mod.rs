@@ -10,12 +10,19 @@ mod control_trace;
 #[path = "error/api.rs"]
 mod error_api;
 mod execution_graph;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
+mod llm_completion_shape;
 mod llm_host_work_schedule;
+mod llm_task_documentation;
 #[path = "request/api.rs"]
 mod request_api;
 #[path = "response/api.rs"]
 mod response_api;
 mod routes;
+mod source_authoring;
 mod state;
 mod workflow_source_admission;
 
@@ -46,6 +53,8 @@ pub use api::{
     QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
     QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpRequest,
-    QianjiControlWorkflowSourceAdmissionHttpResponse, QianjiControlWorkflowSourceCompilerMode,
+    QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
+    QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
     qianji_bpmn_workflow_router,
 };

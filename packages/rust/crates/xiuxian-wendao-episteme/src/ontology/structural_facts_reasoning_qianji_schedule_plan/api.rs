@@ -1,3 +1,5 @@
+//! API surface for compiling Qianji schedule plans from reasoning fill plans.
+
 use std::{collections::BTreeSet, fs, path::Path};
 
 use anyhow::{Context, Result, bail};
@@ -55,6 +57,13 @@ const OBJECT_MODEL_LINK_TYPE_PATCH_KIND: &str = "object_model_link_type_candidat
 /// selectable rows, attempts to mark ontology truth or mutation, contains
 /// duplicate fill item ids, or output artifacts cannot be written.
 pub fn write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan(
+    request: &EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest,
+    run_root: impl AsRef<Path>,
+) -> Result<EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanReport> {
+    write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan_impl(request, run_root)
+}
+
+fn write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan_impl(
     request: &EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest,
     run_root: impl AsRef<Path>,
 ) -> Result<EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanReport> {

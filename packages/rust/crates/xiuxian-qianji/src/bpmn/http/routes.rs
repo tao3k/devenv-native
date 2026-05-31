@@ -12,6 +12,11 @@ use super::execution_graph::QianjiControlExecutionGraphHttpResponse;
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
     test
 ))]
+use super::llm_completion_shape::shape_llm_content_for_bpmn_outputs;
+#[cfg(any(
+    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+    test
+))]
 use super::request_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest;
 use super::request_api::{
     QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowStartHttpRequest,
@@ -19,6 +24,7 @@ use super::request_api::{
     QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
     QianjiBpmnWorkflowTaskFailHttpRequest, QianjiBpmnWorkflowTaskFailureHttpPayload,
     QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiControlRecoveryApplyHttpRequest,
+    QianjiControlRunStreamHttpQuery,
 };
 #[cfg(any(
     all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
@@ -224,6 +230,7 @@ where
 async fn load_control_run_stream<H>(
     State(state): State<QianjiBpmnWorkflowHttpState<H>>,
     Path(run_id): Path<String>,
+    Query(query): Query<QianjiControlRunStreamHttpQuery>,
 ) -> Result<Json<QianjiControlRunStreamHttpResponse>, QianjiBpmnWorkflowHttpError>
 where
     H: BpmnHostBridge + Clone + Send + Sync + 'static,
@@ -233,8 +240,10 @@ where
     let events = ledger
         .load_events(&run_id)
         .map_err(|error| QianjiBpmnWorkflowHttpError::internal_server_error(error.to_string()))?;
-    Ok(Json(QianjiControlRunStreamHttpResponse::from_events(
-        &run_id, &events,
+    Ok(Json(QianjiControlRunStreamHttpResponse::from_events_after(
+        &run_id,
+        &events,
+        query.after_sequence,
     )))
 }
 
@@ -581,58 +590,10 @@ fn llm_candidate_completion_data(
                 "BPMN LLM output artifact did not include non-empty content",
             )
         })?;
-    match serde_json::from_str::<serde_json::Value>(content) {
-        Ok(value) => Ok(shape_llm_completion_for_bpmn_outputs(
-            value,
-            content,
-            &candidate.output_bindings,
-        )),
-        Err(_) => Ok(shape_llm_text_for_bpmn_outputs(
-            content,
-            &candidate.output_bindings,
-        )),
-    }
-}
-
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-fn shape_llm_completion_for_bpmn_outputs(
-    value: serde_json::Value,
-    raw_content: &str,
-    output_bindings: &[String],
-) -> serde_json::Value {
-    if output_bindings.is_empty() {
-        return value;
-    }
-    if let serde_json::Value::Object(map) = &value
-        && output_bindings
-            .iter()
-            .all(|name| map.contains_key(name.as_str()))
-    {
-        return value;
-    }
-    if output_bindings.len() == 1 {
-        let output_name = &output_bindings[0];
-        if let Some(content) = value.get("content").and_then(serde_json::Value::as_str) {
-            return serde_json::json!({ output_name: content });
-        }
-        return serde_json::json!({ output_name: raw_content });
-    }
-    value
-}
-
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-fn shape_llm_text_for_bpmn_outputs(content: &str, output_bindings: &[String]) -> serde_json::Value {
-    if output_bindings.len() == 1 {
-        let output_name = &output_bindings[0];
-        return serde_json::json!({ output_name: content });
-    }
-    serde_json::json!({ "content": content })
+    Ok(shape_llm_content_for_bpmn_outputs(
+        content,
+        &candidate.output_bindings,
+    ))
 }
 
 #[cfg(any(

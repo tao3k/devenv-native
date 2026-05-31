@@ -4,63 +4,6 @@
 //! existing runtime, attachments, analyzer, and Julia packages.
 
 #[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = {
-        rust_lang_project_harness::default_rust_harness_config()
-            .with_verification_profile_hint(
-                rust_lang_project_harness::RustVerificationProfileHint::new(
-                    "src/lib.rs",
-                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-                )
-                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
-                .with_rationale(
-                    "crate root owns the shared polyglot control-plane contract exports",
-                ),
-            )
-            .with_verification_profile_hint(
-                rust_lang_project_harness::RustVerificationProfileHint::new(
-                    "src/docling_schedule/model.rs",
-                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-                )
-                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
-                .with_rationale(
-                    "Docling scheduling plans are the reusable policy contract for owner crates",
-                ),
-            )
-            .with_verification_profile_hint(
-                rust_lang_project_harness::RustVerificationProfileHint::new(
-                    "src/julia_schedule/model.rs",
-                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-                )
-                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
-                .with_rationale(
-                    "Julia scheduling plans are the reusable profile-aware policy contract for owner crates",
-                ),
-            )
-            .with_verification_profile_hint(
-                rust_lang_project_harness::RustVerificationProfileHint::new(
-                    "src/audio_schedule/model.rs",
-                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-                )
-                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
-                .with_rationale(
-                    "Audio scheduling plans are the reusable policy contract for hosted/local analyzer audio work",
-                ),
-            )
-            .with_verification_profile_hint(
-                rust_lang_project_harness::RustVerificationProfileHint::new(
-                    "src/wendao_contracts/model.rs",
-                    [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-                )
-                .with_task_kinds([rust_lang_project_harness::RustVerificationTaskKind::Regression])
-                .with_rationale(
-                    "Wendao contract projections read runtime config facts while Julia core/runtime consume polyglot Julia facts",
-                ),
-            )
-    }
-);
-
-#[cfg(test)]
 #[path = "../tests/unit/lib/mod.rs"]
 mod tests;
 

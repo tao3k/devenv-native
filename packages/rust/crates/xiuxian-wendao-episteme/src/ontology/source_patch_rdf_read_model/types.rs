@@ -1,3 +1,5 @@
+//! Data contracts for source-patch RDF read-model generation.
+
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};

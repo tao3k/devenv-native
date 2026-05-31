@@ -33,6 +33,9 @@ xiuxian-config-core = { path = "../xiuxian-config-core" }
 litellm-rs = { workspace = true, features = ["redis"], optional = true }
 spider = { version = "2.45.29", default-features = false, features = ["sync", "reqwest_native_tls_native_roots"] }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }

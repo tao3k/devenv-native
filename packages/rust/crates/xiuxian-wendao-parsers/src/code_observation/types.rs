@@ -111,6 +111,7 @@ impl CodeObservation {
     }
 
     /// Get the language for `xiuxian-ast` queries.
+    #[cfg(feature = "ast-validation")]
     #[must_use]
     pub fn ast_language(&self) -> Option<xiuxian_ast::Lang> {
         xiuxian_ast::Lang::try_from(self.language.as_str()).ok()
@@ -123,6 +124,7 @@ impl CodeObservation {
     /// Returns an error when the observation language is not supported by
     /// `xiuxian-ast` or when the configured pattern is not accepted by the
     /// target parser.
+    #[cfg(feature = "ast-validation")]
     pub fn validate_pattern(&self) -> Result<(), String> {
         let language = self
             .ast_language()
@@ -132,6 +134,17 @@ impl CodeObservation {
             .map_err(|error| format!("Invalid pattern: {error}"))?;
 
         Ok(())
+    }
+
+    /// Validate the pattern using the optional `xiuxian-ast` integration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when this crate is built without the `ast-validation`
+    /// feature.
+    #[cfg(not(feature = "ast-validation"))]
+    pub fn validate_pattern(&self) -> Result<(), String> {
+        Err("code observation validation requires the `ast-validation` feature".to_string())
     }
 }
 

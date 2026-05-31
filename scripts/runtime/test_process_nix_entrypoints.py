@@ -9,6 +9,7 @@ PROCESS_ROOT = PROJECT_ROOT / "scripts/runtime/processes"
 
 ENTRYPOINT_PROCESSES = (
     "carfox",
+    "qianji-server",
     "valkey",
     "vllm-sr",
     "wendao-analyzer",
@@ -21,6 +22,7 @@ ENTRYPOINT_PROCESSES = (
 )
 
 HEALTHCHECK_PROCESSES = (
+    "qianji-server",
     "valkey",
     "vllm-sr",
     "wendao-analyzer",
@@ -187,6 +189,16 @@ def test_process_healthchecks_have_short_internal_retries() -> None:
     assert "after {attempts} attempt(s)" in analyzer_healthcheck
 
 
+def test_qianji_server_healthcheck_rejects_missing_llm_worker_route() -> None:
+    healthcheck = (PROJECT_ROOT / "scripts/runtime/qianji-server-healthcheck.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "/control/runs/__health__/workers/openai-compatible-llm/run-and-complete" in healthcheck
+    assert "route_status == 404" in healthcheck
+    assert "qianji-server LLM worker route is missing" in healthcheck
+
+
 def test_wendao_gateway_entrypoint_builds_full_attachment_surface() -> None:
     gateway_entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(
         encoding="utf-8"
@@ -230,6 +242,17 @@ def test_process_nix_exposes_vllm_sr_model_routing_plane() -> None:
     assert 'exec.command = processHealthcheck "vllm-sr";' in process_nix
     assert 'vllm-sr.condition = "process_healthy";' in process_nix
     assert 'restart = "no";' in process_nix
+
+
+def test_wendao_ai_process_waits_for_qianji_server() -> None:
+    process_nix = PROCESS_NIX.read_text(encoding="utf-8")
+    wendao_ai_block = process_nix.split('"wendao-ai" = {', maxsplit=1)[1].split(
+        "};\n    };",
+        maxsplit=1,
+    )[0]
+
+    assert 'qianji-server.condition = "process_healthy";' in wendao_ai_block
+    assert 'wendao-gateway.condition = "process_healthy";' in wendao_ai_block
 
 
 def test_wendao_gateway_readiness_budget_allows_local_cold_builds() -> None:

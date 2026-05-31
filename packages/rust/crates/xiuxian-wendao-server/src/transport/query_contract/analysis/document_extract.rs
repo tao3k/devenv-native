@@ -88,11 +88,78 @@ impl DocumentExtractMode {
     }
 }
 
+macro_rules! string_token {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Build a normalized token from validated Flight metadata.
+            #[must_use]
+            pub fn new(value: impl Into<String>) -> Self {
+                Self(value.into())
+            }
+
+            /// Borrow the token as a string slice.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                self.0.as_str()
+            }
+
+            /// Return the owned token string.
+            #[must_use]
+            pub fn into_string(self) -> String {
+                self.0
+            }
+        }
+
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                self.as_str()
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+    };
+}
+
+string_token!(
+    DocumentExtractSourcePath,
+    "Validated document source path decoded from Flight metadata."
+);
+string_token!(
+    HostedAudioBaseUrl,
+    "Validated hosted-audio base URL decoded from Flight metadata."
+);
+
+/// Async wait budget for document extraction requests, in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DocumentExtractWaitBudgetMs(u64);
+
+impl DocumentExtractWaitBudgetMs {
+    /// Build an async wait budget from validated Flight metadata.
+    #[must_use]
+    pub const fn from_millis(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Return the wait budget in milliseconds.
+    #[must_use]
+    pub const fn as_millis(self) -> u64 {
+        self.0
+    }
+}
+
 /// Transport-owned document extraction request decoded from Flight metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentExtractFlightRequest {
     /// Source document path.
-    pub source_path: String,
+    pub source_path: DocumentExtractSourcePath,
     /// Output directory for extracted resources.
     pub output_dir: String,
     /// Force reconversion even when cache artifacts exist.
@@ -104,13 +171,13 @@ pub struct DocumentExtractFlightRequest {
     /// Execution mode for the Rust provider.
     pub mode: DocumentExtractMode,
     /// Async wait budget in milliseconds.
-    pub wait_ms: u64,
+    pub wait_ms: DocumentExtractWaitBudgetMs,
     /// Optional audio worker selector for Rust-owned audio shard dispatch.
     pub audio_worker: Option<String>,
     /// Optional hosted audio provider override for Rust-owned audio shard dispatch.
     pub audio_hosted_provider: Option<String>,
     /// Optional hosted audio base URL override for Rust-owned audio shard dispatch.
-    pub audio_hosted_base_url: Option<String>,
+    pub audio_hosted_base_url: Option<HostedAudioBaseUrl>,
     /// Optional hosted audio endpoint-kind override for Rust-owned audio shard dispatch.
     pub audio_hosted_endpoint: Option<String>,
     /// Optional hosted audio model override for Rust-owned audio shard dispatch.

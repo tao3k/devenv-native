@@ -46,6 +46,9 @@ xiuxian-macros = { path = "../xiuxian-macros" }
 pulldown-cmark = { workspace = true, optional = true }
 quick-xml = { workspace = true, optional = true }
 
+[build-dependencies]
+rust-lang-project-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time", "sync"] }

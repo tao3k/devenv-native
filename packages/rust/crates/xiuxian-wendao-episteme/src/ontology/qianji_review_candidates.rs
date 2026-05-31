@@ -222,6 +222,12 @@ struct CandidateEvidenceRow {
 pub fn import_episteme_ontology_qianji_review_candidates(
     request: &EpistemeOntologyQianjiReviewCandidateImportRequest,
 ) -> Result<EpistemeOntologyQianjiReviewCandidateImportReport> {
+    import_episteme_ontology_qianji_review_candidates_impl(request)
+}
+
+fn import_episteme_ontology_qianji_review_candidates_impl(
+    request: &EpistemeOntologyQianjiReviewCandidateImportRequest,
+) -> Result<EpistemeOntologyQianjiReviewCandidateImportReport> {
     if request.review_artifacts.is_empty() {
         bail!("Qianji review candidate import requires at least one review artifact");
     }

@@ -1,3 +1,5 @@
+//! API surface for compiling structural-facts reasoning packets.
+
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,

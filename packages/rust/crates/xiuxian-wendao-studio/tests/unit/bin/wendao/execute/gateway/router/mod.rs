@@ -7,7 +7,7 @@ use axum::http::{Request, StatusCode};
 use axum::routing::Router;
 use tower::ServiceExt;
 
-#[cfg(feature = "julia")]
+#[cfg(feature = "zhenfa-router")]
 use crate::bin_support::wendao::execute::gateway::command::GATEWAY_FLIGHT_SERVICE_AXUM_PATH;
 use crate::bin_support::wendao::execute::gateway::command::build_gateway_router;
 

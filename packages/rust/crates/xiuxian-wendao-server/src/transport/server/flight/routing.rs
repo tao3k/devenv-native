@@ -52,12 +52,12 @@ fn document_extract_cache_key_with_force_override(
     let force = force_override.unwrap_or(request.force);
     Ok(format!(
         "{route}|{:?}|{:?}|{}|{}|{:?}|{}",
-        request.source_path,
+        request.source_path.as_str(),
         request.output_dir,
         force,
         request.error_row,
         request.mode,
-        request.wait_ms
+        request.wait_ms.as_millis()
     ))
 }
 

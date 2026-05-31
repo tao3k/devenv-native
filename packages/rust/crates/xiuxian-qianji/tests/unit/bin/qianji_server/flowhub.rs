@@ -26,6 +26,7 @@ use crate::{
     FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput, QianjiBpmnHostBridge,
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowHttpState, QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs,
+    QianjiRuntimeLeaseTtlMs, QianjiRuntimeWorkerIdRef,
     build_flowhub_service_activity_schedule_record_from_http_pending_work,
     build_flowhub_service_task_complete_http_request,
 };
@@ -263,14 +264,14 @@ async fn qianji_server_agent_coding_fixture_worker_bridge_completes_service_chai
         &hot_state,
         &QianjiServerFlowhubServiceWorkerLoopRequest {
             run_id: &run_id,
-            scenario_id: "agent-coding",
-            instance_id,
+            scenario_id: FlowhubScenarioIdRef::new("agent-coding"),
+            instance_id: QianjiRuntimeBpmnInstanceIdRef::new(instance_id),
             bpmn_source: Path::new(source_pair.bpmn_source.as_str()),
-            worker_id: "flowhub-service-worker",
+            worker_id: QianjiRuntimeWorkerIdRef::new("flowhub-service-worker"),
             checkpoint_backend: QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
-            now_ms: 42,
-            lease_ttl_ms: 1_000,
-            settled_at_ms: 84,
+            now_ms: QianjiRuntimeInstantMs::from_millis(42),
+            lease_ttl_ms: QianjiRuntimeLeaseTtlMs::from_millis(1_000),
+            settled_at_ms: QianjiRuntimeInstantMs::from_millis(84),
             max_steps: 12,
         },
     )

@@ -1,6 +1,6 @@
 //! Cargo entry point for `xiuxian-wendao-client` unit tests.
 
-#[path = "unit/cli.rs"]
+#[path = "unit/cli/mod.rs"]
 mod cli;
 #[path = "unit/get_runtime.rs"]
 mod get_runtime;
