@@ -141,14 +141,13 @@ fn count_unexpected_string(
 }
 
 fn count_true(batches: &[RecordBatch], column_name: &str) -> Result<usize> {
-    let mut count = 0;
-    for batch in batches {
+    batches.iter().try_fold(0, |count, batch| {
         let values = boolean_column(batch, column_name)?;
-        count += (0..values.len())
-            .filter(|index| values.value(*index))
-            .count();
-    }
-    Ok(count)
+        Ok(count
+            + (0..values.len())
+                .filter(|index| values.value(*index))
+                .count())
+    })
 }
 
 fn string_values(batches: &[RecordBatch], column_name: &str) -> Result<Vec<String>> {

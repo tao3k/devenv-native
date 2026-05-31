@@ -9,6 +9,21 @@ use crate::ontology::reasoning_context_shard::REASONING_CONTEXT_SHARD_MODE_DISAB
 pub(super) const QIANJI_SCHEDULE_PLAN_REPORT_SCHEMA_VERSION: &str =
     "xiuxian_wendao.episteme_structural_facts_reasoning_qianji_schedule_plan_report.v1";
 
+/// Validated reasoning context sharding mode recorded in schedule reports.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(transparent)]
+pub struct EpistemeOntologyReasoningContextShardMode(String);
+
+impl EpistemeOntologyReasoningContextShardMode {
+    pub(super) fn new(mode: impl Into<String>) -> Self {
+        Self(mode.into())
+    }
+
+    pub(super) fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 /// Request for compiling a reasoning fill plan into Qianji schedule inputs.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest {
@@ -250,7 +265,7 @@ pub struct EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanReport {
     /// Number of fill-plan rows skipped by target filters.
     pub skipped_by_filter_count: usize,
     /// Reasoning context sharding mode applied while generating prompt-audit tasks.
-    pub reasoning_context_shard_mode: String,
+    pub reasoning_context_shard_mode: EpistemeOntologyReasoningContextShardMode,
     /// Maximum table data rows allowed in each reasoning context shard.
     pub reasoning_context_shard_row_limit: usize,
     /// Number of reasoning context shards emitted as schedule items.

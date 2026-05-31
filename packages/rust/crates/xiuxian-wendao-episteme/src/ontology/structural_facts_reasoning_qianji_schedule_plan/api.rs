@@ -19,6 +19,7 @@ use super::{
     evidence::{ContextEvidenceByFileId, ContextEvidenceRow, read_context_evidence_by_file_id},
     input::{ReasoningFillPlanInputRow, read_reasoning_fill_plan_rows},
     types::{
+        EpistemeOntologyReasoningContextShardMode,
         EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanExecutionFlags,
         EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanItem,
         EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanPromptAudit,
@@ -1017,7 +1018,9 @@ fn build_report(
         schedule_item_count: context.items.len(),
         skipped_by_limit_count: context.skipped_by_limit_count,
         skipped_by_filter_count: context.skipped_by_filter_count,
-        reasoning_context_shard_mode: request.reasoning_context_shard_mode.clone(),
+        reasoning_context_shard_mode: EpistemeOntologyReasoningContextShardMode::new(
+            request.reasoning_context_shard_mode.clone(),
+        ),
         reasoning_context_shard_row_limit: request.reasoning_context_shard_row_limit,
         reasoning_context_shard_count,
         target_ledger_field_group: request.target_ledger_field_group.clone(),

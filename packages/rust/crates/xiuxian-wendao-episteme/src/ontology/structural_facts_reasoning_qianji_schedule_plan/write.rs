@@ -134,7 +134,7 @@ pub(super) fn write_schedule_plan_org(
     writeln!(
         file,
         "| reasoning_context_shard_mode | {} |",
-        org_cell(&report.reasoning_context_shard_mode)
+        org_cell(report.reasoning_context_shard_mode.as_str())
     )?;
     writeln!(
         file,
