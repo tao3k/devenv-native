@@ -17,7 +17,22 @@ use xiuxian_security::{
 use super::support::must_ok;
 use crate::qianji_server_cli::cli::QianjiServerServeCommand;
 use crate::qianji_server_cli::run::build_qianji_server_router_with_internal_security;
-use crate::qianji_server_cli::security::QianjiInternalServiceSecurity;
+use crate::qianji_server_cli::security::{
+    QianjiInternalServiceSecurity, require_qianji_internal_service_security_with_lookup,
+};
+
+#[test]
+fn qianji_server_internal_security_requires_startup_secret() {
+    let error = require_qianji_internal_service_security_with_lookup(&|_| None)
+        .expect_err("qianji-server startup should require internal principal secret");
+
+    assert!(
+        error
+            .to_string()
+            .contains("XIUXIAN_QIANJI_INTERNAL_PRINCIPAL_SECRET"),
+        "{error}"
+    );
+}
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_internal_security_leaves_health_open() {

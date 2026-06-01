@@ -4,7 +4,7 @@ use super::flowhub::{
 };
 use super::health::{QianjiServerHealthState, check_valkey_ready, qianji_server_health_router};
 use super::security::{
-    QianjiInternalServiceSecurity, qianji_internal_service_security,
+    QianjiInternalServiceSecurity, require_qianji_internal_service_security,
     with_qianji_internal_service_security,
 };
 #[cfg(feature = "duckdb")]
@@ -130,7 +130,7 @@ fn build_qianji_server_router_with_control_ledger(
     build_qianji_server_router_with_control_ledger_and_security(
         command,
         control_ledger,
-        qianji_internal_service_security(),
+        Some(require_qianji_internal_service_security()?),
     )
 }
 
@@ -475,10 +475,7 @@ pub(crate) fn build_qianji_server_flight_service(
         None => build_required_qianji_server_control_ledger(command)?,
     };
     let service = QianjiRunConsoleFlightService::new(control_ledger);
-    Ok(match qianji_internal_service_security() {
-        Some(security) => service.with_internal_security(security),
-        None => service,
-    })
+    Ok(service.with_internal_security(require_qianji_internal_service_security()?))
 }
 
 fn build_qianji_server_control_ledger(

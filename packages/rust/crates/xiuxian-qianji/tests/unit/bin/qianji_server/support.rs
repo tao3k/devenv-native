@@ -1,5 +1,6 @@
 use crate::qianji_server_cli::cli::QianjiServerServeCommand;
-use crate::qianji_server_cli::run::build_qianji_server_router;
+use crate::qianji_server_cli::run::build_qianji_server_router_with_internal_security;
+use crate::qianji_server_cli::security::QianjiInternalServiceSecurity;
 use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode},
@@ -10,6 +11,7 @@ use std::fs;
 use std::net::SocketAddr;
 #[cfg(feature = "valkey")]
 use std::path::Path;
+use std::sync::Arc;
 use tower::util::ServiceExt;
 
 pub(super) fn must_ok<T, E>(result: Result<T, E>, context: &str) -> T
@@ -53,7 +55,13 @@ pub(super) async fn router_get_json(
     uri: &str,
 ) -> (StatusCode, Value) {
     let router = must_ok(
-        build_qianji_server_router(&command),
+        build_qianji_server_router_with_internal_security(
+            &command,
+            Some(QianjiInternalServiceSecurity::gateway(
+                Arc::<str>::from("internal-secret"),
+                Arc::<str>::from("QIANJI_INTERNAL_PRINCIPAL_REQUIRED"),
+            )),
+        ),
         "qianji-server router should build",
     );
     let response = router

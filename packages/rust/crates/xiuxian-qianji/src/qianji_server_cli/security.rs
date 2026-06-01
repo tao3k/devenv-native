@@ -2,13 +2,15 @@
 
 use std::sync::Arc;
 
+use anyhow::{Result, anyhow};
 use axum::routing::Router;
 use xiuxian_config_core::first_non_empty_lookup;
 use xiuxian_security::{
     InternalServiceSecurity, XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV, with_internal_service_security,
 };
 
-const QIANJI_INTERNAL_PRINCIPAL_SECRET_ENV: &str = "XIUXIAN_QIANJI_INTERNAL_PRINCIPAL_SECRET";
+pub(crate) const QIANJI_INTERNAL_PRINCIPAL_SECRET_ENV: &str =
+    "XIUXIAN_QIANJI_INTERNAL_PRINCIPAL_SECRET";
 const LEGACY_GATEWAY_INTERNAL_PRINCIPAL_SECRET_ENV: &str =
     "XIUXIAN_WENDAO_GATEWAY_INTERNAL_PRINCIPAL_SECRET";
 const QIANJI_INTERNAL_PRINCIPAL_REQUIRED_CODE: &str = "QIANJI_INTERNAL_PRINCIPAL_REQUIRED";
@@ -24,11 +26,37 @@ pub(crate) fn qianji_internal_service_security() -> Option<QianjiInternalService
     })
 }
 
+pub(crate) fn require_qianji_internal_service_security() -> Result<QianjiInternalServiceSecurity> {
+    qianji_internal_service_security().ok_or_else(|| {
+        anyhow!(
+            "qianji-server is an internal-plane service and requires `{QIANJI_INTERNAL_PRINCIPAL_SECRET_ENV}` or `{XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV}`"
+        )
+    })
+}
+
 #[cfg(test)]
 pub(crate) fn qianji_internal_principal_secret_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Option<Arc<str>> {
     internal_principal_secret_with_lookup(lookup)
+}
+
+#[cfg(test)]
+pub(crate) fn require_qianji_internal_service_security_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<QianjiInternalServiceSecurity> {
+    qianji_internal_principal_secret_with_lookup(lookup)
+        .map(|secret| {
+            InternalServiceSecurity::gateway(
+                secret,
+                Arc::<str>::from(QIANJI_INTERNAL_PRINCIPAL_REQUIRED_CODE),
+            )
+        })
+        .ok_or_else(|| {
+            anyhow!(
+                "qianji-server is an internal-plane service and requires `{QIANJI_INTERNAL_PRINCIPAL_SECRET_ENV}` or `{XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV}`"
+            )
+        })
 }
 
 #[cfg(not(test))]

@@ -31,8 +31,8 @@ use crate::bin_support::wendao::execute::gateway::{
     query::{GATEWAY_QUERY_AXUM_PATH, GATEWAY_RESPONSES_AXUM_PATH, query, responses},
     registry::build_plugin_registry,
     security::{
-        GatewayPublicProtocolSurface, GatewaySurfacePolicy, GatewaySurfaceSecurity,
-        gateway_bearer_token, with_gateway_surface_security,
+        GATEWAY_BEARER_TOKEN_ENV, GatewayPublicProtocolSurface, GatewaySurfacePolicy,
+        GatewaySurfaceSecurity, gateway_bearer_token, with_gateway_surface_security,
     },
     state::AppState,
     status::{notify_status, stats},
@@ -177,8 +177,7 @@ async fn handle_start(
     let https_stream_budget_bytes = gateway_https_stream_budget_bytes();
     let flight_stream_budget_bytes = gateway_flight_stream_budget_bytes();
     let flight_grpc_web_enabled = gateway_flight_grpc_web_enabled();
-    let bearer_token = gateway_bearer_token();
-    let bearer_auth_required = bearer_token.is_some();
+    let bearer_token = require_gateway_bearer_token()?;
 
     // 3. Build the Axum router
     let app = build_gateway_router(
@@ -192,7 +191,7 @@ async fn handle_start(
         https_stream_budget_bytes,
         flight_stream_budget_bytes,
         flight_grpc_web_enabled,
-        bearer_token,
+        Some(bearer_token),
     )?;
 
     // 4. Start the server
@@ -210,14 +209,7 @@ async fn handle_start(
         flight_request_timeout.as_secs(),
         flight_stream_budget_bytes,
     );
-    info!(
-        "Gateway bearer auth required={}",
-        if bearer_auth_required {
-            "true"
-        } else {
-            "false"
-        }
-    );
+    info!("Gateway bearer auth required=true");
     info!("Endpoints:");
     info!(
         "  - GET {}  - Health check",
@@ -296,6 +288,25 @@ pub(crate) fn ensure_gateway_startup_health(report: &GatewayStartupHealthReport)
         return Err(anyhow!("gateway startup health checks failed: {summary}"));
     }
     Ok(())
+}
+
+fn require_gateway_bearer_token() -> Result<Arc<str>> {
+    gateway_bearer_token().ok_or_else(|| {
+        anyhow!(
+            "Wendao Gateway is the only public boundary and requires `{GATEWAY_BEARER_TOKEN_ENV}`"
+        )
+    })
+}
+
+#[cfg(test)]
+pub(crate) fn require_gateway_bearer_token_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> Result<Arc<str>> {
+    gateway_bearer_token_with_lookup(lookup).ok_or_else(|| {
+        anyhow!(
+            "Wendao Gateway is the only public boundary and requires `{GATEWAY_BEARER_TOKEN_ENV}`"
+        )
+    })
 }
 
 pub(crate) fn build_gateway_router(

@@ -1,8 +1,24 @@
-use super::{gateway_bearer_token_with_lookup, gateway_internal_principal_secret_with_lookup};
+use super::{
+    gateway_bearer_token_with_lookup, gateway_internal_principal_secret_with_lookup,
+    require_gateway_bearer_token_with_lookup,
+};
 
 #[test]
 fn gateway_bearer_token_defaults_to_disabled() {
     assert!(gateway_bearer_token_with_lookup(&|_| None).is_none());
+}
+
+#[test]
+fn gateway_startup_rejects_missing_bearer_token() {
+    let error = require_gateway_bearer_token_with_lookup(&|_| None)
+        .expect_err("gateway startup should require a public bearer token");
+
+    assert!(
+        error
+            .to_string()
+            .contains("XIUXIAN_WENDAO_GATEWAY_BEARER_TOKEN"),
+        "{error}"
+    );
 }
 
 #[test]
