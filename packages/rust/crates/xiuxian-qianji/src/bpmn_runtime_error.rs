@@ -180,6 +180,14 @@ pub enum BpmnOrchestrationError {
         /// Human-readable backend name.
         backend: String,
     },
+    /// Returned when a checkpoint backend was selected but its Cargo feature is disabled.
+    #[error("BPMN checkpoint backend '{backend}' requires the `{feature}` feature")]
+    CheckpointBackendFeatureDisabled {
+        /// Human-readable backend name.
+        backend: String,
+        /// Required Cargo feature name.
+        feature: &'static str,
+    },
     /// Returned when another scheduler owner already holds the BPMN checkpoint
     /// lease for the same instance.
     #[error(

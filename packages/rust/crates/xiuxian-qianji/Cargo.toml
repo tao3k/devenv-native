@@ -19,8 +19,13 @@ duckdb = [
   "xiuxian-qianji-control/duckdb",
 ]
 llm = ["dep:xiuxian-llm"]
-performance = []
-valkey = ["xiuxian-qianji-control/valkey"]
+performance = ["dep:criterion"]
+valkey = [
+  "dep:redis",
+  "xiuxian-qianji-bpmn-engine/valkey",
+  "xiuxian-qianji-control/valkey",
+  "xiuxian-qianji-runtime/valkey",
+]
 advisory-prompt-pack-cache = [
   "qianji-full",
   "xiuxian-db-store/artifact-cache",
@@ -29,6 +34,7 @@ advisory-prompt-pack-cache = [
 qianji-full = [
   "duckdb",
   "llm",
+  "valkey",
   "dep:globset",
   "dep:include_dir",
   "dep:jsonschema",
@@ -67,6 +73,7 @@ toml = { workspace = true }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+criterion = { workspace = true, optional = true }
 arrow = { workspace = true, optional = true }
 arrow-flight = { workspace = true, optional = true }
 ariadne = { workspace = true }
@@ -75,7 +82,7 @@ tokio = { workspace = true }
 tokio-util = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
-redis = { workspace = true, features = ["tokio-comp"] }
+redis = { workspace = true, features = ["tokio-comp"], optional = true }
 log = { workspace = true }
 futures = { workspace = true }
 num-traits = { workspace = true }
@@ -97,7 +104,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-qianhuan = { path = "../xiuxian-qianhuan", optional = true }
-xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false }
 xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
@@ -106,13 +113,11 @@ xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
-xiuxian-qianji-runtime = { path = "../xiuxian-qianji-runtime" }
+xiuxian-qianji-runtime = { path = "../xiuxian-qianji-runtime", default-features = false }
 xiuxian-security = { path = "../xiuxian-security", features = ["axum-internal-plane"] }
 
 [dev-dependencies]
-criterion = { workspace = true }
 insta = { workspace = true }
-reqwest = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 tower = { workspace = true }
 

@@ -1,28 +1,37 @@
-use crate::runtime_config::QianjiRuntimeEnv;
 use crate::{
-    QianjiBpmnHostBridge, QianjiBpmnWorkflowActionHttpRequest, QianjiBpmnWorkflowCheckpointBackend,
-    QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowHttpCheckpointBackend,
-    QianjiBpmnWorkflowHttpErrorBody, QianjiBpmnWorkflowHttpState,
-    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,
-    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStartRequest,
-    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpRequest,
-    QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskCompleteBatchHttpRequest,
-    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, SchedulerAgentIdentity, qianji_bpmn_workflow_router,
+    QianjiBpmnHostBridge, QianjiBpmnWorkflowActionHttpRequest,
+    QianjiBpmnWorkflowHttpCheckpointBackend, QianjiBpmnWorkflowSnapshotHttpResponse,
+    QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowTaskClaimHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest,
 };
+#[cfg(feature = "valkey")]
+use crate::{
+    QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowControlService,
+    QianjiBpmnWorkflowHttpErrorBody, QianjiBpmnWorkflowHttpState,
+    QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowStartRequest,
+    QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpResponse,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, SchedulerAgentIdentity, qianji_bpmn_workflow_router,
+    runtime_config::QianjiRuntimeEnv,
+};
+#[cfg(feature = "valkey")]
 use axum::{
     Router,
     body::{Body, to_bytes},
     http::{Method, Request, StatusCode, header::CONTENT_TYPE},
 };
+#[cfg(feature = "valkey")]
 use serde::de::DeserializeOwned;
 use serde_json::json;
+use std::sync::Arc;
+#[cfg(feature = "valkey")]
 use std::{
     fs,
     path::{Path, PathBuf},
-    sync::Arc,
 };
+#[cfg(feature = "valkey")]
 use tempfile::TempDir;
+#[cfg(feature = "valkey")]
 use tower::util::ServiceExt;
 use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnEdgeSpec, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskChoiceSpec,
@@ -34,7 +43,10 @@ use xiuxian_qianji_bpmn_engine::{
     create_instance,
 };
 
-use super::{unique_instance_id, valkey_support::TestValkey};
+#[cfg(feature = "valkey")]
+use super::unique_instance_id;
+#[cfg(feature = "valkey")]
+use super::valkey_support::TestValkey;
 
 #[path = "http/llm_completion_shape.rs"]
 mod llm_completion_shape;
@@ -330,6 +342,7 @@ async fn bpmn_workflow_http_snapshot_exposes_host_dispatch_details() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+#[cfg(feature = "valkey")]
 async fn bpmn_workflow_http_start_at_routes_to_requested_host_task() {
     let valkey = TestValkey::spawn()
         .await
@@ -367,6 +380,7 @@ async fn bpmn_workflow_http_start_at_routes_to_requested_host_task() {
 }
 
 #[tokio::test(flavor = "current_thread")]
+#[cfg(feature = "valkey")]
 async fn bpmn_workflow_http_batch_completion_completes_parallel_host_boundary() {
     let valkey = TestValkey::spawn()
         .await
@@ -427,6 +441,7 @@ async fn bpmn_workflow_http_batch_completion_completes_parallel_host_boundary() 
 }
 
 #[tokio::test(flavor = "current_thread")]
+#[cfg(feature = "valkey")]
 async fn bpmn_workflow_http_preserves_claim_identity_across_checkpoint_roundtrip() {
     let valkey = TestValkey::spawn()
         .await
@@ -587,12 +602,14 @@ fn http_snapshot_human_task_process() -> (
     (form, assignment, lane, process)
 }
 
+#[cfg(feature = "valkey")]
 struct HttpHumanTaskIdentity {
     instance: String,
     token: u64,
     activity: String,
 }
 
+#[cfg(feature = "valkey")]
 impl HttpHumanTaskIdentity {
     const PROCESS: &'static str = "review";
 
@@ -664,6 +681,7 @@ impl HttpHumanTaskIdentity {
     }
 }
 
+#[cfg(feature = "valkey")]
 async fn assert_wrong_claimant_http_completion_fails(
     router: Router,
     identity: &HttpHumanTaskIdentity,
@@ -691,6 +709,7 @@ async fn assert_wrong_claimant_http_completion_fails(
     );
 }
 
+#[cfg(feature = "valkey")]
 fn workflow_http_router(valkey_url: &str) -> Router {
     qianji_bpmn_workflow_router(QianjiBpmnWorkflowHttpState::new(
         workflow_control_service(valkey_url),
@@ -698,6 +717,7 @@ fn workflow_http_router(valkey_url: &str) -> Router {
     ))
 }
 
+#[cfg(feature = "valkey")]
 fn workflow_control_service(valkey_url: &str) -> QianjiBpmnWorkflowControlService {
     let runtime_env = QianjiRuntimeEnv {
         qianji_checkpoint_valkey_url: Some(valkey_url.to_string()),
@@ -711,6 +731,7 @@ fn workflow_control_service(valkey_url: &str) -> QianjiBpmnWorkflowControlServic
         ))
 }
 
+#[cfg(feature = "valkey")]
 async fn seed_http_runtime_valkey_user_task(valkey_url: &str, bpmn_path: &Path, instance: &str) {
     let service = workflow_control_service(valkey_url);
     let request = QianjiBpmnWorkflowStartRequest {
@@ -742,6 +763,7 @@ async fn seed_http_runtime_valkey_user_task(valkey_url: &str, bpmn_path: &Path, 
     assert!(report.execution.checkpoint_saved);
 }
 
+#[cfg(feature = "valkey")]
 async fn post_json<T>(router: Router, uri: &str, payload: serde_json::Value) -> T
 where
     T: DeserializeOwned,
@@ -752,6 +774,7 @@ where
         .unwrap_or_else(|error| panic!("HTTP response body should decode: {error}"))
 }
 
+#[cfg(feature = "valkey")]
 async fn get_json<T>(router: Router, uri: &str) -> T
 where
     T: DeserializeOwned,
@@ -762,6 +785,7 @@ where
         .unwrap_or_else(|error| panic!("HTTP response body should decode: {error}"))
 }
 
+#[cfg(feature = "valkey")]
 async fn request_json(
     router: Router,
     method: Method,
@@ -788,6 +812,7 @@ async fn request_json(
     (status, body)
 }
 
+#[cfg(feature = "valkey")]
 fn write_http_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("http-user-task.bpmn");
     fs::write(
@@ -818,6 +843,7 @@ fn write_http_user_task_bundle(temp_dir: &TempDir) -> PathBuf {
     bpmn_path
 }
 
+#[cfg(feature = "valkey")]
 fn write_http_service_chain_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("http-service-chain.bpmn");
     fs::write(
@@ -839,6 +865,7 @@ fn write_http_service_chain_bundle(temp_dir: &TempDir) -> PathBuf {
     bpmn_path
 }
 
+#[cfg(feature = "valkey")]
 fn write_http_parallel_service_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("http-parallel-service.bpmn");
     fs::write(

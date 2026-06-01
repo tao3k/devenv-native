@@ -1,16 +1,20 @@
+#[cfg(feature = "valkey")]
 use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 use tempfile::TempDir;
+#[cfg(feature = "valkey")]
 use xiuxian_qianji_bpmn_engine::BpmnAdvanceOutcome;
 
 use crate::{
     QianjiBpmnCheckpointStore, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
-    QianjiBpmnExecutionRequest, QianjiBpmnHostBridge, SchedulerAgentIdentity,
-    load_bpmn_package_from_files,
+    SchedulerAgentIdentity, load_bpmn_package_from_files,
 };
+#[cfg(feature = "valkey")]
+use crate::{QianjiBpmnExecutionRequest, QianjiBpmnHostBridge};
 
+#[cfg(feature = "valkey")]
 use super::valkey_support::TestValkey;
 
 #[test]
@@ -58,6 +62,7 @@ fn execution_facade_selects_scheduler_lifecycle_only_for_valkey_agent_identity()
 }
 
 #[tokio::test(flavor = "current_thread")]
+#[cfg(feature = "valkey")]
 async fn execution_facade_runtime_valkey_with_scheduler_identity_deletes_terminal_checkpoint() {
     let valkey = ok_of(
         TestValkey::spawn().await,

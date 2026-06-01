@@ -3,4 +3,5 @@ pub use super::events::{
     SwarmEvent, unix_millis_now,
 };
 pub use super::traits::{NoopPulseEmitter, PulseEmitter};
+#[cfg(feature = "valkey")]
 pub use super::valkey::ValkeyPulseEmitter;

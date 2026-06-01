@@ -51,6 +51,7 @@ mod bpmn_tests;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
 #[path = "unit/support/valkey.rs"]
+#[cfg(feature = "valkey")]
 mod qianji_test_valkey_support;
 #[cfg(feature = "qianji-full")]
 #[path = "unit/unit_adversarial_loop.rs"]

@@ -125,6 +125,7 @@ async fn readyz(State(state): State<QianjiServerHealthState>) -> Response {
     }
 }
 
+#[cfg(feature = "valkey")]
 pub(crate) async fn check_valkey_ready(valkey_url: &str) -> Result<(), String> {
     let client = redis::Client::open(valkey_url)
         .map_err(|error| format!("failed to open Valkey client: {error}"))?;
@@ -141,6 +142,11 @@ pub(crate) async fn check_valkey_ready(valkey_url: &str) -> Result<(), String> {
     } else {
         Err(format!("unexpected Valkey ping response `{response}`"))
     }
+}
+
+#[cfg(not(feature = "valkey"))]
+pub(crate) async fn check_valkey_ready(_valkey_url: &str) -> Result<(), String> {
+    Err("qianji-server Valkey readiness requires the `valkey` feature".to_string())
 }
 
 #[derive(Debug, Serialize)]

@@ -13,9 +13,11 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 #[cfg(feature = "duckdb")]
 use xiuxian_db_store::qianji_bpmn::QianjiBpmnDuckDbDataStore;
+use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
+#[cfg(feature = "valkey")]
 use xiuxian_qianji_bpmn_engine::{
-    BpmnCheckpointEnvelope, delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint,
-    release_checkpoint_lease, renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
+    delete_checkpoint, delete_checkpoint_as_owner, load_checkpoint, release_checkpoint_lease,
+    renew_checkpoint_lease, save_checkpoint, save_checkpoint_as_owner,
     try_acquire_checkpoint_lease,
 };
 
@@ -125,7 +127,17 @@ impl QianjiBpmnCheckpointStore {
         instance_id: &str,
     ) -> Result<Option<BpmnCheckpointEnvelope>, BpmnOrchestrationError> {
         match self {
-            Self::Valkey { url } => load_checkpoint(instance_id, url).await.map_err(Into::into),
+            Self::Valkey { url } => {
+                #[cfg(feature = "valkey")]
+                {
+                    load_checkpoint(instance_id, url).await.map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (instance_id, url);
+                    Err(valkey_feature_disabled())
+                }
+            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb {
                 path,
@@ -198,7 +210,17 @@ impl QianjiBpmnCheckpointStore {
         checkpoint: &BpmnCheckpointEnvelope,
     ) -> Result<(), BpmnOrchestrationError> {
         match self {
-            Self::Valkey { url } => save_checkpoint(checkpoint, url).await.map_err(Into::into),
+            Self::Valkey { url } => {
+                #[cfg(feature = "valkey")]
+                {
+                    save_checkpoint(checkpoint, url).await.map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (checkpoint, url);
+                    Err(valkey_feature_disabled())
+                }
+            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb {
                 path,
@@ -227,9 +249,19 @@ impl QianjiBpmnCheckpointStore {
         owner_token: &str,
     ) -> Result<(), BpmnOrchestrationError> {
         match self {
-            Self::Valkey { url } => save_checkpoint_as_owner(checkpoint, owner_token, url)
-                .await
-                .map_err(Into::into),
+            Self::Valkey { url } => {
+                #[cfg(feature = "valkey")]
+                {
+                    save_checkpoint_as_owner(checkpoint, owner_token, url)
+                        .await
+                        .map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (checkpoint, owner_token, url);
+                    Err(valkey_feature_disabled())
+                }
+            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -246,9 +278,19 @@ impl QianjiBpmnCheckpointStore {
     /// Identifier boundary: this public compatibility seam accepts externally owned ids.
     pub async fn delete(&self, instance_id: &str) -> Result<(), BpmnOrchestrationError> {
         match self {
-            Self::Valkey { url } => delete_checkpoint(instance_id, url)
-                .await
-                .map_err(Into::into),
+            Self::Valkey { url } => {
+                #[cfg(feature = "valkey")]
+                {
+                    delete_checkpoint(instance_id, url)
+                        .await
+                        .map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (instance_id, url);
+                    Err(valkey_feature_disabled())
+                }
+            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb {
                 path,
@@ -278,9 +320,19 @@ impl QianjiBpmnCheckpointStore {
         owner_token: &str,
     ) -> Result<(), BpmnOrchestrationError> {
         match self {
-            Self::Valkey { url } => delete_checkpoint_as_owner(instance_id, owner_token, url)
-                .await
-                .map_err(Into::into),
+            Self::Valkey { url } => {
+                #[cfg(feature = "valkey")]
+                {
+                    delete_checkpoint_as_owner(instance_id, owner_token, url)
+                        .await
+                        .map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (instance_id, owner_token, url);
+                    Err(valkey_feature_disabled())
+                }
+            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
@@ -304,9 +356,17 @@ impl QianjiBpmnCheckpointStore {
     ) -> Result<bool, BpmnOrchestrationError> {
         match self {
             Self::Valkey { url } => {
-                try_acquire_checkpoint_lease(instance_id, owner_token, lease_ttl_ms, url)
-                    .await
-                    .map_err(Into::into)
+                #[cfg(feature = "valkey")]
+                {
+                    try_acquire_checkpoint_lease(instance_id, owner_token, lease_ttl_ms, url)
+                        .await
+                        .map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (instance_id, owner_token, lease_ttl_ms, url);
+                    Err(valkey_feature_disabled())
+                }
             }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
@@ -330,9 +390,17 @@ impl QianjiBpmnCheckpointStore {
     ) -> Result<bool, BpmnOrchestrationError> {
         match self {
             Self::Valkey { url } => {
-                renew_checkpoint_lease(instance_id, owner_token, lease_ttl_ms, url)
-                    .await
-                    .map_err(Into::into)
+                #[cfg(feature = "valkey")]
+                {
+                    renew_checkpoint_lease(instance_id, owner_token, lease_ttl_ms, url)
+                        .await
+                        .map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (instance_id, owner_token, lease_ttl_ms, url);
+                    Err(valkey_feature_disabled())
+                }
             }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
@@ -354,14 +422,32 @@ impl QianjiBpmnCheckpointStore {
         owner_token: &str,
     ) -> Result<bool, BpmnOrchestrationError> {
         match self {
-            Self::Valkey { url } => release_checkpoint_lease(instance_id, owner_token, url)
-                .await
-                .map_err(Into::into),
+            Self::Valkey { url } => {
+                #[cfg(feature = "valkey")]
+                {
+                    release_checkpoint_lease(instance_id, owner_token, url)
+                        .await
+                        .map_err(Into::into)
+                }
+                #[cfg(not(feature = "valkey"))]
+                {
+                    let _ = (instance_id, owner_token, url);
+                    Err(valkey_feature_disabled())
+                }
+            }
             #[cfg(feature = "duckdb")]
             Self::DuckDb { .. } => Err(BpmnOrchestrationError::CheckpointLeaseUnsupportedBackend {
                 backend: self.backend_name().to_string(),
             }),
         }
+    }
+}
+
+#[cfg(not(feature = "valkey"))]
+fn valkey_feature_disabled() -> BpmnOrchestrationError {
+    BpmnOrchestrationError::CheckpointBackendFeatureDisabled {
+        backend: "valkey".to_string(),
+        feature: "valkey",
     }
 }
 

@@ -7,11 +7,15 @@ authors.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+default = []
+valkey = ["xiuxian-qianji-bpmn-engine/valkey"]
+
 [dependencies]
 async-trait = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
-xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine" }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 
 [dev-dependencies]

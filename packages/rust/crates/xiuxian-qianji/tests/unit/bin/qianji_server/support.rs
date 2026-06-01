@@ -1,9 +1,16 @@
 use crate::qianji_server_cli::cli::QianjiServerServeCommand;
 use crate::qianji_server_cli::run::build_qianji_server_router;
+use axum::{
+    body::{Body, to_bytes},
+    http::{Request, StatusCode},
+};
+use serde_json::Value;
+#[cfg(feature = "valkey")]
 use std::fs;
 use std::net::SocketAddr;
+#[cfg(feature = "valkey")]
 use std::path::Path;
-use tokio::net::TcpListener;
+use tower::util::ServiceExt;
 
 pub(super) fn must_ok<T, E>(result: Result<T, E>, context: &str) -> T
 where
@@ -32,6 +39,7 @@ pub(super) fn must_parse_addr(value: &str) -> SocketAddr {
     }
 }
 
+#[cfg(feature = "valkey")]
 pub(super) fn write_file(path: &Path, content: &str) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
@@ -40,21 +48,28 @@ pub(super) fn write_file(path: &Path, content: &str) {
     fs::write(path, content).unwrap_or_else(|error| panic!("fixture file should write: {error}"));
 }
 
-pub(super) async fn spawn_qianji_server_router(command: QianjiServerServeCommand) -> String {
+pub(super) async fn router_get_json(
+    command: QianjiServerServeCommand,
+    uri: &str,
+) -> (StatusCode, Value) {
     let router = must_ok(
         build_qianji_server_router(&command),
         "qianji-server router should build",
     );
-    let listener = TcpListener::bind("127.0.0.1:0")
+    let response = router
+        .oneshot(
+            Request::builder()
+                .uri(uri)
+                .body(Body::empty())
+                .unwrap_or_else(|error| panic!("GET request should build: {error}")),
+        )
         .await
-        .unwrap_or_else(|error| panic!("test server should bind: {error}"));
-    let addr = listener
-        .local_addr()
-        .unwrap_or_else(|error| panic!("test server local address should resolve: {error}"));
-    tokio::spawn(async move {
-        if let Err(error) = axum::serve(listener, router).await {
-            panic!("test qianji-server router should serve: {error}");
-        }
-    });
-    format!("http://{addr}")
+        .unwrap_or_else(|error| panic!("qianji-server route should respond: {error}"));
+    let status = response.status();
+    let body = to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .unwrap_or_else(|error| panic!("response body should read: {error}"));
+    let json = serde_json::from_slice(&body)
+        .unwrap_or_else(|error| panic!("response body should decode as JSON: {error}"));
+    (status, json)
 }

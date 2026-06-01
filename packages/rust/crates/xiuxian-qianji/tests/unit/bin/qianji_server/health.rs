@@ -1,31 +1,14 @@
-use super::support::{must_err, spawn_qianji_server_router};
+use super::support::{must_err, router_get_json};
 use crate::qianji_server_cli::cli::QianjiServerServeCommand;
 use crate::qianji_server_cli::run::enforce_qianji_server_startup_readiness;
+use axum::http::StatusCode;
 use serde_json::Value;
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_healthz_reports_valkey_default_backend() {
-    let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
-        bind_addr: None,
-        flight_bind_addr: None,
-        valkey_url: Some("not-a-valkey-url".to_string()),
-        require_valkey_ready: None,
-        flowhub_root: None,
-        control_ledger_path: None,
-    })
-    .await;
+    let (status, body) = router_get_json(default_command(), "/healthz").await;
 
-    let response = reqwest::Client::new()
-        .get(format!("{base_url}/healthz"))
-        .send()
-        .await
-        .unwrap_or_else(|error| panic!("healthz request should send: {error}"));
-
-    assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let body = response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|error| panic!("healthz response should decode: {error}"));
+    assert_eq!(status, StatusCode::OK);
     assert_eq!(body["status"], "ok");
     assert_eq!(body["service"], "qianji-server");
     assert_eq!(body["checkpoint_default_backend"], "valkey");
@@ -34,27 +17,9 @@ async fn qianji_server_healthz_reports_valkey_default_backend() {
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_capabilities_reports_workflow_control_routes() {
-    let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
-        bind_addr: None,
-        flight_bind_addr: None,
-        valkey_url: Some("not-a-valkey-url".to_string()),
-        require_valkey_ready: None,
-        flowhub_root: None,
-        control_ledger_path: None,
-    })
-    .await;
+    let (status, body) = router_get_json(default_command(), "/capabilities").await;
 
-    let response = reqwest::Client::new()
-        .get(format!("{base_url}/capabilities"))
-        .send()
-        .await
-        .unwrap_or_else(|error| panic!("capabilities request should send: {error}"));
-
-    assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let body = response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|error| panic!("capabilities response should decode: {error}"));
+    assert_eq!(status, StatusCode::OK);
     assert_eq!(body["service"], "qianji-server");
     assert_eq!(body["checkpoint_default_backend"], "valkey");
     let capabilities = body["capabilities"]
@@ -141,34 +106,16 @@ async fn qianji_server_startup_readiness_gate_fails_fast() {
     );
 
     assert!(
-        error.contains("qianji-server Valkey readiness check failed"),
+        error.contains(expected_readiness_failure()),
         "unexpected startup readiness error: {error}"
     );
 }
 
 #[tokio::test(flavor = "current_thread")]
 async fn qianji_server_readyz_reports_valkey_probe_failure() {
-    let base_url = spawn_qianji_server_router(QianjiServerServeCommand {
-        bind_addr: None,
-        flight_bind_addr: None,
-        valkey_url: Some("not-a-valkey-url".to_string()),
-        require_valkey_ready: None,
-        flowhub_root: None,
-        control_ledger_path: None,
-    })
-    .await;
+    let (status, body) = router_get_json(default_command(), "/readyz").await;
 
-    let response = reqwest::Client::new()
-        .get(format!("{base_url}/readyz"))
-        .send()
-        .await
-        .unwrap_or_else(|error| panic!("readyz request should send: {error}"));
-
-    assert_eq!(response.status(), reqwest::StatusCode::SERVICE_UNAVAILABLE);
-    let body = response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|error| panic!("readyz response should decode: {error}"));
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(body["status"], "not_ready");
     assert_eq!(body["service"], "qianji-server");
     assert_eq!(body["checkpoint_default_backend"], "valkey");
@@ -179,4 +126,25 @@ async fn qianji_server_readyz_reports_valkey_probe_failure() {
             .is_some_and(|message| message.contains("Valkey")),
         "unexpected readyz response: {body}"
     );
+}
+
+fn default_command() -> QianjiServerServeCommand {
+    QianjiServerServeCommand {
+        bind_addr: None,
+        flight_bind_addr: None,
+        valkey_url: Some("not-a-valkey-url".to_string()),
+        require_valkey_ready: None,
+        flowhub_root: None,
+        control_ledger_path: None,
+    }
+}
+
+#[cfg(feature = "valkey")]
+fn expected_readiness_failure() -> &'static str {
+    "qianji-server Valkey readiness check failed"
+}
+
+#[cfg(not(feature = "valkey"))]
+fn expected_readiness_failure() -> &'static str {
+    "qianji-server Valkey readiness requires the `valkey` feature"
 }
