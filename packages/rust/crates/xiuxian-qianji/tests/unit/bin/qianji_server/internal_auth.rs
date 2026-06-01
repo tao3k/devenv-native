@@ -108,9 +108,10 @@ fn secured_router() -> Router {
     must_ok(
         build_qianji_server_router_with_internal_security(
             &command,
-            Some(QianjiInternalServiceSecurity::new(Arc::<str>::from(
-                "internal-secret",
-            ))),
+            Some(QianjiInternalServiceSecurity::gateway(
+                Arc::<str>::from("internal-secret"),
+                Arc::<str>::from("QIANJI_INTERNAL_PRINCIPAL_REQUIRED"),
+            )),
         ),
         "secured qianji-server router should build",
     )

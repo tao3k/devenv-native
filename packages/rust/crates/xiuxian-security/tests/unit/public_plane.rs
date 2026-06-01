@@ -25,6 +25,15 @@ fn public_protocol_surface_exposes_stable_scope_and_protocol() {
         PublicProtocolSurface::ArrowFlight.protocol(),
         "arrow-flight"
     );
+    assert_eq!(
+        PublicProtocolSurface::from_protocol("https-json-sse"),
+        Some(PublicProtocolSurface::HttpsJsonSse)
+    );
+    assert_eq!(
+        PublicProtocolSurface::from_protocol("arrow-flight"),
+        Some(PublicProtocolSurface::ArrowFlight)
+    );
+    assert_eq!(PublicProtocolSurface::from_protocol("unknown"), None);
 }
 
 #[test]

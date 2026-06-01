@@ -15,11 +15,15 @@
 //!
 //! Patterns follow ODF-REP Security Standards.
 
+#[cfg(feature = "axum-internal-plane")]
+mod internal_plane;
 mod permissions;
 mod public_plane;
 mod sandbox;
 mod scanner;
 
+#[cfg(feature = "axum-internal-plane")]
+pub use internal_plane::{InternalServiceSecurity, with_internal_service_security};
 pub use permissions::PermissionGatekeeper;
 pub use public_plane::{
     PublicPlaneRateLimiter, PublicProtocolSurface, PublicSurfacePolicy, SignedPrincipalSigner,

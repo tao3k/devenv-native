@@ -107,7 +107,7 @@ xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 xiuxian-qianji-runtime = { path = "../xiuxian-qianji-runtime" }
-xiuxian-security = { path = "../xiuxian-security" }
+xiuxian-security = { path = "../xiuxian-security", features = ["axum-internal-plane"] }
 
 [dev-dependencies]
 criterion = { workspace = true }

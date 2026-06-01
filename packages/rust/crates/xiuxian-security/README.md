@@ -20,6 +20,9 @@ duplicating string constants, principal signatures, or rate-limit policy.
   Gateway-to-internal service calls. Signed principals use the stable
   `v1:<token-hash>:<signature>` shape so internal services can verify the
   Gateway-issued principal without seeing the raw public bearer token.
+- Optional `axum-internal-plane` middleware that rejects raw public bearer
+  headers and verifies Gateway-issued internal service identity, public
+  protocol, scope, and signed-principal metadata for internal Axum services.
 - Small in-process fixed-window admission policy helpers
 
 ## Usage
@@ -63,6 +66,10 @@ user tokens at the public boundary, then use these primitives to sign and
 propagate an internal principal. Internal services such as Qianji and Wendao
 should verify internal service identity and signed-principal metadata, not
 directly accept user bearer tokens.
+
+The optional `axum-internal-plane` feature only provides reusable Axum
+middleware for that internal service verification step. It does not make this
+crate a server, a public route owner, or a token authority.
 
 ## License
 

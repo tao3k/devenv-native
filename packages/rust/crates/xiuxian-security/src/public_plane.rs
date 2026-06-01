@@ -44,6 +44,16 @@ impl PublicProtocolSurface {
             Self::ArrowFlight => "arrow-flight",
         }
     }
+
+    /// Parse a stable protocol label.
+    #[must_use]
+    pub fn from_protocol(protocol: &str) -> Option<Self> {
+        match protocol {
+            "https-json-sse" => Some(Self::HttpsJsonSse),
+            "arrow-flight" => Some(Self::ArrowFlight),
+            _ => None,
+        }
+    }
 }
 
 /// Per-surface public boundary policy.
