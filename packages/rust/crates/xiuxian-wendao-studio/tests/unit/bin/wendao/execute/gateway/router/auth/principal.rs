@@ -76,4 +76,10 @@ async fn test_gateway_flight_auth_strips_user_token_and_adds_flight_scope() {
     assert_eq!(headers["scope"], "gateway:arrow-flight");
     assert_eq!(headers["protocol"], "arrow-flight");
     assert_eq!(headers["serviceIdentity"], "wendao-gateway");
+    assert!(
+        headers["signedPrincipal"]
+            .as_str()
+            .is_some_and(|value| value.starts_with("v1:")),
+        "{headers}"
+    );
 }
