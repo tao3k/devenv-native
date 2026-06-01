@@ -76,7 +76,8 @@ pub use router::{
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use router::{
-    configured_repository, registered_repository_search_seeds, resolve_registered_repository_id,
+    configured_repository, load_model_routing_config_from_wendao_toml,
+    registered_repository_search_seeds, resolve_registered_repository_id,
 };
 #[cfg(feature = "zhenfa-router")]
 pub use search::build_ast_index;

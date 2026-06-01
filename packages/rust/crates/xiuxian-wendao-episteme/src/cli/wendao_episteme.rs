@@ -2,12 +2,8 @@
 
 use std::path::PathBuf;
 
-use anyhow::{Context, Result};
-use clap::{Args, Parser, Subcommand, ValueEnum};
 #[cfg(feature = "foyer-artifact-cache")]
-use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
-#[cfg(feature = "foyer-artifact-cache")]
-use xiuxian_wendao_episteme::{
+use crate::{
     EpistemeOntologyBootstrapArtifactCacheOptions,
     EpistemeOntologyBootstrapArtifactCacheReadThroughOutcome,
     EpistemeOntologyBootstrapArtifactCacheReadThroughReport,
@@ -19,17 +15,26 @@ use xiuxian_wendao_episteme::{
     restore_episteme_ontology_bootstrap_pipeline_artifacts,
     run_episteme_ontology_bootstrap_pipeline_with_artifact_cache,
 };
-use xiuxian_wendao_episteme::{
+use crate::{
     EpistemeOntologyBootstrapPipelineRequest,
     EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanRequest,
     EpistemeOntologyStructuralFactsValidationMode, run_episteme_ontology_bootstrap_pipeline,
     write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan,
 };
+use anyhow::{Context, Result};
+use clap::{Args, Parser, Subcommand, ValueEnum};
+#[cfg(feature = "foyer-artifact-cache")]
+use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
 
 const DEFAULT_OPENAI_COMPATIBLE_MODEL: &str = "deepseek/deepseek-v4-pro";
 const DEFAULT_OPENAI_COMPATIBLE_MAX_TOKENS: u32 = 8_192;
 
 /// Run the `wendao-episteme` CLI from process arguments.
+///
+/// # Errors
+///
+/// Returns an error when CLI arguments are invalid, a workflow fails, or the
+/// resulting report cannot be serialized.
 pub fn run_from_env() -> Result<()> {
     let cli = Cli::parse();
     let report = run_cli(cli)?;

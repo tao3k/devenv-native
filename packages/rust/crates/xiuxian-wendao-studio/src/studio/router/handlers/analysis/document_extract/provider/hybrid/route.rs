@@ -47,8 +47,7 @@ use xiuxian_wendao_attachments::pdf::render::{
     PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus, source_pdf_page_count,
 };
 use xiuxian_wendao_server::transport::{
-    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest,
-    DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
+    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
 };
 
 #[cfg(feature = "document-extract-pdf-render")]

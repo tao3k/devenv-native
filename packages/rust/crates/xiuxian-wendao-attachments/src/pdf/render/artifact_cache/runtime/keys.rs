@@ -13,7 +13,7 @@ use crate::pdf::render::types::{PdfPageRegionRenderRequest, PdfPageRenderProfile
 use super::model::RegionCropArtifactIdentity;
 
 #[cfg(feature = "foyer-artifact-cache")]
-fn page_raster_artifact_key(
+pub(super) fn page_raster_artifact_key(
     source_hash: &str,
     profile: &PdfPageRenderProfile,
     page_index: u32,
@@ -28,7 +28,7 @@ fn page_raster_artifact_key(
 }
 
 #[cfg(not(feature = "foyer-artifact-cache"))]
-fn page_raster_artifact_key(
+pub(super) fn page_raster_artifact_key(
     _source_hash: &str,
     _profile: &PdfPageRenderProfile,
     _page_index: u32,
@@ -37,7 +37,7 @@ fn page_raster_artifact_key(
 }
 
 #[cfg(feature = "foyer-artifact-cache")]
-fn region_crop_artifact_key(
+pub(super) fn region_crop_artifact_key(
     identity: RegionCropArtifactIdentity<'_>,
 ) -> Result<xiuxian_db_store_key::ArtifactKey, String> {
     attachment_artifact_key(AttachmentArtifactKeyParts {
@@ -57,7 +57,7 @@ fn region_crop_artifact_key(
 }
 
 #[cfg(feature = "foyer-artifact-cache")]
-fn region_manifest_projection_artifact_key(
+pub(super) fn region_manifest_projection_artifact_key(
     source_hash: &str,
     profile: &PdfPageRenderProfile,
     page_index: u32,
@@ -85,7 +85,7 @@ fn region_manifest_projection_artifact_key(
 }
 
 #[cfg(feature = "foyer-artifact-cache")]
-fn region_manifest_projection_row_artifact_key(
+pub(super) fn region_manifest_projection_row_artifact_key(
     source_hash: &str,
     profile: &PdfPageRenderProfile,
     request: &PdfPageRegionRenderRequest,
@@ -108,7 +108,7 @@ fn region_manifest_projection_row_artifact_key(
 }
 
 #[cfg(not(feature = "foyer-artifact-cache"))]
-fn region_crop_artifact_key(
+pub(super) fn region_crop_artifact_key(
     _identity: RegionCropArtifactIdentity<'_>,
 ) -> Result<xiuxian_db_store_key::ArtifactKey, String> {
     unreachable!("artifact keys are unused without foyer-artifact-cache")

@@ -3,6 +3,7 @@
 mod api;
 mod evidence;
 mod input;
+mod support;
 mod types;
 mod write;
 

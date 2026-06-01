@@ -28,7 +28,8 @@ use super::{
 #[cfg(feature = "foyer-artifact-cache")]
 use ontology::{
     EpistemeOntologyArtifactBundleIdentity, EpistemeOntologyArtifactBundleKind,
-    restore_episteme_ontology_artifact_bundle, write_episteme_ontology_artifact_bundle,
+    EpistemeOntologyArtifactBundleWriteReport, restore_episteme_ontology_artifact_bundle,
+    write_episteme_ontology_artifact_bundle,
 };
 use ontology::{
     EpistemeOntologyStructuralFactsConfiguredRequest,
@@ -283,7 +284,7 @@ fn write_bootstrap_stage_bundle(
     stage: &str,
     run_id: &str,
     run_dir: &Path,
-) -> Result<super::EpistemeOntologyArtifactBundleWriteReport> {
+) -> Result<EpistemeOntologyArtifactBundleWriteReport> {
     let identity = EpistemeOntologyArtifactBundleIdentity {
         kind: EpistemeOntologyArtifactBundleKind::ReasoningProjection,
         source_digest: options.source_digest.clone(),
@@ -411,28 +412,4 @@ fn resolve_bootstrap_artifact_roots(
         structure_run_root,
         ontology_generation_run_root,
     })
-}
-
-fn default_stage_run_id(run_id: &str, suffix: &str) -> String {
-    format!("{run_id}_{suffix}")
-}
-
-#[must_use]
-pub(super) fn structural_facts_stage_run_id(run_id: &str) -> String {
-    default_stage_run_id(run_id, "structural_facts")
-}
-
-#[must_use]
-pub(super) fn reasoning_packet_stage_run_id(run_id: &str) -> String {
-    default_stage_run_id(run_id, "reasoning_packet")
-}
-
-#[must_use]
-pub(super) fn reasoning_ledger_seed_stage_run_id(run_id: &str) -> String {
-    default_stage_run_id(run_id, "reasoning_ledger_seed")
-}
-
-#[must_use]
-pub(super) fn reasoning_fill_plan_stage_run_id(run_id: &str) -> String {
-    default_stage_run_id(run_id, "reasoning_fill_plan")
 }

@@ -3,7 +3,7 @@
 use arrow::record_batch::RecordBatch;
 
 #[cfg(feature = "foyer-artifact-cache")]
-use xiuxian_db_store::artifact_cache::ArtifactBlobReadStatus;
+use xiuxian_db_store::artifact_cache::{ArtifactBlobCache, ArtifactBlobReadStatus};
 #[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::{decode_record_batches_ipc, write_record_batches_ipc_artifact};
 

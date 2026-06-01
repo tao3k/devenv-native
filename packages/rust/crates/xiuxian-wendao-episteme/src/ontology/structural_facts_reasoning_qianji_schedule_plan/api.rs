@@ -18,6 +18,14 @@ use crate::ontology::reasoning_target::{
 use super::{
     evidence::{ContextEvidenceByFileId, ContextEvidenceRow, read_context_evidence_by_file_id},
     input::{ReasoningFillPlanInputRow, read_reasoning_fill_plan_rows},
+    support::{
+        ACTIVITY_TYPE, ADMISSION_KIND, CONTEXT_ARTIFACT_KIND, INPUT_ARTIFACT_KIND,
+        OBJECT_MODEL_COMPATIBILITY, OBJECT_MODEL_LINK_TYPE_PATCH_KIND,
+        OBJECT_MODEL_OBJECT_TYPE_PATCH_KIND, OBJECT_MODEL_SCHEMA_REF, OBJECT_MODEL_TARGET_LAYER,
+        PROMPT_ARTIFACT_KIND, PromptAuditArtifacts, QIANJI_LLM_ACTIVITY_REQUEST_AUDIT_SCHEMA,
+        RDF_SOURCE_AUTHORITY, SCHEDULE_CONTRACT, STATUS_PENDING, ScheduleBuildOptions,
+        ScheduleItemContext, ScheduleItemSelection, TARGET_CONTRACT_SCHEMA, TASK_QUEUE,
+    },
     types::{
         EpistemeOntologyReasoningContextShardMode,
         EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanExecutionFlags,
@@ -31,24 +39,6 @@ use super::{
     },
     write::{write_json, write_schedule_plan_org, write_schedule_plan_tsv},
 };
-
-const SCHEDULE_CONTRACT: &str = "xiuxian.qianji.control.activity_schedule_admission_plan.v1";
-const ADMISSION_KIND: &str = "qianji_activity_schedule_admission_candidate";
-const ACTIVITY_TYPE: &str = "episteme.ontology.reasoning_fill";
-const TASK_QUEUE: &str = "episteme.ontology.reasoning";
-const INPUT_ARTIFACT_KIND: &str = "episteme.reasoning_fill_item";
-const STATUS_PENDING: &str = "pending_qianji_admission";
-const PROMPT_ARTIFACT_KIND: &str = "llm.prompt";
-const CONTEXT_ARTIFACT_KIND: &str = "episteme.reasoning_fill_context";
-const QIANJI_LLM_ACTIVITY_REQUEST_AUDIT_SCHEMA: &str = "qianji.llm_activity_request_audit.v1";
-const TARGET_CONTRACT_SCHEMA: &str = "xiuxian.wendao.episteme.reasoning_target_contract.v1";
-const OBJECT_MODEL_SCHEMA_REF: &str =
-    "https://wendao.ai/schema/episteme/object-model-v1.schema.json";
-const OBJECT_MODEL_COMPATIBILITY: &str = "foundry_style_object_model_v1";
-const OBJECT_MODEL_TARGET_LAYER: &str = "object_model";
-const RDF_SOURCE_AUTHORITY: &str = "rdf";
-const OBJECT_MODEL_OBJECT_TYPE_PATCH_KIND: &str = "object_model_object_type_candidate";
-const OBJECT_MODEL_LINK_TYPE_PATCH_KIND: &str = "object_model_link_type_candidate";
 
 /// Compile a structural facts reasoning fill plan into Qianji schedule inputs.
 ///
@@ -133,26 +123,6 @@ fn write_episteme_ontology_structural_facts_reasoning_qianji_schedule_plan_impl(
     write_schedule_plan_org(paths.schedule_plan_org.as_path(), &report, &selection.items)?;
     write_json(paths.report_json.as_path(), &report)?;
     Ok(report)
-}
-
-struct ScheduleItemSelection {
-    items: Vec<EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanItem>,
-    selected_fill_item_count: usize,
-    skipped_by_limit_count: usize,
-    skipped_by_filter_count: usize,
-}
-
-struct ScheduleBuildOptions<'a> {
-    schedule_run_id: &'a str,
-    qianji_run_id: &'a str,
-    limit: usize,
-    target_ledger_field_group: Option<&'a str>,
-    evidence_target_intent: Option<&'a str>,
-    reasoning_context_shard_mode: &'a str,
-    reasoning_context_shard_row_limit: usize,
-    paths: &'a QianjiSchedulePlanOutputPaths,
-    prompt_audit: Option<&'a EpistemeOntologyStructuralFactsReasoningQianjiSchedulePlanPromptAudit>,
-    context_evidence_by_file_id: &'a ContextEvidenceByFileId,
 }
 
 fn build_schedule_items(
@@ -243,11 +213,6 @@ fn fill_matches_filters(
         return false;
     }
     true
-}
-
-struct ScheduleItemContext {
-    reasoning_context_shard: Option<EpistemeReasoningContextShard>,
-    context_evidence: Vec<ContextEvidenceRow>,
 }
 
 fn schedule_item_contexts(
@@ -467,11 +432,6 @@ fn qianji_task_metadata(
         metadata["qianji_llm_activity_request"] = llm_request_audit;
     }
     metadata
-}
-
-struct PromptAuditArtifacts {
-    prompt_ref: QianjiArtifactRefShape,
-    request_audit: serde_json::Value,
 }
 
 fn write_prompt_audit_artifacts(

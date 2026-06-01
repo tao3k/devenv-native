@@ -144,7 +144,10 @@ impl CodeObservation {
     /// feature.
     #[cfg(not(feature = "ast-validation"))]
     pub fn validate_pattern(&self) -> Result<(), String> {
-        Err("code observation validation requires the `ast-validation` feature".to_string())
+        Err(format!(
+            "code observation validation for `{}` requires the `ast-validation` feature",
+            self.language
+        ))
     }
 }
 

@@ -27,6 +27,14 @@ pub(super) struct ReasoningPacketBuild {
     pub skipped_by_limit_count: usize,
 }
 
+#[derive(Default)]
+struct PacketSelection {
+    seen_packet_ids: BTreeSet<String>,
+    rows: Vec<EpistemeOntologyStructuralFactsReasoningPacketRow>,
+    skipped_by_filter_count: usize,
+    skipped_by_limit_count: usize,
+}
+
 pub(super) fn build_reasoning_packet_rows(
     request: &EpistemeOntologyStructuralFactsReasoningPacketRequest,
 ) -> Result<ReasoningPacketBuild> {
@@ -37,14 +45,6 @@ pub(super) fn build_reasoning_packet_rows(
 
     let input = read_structural_facts_input(request.structural_facts_json.as_path())?;
     let document_anchors = document_root_anchors(&input.anchors)?;
-    #[derive(Default)]
-    struct PacketSelection {
-        seen_packet_ids: BTreeSet<String>,
-        rows: Vec<EpistemeOntologyStructuralFactsReasoningPacketRow>,
-        skipped_by_filter_count: usize,
-        skipped_by_limit_count: usize,
-    }
-
     let selection = input.documents.iter().try_fold(
         PacketSelection::default(),
         |mut selection, document| {

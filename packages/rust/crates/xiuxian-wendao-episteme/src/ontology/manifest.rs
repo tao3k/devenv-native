@@ -484,7 +484,8 @@ fn validate_domain_artifacts(
     )?;
     validate_artifact_list(episteme_root, &domain.mapping_ledgers, "mapping_ledgers")?;
     validate_artifact_list(episteme_root, &domain.review_ledgers, "review_ledgers")?;
-    validate_review_ledgers(episteme_root, &domain.review_ledgers, "review_ledgers")?;
+    validate_review_ledgers(episteme_root, &domain.review_ledgers, "review_ledgers")
+        .map_err(|error| invalid_contract(error.to_string()))?;
 
     report.rdf_file_count += domain.rdf_files.len();
     report.rule_count += domain.rules.len();

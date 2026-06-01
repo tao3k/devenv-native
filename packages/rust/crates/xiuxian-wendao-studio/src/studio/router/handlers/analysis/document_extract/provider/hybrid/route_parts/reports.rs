@@ -15,7 +15,7 @@ pub(super) async fn write_hybrid_page_ocr_fallback_report(
 ) {
     let report = json!({
         "schema": "xiuxian_wendao.hybrid_page_ocr_fallback.v1",
-        "sourcePath": request.source_path,
+        "sourcePath": request.source_path.as_str(),
         "outputDir": output.to_string_lossy(),
         "reason": reason,
         "fullDoclingFallbackCount": 1,

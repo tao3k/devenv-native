@@ -9,7 +9,10 @@ use std::{
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use super::{BEGIN_BLOCK, END_BLOCK, WDSP_NS, reviewed_source_patch_artifacts, sha256_bytes};
+use super::{
+    engine::{reviewed_source_patch_artifacts, sha256_bytes},
+    types::{BEGIN_BLOCK, END_BLOCK, TargetWritePlan, WDSP_NS},
+};
 
 const SOURCE_PATCH_APPLY_PREVIEW_SCHEMA_VERSION: &str =
     "xiuxian_wendao.episteme_ontology_source_patch_apply_preview.v1";
@@ -216,7 +219,7 @@ fn safe_target_filename(target_rdf_file: &str) -> String {
         .collect::<String>()
 }
 
-fn proposed_rdf_admission_checks(plan: &super::TargetWritePlan) -> Result<Vec<&'static str>> {
+fn proposed_rdf_admission_checks(plan: &TargetWritePlan) -> Result<Vec<&'static str>> {
     if !plan.proposed_content.contains("<rdf:RDF") {
         anyhow::bail!(
             "source-patch preview target `{}` proposed RDF is missing <rdf:RDF",

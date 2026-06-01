@@ -4,10 +4,6 @@ use std::path::{Path, PathBuf};
 
 use serde::{Serialize, Serializer, ser::SerializeStruct};
 
-use super::{
-    reasoning_fill_plan_stage_run_id, reasoning_ledger_seed_stage_run_id,
-    reasoning_packet_stage_run_id, structural_facts_stage_run_id,
-};
 #[cfg(feature = "foyer-artifact-cache")]
 use crate::{
     EpistemeOntologyArtifactBundleRestoreReport, EpistemeOntologyArtifactBundleWriteReport,
@@ -431,4 +427,24 @@ pub enum EpistemeOntologyBootstrapPipelineSafetyFlag {
     RdfMutationAllowed,
     /// Pipeline output was promoted as ontology truth.
     OntologyTruth,
+}
+
+fn default_stage_run_id(run_id: &str, suffix: &str) -> String {
+    format!("{run_id}_{suffix}")
+}
+
+fn structural_facts_stage_run_id(run_id: &str) -> String {
+    default_stage_run_id(run_id, "structural_facts")
+}
+
+fn reasoning_packet_stage_run_id(run_id: &str) -> String {
+    default_stage_run_id(run_id, "reasoning_packet")
+}
+
+fn reasoning_ledger_seed_stage_run_id(run_id: &str) -> String {
+    default_stage_run_id(run_id, "reasoning_ledger_seed")
+}
+
+fn reasoning_fill_plan_stage_run_id(run_id: &str) -> String {
+    default_stage_run_id(run_id, "reasoning_fill_plan")
 }

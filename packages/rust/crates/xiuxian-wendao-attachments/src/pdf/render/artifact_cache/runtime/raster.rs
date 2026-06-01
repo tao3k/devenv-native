@@ -5,7 +5,7 @@ use std::path::Path;
 
 #[cfg(feature = "foyer-artifact-cache")]
 use xiuxian_db_store::artifact_cache::{
-    ArtifactBlobReadStatus, ArtifactCacheError, read_through_artifact_bytes,
+    ArtifactBlobCache, ArtifactBlobReadStatus, ArtifactCacheError, read_through_artifact_bytes,
 };
 
 use crate::pdf::render::identity::sha256_hex;

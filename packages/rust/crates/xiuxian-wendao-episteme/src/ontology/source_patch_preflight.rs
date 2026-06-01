@@ -133,7 +133,7 @@ pub fn write_episteme_ontology_source_patch_preflight(
             )?;
             ledger_set.object_rows.extend(domain_set.object_rows);
             ledger_set.relation_rows.extend(domain_set.relation_rows);
-            Ok::<_, super::manifest::EpistemeOntologyError>(ledger_set)
+            Ok::<_, anyhow::Error>(ledger_set)
         },
     )?;
     let source_patch_targets = source_patch_targets(&manifest.domains);

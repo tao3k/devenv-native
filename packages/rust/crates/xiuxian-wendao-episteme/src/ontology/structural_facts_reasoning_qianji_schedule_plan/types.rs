@@ -19,7 +19,9 @@ impl EpistemeOntologyReasoningContextShardMode {
         Self(mode.into())
     }
 
-    pub(super) fn as_str(&self) -> &str {
+    /// Return the validated mode string recorded in reports.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
 }

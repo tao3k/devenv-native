@@ -44,7 +44,7 @@ fn search_strategy_oracle_compiles_from_org_review_ledgers()
     let case = &cases["cases"][0];
     assert_eq!(
         case["caseId"],
-        "oracle_seed.episteme---medical-episteme-extension"
+        "episteme-domain-episteme---synthetic-extension-10-extension"
     );
     assert_eq!(case["ontologyTruth"], false);
     assert!(

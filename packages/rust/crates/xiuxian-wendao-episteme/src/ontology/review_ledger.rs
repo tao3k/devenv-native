@@ -2,18 +2,16 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fs,
     path::{Component, Path, PathBuf},
 };
 
+use anyhow::{Result, anyhow};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use xiuxian_wendao_parsers::{
     OrgOntologyAuthoringDocument, OrgOntologyAuthoringTable,
     compile_org_ontology_authoring_document,
-};
-
-use super::manifest::{
-    EpistemeOntologyError, invalid_contract, read_to_string, resolve_ontology_artifact_path,
 };
 
 const OBJECT_INSTANCE_REVIEW_TABLE: &str = "object_instance_review";
@@ -75,7 +73,7 @@ pub(super) fn validate_review_ledgers(
     episteme_root: &Path,
     paths: &[String],
     field: &str,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     let ledger_set = read_review_ledger_set(episteme_root, paths, field)?;
     validate_review_ledger_set(&ledger_set, field)
 }
@@ -84,7 +82,7 @@ pub(super) fn read_review_ledger_set(
     episteme_root: &Path,
     paths: &[String],
     field: &str,
-) -> Result<ReviewLedgerSet, EpistemeOntologyError> {
+) -> Result<ReviewLedgerSet> {
     let mut documents = Vec::new();
     for raw_path in paths {
         documents.push(read_review_ledger(episteme_root, raw_path, field)?);
@@ -106,10 +104,7 @@ pub(super) fn read_review_ledger_set(
     Ok(ledger_set)
 }
 
-fn validate_review_ledger_documents(
-    documents: &[ReviewLedgerDocument],
-    field: &str,
-) -> Result<(), EpistemeOntologyError> {
+fn validate_review_ledger_documents(documents: &[ReviewLedgerDocument], field: &str) -> Result<()> {
     let object_ids = collect_review_object_ids(documents, field)?;
     validate_review_relation_ids(documents, &object_ids, field)
 }
@@ -117,7 +112,7 @@ fn validate_review_ledger_documents(
 fn collect_review_object_ids(
     documents: &[ReviewLedgerDocument],
     field: &str,
-) -> Result<BTreeSet<String>, EpistemeOntologyError> {
+) -> Result<BTreeSet<String>> {
     let mut object_ids = BTreeSet::new();
     for document in documents {
         for row in &document.object_rows {
@@ -136,7 +131,7 @@ fn validate_review_relation_ids(
     documents: &[ReviewLedgerDocument],
     object_ids: &BTreeSet<String>,
     field: &str,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     let mut relation_ids = BTreeSet::new();
     for document in documents {
         for row in &document.relation_rows {
@@ -164,10 +159,7 @@ fn validate_review_relation_ids(
     Ok(())
 }
 
-pub(super) fn validate_review_ledger_set(
-    ledger_set: &ReviewLedgerSet,
-    field: &str,
-) -> Result<(), EpistemeOntologyError> {
+pub(super) fn validate_review_ledger_set(ledger_set: &ReviewLedgerSet, field: &str) -> Result<()> {
     let mut object_ids = BTreeSet::new();
     for row in &ledger_set.object_rows {
         if !object_ids.insert(row.object_id.as_str()) {
@@ -206,7 +198,7 @@ fn read_review_ledger(
     episteme_root: &Path,
     raw_path: &str,
     field: &str,
-) -> Result<ReviewLedgerDocument, EpistemeOntologyError> {
+) -> Result<ReviewLedgerDocument> {
     let ledger_path = resolve_ontology_artifact_path(episteme_root, raw_path, field)?;
     let raw_toml = read_to_string(&ledger_path)?;
     let metadata = toml::from_str::<ReviewLedgerToml>(&raw_toml).map_err(|source| {
@@ -253,7 +245,7 @@ fn validate_review_ledger_metadata(
     raw_path: &str,
     metadata: &ReviewLedgerToml,
     field: &str,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     if metadata.schema_version != 1 {
         return Err(invalid_contract(format!(
             "{field} `{raw_path}` has unsupported schema_version {}",
@@ -291,7 +283,7 @@ fn require_nonblank_metadata(
     value: Option<&str>,
     key: &str,
     field: &str,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     if value.map(str::trim).unwrap_or_default().is_empty() {
         return Err(invalid_contract(format!(
             "{field} `{raw_path}` must declare nonblank {key}"
@@ -305,7 +297,7 @@ fn resolve_review_ledger_org_path(
     raw_org: &str,
     raw_path: &str,
     field: &str,
-) -> Result<PathBuf, EpistemeOntologyError> {
+) -> Result<PathBuf> {
     let trimmed = raw_org.trim();
     if trimmed.is_empty() {
         return Err(invalid_contract(format!(
@@ -344,7 +336,7 @@ fn validate_review_ledger_hash(
     org_content: &str,
     expected_hash: &str,
     field: &str,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     let actual_hash = format!("sha256:{}", hex_sha256(org_content.as_bytes()));
     if expected_hash.trim() != actual_hash {
         return Err(invalid_contract(format!(
@@ -360,7 +352,7 @@ fn extract_review_rows(
     domain_id: &str,
     document: &OrgOntologyAuthoringDocument,
     field: &str,
-) -> Result<(Vec<ObjectInstanceRow>, Vec<InstanceRelationRow>), EpistemeOntologyError> {
+) -> Result<(Vec<ObjectInstanceRow>, Vec<InstanceRelationRow>)> {
     let mut objects = Vec::new();
     let mut relations = Vec::new();
     for table in document
@@ -387,7 +379,7 @@ fn append_review_table_rows(
     field: &str,
     objects: &mut Vec<ObjectInstanceRow>,
     relations: &mut Vec<InstanceRelationRow>,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     match table.kind.as_str() {
         OBJECT_INSTANCE_REVIEW_TABLE => {
             objects.extend(
@@ -425,7 +417,7 @@ fn object_instance_row(
     row_map: &BTreeMap<String, String>,
     row_index: usize,
     field: &str,
-) -> Result<ObjectInstanceRow, EpistemeOntologyError> {
+) -> Result<ObjectInstanceRow> {
     let row = ObjectInstanceRow {
         domain_id: domain_id.to_string(),
         object_id: required_row_value(raw_path, table, row_map, row_index, "object_id", field)?,
@@ -468,7 +460,7 @@ fn instance_relation_row(
     row_map: &BTreeMap<String, String>,
     row_index: usize,
     field: &str,
-) -> Result<InstanceRelationRow, EpistemeOntologyError> {
+) -> Result<InstanceRelationRow> {
     let row = InstanceRelationRow {
         domain_id: domain_id.to_string(),
         relation_id: required_row_value(raw_path, table, row_map, row_index, "relation_id", field)?,
@@ -526,7 +518,7 @@ fn required_row_value(
     row_index: usize,
     key: &str,
     field: &str,
-) -> Result<String, EpistemeOntologyError> {
+) -> Result<String> {
     let value = row
         .iter()
         .find(|(candidate, _)| normalize_field(candidate) == key)
@@ -549,7 +541,7 @@ fn validate_approved_reviewer(
     promotion_decision: &str,
     reviewer_id: &str,
     field: &str,
-) -> Result<(), EpistemeOntologyError> {
+) -> Result<()> {
     if normalize_field(promotion_decision) == APPROVED_PROMOTION_DECISION
         && reviewer_id.trim().is_empty()
     {
@@ -574,4 +566,36 @@ fn hex_sha256(bytes: &[u8]) -> String {
         output.push(HEX_LOWER[(byte & 0x0f) as usize] as char);
     }
     output
+}
+
+fn resolve_ontology_artifact_path(episteme_root: &Path, raw: &str, field: &str) -> Result<PathBuf> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err(invalid_contract(format!(
+            "`{field}` entries must not be blank"
+        )));
+    }
+    let path = Path::new(trimmed);
+    if path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            )
+        })
+    {
+        return Err(invalid_contract(format!(
+            "`{field}` entries must be safe paths relative to ontology/: {trimmed}"
+        )));
+    }
+    Ok(episteme_root.join("ontology").join(path))
+}
+
+fn read_to_string(path: &Path) -> Result<String> {
+    fs::read_to_string(path)
+        .map_err(|source| anyhow!("failed to access `{}`: {source}", path.display()))
+}
+
+fn invalid_contract(message: impl Into<String>) -> anyhow::Error {
+    anyhow!("ontology source contract is invalid: {}", message.into())
 }

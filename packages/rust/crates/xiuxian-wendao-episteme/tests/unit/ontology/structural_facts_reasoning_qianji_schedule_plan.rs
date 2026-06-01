@@ -350,7 +350,7 @@ fn structural_facts_reasoning_qianji_schedule_plan_shards_service_catalog_table_
     assert_eq!(report.fill_item_count, 1);
     assert_eq!(report.schedule_item_count, 3);
     assert_eq!(
-        report.reasoning_context_shard_mode,
+        report.reasoning_context_shard_mode.as_str(),
         "service-catalog-table-rows"
     );
     assert_eq!(report.reasoning_context_shard_row_limit, 2);

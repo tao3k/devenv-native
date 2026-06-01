@@ -10,7 +10,7 @@ use crate::{ClientContext, OutputFormat};
 use super::settings::{resolve_read_model_settings, resolve_source_paths};
 use super::store::{
     open_read_model_read_only_connection, query_active_agent_org_task_row_window,
-    query_agent_org_task_rows, refresh_agent_org_read_model,
+    query_agent_org_task_rows_matching, refresh_agent_org_read_model,
 };
 
 /// Number of Org task rows in the default agent read-model benchmark fixture.
@@ -138,7 +138,8 @@ pub fn benchmark_agent_org_read_model(root: &Path) -> Result<OrgizeAgentReadMode
     let refreshed = refresh_agent_org_read_model(&paths, &context)?;
     let connection = open_read_model_read_only_connection(&refreshed.settings)?
         .context("agent Org read-model benchmark expected a cached DuckDB snapshot")?;
-    let cached_rows = query_agent_org_task_rows(&connection)?.len();
+    let cached_rows =
+        query_agent_org_task_rows_matching(&connection, &source_paths, None, &[])?.len();
 
     Ok(OrgizeAgentReadModelBenchmarkSummary {
         source_count: source_paths.len(),

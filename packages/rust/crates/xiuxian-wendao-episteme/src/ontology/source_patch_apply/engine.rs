@@ -8,177 +8,17 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-const SOURCE_PATCH_APPLY_SCHEMA_VERSION: &str =
-    "xiuxian_wendao.episteme_ontology_source_patch_apply.v1";
-const SOURCE_PATCH_REVIEW_PACKET_SCHEMA_VERSION: &str =
-    "xiuxian_wendao.episteme_ontology_source_patch_review_packet.v1";
-const SOURCE_PATCH_APPLY_PLAN_TSV: &str = "source_patch_apply_plan.tsv";
-const SOURCE_PATCH_REVIEW_PACKET_JSON: &str = "source_patch_review_packet.json";
-const SOURCE_PATCH_APPLY_ORG: &str = "source_patch_apply.org";
-const SOURCE_PATCH_APPLY_JSON: &str = "source_patch_apply.json";
-const APPLY_ACTION_PROPOSE_TARGETED_SOURCE_PATCH: &str = "propose_targeted_source_patch";
-const OBJECT_INSTANCE_KIND: &str = "object_instance";
-const INSTANCE_RELATION_KIND: &str = "instance_relation";
-pub(super) const WDSP_NS: &str = "https://wendao.ai/ontology/source-patch#";
-pub(super) const BEGIN_BLOCK: &str = "BEGIN WENDAO SOURCE PATCH";
-pub(super) const END_BLOCK: &str = "END WENDAO SOURCE PATCH";
-
-/// Request for applying a reviewed source patch to ontology source files.
-#[derive(Debug, Clone)]
-pub struct EpistemeOntologySourcePatchApplyRequest {
-    episteme_root: PathBuf,
-    run_dir: PathBuf,
-    expected_apply_plan_tsv_sha256: Option<String>,
-    allow_source_mutation: bool,
-}
-
-impl EpistemeOntologySourcePatchApplyRequest {
-    /// Create a source-patch apply request.
-    #[must_use]
-    pub fn new(episteme_root: impl Into<PathBuf>, run_dir: impl Into<PathBuf>) -> Self {
-        Self {
-            episteme_root: episteme_root.into(),
-            run_dir: run_dir.into(),
-            expected_apply_plan_tsv_sha256: None,
-            allow_source_mutation: false,
-        }
-    }
-
-    /// Require the operator-observed apply-plan TSV hash.
-    #[must_use]
-    pub fn with_expected_apply_plan_tsv_sha256(mut self, expected: impl Into<String>) -> Self {
-        self.expected_apply_plan_tsv_sha256 = Some(expected.into());
-        self
-    }
-
-    /// Explicitly enable source mutation.
-    #[must_use]
-    pub fn with_allow_source_mutation(mut self, allow: bool) -> Self {
-        self.allow_source_mutation = allow;
-        self
-    }
-
-    /// Episteme repository root containing ontology source files.
-    #[must_use]
-    pub fn episteme_root(&self) -> &Path {
-        self.episteme_root.as_path()
-    }
-
-    /// Source-patch run directory containing reviewed artifacts.
-    #[must_use]
-    pub fn run_dir(&self) -> &Path {
-        self.run_dir.as_path()
-    }
-}
-
-/// Hash metadata for one source-patch target after application.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologySourcePatchAppliedTarget {
-    /// Target RDF path relative to the Episteme `ontology/` directory.
-    pub target_rdf_file: String,
-    /// SHA-256 digest recorded in the review packet before mutation.
-    pub before_rdf_sha256: String,
-    /// SHA-256 digest after writing the source-patch block.
-    pub after_rdf_sha256: String,
-    /// Number of apply-plan rows written to this target.
-    pub applied_row_count: usize,
-}
-
-/// Report emitted after source-patch application.
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EpistemeOntologySourcePatchApplyReport {
-    /// Report schema identifier.
-    pub schema_version: &'static str,
-    /// Episteme repository root used to resolve target RDF files.
-    pub episteme_root: PathBuf,
-    /// Source-patch run directory.
-    pub run_dir: PathBuf,
-    /// Source review-packet JSON path.
-    pub source_patch_review_packet_json: PathBuf,
-    /// Source apply-plan TSV path.
-    pub source_patch_apply_plan_tsv: PathBuf,
-    /// Generated apply receipt Org path.
-    pub source_patch_apply_org: PathBuf,
-    /// Generated apply receipt JSON path.
-    pub source_patch_apply_json: PathBuf,
-    /// Operator-provided expected apply-plan TSV hash.
-    pub expected_apply_plan_tsv_sha256: String,
-    /// Actual apply-plan TSV hash.
-    pub apply_plan_tsv_sha256: String,
-    /// Number of apply-plan rows applied.
-    pub apply_plan_row_count: usize,
-    /// Number of target RDF files mutated.
-    pub target_rdf_file_count: usize,
-    /// Per-target mutation receipts.
-    pub applied_targets: Vec<EpistemeOntologySourcePatchAppliedTarget>,
-    /// Whether this request authorized source mutation.
-    pub source_mutation_allowed: bool,
-    /// Whether the applied proposal block itself is ontology truth.
-    pub ontology_truth: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SourcePatchReviewPacketReceipt {
-    schema_version: String,
-    apply_plan_tsv_sha256: String,
-    apply_plan_row_count: usize,
-    object_apply_plan_count: usize,
-    relation_apply_plan_count: usize,
-    target_rdf_files: Vec<SourcePatchReviewPacketTarget>,
-    source_mutation_allowed: bool,
-    ontology_truth: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct SourcePatchReviewPacketTarget {
-    target_rdf_file: String,
-    target_rdf_sha256: String,
-}
-
-#[derive(Debug, Clone)]
-struct SourcePatchApplyPlanRow {
-    record_id: String,
-    record_kind: String,
-    domain_id: String,
-    target_rdf_file: String,
-    label: String,
-    object_type: String,
-    source_object_id: String,
-    predicate: String,
-    target_object_id: String,
-    evidence_id: String,
-    review_decision: String,
-    promotion_decision: String,
-    reviewer_id: String,
-    apply_action: String,
-    source_mutation_allowed: bool,
-    ontology_truth: bool,
-}
-
-pub(super) struct TargetWritePlan {
-    pub(super) target_rdf_file: String,
-    pub(super) path: PathBuf,
-    pub(super) before_hash: String,
-    pub(super) proposed_content: String,
-    pub(super) proposal_block: String,
-    pub(super) row_count: usize,
-}
-
-pub(super) struct ReviewedSourcePatchArtifacts {
-    pub(super) source_patch_review_packet_json: PathBuf,
-    pub(super) source_patch_apply_plan_tsv: PathBuf,
-    pub(super) expected_apply_plan_tsv_sha256: String,
-    pub(super) apply_plan_tsv_sha256: String,
-    pub(super) apply_plan_row_count: usize,
-    pub(super) write_plans: Vec<TargetWritePlan>,
-}
+use super::types::{
+    APPLY_ACTION_PROPOSE_TARGETED_SOURCE_PATCH, BEGIN_BLOCK, END_BLOCK,
+    EpistemeOntologySourcePatchAppliedTarget, EpistemeOntologySourcePatchApplyReport,
+    EpistemeOntologySourcePatchApplyRequest, INSTANCE_RELATION_KIND, OBJECT_INSTANCE_KIND,
+    ReviewedSourcePatchArtifacts, SOURCE_PATCH_APPLY_JSON, SOURCE_PATCH_APPLY_ORG,
+    SOURCE_PATCH_APPLY_PLAN_TSV, SOURCE_PATCH_APPLY_SCHEMA_VERSION,
+    SOURCE_PATCH_REVIEW_PACKET_JSON, SOURCE_PATCH_REVIEW_PACKET_SCHEMA_VERSION,
+    SourcePatchApplyPlanRow, SourcePatchReviewPacketReceipt, TargetWritePlan, WDSP_NS,
+};
 
 /// Apply reviewed source-patch proposal resources to target ontology source files.
 ///
@@ -239,7 +79,7 @@ pub fn apply_episteme_ontology_source_patch(
     Ok(report)
 }
 
-pub(super) fn reviewed_source_patch_artifacts(
+pub(crate) fn reviewed_source_patch_artifacts(
     episteme_root: &Path,
     run_dir: &Path,
     expected_hash: &str,
@@ -646,7 +486,7 @@ fn sha256_file(path: &Path) -> Result<String> {
     Ok(hex_digest(&hasher.finalize()))
 }
 
-pub(super) fn sha256_bytes(bytes: &[u8]) -> String {
+pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     hex_digest(&hasher.finalize())

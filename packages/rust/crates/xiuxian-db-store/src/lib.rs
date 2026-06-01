@@ -8,7 +8,7 @@
 //! - the local `DuckDB` surface keeps type-only config and runtime connection
 //!   features split so config crates do not compile `DuckDB` unless needed
 
-#[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
+#[cfg(feature = "arrow-codec")]
 mod arrow_codec;
 #[cfg(feature = "arrow-codec")]
 /// Shared Arrow table-schema contract helpers.
@@ -55,11 +55,7 @@ pub use arrow_codec::{
     attach_record_batch_metadata, attach_record_batch_trace_id, decode_record_batches_ipc,
     encode_record_batch_ipc, encode_record_batches_ipc,
 };
-#[cfg(all(
-    feature = "artifact-cache",
-    feature = "arrow-codec",
-    not(feature = "vector-store")
-))]
+#[cfg(all(feature = "artifact-cache", feature = "arrow-codec"))]
 pub use arrow_codec::{read_record_batches_ipc_artifact, write_record_batches_ipc_artifact};
 #[cfg(feature = "arrow-codec")]
 pub use arrow_schema::{
