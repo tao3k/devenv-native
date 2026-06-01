@@ -1,12 +1,18 @@
 use crate::studio::arrow_types::{LanceRecordBatch, LanceStringArray};
 use crate::transport::{WendaoFlightService, flight_descriptor_path};
+#[cfg(any(feature = "duckdb", feature = "julia"))]
 use arrow_flight::FlightData;
+#[cfg(any(feature = "duckdb", feature = "julia"))]
 use arrow_flight::decode::FlightRecordBatchStream;
 use arrow_flight::flight_service_server::FlightService;
 use arrow_flight::{FlightDescriptor, FlightInfo};
+#[cfg(any(feature = "duckdb", feature = "julia"))]
 use futures::{StreamExt, TryStreamExt};
 use serde::Serialize;
+#[cfg(not(any(feature = "duckdb", feature = "julia")))]
+use tonic::Request;
 use tonic::metadata::MetadataMap;
+#[cfg(any(feature = "duckdb", feature = "julia"))]
 use tonic::{Request, Status};
 
 pub(super) fn assert_studio_flight_snapshot(name: &str, value: impl Serialize) {
@@ -60,6 +66,7 @@ pub(super) async fn assert_route_ticket<F>(
     assert_eq!(first_ticket(&flight_info, context), route);
 }
 
+#[cfg(any(feature = "duckdb", feature = "julia"))]
 pub(super) async fn collect_route_batches<F>(
     service: &WendaoFlightService,
     route: &str,
@@ -90,6 +97,7 @@ where
     decode_flight_batches(frames, context).await
 }
 
+#[cfg(any(feature = "duckdb", feature = "julia"))]
 async fn decode_flight_batches(
     frames: Vec<Result<FlightData, Status>>,
     context: &str,

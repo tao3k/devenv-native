@@ -76,10 +76,13 @@ performance = []
 performance-stress = ["performance"]
 test-support = [
   "builtin-plugins",
-  "duckdb",
   "repo-lexical-index",
   "search-runtime",
   "studio",
+]
+duckdb-test-support = [
+  "test-support",
+  "duckdb",
 ]
 document-extract-attachment-audit = [
   "dep:xiuxian-wendao-attachments",
@@ -99,6 +102,7 @@ duckdb = [
   "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/duckdb",
   "xiuxian-wendao-runtime/duckdb-config",
+  "xiuxian-wendao-sql/duckdb",
 ]
 
 [[bench]]
@@ -142,7 +146,7 @@ xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-llm = { path = "../xiuxian-llm" }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
-xiuxian-wendao-client = { path = "../xiuxian-wendao-client" }
+xiuxian-wendao-client = { path = "../xiuxian-wendao-client", default-features = false }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
@@ -150,7 +154,7 @@ xiuxian-julia-core = { path = "../xiuxian-julia-core", optional = true }
 xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"], optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"], optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
-xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", default-features = false }
 xiuxian-ast = { path = "../xiuxian-ast", optional = true }
 xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }

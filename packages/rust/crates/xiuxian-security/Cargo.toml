@@ -21,6 +21,8 @@ rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
 
 [lints]
 workspace = true

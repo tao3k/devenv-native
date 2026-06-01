@@ -139,10 +139,19 @@ async fn build_studio_flight_service_for_roots_accepts_markdown_analysis_routes(
     let project_root = temp_dir.path().join("project");
     let storage_root = temp_dir.path().join("storage");
     create_dir_all_or_panic(project_root.join("docs"), "project docs dir should build");
+    create_dir_all_or_panic(
+        project_root.join("kernel/docs"),
+        "project-scoped docs dir should build",
+    );
     write_file_or_panic(
         project_root.join("docs/analysis.md"),
         "# Analysis Kernel\n\n## Inputs\n- [ ] Parse markdown\n",
         "project markdown fixture should write",
+    );
+    write_file_or_panic(
+        project_root.join("kernel/docs/analysis.md"),
+        "# Analysis Kernel\n\n## Inputs\n- [ ] Parse markdown\n",
+        "project-scoped markdown fixture should write",
     );
     write_file_or_panic(
         project_root.join("wendao.toml"),

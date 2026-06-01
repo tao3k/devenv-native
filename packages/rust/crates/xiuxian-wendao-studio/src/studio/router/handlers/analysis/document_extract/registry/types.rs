@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
+#[cfg(feature = "duckdb")]
 pub(super) const DOCUMENT_EXTRACT_SCHEMA_VERSION: &str = "v2";
+#[cfg(feature = "duckdb")]
 pub(super) const DEFAULT_CONVERTER_PROFILE: &str = "default";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,8 +22,10 @@ pub(crate) struct DocumentExtractJobStatus {
 
 #[derive(Debug)]
 pub(crate) struct DocumentExtractJobRegistry {
+    #[cfg(feature = "duckdb")]
     pub(super) job_db: PathBuf,
     pub(super) artifact_root: PathBuf,
+    #[cfg(feature = "duckdb")]
     pub(super) converter_profile: String,
 }
 
@@ -38,6 +42,7 @@ pub(crate) struct DocumentExtractJobRegistrySnapshot {
     pub(crate) max_conversion_duration_ms: Option<i64>,
 }
 
+#[cfg(feature = "duckdb")]
 pub(super) struct DocumentExtractJobCounts {
     pub(super) total_jobs: usize,
     pub(super) queued_jobs: usize,
@@ -47,6 +52,7 @@ pub(super) struct DocumentExtractJobCounts {
     pub(super) max_conversion_duration_ms: Option<i64>,
 }
 
+#[cfg(feature = "duckdb")]
 pub(super) struct LastFinishedDocumentExtractJob {
     pub(super) job_id: Option<String>,
     pub(super) status: Option<String>,

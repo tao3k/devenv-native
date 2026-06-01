@@ -6,6 +6,7 @@ use xiuxian_wendao_server::transport::{
     SqlFlightRouteResponse, WendaoFlightRouteProviders, WendaoFlightService,
 };
 
+#[cfg(feature = "duckdb")]
 use super::dataset_ontology::StudioDatasetOntologyMaterializeFlightRouteProvider;
 use super::ontology_candidate_inspection::StudioOntologyCandidateInspectionFlightRouteProvider;
 use super::provider::StudioSearchFlightRouteProvider;
@@ -70,9 +71,12 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     route_providers.document_extract = Some(Arc::new(
         StudioDocumentExtractFlightRouteProvider::new(state.as_ref()),
     ));
-    route_providers.dataset_ontology_materialize = Some(Arc::new(
-        StudioDatasetOntologyMaterializeFlightRouteProvider::new(Arc::clone(&state)),
-    ));
+    #[cfg(feature = "duckdb")]
+    {
+        route_providers.dataset_ontology_materialize = Some(Arc::new(
+            StudioDatasetOntologyMaterializeFlightRouteProvider::new(Arc::clone(&state)),
+        ));
+    }
     route_providers.ontology_candidate_inspection = Some(Arc::new(
         StudioOntologyCandidateInspectionFlightRouteProvider::new(Arc::clone(&state)),
     ));

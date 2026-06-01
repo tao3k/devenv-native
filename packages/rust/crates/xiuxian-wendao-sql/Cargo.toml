@@ -7,11 +7,15 @@ authors = ["CyberXiuXian Artisan workshop"]
 license = "Apache-2.0"
 publish = false
 
+[features]
+default = []
+duckdb = ["dep:duckdb"]
+
 [dependencies]
 arrow = { workspace = true }
 async-trait = { workspace = true }
 blake3 = { workspace = true }
-duckdb = { workspace = true }
+duckdb = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sqlparser = { workspace = true }

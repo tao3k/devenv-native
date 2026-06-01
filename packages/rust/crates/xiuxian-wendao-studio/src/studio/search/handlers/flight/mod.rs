@@ -1,5 +1,6 @@
 //! Coordinates the Studio search handlers flight branch and keeps its child modules behind one documented reasoning-tree boundary.
 
+#[cfg(feature = "duckdb")]
 mod dataset_ontology;
 mod ontology_candidate_inspection;
 mod provider;

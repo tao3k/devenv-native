@@ -31,7 +31,7 @@ fn build_gateway_router(
     flight_grpc_web_enabled: bool,
     bearer_token: Option<Arc<str>>,
 ) -> anyhow::Result<Router> {
-    build_gateway_router_with_policy(
+    build_gateway_router_with_surface_policy(
         app_state,
         studio_concurrency_limit,
         studio_request_timeout,
@@ -41,6 +41,34 @@ fn build_gateway_router(
         128,
         64 * 1024 * 1024,
         1024 * 1024 * 1024,
+        flight_grpc_web_enabled,
+        bearer_token,
+    )
+}
+
+fn build_gateway_router_with_surface_policy(
+    app_state: Arc<crate::bin_support::wendao::execute::gateway::state::AppState>,
+    studio_concurrency_limit: usize,
+    studio_request_timeout: std::time::Duration,
+    flight_concurrency_limit: usize,
+    flight_request_timeout: std::time::Duration,
+    https_rate_limit_per_second: u64,
+    flight_rate_limit_per_second: u64,
+    https_stream_budget_bytes: usize,
+    flight_stream_budget_bytes: usize,
+    flight_grpc_web_enabled: bool,
+    bearer_token: Option<Arc<str>>,
+) -> anyhow::Result<Router> {
+    build_gateway_router_with_policy(
+        app_state,
+        studio_concurrency_limit,
+        studio_request_timeout,
+        flight_concurrency_limit,
+        flight_request_timeout,
+        https_rate_limit_per_second,
+        flight_rate_limit_per_second,
+        https_stream_budget_bytes,
+        flight_stream_budget_bytes,
         flight_grpc_web_enabled,
         bearer_token,
     )

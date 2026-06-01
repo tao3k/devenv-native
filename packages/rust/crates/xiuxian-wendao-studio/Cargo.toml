@@ -67,7 +67,6 @@ local-runtime = [
   "dep:blake3",
   "dep:chrono",
   "dep:comrak",
-  "dep:duckdb",
   "dep:futures",
   "dep:globset",
   "dep:log",
@@ -95,13 +94,13 @@ local-runtime = [
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/native",
   "xiuxian-wendao/builtin-plugins",
-  "xiuxian-wendao/duckdb",
   "xiuxian-wendao/repo-lexical-index",
   "xiuxian-wendao/search-runtime",
   "xiuxian-wendao-core/arrow-transport",
 ]
 duckdb = [
   "local-runtime",
+  "dep:duckdb",
   "xiuxian-wendao/duckdb",
 ]
 julia = [
@@ -219,7 +218,7 @@ xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = 
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-security = { path = "../xiuxian-security", optional = true }
-xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
+xiuxian-wendao-client = { path = "../xiuxian-wendao-client", default-features = false, optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }

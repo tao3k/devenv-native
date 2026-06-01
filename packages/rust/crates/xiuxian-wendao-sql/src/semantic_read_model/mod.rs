@@ -56,6 +56,6 @@ pub use snapshot::{
     semantic_read_model_snapshot_check_from_root, semantic_read_model_snapshot_from_root,
 };
 
-#[cfg(test)]
+#[cfg(all(test, feature = "duckdb"))]
 #[path = "../../tests/unit/semantic_read_model/mod.rs"]
 mod tests;

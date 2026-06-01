@@ -19,6 +19,6 @@ pub use schema::{
 };
 pub use sql::validate_dataset_ontology_select_only_sql;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "duckdb"))]
 #[path = "../../tests/unit/dataset_ontology/mod.rs"]
 mod tests;

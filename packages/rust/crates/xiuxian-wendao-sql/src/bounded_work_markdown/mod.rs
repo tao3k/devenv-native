@@ -16,6 +16,6 @@ pub use register::{
 };
 pub use rows::BoundedWorkMarkdownRow;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "duckdb"))]
 #[path = "../../tests/unit/bounded_work_markdown.rs"]
 mod tests;

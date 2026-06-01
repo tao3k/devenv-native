@@ -7,8 +7,8 @@ use super::{
     AUTHORIZATION, Arc, Body, CONTENT_TYPE, GatewayPublicProtocolSurface, GatewaySurfaceSecurity,
     Request, ServiceExt, StatusCode, WENDAO_AUTH_SCOPE_HEADER,
     WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER, WENDAO_PUBLIC_PROTOCOL_HEADER,
-    WENDAO_SIGNED_PRINCIPAL_HEADER, app_state, build_gateway_router, post,
-    with_gateway_surface_security,
+    WENDAO_SIGNED_PRINCIPAL_HEADER, app_state, build_gateway_router,
+    build_gateway_router_with_surface_policy, post, with_gateway_surface_security,
 };
 use crate::bin_support::wendao::execute::gateway::security::GatewaySurfacePolicy;
 
