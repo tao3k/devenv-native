@@ -12,6 +12,7 @@ mod config;
 mod health;
 mod query;
 mod registry;
+mod security;
 pub(crate) mod state;
 mod status;
 

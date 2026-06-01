@@ -16,9 +16,15 @@
 //! Patterns follow ODF-REP Security Standards.
 
 mod permissions;
+mod public_plane;
 mod sandbox;
 mod scanner;
 
 pub use permissions::PermissionGatekeeper;
+pub use public_plane::{
+    PublicPlaneRateLimiter, PublicProtocolSurface, PublicSurfacePolicy, SignedPrincipalSigner,
+    WENDAO_AUTH_SCOPE_HEADER, WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER,
+    WENDAO_PUBLIC_PROTOCOL_HEADER, WENDAO_SIGNED_PRINCIPAL_HEADER,
+};
 pub use sandbox::{SandboxConfig, SandboxError, SandboxMode, SandboxResult, SandboxRunner};
 pub use scanner::{SecretScanner, SecurityViolation};

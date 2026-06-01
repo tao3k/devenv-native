@@ -3,12 +3,13 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 
-use crate::studio::router::LocalCorpusScanCoalescingState;
+use crate::studio::router::{
+    LocalCorpusScanCoalescingState, load_model_routing_config_from_wendao_toml,
+};
 use crate::studio::symbol_index::SymbolIndexCoordinator;
 use crate::studio::types::{UiConfig, UiRepoProjectConfig};
 use crate::studio::{
-    GatewayState, StudioState, load_model_routing_config_from_wendao_toml,
-    load_ui_config_from_wendao_toml, studio_effective_wendao_toml_path,
+    GatewayState, StudioState, load_ui_config_from_wendao_toml, studio_effective_wendao_toml_path,
 };
 use xiuxian_wendao::analyzers::{
     RegisteredRepository, RepositoryPluginConfig, RepositoryRef, RepositoryRefreshPolicy,

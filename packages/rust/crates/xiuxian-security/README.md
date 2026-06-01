@@ -1,25 +1,55 @@
-# Omni Security
+# xiuxian-security
 
-> Security scanning utilities for Omni DevEnv.
+Shared security primitives for Xiuxian services.
 
 ## Overview
 
-Omni Security provides secret detection and security scanning capabilities for the Omni DevEnv.
+`xiuxian-security` owns small reusable security building blocks. Runtime
+servers use these primitives through their own transport adapters instead of
+duplicating string constants, principal signatures, or rate-limit policy.
 
 ## Features
 
 - Secret detection in code
 - Security pattern matching
-- Compliance checking
+- Permission gate helpers
+- Public-plane protocol surface labels for Gateway-owned HTTPS JSON/SSE and
+  Arrow Flight entry points
+- Internal service identity and signed-principal header constants
+- Deterministic signed-principal generation for Gateway-to-internal service
+  calls
+- Small in-process fixed-window admission policy helpers
 
 ## Usage
 
 ```rust
-use omni_security::{contains_secrets, scan_secrets};
+use std::sync::Arc;
 
-let has_secrets = contains_secrets(&content)?;
-let violations = scan_secrets(&content)?;
+use xiuxian_security::{
+    PublicPlaneRateLimiter, PublicProtocolSurface, SignedPrincipalSigner,
+};
+
+let limiter = PublicPlaneRateLimiter::new(128);
+assert!(limiter.allow());
+
+let signer = SignedPrincipalSigner::new(
+    Arc::<str>::from("wendao-gateway"),
+    Arc::<str>::from("internal-secret"),
+);
+let principal = signer.sign_user_token(
+    PublicProtocolSurface::ArrowFlight,
+    "verified-user-token",
+);
+assert!(principal.starts_with("v1:"));
 ```
+
+## Boundary
+
+This crate does not own public HTTP or Flight routing. Gateway crates validate
+user tokens at the public boundary, then use these primitives to sign and
+propagate an internal principal. Internal services such as Qianji and Wendao
+should verify internal service identity and signed-principal metadata, not
+directly accept user bearer tokens.
 
 ## License
 

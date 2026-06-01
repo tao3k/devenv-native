@@ -39,6 +39,8 @@ http-router = [
   "contracts",
   "dep:axum",
   "dep:tower",
+  "dep:tower-http",
+  "dep:xiuxian-security",
 ]
 flight-transport = [
   "contracts",
@@ -216,6 +218,7 @@ xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
+xiuxian-security = { path = "../xiuxian-security", optional = true }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
@@ -261,6 +264,7 @@ toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 tonic-web = { workspace = true, optional = true }
 tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
+tower-http = { workspace = true, features = ["limit"], optional = true }
 uuid = { workspace = true, optional = true }
 walkdir = { workspace = true, optional = true }
 

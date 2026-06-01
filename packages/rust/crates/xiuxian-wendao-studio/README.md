@@ -36,14 +36,22 @@ This crate owns:
 - Studio OpenAPI and route-contract exports.
 - Studio Flight route providers backed by Wendao services.
 - Frontend-facing API response shaping and gateway startup health checks.
-- Gateway bearer-token enforcement for both HTTPS JSON/SSE routes and the
-  same-listener Gateway Arrow Flight route. Health checks stay
-  unauthenticated; Qianji and other internal services do not validate user API
+- Gateway bearer-token enforcement for both public protocol surfaces: HTTPS
+  JSON/SSE routes and the same-listener Gateway Arrow Flight route. Health
+  checks stay unauthenticated.
+- Per-surface Gateway admission policy for auth scope, rate limit, and stream
+  budget. HTTPS JSON/SSE and Arrow Flight are configured independently.
+- Translation from a verified user bearer token into internal service identity
+  and signed-principal headers. The raw user bearer token is stripped before
+  internal routing; Qianji and other internal services do not validate user API
   tokens.
 
 `xiuxian-wendao-server` owns only the high-throughput Flight/gRPC transport
 boundary. `xiuxian-wendao` continues to own graph, search, repository indexing,
 parser, analyzer, and domain-runtime behavior.
+Shared security primitives such as public-surface labels, internal identity
+headers, signed-principal generation, and admission policy helpers live in
+[`xiuxian-security`](../xiuxian-security/README.md).
 
 ## Feature Boundaries
 

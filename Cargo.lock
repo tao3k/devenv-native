@@ -11812,6 +11812,7 @@ dependencies = [
 name = "xiuxian-security"
 version = "0.1.1"
 dependencies = [
+ "blake3",
  "regex",
  "rust-lang-project-harness",
  "serde",
@@ -12180,6 +12181,7 @@ dependencies = [
  "tonic",
  "tonic-web",
  "tower",
+ "tower-http",
  "uuid",
  "walkdir",
  "xiuxian-code-intelligence",
@@ -12192,6 +12194,7 @@ dependencies = [
  "xiuxian-logging",
  "xiuxian-polyglot-orchestrator",
  "xiuxian-qianji",
+ "xiuxian-security",
  "xiuxian-wendao",
  "xiuxian-wendao-attachments",
  "xiuxian-wendao-builtin",

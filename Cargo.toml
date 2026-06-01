@@ -96,6 +96,7 @@ async-trait = "0.1"
 num-traits = "0.2"
 url = "2.5.7"
 tower = "0.5"
+tower-http = "0.6"
 proc-macro2 = "1"
 syn = { version = "2.0", features = ["full"] }
 quote = "1"
