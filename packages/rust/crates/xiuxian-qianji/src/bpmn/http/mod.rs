@@ -10,9 +10,12 @@ mod control_trace;
 #[path = "error/api.rs"]
 mod error_api;
 mod execution_graph;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 mod llm_completion_shape;
 mod llm_host_work_schedule;
@@ -26,14 +29,20 @@ mod source_authoring;
 mod state;
 mod workflow_source_admission;
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 pub use api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 pub use api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use api::{

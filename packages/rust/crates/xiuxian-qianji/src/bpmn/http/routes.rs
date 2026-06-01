@@ -8,14 +8,20 @@ use super::bpmn_source_admission::admit_control_bpmn_source;
 use super::control_projection::record_bpmn_control_projection;
 use super::error_api::QianjiBpmnWorkflowHttpError;
 use super::execution_graph::QianjiControlExecutionGraphHttpResponse;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use super::llm_completion_shape::shape_llm_content_for_bpmn_outputs;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use super::request_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest;
 use super::request_api::{
@@ -26,14 +32,20 @@ use super::request_api::{
     QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlRunStreamHttpQuery,
 };
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 use super::response_api::{
@@ -48,9 +60,12 @@ use super::state::QianjiBpmnWorkflowHttpState;
 use super::workflow_source_admission::{
     admit_control_workflow_source, advance_server_owned_repair_tasks,
 };
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use crate::bpmn::control::{
     QianjiBpmnWorkflowCheckpointBackend, QianjiBpmnWorkflowTaskCompletionKind,
@@ -60,18 +75,24 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionPayload,
 };
 use crate::bpmn::identity::QianjiBpmnWorkflowInstanceId;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use crate::qianji_server::llm_worker::{
     QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate,
     QianjiServerOpenAiCompatibleLlmWorkerLoopRequest,
     run_qianji_server_openai_compatible_llm_worker_loop,
 };
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use crate::runtime_config::{
     QianjiRuntimeLlmConfig, resolve_qianji_runtime_llm_config,
@@ -80,9 +101,12 @@ use crate::runtime_config::{
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use std::io;
 use xiuxian_qianji_bpmn_engine::BpmnHostBridge;
@@ -170,9 +194,12 @@ where
             "/control/workflow-source/admit",
             post(admit_control_workflow_source::<H>),
         );
-    #[cfg(any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
+    #[cfg(all(
+        feature = "llm",
+        any(
+            all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+            test
+        )
     ))]
     let router = router
         .route(
@@ -372,9 +399,12 @@ where
     )))
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 async fn run_control_openai_compatible_llm_worker<H>(
     State(state): State<QianjiBpmnWorkflowHttpState<H>>,
@@ -421,9 +451,12 @@ where
     ))
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 async fn run_control_openai_compatible_llm_worker_and_complete<H>(
     State(state): State<QianjiBpmnWorkflowHttpState<H>>,
@@ -513,9 +546,12 @@ where
     ))
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn bpmn_completion_request_from_llm_candidate(
     candidate: &QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate,
@@ -537,9 +573,12 @@ fn bpmn_completion_request_from_llm_candidate(
     })
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn llm_candidate_completion_kind(
     kind: &str,
@@ -558,9 +597,12 @@ fn llm_candidate_completion_kind(
     }
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn llm_candidate_completion_data(
     candidate: &QianjiServerOpenAiCompatibleLlmBpmnCompletionCandidate,
@@ -596,9 +638,12 @@ fn llm_candidate_completion_data(
     ))
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn stepped_worker_ms(
     base_ms: u64,
@@ -619,9 +664,12 @@ fn stepped_worker_ms(
     })
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn resolve_http_runtime_llm_config<H>(
     state: &QianjiBpmnWorkflowHttpState<H>,
@@ -633,9 +681,12 @@ fn resolve_http_runtime_llm_config<H>(
     resolved.map_err(|error| map_runtime_llm_config_error(&error))
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn map_runtime_llm_config_error(error: &io::Error) -> QianjiBpmnWorkflowHttpError {
     match error.kind() {
@@ -649,9 +700,12 @@ fn map_runtime_llm_config_error(error: &io::Error) -> QianjiBpmnWorkflowHttpErro
     }
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn map_llm_worker_error(error: &io::Error) -> QianjiBpmnWorkflowHttpError {
     match error.kind() {

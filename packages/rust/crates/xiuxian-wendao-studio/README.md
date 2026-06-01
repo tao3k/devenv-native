@@ -45,6 +45,9 @@ This crate owns:
   and signed-principal headers. The raw user bearer token is stripped before
   internal routing; Qianji and other internal services do not validate user API
   tokens.
+  The shared `XIUXIAN_INTERNAL_PRINCIPAL_SECRET` configures the Gateway-side
+  signer and internal-service verifiers; service-local secret variables may
+  override it for staged rollout.
 
 `xiuxian-wendao-server` owns only the high-throughput Flight/gRPC transport
 boundary. `xiuxian-wendao` continues to own graph, search, repository indexing,

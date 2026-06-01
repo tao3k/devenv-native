@@ -15,15 +15,14 @@ use xiuxian_security::{PublicPlaneRateLimiter, SignedPrincipalSigner};
 pub(crate) use xiuxian_security::{
     PublicProtocolSurface as GatewayPublicProtocolSurface,
     PublicSurfacePolicy as GatewaySurfacePolicy, WENDAO_AUTH_SCOPE_HEADER,
-    WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER, WENDAO_PUBLIC_PROTOCOL_HEADER,
-    WENDAO_SIGNED_PRINCIPAL_HEADER,
+    WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY, WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER,
+    WENDAO_PUBLIC_PROTOCOL_HEADER, WENDAO_SIGNED_PRINCIPAL_HEADER,
+    XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV,
 };
 
 const GATEWAY_BEARER_TOKEN_ENV: &str = "XIUXIAN_WENDAO_GATEWAY_BEARER_TOKEN";
 const GATEWAY_INTERNAL_PRINCIPAL_SECRET_ENV: &str =
     "XIUXIAN_WENDAO_GATEWAY_INTERNAL_PRINCIPAL_SECRET";
-
-const GATEWAY_INTERNAL_SERVICE_IDENTITY: &str = "wendao-gateway";
 
 #[derive(Clone)]
 pub(crate) struct GatewaySurfaceSecurity {
@@ -66,7 +65,7 @@ impl GatewaySurfaceSecurity {
         let signing_secret = self.signing_secret.as_ref()?;
         Some(
             SignedPrincipalSigner::new(
-                Arc::<str>::from(GATEWAY_INTERNAL_SERVICE_IDENTITY),
+                Arc::<str>::from(WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY),
                 Arc::clone(signing_secret),
             )
             .sign_user_token(self.surface, presented_token),
@@ -94,10 +93,16 @@ pub(crate) fn gateway_internal_principal_secret() -> Option<Arc<str>> {
 pub(crate) fn gateway_internal_principal_secret_with_lookup(
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Option<Arc<str>> {
-    first_non_empty_lookup(&[GATEWAY_INTERNAL_PRINCIPAL_SECRET_ENV], lookup)
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .map(Arc::<str>::from)
+    first_non_empty_lookup(
+        &[
+            XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV,
+            GATEWAY_INTERNAL_PRINCIPAL_SECRET_ENV,
+        ],
+        lookup,
+    )
+    .map(|value| value.trim().to_string())
+    .filter(|value| !value.is_empty())
+    .map(Arc::<str>::from)
 }
 
 pub(crate) fn with_gateway_surface_security<S>(
@@ -160,7 +165,7 @@ fn insert_internal_headers(
     insert_static_header(
         request,
         WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER,
-        GATEWAY_INTERNAL_SERVICE_IDENTITY,
+        WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY,
     );
     insert_static_header(request, WENDAO_PUBLIC_PROTOCOL_HEADER, surface.protocol());
     insert_static_header(request, WENDAO_AUTH_SCOPE_HEADER, surface.scope());

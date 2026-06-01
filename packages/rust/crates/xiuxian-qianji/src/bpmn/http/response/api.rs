@@ -13,9 +13,12 @@ use crate::bpmn::run_console_read_model::{
     QIANJI_CONTROL_RUN_STREAM_SCHEMA_VERSION, QianjiControlRunStreamRow,
     qianji_control_run_stream_rows,
 };
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 use crate::qianji_server::llm_worker::QianjiServerOpenAiCompatibleLlmWorkerLoopOutput;
 use serde::{Deserialize, Serialize};
@@ -584,9 +587,12 @@ impl QianjiControlRecoveryApplyHttpResponse {
 }
 
 /// HTTP response for one bounded qianji-server OpenAI-compatible LLM worker run.
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
@@ -596,9 +602,12 @@ pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
     worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 impl QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
     pub(in crate::bpmn::http_transport) fn new(
@@ -611,9 +620,12 @@ impl QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
 
 /// HTTP response for one bounded qianji-server OpenAI-compatible LLM worker
 /// run that also completes matching BPMN host work server-side.
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 #[derive(Debug, Clone, Serialize)]
 pub struct QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
@@ -628,9 +640,12 @@ pub struct QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
     final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 impl QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
     pub(in crate::bpmn::http_transport) fn new(

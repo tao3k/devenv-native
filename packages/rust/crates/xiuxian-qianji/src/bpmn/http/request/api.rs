@@ -197,9 +197,12 @@ pub struct QianjiControlRecoveryApplyHttpRequest {
 }
 
 /// JSON body for one bounded qianji-server OpenAI-compatible LLM worker run.
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(in crate::bpmn::http_transport) struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpRequest {
@@ -244,49 +247,67 @@ pub(in crate::bpmn::http_transport) struct QianjiControlOpenAiCompatibleLlmWorke
     pub openai_compatible_timeout_ms: Option<u64>,
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn default_openai_compatible_llm_worker_id() -> String {
     "qianji-server-openai-compatible-llm-worker".to_owned()
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn default_openai_compatible_llm_worker_step_ms() -> u64 {
     1
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn default_openai_compatible_llm_worker_lease_ttl_ms() -> u64 {
     30_000
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn default_openai_compatible_llm_worker_poll_limit() -> u32 {
     1
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn default_openai_compatible_llm_worker_empty_limit() -> u32 {
     1
 }
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 fn default_openai_compatible_llm_worker_count() -> u32 {
     1

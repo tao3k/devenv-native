@@ -41,14 +41,20 @@ mod session;
 #[path = "../bpmn_adapter_wait.rs"]
 mod wait;
 
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 pub use api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 pub use api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use api::{

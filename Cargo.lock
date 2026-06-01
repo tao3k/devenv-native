@@ -11724,6 +11724,7 @@ dependencies = [
  "xiuxian-qianji-client",
  "xiuxian-qianji-control",
  "xiuxian-qianji-runtime",
+ "xiuxian-security",
  "xiuxian-wendao",
  "xiuxian-wendao-core",
  "xiuxian-wendao-runtime",

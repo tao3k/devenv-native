@@ -23,8 +23,9 @@ mod scanner;
 pub use permissions::PermissionGatekeeper;
 pub use public_plane::{
     PublicPlaneRateLimiter, PublicProtocolSurface, PublicSurfacePolicy, SignedPrincipalSigner,
-    WENDAO_AUTH_SCOPE_HEADER, WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER,
-    WENDAO_PUBLIC_PROTOCOL_HEADER, WENDAO_SIGNED_PRINCIPAL_HEADER,
+    SignedPrincipalVerifier, WENDAO_AUTH_SCOPE_HEADER, WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY,
+    WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER, WENDAO_PUBLIC_PROTOCOL_HEADER,
+    WENDAO_SIGNED_PRINCIPAL_HEADER, XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV,
 };
 pub use sandbox::{SandboxConfig, SandboxError, SandboxMode, SandboxResult, SandboxRunner};
 pub use scanner::{SecretScanner, SecurityViolation};

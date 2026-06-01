@@ -7,6 +7,7 @@ mod claim;
 mod event_poll;
 mod instances;
 mod interrupt;
+#[cfg(feature = "duckdb")]
 mod request_model;
 mod resume;
 mod start;

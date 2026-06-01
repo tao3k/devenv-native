@@ -16,8 +16,10 @@ duplicating string constants, principal signatures, or rate-limit policy.
 - Public-plane protocol surface labels for Gateway-owned HTTPS JSON/SSE and
   Arrow Flight entry points
 - Internal service identity and signed-principal header constants
-- Deterministic signed-principal generation for Gateway-to-internal service
-  calls
+- Deterministic signed-principal generation and verification for
+  Gateway-to-internal service calls. Signed principals use the stable
+  `v1:<token-hash>:<signature>` shape so internal services can verify the
+  Gateway-issued principal without seeing the raw public bearer token.
 - Small in-process fixed-window admission policy helpers
 
 ## Usage
@@ -27,6 +29,7 @@ use std::sync::Arc;
 
 use xiuxian_security::{
     PublicPlaneRateLimiter, PublicProtocolSurface, SignedPrincipalSigner,
+    SignedPrincipalVerifier,
 };
 
 let limiter = PublicPlaneRateLimiter::new(128);
@@ -41,6 +44,16 @@ let principal = signer.sign_user_token(
     "verified-user-token",
 );
 assert!(principal.starts_with("v1:"));
+
+let verifier = SignedPrincipalVerifier::new(
+    Arc::<str>::from("wendao-gateway"),
+    Arc::<str>::from("internal-secret"),
+);
+assert!(verifier.verify_signed_principal(
+    PublicProtocolSurface::ArrowFlight,
+    "wendao-gateway",
+    &principal,
+));
 ```
 
 ## Boundary

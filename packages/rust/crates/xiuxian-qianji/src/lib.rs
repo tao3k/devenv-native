@@ -49,9 +49,12 @@ pub(crate) mod markdown;
 mod qianji_cli;
 mod qianji_server;
 mod qianji_server_cli;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 mod qianji_worker;
 /// Runtime configuration resolver (`resources/config/qianji.toml` + user overrides).
@@ -170,9 +173,12 @@ pub use bpmn::{
     qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
     qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,
 };
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
+#[cfg(all(
+    feature = "llm",
+    any(
+        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
+        test
+    )
 ))]
 pub use bpmn::{
     QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse,

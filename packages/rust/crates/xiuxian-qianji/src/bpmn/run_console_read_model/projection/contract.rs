@@ -15,6 +15,7 @@ pub const QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE: &str =
 
 /// One qianji control event projected into the run-console Arrow contract.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg(feature = "duckdb")]
 pub(crate) struct QianjiRunConsoleEventRow {
     /// Stable control-plane run identifier.
     pub run_id: String,
@@ -34,6 +35,7 @@ pub(crate) struct QianjiRunConsoleEventRow {
 
 /// One BPMN element state projected into the run-console Arrow contract.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg(feature = "duckdb")]
 pub(crate) struct QianjiRunConsoleElementStateRow {
     /// Stable control-plane run identifier.
     pub run_id: String,
@@ -72,6 +74,7 @@ pub(crate) struct QianjiRunConsoleElementProjection {
 impl QianjiRunConsoleElementProjection {
     /// Convert this projection into the public element-state row contract.
     #[must_use]
+    #[cfg(feature = "duckdb")]
     pub(crate) fn to_row(&self) -> QianjiRunConsoleElementStateRow {
         QianjiRunConsoleElementStateRow {
             run_id: self.run_id.clone(),

@@ -238,6 +238,16 @@ stale qianji-server processes before relying on recently added routes such as
 `qianji.control.bpmn-source.admit`, `qianji.control.bpmn-source`,
 `qianji.control.history`, `qianji.control.recovery.apply`, or
 `qianji.control.worker.openai-compatible-llm.run`.
+
+qianji-server is an internal-plane service, not a public authentication
+boundary. Public user tokens are validated by the Gateway. When
+`XIUXIAN_QIANJI_INTERNAL_PRINCIPAL_SECRET` or the shared
+`XIUXIAN_INTERNAL_PRINCIPAL_SECRET` is configured, qianji-server protects
+business routes by requiring Gateway-issued internal service identity,
+public-protocol metadata, auth scope, and a signed principal. Raw public
+`Authorization` bearer headers are rejected on those protected routes. Health,
+readiness, and capability routes remain unauthenticated so process supervisors
+can probe the service without user credentials.
 `--control-ledger <path>` enables an optional DuckDB-backed append-only control
 ledger for server-owned BPMN execution trace and host-work ActivityTask
 evidence. With that ledger configured, `GET /control/runs/{run_id}/history`

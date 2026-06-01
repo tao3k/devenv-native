@@ -1,8 +1,9 @@
-{ pkgs
-, lib
-, config
-, inputs
-, ...
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
 }:
 
 let
@@ -147,11 +148,7 @@ in
     nixfmt.enable = true;
     ruff.enable = true;
     rustfmt.enable = true;
-    clippy.enable = true;
     prettier.enable = true;
-    clippy.packageOverrides.cargo = config.languages.rust.toolchainPackage;
-    clippy.packageOverrides.clippy = config.languages.rust.toolchainPackage;
-    clippy.settings.allFeatures = true;
     oxlint.enable = true;
     oxfmt.enable = true;
   };

@@ -3,6 +3,10 @@ use super::flowhub::{
     QianjiServerFlowhubState, qianji_server_flowhub_router, resolve_qianji_server_flowhub_root,
 };
 use super::health::{QianjiServerHealthState, check_valkey_ready, qianji_server_health_router};
+use super::security::{
+    QianjiInternalServiceSecurity, qianji_internal_service_security,
+    with_qianji_internal_service_security,
+};
 #[cfg(feature = "duckdb")]
 use crate::QianjiRunConsoleFlightService;
 #[cfg(test)]
@@ -62,7 +66,10 @@ async fn serve_qianji_server(command: QianjiServerServeCommand) -> anyhow::Resul
 
     if let Some(flight_bind_addr) = flight_bind_addr {
         #[cfg(not(feature = "duckdb"))]
-        anyhow::bail!("qianji-server Flight listener requires the `duckdb` feature");
+        {
+            let _ = flight_bind_addr;
+            anyhow::bail!("qianji-server Flight listener requires the `duckdb` feature");
+        }
         #[cfg(feature = "duckdb")]
         {
             let flight_service =
@@ -120,6 +127,31 @@ fn build_qianji_server_router_with_control_ledger(
     command: &QianjiServerServeCommand,
     control_ledger: Option<SharedControlLedger>,
 ) -> anyhow::Result<Router> {
+    build_qianji_server_router_with_control_ledger_and_security(
+        command,
+        control_ledger,
+        qianji_internal_service_security(),
+    )
+}
+
+#[cfg(test)]
+pub(crate) fn build_qianji_server_router_with_internal_security(
+    command: &QianjiServerServeCommand,
+    internal_security: Option<QianjiInternalServiceSecurity>,
+) -> anyhow::Result<Router> {
+    let control_ledger = build_qianji_server_control_ledger(command)?;
+    build_qianji_server_router_with_control_ledger_and_security(
+        command,
+        control_ledger,
+        internal_security,
+    )
+}
+
+fn build_qianji_server_router_with_control_ledger_and_security(
+    command: &QianjiServerServeCommand,
+    control_ledger: Option<SharedControlLedger>,
+    internal_security: Option<QianjiInternalServiceSecurity>,
+) -> anyhow::Result<Router> {
     let valkey_url = resolve_qianji_server_valkey_url(command)?;
     #[cfg(feature = "valkey")]
     let workflow_state = build_workflow_http_state(
@@ -139,9 +171,13 @@ fn build_qianji_server_router_with_control_ledger(
     let flowhub_state = QianjiServerFlowhubState::new(resolve_qianji_server_flowhub_root(
         command.flowhub_root.as_deref(),
     ));
-    Ok(qianji_server_health_router(health_state)
-        .merge(qianji_server_flowhub_router(flowhub_state))
-        .merge(qianji_bpmn_workflow_router(workflow_state)))
+    let business_router = qianji_server_flowhub_router(flowhub_state)
+        .merge(qianji_bpmn_workflow_router(workflow_state));
+    let business_router = match internal_security {
+        Some(security) => with_qianji_internal_service_security(business_router, security),
+        None => business_router,
+    };
+    Ok(qianji_server_health_router(health_state).merge(business_router))
 }
 
 #[cfg(feature = "valkey")]
