@@ -15,6 +15,11 @@ use futures::stream;
 use futures::{Stream, StreamExt};
 use tonic::{Request, Response, Status};
 use xiuxian_qianji_control::{ControlLedger, RunId};
+use xiuxian_security::{
+    InternalServicePrincipalHeaders, InternalServiceSecurity, WENDAO_AUTH_SCOPE_HEADER,
+    WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER, WENDAO_PUBLIC_PROTOCOL_HEADER,
+    WENDAO_SIGNED_PRINCIPAL_HEADER,
+};
 
 use crate::bpmn::run_console_read_model::{
     QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE, QIANJI_RUN_CONSOLE_EVENT_ROUTE,
@@ -36,6 +41,7 @@ type ActionTypeStream = Pin<Box<dyn Stream<Item = Result<ActionType, Status>> + 
 #[derive(Clone)]
 pub struct QianjiRunConsoleFlightService {
     ledger: Arc<dyn ControlLedger>,
+    internal_security: Option<InternalServiceSecurity>,
 }
 
 impl std::fmt::Debug for QianjiRunConsoleFlightService {
@@ -50,7 +56,17 @@ impl QianjiRunConsoleFlightService {
     /// Create a read-only qianji run-console Flight service.
     #[must_use]
     pub fn new(ledger: Arc<dyn ControlLedger>) -> Self {
-        Self { ledger }
+        Self {
+            ledger,
+            internal_security: None,
+        }
+    }
+
+    /// Require Gateway-issued internal principal metadata for every read.
+    #[must_use]
+    pub fn with_internal_security(mut self, security: InternalServiceSecurity) -> Self {
+        self.internal_security = Some(security);
+        self
     }
 
     fn read_batch(
@@ -58,6 +74,7 @@ impl QianjiRunConsoleFlightService {
         route: &str,
         metadata: &tonic::metadata::MetadataMap,
     ) -> Result<RecordBatch, Status> {
+        self.authorize_metadata(metadata)?;
         validate_schema_version(metadata)?;
         let run_id = run_id_from_metadata(metadata)?;
         let events = self
@@ -73,6 +90,21 @@ impl QianjiRunConsoleFlightService {
                 "unsupported qianji run-console Flight route `{other}`"
             ))),
         }
+    }
+
+    fn authorize_metadata(&self, metadata: &tonic::metadata::MetadataMap) -> Result<(), Status> {
+        let Some(security) = self.internal_security.as_ref() else {
+            return Ok(());
+        };
+        security
+            .verify_headers(InternalServicePrincipalHeaders {
+                authorization_present: metadata.get("authorization").is_some(),
+                service_identity: metadata_str(metadata, WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER),
+                protocol: metadata_str(metadata, WENDAO_PUBLIC_PROTOCOL_HEADER),
+                scope: metadata_str(metadata, WENDAO_AUTH_SCOPE_HEADER),
+                signed_principal: metadata_str(metadata, WENDAO_SIGNED_PRINCIPAL_HEADER),
+            })
+            .map_err(|error| Status::unauthenticated(error.message()))
     }
 }
 
@@ -220,6 +252,13 @@ fn run_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<RunId
     RunId::new(value.to_string()).map_err(|_| {
         Status::invalid_argument("x-qianji-run-id metadata must be a non-empty run id")
     })
+}
+
+fn metadata_str<'a>(
+    metadata: &'a tonic::metadata::MetadataMap,
+    name: &'static str,
+) -> Option<&'a str> {
+    metadata.get(name).and_then(|value| value.to_str().ok())
 }
 
 fn route_from_descriptor(descriptor: &FlightDescriptor) -> Result<String, Status> {

@@ -3,7 +3,7 @@
 mod contract;
 mod elements;
 mod event_text;
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 mod events;
 mod metadata;
 mod stream;
@@ -14,11 +14,11 @@ pub use contract::{
     QIANJI_RUN_CONSOLE_EVENT_ROUTE, QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiControlRunStreamKind,
     QianjiControlRunStreamRow, QianjiControlRunStreamSource, QianjiRunConsoleElementState,
 };
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub(crate) use contract::{QianjiRunConsoleElementStateRow, QianjiRunConsoleEventRow};
 pub(crate) use elements::qianji_run_console_element_projections;
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub(crate) use elements::qianji_run_console_element_state_rows;
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub(crate) use events::qianji_run_console_event_rows;
 pub use stream::qianji_control_run_stream_rows;

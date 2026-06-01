@@ -1,7 +1,7 @@
 //! Qianji run-console read-model contract.
 
 mod projection;
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 mod schema;
 
 pub use projection::{
@@ -12,7 +12,7 @@ pub use projection::{
 pub(crate) use projection::{
     QianjiRunConsoleElementProjection, qianji_run_console_element_projections,
 };
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub use schema::{
     QianjiRunConsoleArrowReadModel, qianji_run_console_arrow_read_model,
     qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,

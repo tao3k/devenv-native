@@ -37,7 +37,7 @@ pub use xiuxian_qianji::{
     load_bpmn_package_from_files, qianji_bpmn_workflow_router, qianji_control_run_stream_rows,
     resolve_pending_host_work, resolve_waiting_external_event,
 };
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub use xiuxian_qianji::{
     QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleArrowReadModel,
     QianjiRunConsoleFlightService, qianji_run_console_arrow_read_model,

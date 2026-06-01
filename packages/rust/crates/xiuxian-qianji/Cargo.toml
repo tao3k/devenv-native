@@ -10,13 +10,18 @@ publish = false
 [features]
 default = ["duckdb", "llm", "qianji-full"]
 duckdb = [
-  "dep:arrow",
-  "dep:arrow-flight",
-  "dep:tonic",
+  "run-console-flight",
   "dep:tokio-stream",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/qianji-bpmn-workflow-state",
   "xiuxian-qianji-control/duckdb",
+]
+run-console-flight = [
+  "dep:arrow",
+  "dep:arrow-flight",
+  "dep:tonic",
+  "dep:xiuxian-db-store",
+  "xiuxian-db-store/arrow-codec",
 ]
 llm = ["dep:xiuxian-llm"]
 performance = ["dep:criterion"]

@@ -16,6 +16,12 @@ use xiuxian_qianji_control::{
     ControlEvent, ControlEventKind, ControlLedger, ControlResult, InMemoryControlLedger, RunId,
     StepId,
 };
+use xiuxian_security::{
+    InternalServiceSecurity, PublicProtocolSurface, SignedPrincipalSigner,
+    WENDAO_AUTH_SCOPE_HEADER, WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY,
+    WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER, WENDAO_PUBLIC_PROTOCOL_HEADER,
+    WENDAO_SIGNED_PRINCIPAL_HEADER,
+};
 
 #[tokio::test]
 async fn qianji_run_console_flight_streams_event_rows() {
@@ -87,6 +93,48 @@ async fn qianji_run_console_flight_rejects_wrong_schema_version() {
     assert_eq!(error.code(), tonic::Code::InvalidArgument);
 }
 
+#[tokio::test]
+async fn qianji_run_console_flight_rejects_missing_internal_principal_when_secured() {
+    let run_id = run_id();
+    let service = secured_service_with_run(&run_id);
+    let mut request = Request::new(FlightDescriptor::new_path(vec![
+        QIANJI_RUN_CONSOLE_EVENT_ROUTE.to_string(),
+    ]));
+    insert_run_id(request.metadata_mut(), &run_id);
+    insert_schema_version(request.metadata_mut());
+
+    let Err(error) = service.get_flight_info(request).await else {
+        panic!("missing internal principal should fail");
+    };
+    assert_eq!(error.code(), tonic::Code::Unauthenticated);
+    assert!(
+        error
+            .message()
+            .contains("missing internal service identity")
+    );
+}
+
+#[tokio::test]
+async fn qianji_run_console_flight_accepts_gateway_signed_principal_when_secured() {
+    let run_id = run_id();
+    let service = secured_service_with_run(&run_id);
+    let mut request = Request::new(FlightDescriptor::new_path(vec![
+        QIANJI_RUN_CONSOLE_EVENT_ROUTE.to_string(),
+    ]));
+    insert_run_id(request.metadata_mut(), &run_id);
+    insert_schema_version(request.metadata_mut());
+    insert_internal_principal(request.metadata_mut(), "internal-secret");
+
+    let flight_info = service
+        .get_flight_info(request)
+        .await
+        .unwrap_or_else(|error| panic!("signed internal principal should pass: {error}"))
+        .into_inner();
+
+    assert_eq!(ticket_string(&flight_info), QIANJI_RUN_CONSOLE_EVENT_ROUTE);
+    assert_eq!(flight_info.total_records, 3);
+}
+
 fn service_with_run(run_id: &RunId) -> QianjiRunConsoleFlightService {
     let ledger = InMemoryControlLedger::new();
     append_event(
@@ -120,6 +168,13 @@ fn service_with_run(run_id: &RunId) -> QianjiRunConsoleFlightService {
         ),
     );
     QianjiRunConsoleFlightService::new(Arc::new(ledger))
+}
+
+fn secured_service_with_run(run_id: &RunId) -> QianjiRunConsoleFlightService {
+    service_with_run(run_id).with_internal_security(InternalServiceSecurity::gateway(
+        Arc::<str>::from("internal-secret"),
+        Arc::<str>::from("QIANJI_INTERNAL_PRINCIPAL_REQUIRED"),
+    ))
 }
 
 async fn fetch_flight_info(
@@ -202,6 +257,28 @@ fn insert_schema_version(metadata: &mut MetadataMap) {
     metadata.insert(
         "x-wendao-schema-version",
         metadata_value(QIANJI_RUN_CONSOLE_SCHEMA_VERSION),
+    );
+}
+
+fn insert_internal_principal(metadata: &mut MetadataMap, signing_secret: &str) {
+    let surface = PublicProtocolSurface::ArrowFlight;
+    let signed_principal = SignedPrincipalSigner::new(
+        Arc::<str>::from(WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY),
+        Arc::<str>::from(signing_secret),
+    )
+    .sign_user_token(surface, "public-token");
+    metadata.insert(
+        WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER,
+        metadata_value(WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY),
+    );
+    metadata.insert(
+        WENDAO_PUBLIC_PROTOCOL_HEADER,
+        metadata_value(surface.protocol()),
+    );
+    metadata.insert(WENDAO_AUTH_SCOPE_HEADER, metadata_value(surface.scope()));
+    metadata.insert(
+        WENDAO_SIGNED_PRINCIPAL_HEADER,
+        metadata_value(signed_principal.as_str()),
     );
 }
 

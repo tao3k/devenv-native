@@ -474,7 +474,11 @@ pub(crate) fn build_qianji_server_flight_service(
         Some(control_ledger) => control_ledger,
         None => build_required_qianji_server_control_ledger(command)?,
     };
-    Ok(QianjiRunConsoleFlightService::new(control_ledger))
+    let service = QianjiRunConsoleFlightService::new(control_ledger);
+    Ok(match qianji_internal_service_security() {
+        Some(security) => service.with_internal_security(security),
+        None => service,
+    })
 }
 
 fn build_qianji_server_control_ledger(

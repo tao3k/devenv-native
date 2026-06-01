@@ -77,8 +77,12 @@ pub use crate::bpmn::{
 #[cfg(feature = "duckdb")]
 pub use crate::bpmn::{
     DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
-    QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
-    QianjiBpmnDuckDbDataStore, QianjiBpmnDuckDbDataStoreConfig, QianjiRunConsoleArrowReadModel,
+    QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
+    QianjiBpmnDuckDbDataStoreConfig,
+};
+#[cfg(feature = "run-console-flight")]
+pub use crate::bpmn::{
+    QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleArrowReadModel,
     QianjiRunConsoleFlightService, qianji_run_console_arrow_read_model,
     qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
     qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,

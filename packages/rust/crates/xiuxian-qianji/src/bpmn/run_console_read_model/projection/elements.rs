@@ -1,6 +1,6 @@
 //! BPMN element-state row projection.
 
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 use super::QianjiRunConsoleElementStateRow;
 use super::{
     QianjiRunConsoleElementProjection, QianjiRunConsoleElementState,
@@ -13,7 +13,7 @@ use xiuxian_qianji_control::{ControlEventKind, ControlEventRecord, RunId};
 
 /// Project control events into latest BPMN element-state rows.
 #[must_use]
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub(crate) fn qianji_run_console_element_state_rows(
     run_id: &RunId,
     events: &[ControlEventRecord],

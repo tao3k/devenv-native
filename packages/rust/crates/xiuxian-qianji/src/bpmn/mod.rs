@@ -31,7 +31,7 @@ pub mod llm_activity_adapter;
 mod loader;
 #[path = "../bpmn_runtime_ownership.rs"]
 mod ownership;
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub mod run_console_flight;
 pub mod run_console_read_model;
 #[path = "../bpmn_runtime_scheduler.rs"]
@@ -134,14 +134,14 @@ pub use llm_activity_adapter::{
     BpmnHostWorkLlmEndpointDecision, BpmnHostWorkLlmRouteDecision,
     build_bpmn_host_work_llm_activity_route,
 };
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub use run_console_flight::{QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleFlightService};
 pub use run_console_read_model::{
     QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE, QIANJI_RUN_CONSOLE_EVENT_ROUTE,
     QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiControlRunStreamSource, QianjiRunConsoleElementState,
     qianji_control_run_stream_rows,
 };
-#[cfg(feature = "duckdb")]
+#[cfg(feature = "run-console-flight")]
 pub use run_console_read_model::{
     QianjiRunConsoleArrowReadModel, qianji_run_console_arrow_read_model,
     qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,

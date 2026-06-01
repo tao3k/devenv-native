@@ -23,6 +23,59 @@ pub struct InternalServiceSecurity {
     unauthorized_code: Arc<str>,
 }
 
+/// Header values required at an internal service boundary.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct InternalServicePrincipalHeaders<'a> {
+    /// Whether the raw public `Authorization` header is still present.
+    pub authorization_present: bool,
+    /// Gateway internal service identity header value.
+    pub service_identity: Option<&'a str>,
+    /// Original public protocol surface value.
+    pub protocol: Option<&'a str>,
+    /// Gateway-issued auth scope value.
+    pub scope: Option<&'a str>,
+    /// Gateway-issued signed principal value.
+    pub signed_principal: Option<&'a str>,
+}
+
+/// Reason an internal service principal was rejected.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InternalServiceSecurityError {
+    /// Raw public bearer authorization reached the internal plane.
+    RawPublicAuthorization,
+    /// Missing internal service identity header.
+    MissingInternalServiceIdentity,
+    /// Missing original public protocol header.
+    MissingPublicProtocol,
+    /// Unknown original public protocol header.
+    UnknownPublicProtocol,
+    /// Missing auth scope header.
+    MissingAuthScope,
+    /// Auth scope does not match the declared public protocol.
+    AuthScopeMismatch,
+    /// Missing signed principal header.
+    MissingSignedPrincipal,
+    /// Signed principal failed verification.
+    InvalidSignedPrincipal,
+}
+
+impl InternalServiceSecurityError {
+    /// Stable error message for HTTP and Flight adapters.
+    #[must_use]
+    pub const fn message(self) -> &'static str {
+        match self {
+            Self::RawPublicAuthorization => "raw public Authorization header is not accepted",
+            Self::MissingInternalServiceIdentity => "missing internal service identity",
+            Self::MissingPublicProtocol => "missing public protocol",
+            Self::UnknownPublicProtocol => "unknown public protocol",
+            Self::MissingAuthScope => "missing auth scope",
+            Self::AuthScopeMismatch => "auth scope mismatch",
+            Self::MissingSignedPrincipal => "missing signed principal",
+            Self::InvalidSignedPrincipal => "invalid signed principal",
+        }
+    }
+}
+
 impl InternalServiceSecurity {
     /// Create one internal service verifier.
     #[must_use]
@@ -46,6 +99,48 @@ impl InternalServiceSecurity {
             unauthorized_code,
         )
     }
+
+    /// Verify internal service headers issued by the public Gateway.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InternalServiceSecurityError`] when any required internal
+    /// header is missing, mismatched, or has an invalid signed principal.
+    pub fn verify_headers(
+        &self,
+        headers: InternalServicePrincipalHeaders<'_>,
+    ) -> Result<(), InternalServiceSecurityError> {
+        if headers.authorization_present {
+            return Err(InternalServiceSecurityError::RawPublicAuthorization);
+        }
+
+        let Some(service_identity) = headers.service_identity else {
+            return Err(InternalServiceSecurityError::MissingInternalServiceIdentity);
+        };
+        let Some(protocol) = headers.protocol else {
+            return Err(InternalServiceSecurityError::MissingPublicProtocol);
+        };
+        let Some(surface) = PublicProtocolSurface::from_protocol(protocol) else {
+            return Err(InternalServiceSecurityError::UnknownPublicProtocol);
+        };
+        let Some(scope) = headers.scope else {
+            return Err(InternalServiceSecurityError::MissingAuthScope);
+        };
+        if scope != surface.scope() {
+            return Err(InternalServiceSecurityError::AuthScopeMismatch);
+        }
+        let Some(signed_principal) = headers.signed_principal else {
+            return Err(InternalServiceSecurityError::MissingSignedPrincipal);
+        };
+        if !self
+            .verifier
+            .verify_signed_principal(surface, service_identity, signed_principal)
+        {
+            return Err(InternalServiceSecurityError::InvalidSignedPrincipal);
+        }
+
+        Ok(())
+    }
 }
 
 /// Wrap an Axum router with internal service principal verification.
@@ -68,52 +163,14 @@ async fn require_internal_service_security(
     request: Request,
     next: Next,
 ) -> Response {
-    if request.headers().contains_key(header::AUTHORIZATION) {
-        return unauthorized_response(
-            security.unauthorized_code.as_ref(),
-            "raw public Authorization header is not accepted",
-        );
-    }
-
-    let Some(service_identity) = header_str(&request, WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER)
-    else {
-        return unauthorized_response(
-            security.unauthorized_code.as_ref(),
-            "missing internal service identity",
-        );
-    };
-    let Some(protocol) = header_str(&request, WENDAO_PUBLIC_PROTOCOL_HEADER) else {
-        return unauthorized_response(
-            security.unauthorized_code.as_ref(),
-            "missing public protocol",
-        );
-    };
-    let Some(surface) = PublicProtocolSurface::from_protocol(protocol) else {
-        return unauthorized_response(
-            security.unauthorized_code.as_ref(),
-            "unknown public protocol",
-        );
-    };
-    let Some(scope) = header_str(&request, WENDAO_AUTH_SCOPE_HEADER) else {
-        return unauthorized_response(security.unauthorized_code.as_ref(), "missing auth scope");
-    };
-    if scope != surface.scope() {
-        return unauthorized_response(security.unauthorized_code.as_ref(), "auth scope mismatch");
-    }
-    let Some(signed_principal) = header_str(&request, WENDAO_SIGNED_PRINCIPAL_HEADER) else {
-        return unauthorized_response(
-            security.unauthorized_code.as_ref(),
-            "missing signed principal",
-        );
-    };
-    if !security
-        .verifier
-        .verify_signed_principal(surface, service_identity, signed_principal)
-    {
-        return unauthorized_response(
-            security.unauthorized_code.as_ref(),
-            "invalid signed principal",
-        );
+    if let Err(error) = security.verify_headers(InternalServicePrincipalHeaders {
+        authorization_present: request.headers().contains_key(header::AUTHORIZATION),
+        service_identity: header_str(&request, WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER),
+        protocol: header_str(&request, WENDAO_PUBLIC_PROTOCOL_HEADER),
+        scope: header_str(&request, WENDAO_AUTH_SCOPE_HEADER),
+        signed_principal: header_str(&request, WENDAO_SIGNED_PRINCIPAL_HEADER),
+    }) {
+        return unauthorized_response(security.unauthorized_code.as_ref(), error.message());
     }
 
     next.run(request).await

@@ -23,7 +23,10 @@ mod sandbox;
 mod scanner;
 
 #[cfg(feature = "axum-internal-plane")]
-pub use internal_plane::{InternalServiceSecurity, with_internal_service_security};
+pub use internal_plane::{
+    InternalServicePrincipalHeaders, InternalServiceSecurity, InternalServiceSecurityError,
+    with_internal_service_security,
+};
 pub use permissions::PermissionGatekeeper;
 pub use public_plane::{
     PublicPlaneRateLimiter, PublicProtocolSurface, PublicSurfacePolicy, SignedPrincipalSigner,
