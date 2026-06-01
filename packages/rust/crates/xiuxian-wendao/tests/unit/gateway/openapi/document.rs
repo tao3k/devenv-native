@@ -46,6 +46,18 @@ fn bundled_gateway_openapi_document_declares_public_json_bearer_boundary() {
         description.contains("Accept: text/event-stream"),
         "bundled gateway OpenAPI should describe the public SSE streaming boundary"
     );
+    assert!(
+        description.contains("Arrow Flight"),
+        "bundled gateway OpenAPI should name the Gateway Arrow Flight public protocol surface"
+    );
+    assert!(
+        description.contains("/arrow.flight.protocol.FlightService"),
+        "bundled gateway OpenAPI should point operators at the same-listener Flight mount"
+    );
+    assert!(
+        description.contains("HTTPS JSON/SSE"),
+        "bundled gateway OpenAPI should distinguish HTTPS JSON/SSE from Flight"
+    );
     assert_eq!(
         document["security"][0]["WendaoBearerAuth"],
         Value::Array(vec![])

@@ -66,7 +66,7 @@ pub(crate) fn build_reference_entity(
     if let Some(reference_type) = semantics.reference_type {
         entity
             .metadata
-            .insert("reference_type".to_string(), json!(reference_type));
+            .insert("reference_type".to_string(), json!(reference_type.as_ref()));
     }
     (entity, reference_name)
 }
@@ -93,7 +93,8 @@ pub(crate) fn build_reference_relation(input: &ReferenceRelationInput<'_>) -> Re
     .with_metadata("reference_uri".to_string(), json!(input.target_uri));
 
     if let Some(reference_type) = semantics.reference_type {
-        relation = relation.with_metadata("reference_type".to_string(), json!(reference_type));
+        relation =
+            relation.with_metadata("reference_type".to_string(), json!(reference_type.as_ref()));
     }
 
     relation

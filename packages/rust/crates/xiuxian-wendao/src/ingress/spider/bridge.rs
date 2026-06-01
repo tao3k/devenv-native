@@ -6,7 +6,9 @@ use super::errors::SpiderIngressError;
 use super::hash_store::{ContentHashStore, InMemoryContentHashStore};
 use super::locking::{default_ingest_lock_segments, lock_slot_for_hash};
 use super::reindex::NoopPartialReindexHook;
-use super::sink::{KnowledgeGraphAssimilationSink, WebAssimilationInput, WebAssimilationSink};
+use super::sink::{
+    KnowledgeGraphAssimilationSink, SpiderWebAssimilationInput, WebAssimilationSink,
+};
 use super::types::{SpiderPagePayload, WebIngestionSignal};
 use super::url::{canonical_web_uri, web_namespace_from_url};
 use crate::KnowledgeGraph;
@@ -111,7 +113,7 @@ impl SpiderWendaoBridge {
             content_hash: content_hash.clone(),
         };
         self.sink
-            .assimilate(WebAssimilationInput {
+            .assimilate(SpiderWebAssimilationInput {
                 canonical_uri: canonical_uri.as_str(),
                 washed_markdown: washed_markdown.as_str(),
                 signal: &signal,

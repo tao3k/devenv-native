@@ -7,6 +7,6 @@ mod transmuter;
 pub use spider::{
     ContentHashStore, InMemoryContentHashStore, KnowledgeGraphAssimilationSink,
     NoopPartialReindexHook, PartialReindexHook, SpiderIngressError, SpiderPagePayload,
-    SpiderWendaoBridge, WebAssimilationSink, WebIngestionSignal, canonical_web_uri,
-    web_namespace_from_url,
+    SpiderWendaoBridge, WebAssimilationInput, WebAssimilationSink, WebIngestionSignal,
+    canonical_web_uri, web_namespace_from_url,
 };

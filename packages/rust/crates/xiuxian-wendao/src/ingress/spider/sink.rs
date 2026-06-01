@@ -17,11 +17,11 @@ pub trait WebAssimilationSink: Send + Sync {
     /// # Errors
     ///
     /// Returns [`SpiderIngressError`] when persistence fails.
-    fn assimilate(&self, input: WebAssimilationInput<'_>) -> Result<(), SpiderIngressError>;
+    fn assimilate(&self, input: SpiderWebAssimilationInput<'_>) -> Result<(), SpiderIngressError>;
 }
 
 /// Washed web payload ready for sink assimilation.
-pub struct WebAssimilationInput<'a> {
+pub struct SpiderWebAssimilationInput<'a> {
     /// Canonical Wendao URI assigned to the washed document.
     pub canonical_uri: &'a str,
     /// Markdown content after washer normalization.
@@ -55,7 +55,7 @@ impl KnowledgeGraphAssimilationSink {
 }
 
 impl WebAssimilationSink for KnowledgeGraphAssimilationSink {
-    fn assimilate(&self, input: WebAssimilationInput<'_>) -> Result<(), SpiderIngressError> {
+    fn assimilate(&self, input: SpiderWebAssimilationInput<'_>) -> Result<(), SpiderIngressError> {
         let canonical_uri = input.canonical_uri;
         let washed_markdown = input.washed_markdown;
         let signal = input.signal;
