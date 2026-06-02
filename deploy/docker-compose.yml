@@ -57,20 +57,6 @@ services:
       - ../wendao.toml:/data/base.toml:ro
       - ../assets/wendao:/data/assets/wendao:ro
       - ../docs:/data/docs:ro
-  xiuxian-daochang:
-    image: ghcr.io/tao3k/xiuxian-daochang:main
-    command: ["--conf", "/etc/xiuxian", "gateway", "--bind", "0.0.0.0:18092"]
-    expose:
-      - "18092"
-    depends_on:
-      valkey:
-        condition: service_healthy
-    env_file:
-      - ../.env
-    environment:
-      VALKEY_URL: redis://valkey:6379/0
-    volumes:
-      - ./xiuxian.toml:/etc/xiuxian/xiuxian-artisan-workshop/xiuxian.toml:ro
   wendao-document-extract:
     image: python:3.12-slim
     command: >
@@ -92,7 +78,6 @@ services:
       - "8080:80"
     depends_on:
       - wendao-gateway
-      - xiuxian-daochang
 volumes:
   valkey-data:
   wendao-data:

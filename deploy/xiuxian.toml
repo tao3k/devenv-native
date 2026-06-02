@@ -1,5 +1,0 @@
-# Docker deployment overlay for xiuxian-daochang.
-# Overrides only what's needed for container networking.
-
-[zhenfa.valkey]
-url = "redis://valkey:6379/0"

@@ -24,11 +24,18 @@ def test_deploy_compose_keeps_internal_services_off_host_ports() -> None:
         "wendao-frontend",
     }
 
+    removed_services = {
+        "xiuxian-daochang",
+    }
+
+    for service_name in removed_services:
+        assert f"  {service_name}:\n" not in compose, service_name
+        assert service_name not in compose, service_name
+
     for service_name in (
         "valkey",
         "wendaosearch-solver",
         "wendaosearch-parser",
-        "xiuxian-daochang",
         "wendao-document-extract",
     ):
         block = _service_block(compose, service_name)
