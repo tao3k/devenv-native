@@ -11815,6 +11815,7 @@ version = "0.1.1"
 dependencies = [
  "axum",
  "blake3",
+ "rand 0.8.6",
  "regex",
  "rust-lang-project-harness",
  "serde",

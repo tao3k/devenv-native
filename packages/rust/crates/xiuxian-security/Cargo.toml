@@ -12,6 +12,7 @@ axum-internal-plane = ["dep:axum", "dep:serde_json"]
 regex = { workspace = true }
 serde = { workspace = true }
 blake3 = { workspace = true }
+rand = { workspace = true }
 thiserror = { workspace = true }
 axum = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

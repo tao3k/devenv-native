@@ -18,6 +18,7 @@
 #[cfg(feature = "axum-internal-plane")]
 mod internal_plane;
 mod permissions;
+mod public_api_token;
 mod public_plane;
 mod sandbox;
 mod scanner;
@@ -28,6 +29,11 @@ pub use internal_plane::{
     with_internal_service_security,
 };
 pub use permissions::PermissionGatekeeper;
+pub use public_api_token::{
+    IssuedPublicApiToken, PublicApiTokenEnvironment, PublicApiTokenError, PublicApiTokenParts,
+    PublicApiTokenScopeSet, PublicApiTokenVerifier, WENDAO_PUBLIC_API_TOKEN_LIVE_PREFIX,
+    WENDAO_PUBLIC_API_TOKEN_TEST_PREFIX,
+};
 pub use public_plane::{
     PublicPlaneRateLimiter, PublicProtocolSurface, PublicSurfacePolicy, SignedPrincipalSigner,
     SignedPrincipalVerifier, WENDAO_AUTH_SCOPE_HEADER, WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY,

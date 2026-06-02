@@ -2,6 +2,8 @@
 
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
+#[path = "unit/public_api_token.rs"]
+mod public_api_token;
 #[path = "unit/public_plane.rs"]
 mod public_plane;
 #[path = "unit/sandbox.rs"]

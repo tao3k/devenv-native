@@ -71,7 +71,7 @@ fn signed_principal_signer_is_stable_and_surface_specific() {
 
 #[test]
 fn signed_principal_verifier_accepts_gateway_principal_without_raw_token() {
-    let signer = SignedPrincipalSigner::new(
+    let principal_signer = SignedPrincipalSigner::new(
         Arc::<str>::from("wendao-gateway"),
         Arc::<str>::from("internal-secret"),
     );
@@ -80,18 +80,19 @@ fn signed_principal_verifier_accepts_gateway_principal_without_raw_token() {
         Arc::<str>::from("internal-secret"),
     );
 
-    let signed = signer.sign_user_token(PublicProtocolSurface::ArrowFlight, "user-token");
+    let signed_principal =
+        principal_signer.sign_user_token(PublicProtocolSurface::ArrowFlight, "user-token");
 
     assert!(verifier.verify_signed_principal(
         PublicProtocolSurface::ArrowFlight,
         "wendao-gateway",
-        signed.as_str(),
+        signed_principal.as_str(),
     ));
 }
 
 #[test]
 fn signed_principal_verifier_rejects_wrong_identity_surface_secret_and_shape() {
-    let signer = SignedPrincipalSigner::new(
+    let principal_signer = SignedPrincipalSigner::new(
         Arc::<str>::from("wendao-gateway"),
         Arc::<str>::from("internal-secret"),
     );
@@ -104,22 +105,23 @@ fn signed_principal_verifier_rejects_wrong_identity_surface_secret_and_shape() {
         Arc::<str>::from("other-secret"),
     );
 
-    let signed = signer.sign_user_token(PublicProtocolSurface::ArrowFlight, "user-token");
+    let signed_principal =
+        principal_signer.sign_user_token(PublicProtocolSurface::ArrowFlight, "user-token");
 
     assert!(!verifier.verify_signed_principal(
         PublicProtocolSurface::ArrowFlight,
         "other-service",
-        signed.as_str(),
+        signed_principal.as_str(),
     ));
     assert!(!verifier.verify_signed_principal(
         PublicProtocolSurface::HttpsJsonSse,
         "wendao-gateway",
-        signed.as_str(),
+        signed_principal.as_str(),
     ));
     assert!(!wrong_secret_verifier.verify_signed_principal(
         PublicProtocolSurface::ArrowFlight,
         "wendao-gateway",
-        signed.as_str(),
+        signed_principal.as_str(),
     ));
     assert!(!verifier.verify_signed_principal(
         PublicProtocolSurface::ArrowFlight,

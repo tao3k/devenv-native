@@ -13,6 +13,8 @@ duplicating string constants, principal signatures, or rate-limit policy.
 - Secret detection in code
 - Security pattern matching
 - Permission gate helpers
+- Opaque public API-token generation, parsing, verifier hashing, and
+  scope-set helpers for Gateway-owned token admission
 - Public-plane protocol surface labels for Gateway-owned HTTPS JSON/SSE and
   Arrow Flight entry points
 - Internal service identity and signed-principal header constants
@@ -31,12 +33,27 @@ duplicating string constants, principal signatures, or rate-limit policy.
 use std::sync::Arc;
 
 use xiuxian_security::{
-    PublicPlaneRateLimiter, PublicProtocolSurface, SignedPrincipalSigner,
-    SignedPrincipalVerifier,
+    PublicApiTokenEnvironment, PublicApiTokenScopeSet, PublicApiTokenVerifier,
+    PublicPlaneRateLimiter, PublicProtocolSurface, SignedPrincipalSigner, SignedPrincipalVerifier,
 };
 
 let limiter = PublicPlaneRateLimiter::new(128);
 assert!(limiter.allow());
+
+let token_verifier = PublicApiTokenVerifier::new(
+    Arc::<str>::from("gateway-token-verifier-secret"),
+)?;
+let issued = token_verifier.issue(PublicApiTokenEnvironment::Live);
+assert!(token_verifier.verify_presented_token(
+    issued.presented_token(),
+    issued.token_prefix(),
+    issued.verifier_hash(),
+));
+
+let scopes = PublicApiTokenScopeSet::new([
+    Arc::<str>::from(PublicProtocolSurface::ArrowFlight.scope()),
+]);
+assert!(scopes.allows_surface(PublicProtocolSurface::ArrowFlight));
 
 let signer = SignedPrincipalSigner::new(
     Arc::<str>::from("wendao-gateway"),
@@ -61,11 +78,16 @@ assert!(verifier.verify_signed_principal(
 
 ## Boundary
 
-This crate does not own public HTTP or Flight routing. Gateway crates validate
-user tokens at the public boundary, then use these primitives to sign and
-propagate an internal principal. Internal services such as Qianji and Wendao
-should verify internal service identity and signed-principal metadata, not
-directly accept user bearer tokens.
+This crate does not own public HTTP or Flight routing, public user storage, or
+login sessions. Gateway crates validate browser sessions or public API tokens at
+the public boundary, then use these primitives to sign and propagate an
+internal principal. Internal services such as Qianji and Wendao should verify
+internal service identity and signed-principal metadata, not directly accept
+user bearer tokens.
+
+Public API tokens are opaque credentials. Gateway may show the full token once,
+but durable storage should keep only the public token prefix, verifier hash,
+owner metadata, scopes, budget profile, and lifecycle timestamps.
 
 The optional `axum-internal-plane` feature only provides reusable Axum
 middleware for that internal service verification step. It does not make this
