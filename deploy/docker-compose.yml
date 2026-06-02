@@ -60,8 +60,8 @@ services:
   xiuxian-daochang:
     image: ghcr.io/tao3k/xiuxian-daochang:main
     command: ["--conf", "/etc/xiuxian", "gateway", "--bind", "0.0.0.0:18092"]
-    ports:
-      - "18092:18092"
+    expose:
+      - "18092"
     depends_on:
       valkey:
         condition: service_healthy

@@ -146,7 +146,7 @@ mypy_path = [
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 strict = true # Enable strict_config, strict_markers, strict_parametrization_ids, strict_xfail
-timeout = 300 # Default timeout in seconds (5 minutes)
+timeout = "300" # Default timeout in seconds (5 minutes)
 addopts = [
   "--timeout=300",
   "-n",
