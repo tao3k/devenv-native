@@ -71,5 +71,6 @@ fn build_gateway_router_with_surface_policy(
         flight_stream_budget_bytes,
         flight_grpc_web_enabled,
         bearer_token,
+        None,
     )
 }

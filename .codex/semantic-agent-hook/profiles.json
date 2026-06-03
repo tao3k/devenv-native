@@ -4,10 +4,20 @@
       "binary": "rs-harness",
       "commands": {
         "checkChanged": {
-          "argv": ["rs-harness", "check", "--changed", "."]
+          "argv": [
+            "rs-harness",
+            "check",
+            "--changed",
+            "."
+          ]
         },
         "guide": {
-          "argv": ["rs-harness", "agent", "guide", "."]
+          "argv": [
+            "rs-harness",
+            "agent",
+            "guide",
+            "."
+          ]
         },
         "ingest": {
           "argv": [
@@ -25,17 +35,23 @@
         "owner": {
           "argv": [
             "rs-harness",
-            "search",
-            "owner",
+            "query",
+            "--from-hook",
+            "direct-source-read",
+            "--selector",
             "{path}",
-            "items",
-            "--view",
-            "seeds",
             "."
           ]
         },
         "prime": {
-          "argv": ["rs-harness", "search", "prime", "--view", "seeds", "."]
+          "argv": [
+            "rs-harness",
+            "search",
+            "prime",
+            "--view",
+            "seeds",
+            "."
+          ]
         },
         "text": {
           "argv": [
@@ -50,7 +66,10 @@
           ]
         }
       },
-      "configFiles": ["Cargo.toml", "Cargo.lock"],
+      "configFiles": [
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
       "ignoredPathPrefixes": [
         ".cache",
         ".direnv",
@@ -77,7 +96,9 @@
         "requirePrimeBeforeEdit": true
       },
       "providerId": "rs-harness",
-      "sourceExtensions": [".rs"],
+      "sourceExtensions": [
+        ".rs"
+      ],
       "sourceRoots": [
         "src",
         "tests",
@@ -92,10 +113,20 @@
       "binary": "ts-harness",
       "commands": {
         "checkChanged": {
-          "argv": ["ts-harness", "check", "--changed", "."]
+          "argv": [
+            "ts-harness",
+            "check",
+            "--changed",
+            "."
+          ]
         },
         "guide": {
-          "argv": ["ts-harness", "agent", "guide", "."]
+          "argv": [
+            "ts-harness",
+            "agent",
+            "guide",
+            "."
+          ]
         },
         "ingest": {
           "argv": [
@@ -111,10 +142,41 @@
           "stdinMode": "pipe-candidates"
         },
         "owner": {
-          "argv": ["ts-harness", "search", "owner", "{path}", "."]
+          "argv": [
+            "ts-harness",
+            "search",
+            "owner",
+            "{path}",
+            "items",
+            "--query",
+            "{query}",
+            "."
+          ]
         },
         "prime": {
-          "argv": ["ts-harness", "search", "prime", "."]
+          "argv": [
+            "ts-harness",
+            "search",
+            "prime",
+            "."
+          ]
+        },
+        "query": {
+          "argv": [
+            "ts-harness",
+            "search",
+            "query",
+            "--from-hook",
+            "direct-source-read",
+            "--selector",
+            "{selector}",
+            "{termArgs}",
+            "--surface",
+            "owner,tests",
+            "--view",
+            "seeds",
+            "."
+          ]
         },
         "text": {
           "argv": [
@@ -130,7 +192,11 @@
           ]
         }
       },
-      "configFiles": ["package.json", "tsconfig.json", "tsconfig.base.json"],
+      "configFiles": [
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.base.json"
+      ],
       "ignoredPathPrefixes": [
         "node_modules",
         "dist",
@@ -177,20 +243,46 @@
       "binary": "py-harness",
       "commands": {
         "checkChanged": {
-          "argv": ["py-harness", "check", "--changed", "."]
+          "argv": [
+            "py-harness",
+            "check",
+            "--changed",
+            "."
+          ]
         },
         "guide": {
-          "argv": ["py-harness", "agent", "guide", "."]
+          "argv": [
+            "py-harness",
+            "agent",
+            "guide",
+            "."
+          ]
         },
         "ingest": {
-          "argv": ["py-harness", "search", "ingest", "."],
+          "argv": [
+            "py-harness",
+            "search",
+            "ingest",
+            "."
+          ],
           "stdinMode": "pipe-candidates"
         },
         "owner": {
-          "argv": ["py-harness", "search", "owner", "{path}", "."]
+          "argv": [
+            "py-harness",
+            "search",
+            "owner",
+            "{path}",
+            "."
+          ]
         },
         "prime": {
-          "argv": ["py-harness", "search", "prime", "."]
+          "argv": [
+            "py-harness",
+            "search",
+            "prime",
+            "."
+          ]
         },
         "text": {
           "argv": [
@@ -206,8 +298,17 @@
           ]
         }
       },
-      "configFiles": ["pyproject.toml", "setup.cfg", "setup.py"],
-      "ignoredPathPrefixes": [".venv", "__pycache__", ".git", ".pytest_cache"],
+      "configFiles": [
+        "pyproject.toml",
+        "setup.cfg",
+        "setup.py"
+      ],
+      "ignoredPathPrefixes": [
+        ".venv",
+        "__pycache__",
+        ".git",
+        ".pytest_cache"
+      ],
       "languageId": "python",
       "namespace": "agent.semantic-protocols.languages.python.py-harness",
       "policy": {
@@ -217,8 +318,16 @@
         "requirePrimeBeforeEdit": true
       },
       "providerId": "py-harness",
-      "sourceExtensions": [".py", ".pyi"],
-      "sourceRoots": ["src", "test", "tests", "packages"]
+      "sourceExtensions": [
+        ".py",
+        ".pyi"
+      ],
+      "sourceRoots": [
+        "src",
+        "test",
+        "tests",
+        "packages"
+      ]
     }
   ],
   "projectRoot": ".",

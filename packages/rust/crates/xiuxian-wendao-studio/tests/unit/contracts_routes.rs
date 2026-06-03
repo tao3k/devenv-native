@@ -4,8 +4,8 @@ use std::collections::BTreeSet;
 use serde_json::Value;
 use xiuxian_wendao_studio::contracts::WENDAO_GATEWAY_ROUTE_CONTRACTS;
 use xiuxian_wendao_studio::contracts::routes::{
-    API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH, API_HEALTH_OPENAPI_PATH, API_NOTIFY_OPENAPI_PATH,
-    API_REPO_SYNC_OPENAPI_PATH, API_UI_PLUGIN_ARTIFACT_OPENAPI_PATH,
+    API_AUTH_TOKENS_OPENAPI_PATH, API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH, API_HEALTH_OPENAPI_PATH,
+    API_NOTIFY_OPENAPI_PATH, API_REPO_SYNC_OPENAPI_PATH, API_UI_PLUGIN_ARTIFACT_OPENAPI_PATH,
 };
 #[cfg(feature = "openapi-artifacts")]
 use xiuxian_wendao_studio::openapi::load_bundled_wendao_gateway_openapi_document;
@@ -30,6 +30,7 @@ fn route_inventory_keeps_core_endpoints() {
 
     assert!(openapi_paths.contains(API_HEALTH_OPENAPI_PATH));
     assert!(openapi_paths.contains(API_NOTIFY_OPENAPI_PATH));
+    assert!(openapi_paths.contains(API_AUTH_TOKENS_OPENAPI_PATH));
     assert!(openapi_paths.contains(API_DOCS_PAGE_INDEX_TREE_OPENAPI_PATH));
     assert!(openapi_paths.contains(API_REPO_SYNC_OPENAPI_PATH));
     assert!(openapi_paths.contains(API_UI_PLUGIN_ARTIFACT_OPENAPI_PATH));

@@ -81,6 +81,7 @@ futures = "0.3.32"
 foyer = { version = "0.22.3", default-features = false, features = ["runtime-tokio"] }
 tokio-util = "0.7.18"
 tokio-stream = { version = "0.1", features = ["net"] }
+tokio-postgres = "0.7"
 flate2 = "1.1.9"
 tar = "0.4.45"
 md5 = "0.8.0"

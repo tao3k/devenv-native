@@ -88,6 +88,62 @@
         }
       }
     },
+    "/v1/auth/tokens": {
+      "post": {
+        "operationId": "gatewayIssuePublicApiToken",
+        "tags": ["gateway-auth"],
+        "summary": "Issue a public API token",
+        "description": "Authenticate a Gateway-local user credential and issue one opaque public API token. The Gateway stores only verifier metadata and returns the presented token once for the caller to use with HTTPS JSON/SSE or Arrow Flight scopes.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatewayAuthTokenRequest"
+              },
+              "example": {
+                "username": "alice",
+                "password": "correct horse battery staple",
+                "scopes": ["gateway:https-json-sse"],
+                "environment": "test"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A newly issued public API token. The `token` value is shown once and should be stored by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayAuthTokenResponse"
+                },
+                "example": {
+                  "object": "api_key",
+                  "token": "wd_test_0000000000000000_0000000000000000000000000000000000000000000000000000000000000000000",
+                  "tokenPrefix": "wd_test_0000000000000000",
+                  "environment": "test",
+                  "scopes": ["gateway:https-json-sse"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submitted Gateway login credential is invalid."
+          },
+          "403": {
+            "description": "The request asked for a scope outside the Gateway user's allowed public protocol surfaces."
+          },
+          "413": {
+            "description": "The login request exceeded the Gateway auth request body budget."
+          },
+          "429": {
+            "description": "The Gateway auth token issuance rate limit was exceeded."
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "gatewayHealth",
@@ -6082,6 +6138,62 @@
             "type": "boolean",
             "default": false,
             "description": "When true, return server-sent response events."
+          }
+        }
+      },
+      "GatewayAuthTokenRequest": {
+        "type": "object",
+        "description": "Gateway-local login request used to issue an opaque public API token.",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["gateway:https-json-sse", "gateway:arrow-flight"]
+            },
+            "description": "Optional requested public protocol scopes. When omitted, the Gateway grants its configured default scopes."
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["live", "test"],
+            "default": "test"
+          }
+        }
+      },
+      "GatewayAuthTokenResponse": {
+        "type": "object",
+        "required": ["object", "token", "tokenPrefix", "environment", "scopes"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "api_key"
+          },
+          "token": {
+            "type": "string",
+            "description": "Opaque public API token returned once."
+          },
+          "tokenPrefix": {
+            "type": "string",
+            "description": "Public token prefix safe for audit display."
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["live", "test"]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

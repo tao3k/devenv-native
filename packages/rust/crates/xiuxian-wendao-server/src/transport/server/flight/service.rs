@@ -30,6 +30,18 @@ use super::routing::route_payload_cacheable;
 
 const ANALYSIS_ROUTE_PREFIX: &str = "/analysis/";
 
+impl WendaoFlightService {
+    fn verify_internal_security(
+        &self,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<(), Status> {
+        let Some(security) = self.internal_security.as_ref() else {
+            return Ok(());
+        };
+        security.verify_metadata(metadata)
+    }
+}
+
 #[async_trait]
 impl FlightService for WendaoFlightService {
     type HandshakeStream = HandshakeStream;
@@ -62,6 +74,7 @@ impl FlightService for WendaoFlightService {
         &self,
         request: Request<FlightDescriptor>,
     ) -> Result<Response<FlightInfo>, Status> {
+        self.verify_internal_security(request.metadata())?;
         validate_schema_version(request.metadata(), self.expected_schema_version.as_str())?;
         let metadata = request.metadata().clone();
         let descriptor = request.into_inner();
@@ -120,6 +133,7 @@ impl FlightService for WendaoFlightService {
         &self,
         request: Request<Ticket>,
     ) -> Result<Response<Self::DoGetStream>, Status> {
+        self.verify_internal_security(request.metadata())?;
         validate_schema_version(request.metadata(), self.expected_schema_version.as_str())?;
         let metadata = request.metadata().clone();
         let ticket = request.into_inner();
@@ -158,6 +172,7 @@ impl FlightService for WendaoFlightService {
         &self,
         request: Request<tonic::Streaming<FlightData>>,
     ) -> Result<Response<Self::DoExchangeStream>, Status> {
+        self.verify_internal_security(request.metadata())?;
         validate_schema_version(request.metadata(), self.expected_schema_version.as_str())?;
         let expected_dimension = validate_rerank_dimension_header(request.metadata())?;
         let top_k = validate_rerank_top_k_header(request.metadata())?;

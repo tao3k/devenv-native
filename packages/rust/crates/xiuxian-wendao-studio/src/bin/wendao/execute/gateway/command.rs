@@ -22,22 +22,45 @@ use tower::Layer;
 use tower::{BoxError, ServiceBuilder};
 use tower_http::limit::RequestBodyLimitLayer;
 
+#[cfg(feature = "postgres-auth")]
+use crate::bin_support::wendao::execute::gateway::postgres_auth::gateway_postgres_api_token_repository_with_lookup;
 use crate::bin_support::wendao::execute::gateway::{
+    auth::{gateway_auth_issuer, gateway_auth_router},
     config::{
-        GatewayRuntimeTomlConfig, get_gateway_runtime_from_config, resolve_bind_addr,
-        resolve_config_path, resolve_port, resolve_webhook_config,
+        get_gateway_runtime_from_config, resolve_bind_addr, resolve_config_path, resolve_port,
+        resolve_webhook_config,
     },
     health::health,
+    policy::{
+        gateway_flight_concurrency_limit, gateway_flight_grpc_web_enabled,
+        gateway_flight_rate_limit_per_second, gateway_flight_request_timeout,
+        gateway_flight_stream_budget_bytes, gateway_https_rate_limit_per_second,
+        gateway_https_stream_budget_bytes, gateway_listen_backlog,
+        gateway_studio_concurrency_limit, gateway_studio_request_timeout,
+    },
     query::{GATEWAY_QUERY_AXUM_PATH, GATEWAY_RESPONSES_AXUM_PATH, query, responses},
     registry::build_plugin_registry,
     security::{
-        GATEWAY_BEARER_TOKEN_ENV, GatewayPublicProtocolSurface, GatewaySurfacePolicy,
-        GatewaySurfaceSecurity, gateway_bearer_token, with_gateway_surface_security,
+        GATEWAY_BEARER_TOKEN_ENV, GatewayApiTokenAdmission, GatewayPublicProtocolSurface,
+        GatewaySurfacePolicy, GatewaySurfaceSecurity, gateway_api_token_admission,
+        gateway_bearer_token, gateway_internal_principal_secret, with_gateway_surface_security,
     },
     state::AppState,
     status::{notify_status, stats},
 };
 
+#[cfg(test)]
+pub(crate) use crate::bin_support::wendao::execute::gateway::config::GatewayRuntimeTomlConfig;
+#[cfg(test)]
+pub(crate) use crate::bin_support::wendao::execute::gateway::policy::{
+    gateway_flight_concurrency_limit_with_lookup, gateway_flight_grpc_web_enabled_with_lookup,
+    gateway_flight_rate_limit_per_second_with_lookup,
+    gateway_flight_request_timeout_secs_with_lookup,
+    gateway_flight_stream_budget_bytes_with_lookup,
+    gateway_https_rate_limit_per_second_with_lookup, gateway_https_stream_budget_bytes_with_lookup,
+    gateway_listen_backlog_with_lookup, gateway_studio_concurrency_limit_with_lookup,
+    gateway_studio_request_timeout_secs_with_lookup,
+};
 #[cfg(test)]
 pub(crate) use crate::bin_support::wendao::execute::gateway::security::{
     gateway_bearer_token_with_lookup, gateway_internal_principal_secret_with_lookup,
@@ -56,52 +79,16 @@ use crate::transport::{
     rerank_score_weights_from_env,
     resolve_effective_rerank_flight_host_settings as resolve_runtime_effective_rerank_flight_host_settings,
 };
-use xiuxian_config_core::{lookup_bool_flag, lookup_positive_parsed};
 use xiuxian_wendao::LinkGraphIndex;
 #[cfg(feature = "zhenfa-router")]
 use xiuxian_wendao::link_graph::resolve_link_graph_rerank_flight_runtime_settings;
+#[cfg(feature = "zhenfa-router")]
+use xiuxian_wendao_server::transport::WendaoFlightInternalSecurity;
 use xiuxian_zhenfa::{NotificationService, ZhenfaSignal, notification_worker};
 
-const GATEWAY_LISTEN_BACKLOG_ENV: &str = "XIUXIAN_WENDAO_GATEWAY_LISTEN_BACKLOG";
-const GATEWAY_STUDIO_CONCURRENCY_LIMIT_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_STUDIO_CONCURRENCY_LIMIT";
-const GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS";
-const GATEWAY_FLIGHT_CONCURRENCY_LIMIT_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_FLIGHT_CONCURRENCY_LIMIT";
-const GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS";
-const GATEWAY_HTTPS_RATE_LIMIT_PER_SECOND_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_HTTPS_RATE_LIMIT_PER_SECOND";
-const GATEWAY_FLIGHT_RATE_LIMIT_PER_SECOND_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_FLIGHT_RATE_LIMIT_PER_SECOND";
-const GATEWAY_HTTPS_STREAM_BUDGET_BYTES_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_HTTPS_STREAM_BUDGET_BYTES";
-const GATEWAY_FLIGHT_STREAM_BUDGET_BYTES_ENV: &str =
-    "XIUXIAN_WENDAO_GATEWAY_FLIGHT_STREAM_BUDGET_BYTES";
-const GATEWAY_FLIGHT_GRPC_WEB_ENABLED_ENV: &str = "XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED";
-const DEFAULT_GATEWAY_LISTEN_BACKLOG: u32 = 2048;
-const MIN_GATEWAY_LISTEN_BACKLOG: u32 = 128;
-const MAX_GATEWAY_LISTEN_BACKLOG: u32 = 8192;
-const DEFAULT_GATEWAY_STUDIO_CONCURRENCY_FALLBACK: usize = 8;
-const MIN_GATEWAY_STUDIO_CONCURRENCY_LIMIT: usize = 32;
-const MAX_GATEWAY_STUDIO_CONCURRENCY_LIMIT: usize = 128;
-const DEFAULT_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS: u64 = 15;
-const MIN_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS: u64 = 5;
-const MAX_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS: u64 = 60;
-const MIN_GATEWAY_FLIGHT_CONCURRENCY_LIMIT: usize = 4;
-const MAX_GATEWAY_FLIGHT_CONCURRENCY_LIMIT: usize = 128;
-const MIN_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS: u64 = 5;
-const MAX_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS: u64 = 900;
-const MIN_GATEWAY_RATE_LIMIT_PER_SECOND: u64 = 1;
-const MAX_GATEWAY_HTTPS_RATE_LIMIT_PER_SECOND: u64 = 4096;
-const MAX_GATEWAY_FLIGHT_RATE_LIMIT_PER_SECOND: u64 = 2048;
-const DEFAULT_GATEWAY_HTTPS_STREAM_BUDGET_BYTES: usize = 64 * 1024 * 1024;
-const DEFAULT_GATEWAY_FLIGHT_STREAM_BUDGET_BYTES: usize = 1024 * 1024 * 1024;
-const MIN_GATEWAY_STREAM_BUDGET_BYTES: usize = 1024;
-const MAX_GATEWAY_HTTPS_STREAM_BUDGET_BYTES: usize = 512 * 1024 * 1024;
-const MAX_GATEWAY_FLIGHT_STREAM_BUDGET_BYTES: usize = 4 * 1024 * 1024 * 1024;
-const DEFAULT_GATEWAY_FLIGHT_GRPC_WEB_ENABLED: bool = false;
+#[cfg(feature = "zhenfa-router")]
+const WENDAO_FLIGHT_INTERNAL_PRINCIPAL_REQUIRED_CODE: &str =
+    "WENDAO_FLIGHT_INTERNAL_PRINCIPAL_REQUIRED";
 pub(crate) const GATEWAY_FLIGHT_SERVICE_AXUM_PATH: &str =
     "/arrow.flight.protocol.FlightService/{*grpc_method}";
 #[cfg(feature = "zhenfa-router")]
@@ -178,6 +165,7 @@ async fn handle_start(
     let flight_stream_budget_bytes = gateway_flight_stream_budget_bytes();
     let flight_grpc_web_enabled = gateway_flight_grpc_web_enabled();
     let bearer_token = require_gateway_bearer_token()?;
+    let api_token_admission = gateway_api_token_admission_for_startup().await?;
 
     // 3. Build the Axum router
     let app = build_gateway_router(
@@ -192,6 +180,7 @@ async fn handle_start(
         flight_stream_budget_bytes,
         flight_grpc_web_enabled,
         Some(bearer_token),
+        api_token_admission,
     )?;
 
     // 4. Start the server
@@ -224,6 +213,10 @@ async fn handle_start(
         openapi_paths::API_NOTIFY_AXUM_PATH
     );
     info!("  - POST {GATEWAY_RESPONSES_AXUM_PATH}  - Public JSON/SSE query response");
+    info!(
+        "  - POST {}  - Public API token login/issuance",
+        openapi_paths::API_AUTH_TOKENS_AXUM_PATH
+    );
     #[cfg(feature = "zhenfa-router")]
     info!("  - POST {GATEWAY_FLIGHT_SERVICE_AXUM_PATH}  - Arrow Flight business plane");
 
@@ -321,7 +314,9 @@ pub(crate) fn build_gateway_router(
     flight_stream_budget_bytes: usize,
     flight_grpc_web_enabled: bool,
     bearer_token: Option<Arc<str>>,
+    api_token_admission: Option<GatewayApiTokenAdmission>,
 ) -> Result<Router> {
+    let auth_issuer = gateway_auth_issuer(api_token_admission.clone(), https_rate_limit_per_second);
     let protected_app = Router::new()
         .route(openapi_paths::API_STATS_AXUM_PATH, get(stats))
         .route(openapi_paths::API_NOTIFY_AXUM_PATH, get(notify_status))
@@ -338,19 +333,22 @@ pub(crate) fn build_gateway_router(
         );
     let protected_app = with_gateway_surface_security(
         protected_app,
-        GatewaySurfaceSecurity::new(
+        gateway_surface_security(
             GatewayPublicProtocolSurface::HttpsJsonSse,
             bearer_token.clone(),
-        )
-        .with_policy(GatewaySurfacePolicy::new(
-            https_rate_limit_per_second,
-            https_stream_budget_bytes,
-        )),
+            api_token_admission.clone(),
+            GatewaySurfacePolicy::new(https_rate_limit_per_second, https_stream_budget_bytes),
+        ),
     );
     let app = Router::new()
         .route(openapi_paths::API_HEALTH_AXUM_PATH, get(health))
-        .merge(protected_app)
-        .with_state(app_state.clone());
+        .merge(protected_app);
+    let app = if let Some(auth_issuer) = auth_issuer {
+        app.merge(gateway_auth_router(auth_issuer))
+    } else {
+        app
+    };
+    let app = app.with_state(app_state.clone());
 
     #[cfg(feature = "zhenfa-router")]
     let app = mount_gateway_flight_service(
@@ -362,6 +360,7 @@ pub(crate) fn build_gateway_router(
         flight_stream_budget_bytes,
         flight_grpc_web_enabled,
         bearer_token,
+        api_token_admission,
     )?;
     #[cfg(not(feature = "zhenfa-router"))]
     let _ = (
@@ -372,9 +371,40 @@ pub(crate) fn build_gateway_router(
         https_stream_budget_bytes,
         flight_stream_budget_bytes,
         flight_grpc_web_enabled,
+        api_token_admission,
     );
 
     Ok(app)
+}
+
+fn gateway_surface_security(
+    surface: GatewayPublicProtocolSurface,
+    bearer_token: Option<Arc<str>>,
+    api_token_admission: Option<GatewayApiTokenAdmission>,
+    policy: GatewaySurfacePolicy,
+) -> GatewaySurfaceSecurity {
+    let security = GatewaySurfaceSecurity::new(surface, bearer_token).with_policy(policy);
+    if let Some((verifier, lookup)) = api_token_admission {
+        return security.with_api_token_admission(verifier, lookup);
+    }
+    security
+}
+
+async fn gateway_api_token_admission_for_startup() -> Result<Option<GatewayApiTokenAdmission>> {
+    let Some((verifier, local_repository)) = gateway_api_token_admission() else {
+        return Ok(None);
+    };
+    #[cfg(feature = "postgres-auth")]
+    {
+        if let Some(postgres_repository) =
+            gateway_postgres_api_token_repository_with_lookup(&|key| std::env::var(key).ok())
+                .await
+                .map_err(anyhow::Error::msg)?
+        {
+            return Ok(Some((verifier, postgres_repository)));
+        }
+    }
+    Ok(Some((verifier, local_repository)))
 }
 
 #[cfg(feature = "zhenfa-router")]
@@ -387,6 +417,7 @@ fn mount_gateway_flight_service(
     flight_stream_budget_bytes: usize,
     flight_grpc_web_enabled: bool,
     bearer_token: Option<Arc<str>>,
+    api_token_admission: Option<GatewayApiTokenAdmission>,
 ) -> Result<Router> {
     let effective_settings = resolve_gateway_effective_search_host_settings()?;
     let flight_service = build_studio_flight_service_with_weights(
@@ -397,6 +428,16 @@ fn mount_gateway_flight_service(
         effective_settings.rerank_weights,
     )
     .map_err(anyhow::Error::msg)?;
+    let flight_service = match gateway_internal_principal_secret().or_else(|| bearer_token.clone())
+    {
+        Some(secret) => {
+            flight_service.with_internal_security(WendaoFlightInternalSecurity::gateway(
+                secret,
+                Arc::<str>::from(WENDAO_FLIGHT_INTERNAL_PRINCIPAL_REQUIRED_CODE),
+            ))
+        }
+        None => flight_service,
+    };
     let flight_service = FlightServiceServer::new(flight_service);
     if flight_grpc_web_enabled {
         let flight_service = GrpcWebLayer::new().layer(flight_service);
@@ -413,11 +454,12 @@ fn mount_gateway_flight_service(
         );
         return Ok(app.merge(with_gateway_surface_security(
             flight_router,
-            GatewaySurfaceSecurity::new(GatewayPublicProtocolSurface::ArrowFlight, bearer_token)
-                .with_policy(GatewaySurfacePolicy::new(
-                    flight_rate_limit_per_second,
-                    flight_stream_budget_bytes,
-                )),
+            gateway_surface_security(
+                GatewayPublicProtocolSurface::ArrowFlight,
+                bearer_token,
+                api_token_admission,
+                GatewaySurfacePolicy::new(flight_rate_limit_per_second, flight_stream_budget_bytes),
+            ),
         )));
     }
 
@@ -434,11 +476,12 @@ fn mount_gateway_flight_service(
     );
     Ok(app.merge(with_gateway_surface_security(
         flight_router,
-        GatewaySurfaceSecurity::new(GatewayPublicProtocolSurface::ArrowFlight, bearer_token)
-            .with_policy(GatewaySurfacePolicy::new(
-                flight_rate_limit_per_second,
-                flight_stream_budget_bytes,
-            )),
+        gateway_surface_security(
+            GatewayPublicProtocolSurface::ArrowFlight,
+            bearer_token,
+            api_token_admission,
+            GatewaySurfacePolicy::new(flight_rate_limit_per_second, flight_stream_budget_bytes),
+        ),
     )))
 }
 
@@ -481,202 +524,6 @@ async fn handle_gateway_service_error(error: BoxError) -> (StatusCode, Json<serd
             "code": "GATEWAY_OVERLOADED",
         })),
     )
-}
-
-pub(crate) fn gateway_listen_backlog(runtime_config: Option<GatewayRuntimeTomlConfig>) -> u32 {
-    gateway_listen_backlog_with_lookup(runtime_config, &|key| std::env::var(key).ok())
-}
-
-pub(crate) fn gateway_listen_backlog_with_lookup(
-    runtime_config: Option<GatewayRuntimeTomlConfig>,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> u32 {
-    runtime_config
-        .and_then(|config| config.listen_backlog)
-        .or_else(|| lookup_positive_parsed::<u32>(GATEWAY_LISTEN_BACKLOG_ENV, lookup))
-        .unwrap_or(DEFAULT_GATEWAY_LISTEN_BACKLOG)
-        .clamp(MIN_GATEWAY_LISTEN_BACKLOG, MAX_GATEWAY_LISTEN_BACKLOG)
-}
-
-pub(crate) fn gateway_studio_concurrency_limit(
-    runtime_config: Option<GatewayRuntimeTomlConfig>,
-) -> usize {
-    gateway_studio_concurrency_limit_with_lookup(
-        runtime_config,
-        &|key| std::env::var(key).ok(),
-        std::thread::available_parallelism()
-            .ok()
-            .map(std::num::NonZeroUsize::get),
-    )
-}
-
-pub(crate) fn gateway_studio_concurrency_limit_with_lookup(
-    runtime_config: Option<GatewayRuntimeTomlConfig>,
-    lookup: &dyn Fn(&str) -> Option<String>,
-    available_parallelism: Option<usize>,
-) -> usize {
-    runtime_config
-        .and_then(|config| config.studio_concurrency_limit)
-        .or_else(|| lookup_positive_parsed::<usize>(GATEWAY_STUDIO_CONCURRENCY_LIMIT_ENV, lookup))
-        .unwrap_or_else(|| default_gateway_studio_concurrency_limit(available_parallelism))
-        .clamp(
-            MIN_GATEWAY_STUDIO_CONCURRENCY_LIMIT,
-            MAX_GATEWAY_STUDIO_CONCURRENCY_LIMIT,
-        )
-}
-
-fn default_gateway_studio_concurrency_limit(available_parallelism: Option<usize>) -> usize {
-    available_parallelism
-        .unwrap_or(DEFAULT_GATEWAY_STUDIO_CONCURRENCY_FALLBACK)
-        .saturating_mul(4)
-        .clamp(
-            MIN_GATEWAY_STUDIO_CONCURRENCY_LIMIT,
-            MAX_GATEWAY_STUDIO_CONCURRENCY_LIMIT,
-        )
-}
-
-pub(crate) fn gateway_studio_request_timeout(
-    runtime_config: Option<GatewayRuntimeTomlConfig>,
-) -> Duration {
-    Duration::from_secs(gateway_studio_request_timeout_secs_with_lookup(
-        runtime_config,
-        &|key| std::env::var(key).ok(),
-    ))
-}
-
-pub(crate) fn gateway_flight_concurrency_limit(studio_concurrency_limit: usize) -> usize {
-    gateway_flight_concurrency_limit_with_lookup(studio_concurrency_limit, &|key| {
-        std::env::var(key).ok()
-    })
-}
-
-pub(crate) fn gateway_flight_concurrency_limit_with_lookup(
-    studio_concurrency_limit: usize,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> usize {
-    lookup_positive_parsed::<usize>(GATEWAY_FLIGHT_CONCURRENCY_LIMIT_ENV, lookup)
-        .unwrap_or(studio_concurrency_limit)
-        .clamp(
-            MIN_GATEWAY_FLIGHT_CONCURRENCY_LIMIT,
-            MAX_GATEWAY_FLIGHT_CONCURRENCY_LIMIT,
-        )
-}
-
-pub(crate) fn gateway_flight_request_timeout(studio_request_timeout: Duration) -> Duration {
-    Duration::from_secs(gateway_flight_request_timeout_secs_with_lookup(
-        studio_request_timeout.as_secs(),
-        &|key| std::env::var(key).ok(),
-    ))
-}
-
-pub(crate) fn gateway_flight_request_timeout_secs_with_lookup(
-    studio_request_timeout_secs: u64,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> u64 {
-    lookup_positive_parsed::<u64>(GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS_ENV, lookup)
-        .unwrap_or(studio_request_timeout_secs)
-        .clamp(
-            MIN_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS,
-            MAX_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS,
-        )
-}
-
-pub(crate) fn gateway_https_rate_limit_per_second(studio_concurrency_limit: usize) -> u64 {
-    gateway_https_rate_limit_per_second_with_lookup(studio_concurrency_limit, &|key| {
-        std::env::var(key).ok()
-    })
-}
-
-pub(crate) fn gateway_https_rate_limit_per_second_with_lookup(
-    studio_concurrency_limit: usize,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> u64 {
-    lookup_positive_parsed::<u64>(GATEWAY_HTTPS_RATE_LIMIT_PER_SECOND_ENV, lookup)
-        .unwrap_or_else(|| default_gateway_rate_limit_per_second(studio_concurrency_limit))
-        .clamp(
-            MIN_GATEWAY_RATE_LIMIT_PER_SECOND,
-            MAX_GATEWAY_HTTPS_RATE_LIMIT_PER_SECOND,
-        )
-}
-
-pub(crate) fn gateway_flight_rate_limit_per_second(flight_concurrency_limit: usize) -> u64 {
-    gateway_flight_rate_limit_per_second_with_lookup(flight_concurrency_limit, &|key| {
-        std::env::var(key).ok()
-    })
-}
-
-pub(crate) fn gateway_flight_rate_limit_per_second_with_lookup(
-    flight_concurrency_limit: usize,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> u64 {
-    lookup_positive_parsed::<u64>(GATEWAY_FLIGHT_RATE_LIMIT_PER_SECOND_ENV, lookup)
-        .unwrap_or_else(|| default_gateway_rate_limit_per_second(flight_concurrency_limit))
-        .clamp(
-            MIN_GATEWAY_RATE_LIMIT_PER_SECOND,
-            MAX_GATEWAY_FLIGHT_RATE_LIMIT_PER_SECOND,
-        )
-}
-
-fn default_gateway_rate_limit_per_second(concurrency_limit: usize) -> u64 {
-    u64::try_from(concurrency_limit)
-        .unwrap_or(u64::MAX)
-        .saturating_mul(8)
-        .max(MIN_GATEWAY_RATE_LIMIT_PER_SECOND)
-}
-
-pub(crate) fn gateway_https_stream_budget_bytes() -> usize {
-    gateway_https_stream_budget_bytes_with_lookup(&|key| std::env::var(key).ok())
-}
-
-pub(crate) fn gateway_https_stream_budget_bytes_with_lookup(
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> usize {
-    lookup_positive_parsed::<usize>(GATEWAY_HTTPS_STREAM_BUDGET_BYTES_ENV, lookup)
-        .unwrap_or(DEFAULT_GATEWAY_HTTPS_STREAM_BUDGET_BYTES)
-        .clamp(
-            MIN_GATEWAY_STREAM_BUDGET_BYTES,
-            MAX_GATEWAY_HTTPS_STREAM_BUDGET_BYTES,
-        )
-}
-
-pub(crate) fn gateway_flight_stream_budget_bytes() -> usize {
-    gateway_flight_stream_budget_bytes_with_lookup(&|key| std::env::var(key).ok())
-}
-
-pub(crate) fn gateway_flight_stream_budget_bytes_with_lookup(
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> usize {
-    lookup_positive_parsed::<usize>(GATEWAY_FLIGHT_STREAM_BUDGET_BYTES_ENV, lookup)
-        .unwrap_or(DEFAULT_GATEWAY_FLIGHT_STREAM_BUDGET_BYTES)
-        .clamp(
-            MIN_GATEWAY_STREAM_BUDGET_BYTES,
-            MAX_GATEWAY_FLIGHT_STREAM_BUDGET_BYTES,
-        )
-}
-
-pub(crate) fn gateway_flight_grpc_web_enabled() -> bool {
-    gateway_flight_grpc_web_enabled_with_lookup(&|key| std::env::var(key).ok())
-}
-
-pub(crate) fn gateway_flight_grpc_web_enabled_with_lookup(
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> bool {
-    lookup_bool_flag(GATEWAY_FLIGHT_GRPC_WEB_ENABLED_ENV, lookup)
-        .unwrap_or(DEFAULT_GATEWAY_FLIGHT_GRPC_WEB_ENABLED)
-}
-
-pub(crate) fn gateway_studio_request_timeout_secs_with_lookup(
-    runtime_config: Option<GatewayRuntimeTomlConfig>,
-    lookup: &dyn Fn(&str) -> Option<String>,
-) -> u64 {
-    runtime_config
-        .and_then(|config| config.studio_request_timeout_secs)
-        .or_else(|| lookup_positive_parsed::<u64>(GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS_ENV, lookup))
-        .unwrap_or(DEFAULT_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS)
-        .clamp(
-            MIN_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS,
-            MAX_GATEWAY_STUDIO_REQUEST_TIMEOUT_SECS,
-        )
 }
 
 #[cfg(test)]

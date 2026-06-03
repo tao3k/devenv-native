@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::transport::RerankScoreWeights;
 
 use super::cache::FlightRoutePayloadCache;
+use super::internal_auth::WendaoFlightInternalSecurity;
 use crate::transport::server::{
     AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, CodeAstAnalysisFlightRouteProvider,
@@ -58,6 +59,7 @@ pub struct WendaoFlightService {
     pub(super) sql_provider: Option<Arc<dyn SqlFlightRouteProvider>>,
     pub(super) rerank_handler: RerankFlightRouteHandler,
     pub(super) route_payload_cache: Arc<FlightRoutePayloadCache>,
+    pub(super) internal_security: Option<WendaoFlightInternalSecurity>,
 }
 
 impl WendaoFlightService {
@@ -128,6 +130,7 @@ impl WendaoFlightService {
                 rerank_weights,
             )?,
             route_payload_cache: Arc::new(FlightRoutePayloadCache::default()),
+            internal_security: None,
         })
     }
 }

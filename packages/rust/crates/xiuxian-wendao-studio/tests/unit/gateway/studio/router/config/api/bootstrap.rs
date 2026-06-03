@@ -166,7 +166,32 @@ dirs = ["src"]
                     dirs: vec!["docs".to_string()],
                 },
             ],
-            repo_projects: Vec::new(),
+            repo_projects: vec![
+                UiRepoProjectConfig {
+                    id: "frontend".to_string(),
+                    root: Some(".".to_string()),
+                    url: None,
+                    git_ref: None,
+                    refresh: None,
+                    plugins: vec!["markdown-parser".to_string()],
+                },
+                UiRepoProjectConfig {
+                    id: "kernel".to_string(),
+                    root: Some(".".to_string()),
+                    url: None,
+                    git_ref: None,
+                    refresh: None,
+                    plugins: vec!["markdown-parser".to_string()],
+                },
+                UiRepoProjectConfig {
+                    id: "main".to_string(),
+                    root: Some(".".to_string()),
+                    url: None,
+                    git_ref: None,
+                    refresh: None,
+                    plugins: vec!["markdown-parser".to_string()],
+                },
+            ],
         }
     );
 }

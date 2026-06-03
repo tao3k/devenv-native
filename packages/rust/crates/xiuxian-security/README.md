@@ -93,6 +93,34 @@ The optional `axum-internal-plane` feature only provides reusable Axum
 middleware for that internal service verification step. It does not make this
 crate a server, a public route owner, or a token authority.
 
+## Control-Plane Authority
+
+Public API-token lifecycle facts must stay in a durable control-plane
+authority, not in an analytical read-model. Production deployments should use a
+PostgreSQL-compatible control store as the first supported authority for users,
+organizations, projects, API-key metadata, verifier hashes, scopes, roles,
+quotas, expiration, revocation, billing authority, and outbox events. A managed
+AuthN/AuthZ service may be introduced later as an adapter around that contract,
+but it is not the primary storage authority for this lane.
+
+Gateway may keep a small process-local token cache for local development or hot
+admission, and Valkey may cache short-lived token/session/rate-limit state, but
+neither cache is the final truth for revoke or expire decisions. DuckDB,
+DuckLake, and Arrow-SQL surfaces are appropriate for Wendao read-models,
+ontology materialization, evidence, benchmark history, projection caches, and
+append-only audit projections. They must not become the sole authority for
+public API tokens or external user membership.
+
+The intended production split is:
+
+- Gateway terminates external tokens and emits signed internal principals.
+- A PostgreSQL-compatible control-plane authority stores small, strongly
+  consistent auth facts.
+- Valkey handles hot cache, rate-limit counters, stream budgets, nonce, and
+  replay guards.
+- DuckDB or DuckLake stores queryable read-model and audit projections that can
+  be rebuilt from control-plane events.
+
 ## License
 
 Apache-2.0

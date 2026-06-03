@@ -6,7 +6,9 @@ mod request_metadata;
 mod sample_host;
 mod types;
 
-pub use flight::WendaoFlightService;
+pub use flight::{
+    WendaoFlightInternalSecurity, WendaoFlightInternalSecurityError, WendaoFlightService,
+};
 pub use ontology::{
     DatasetOntologyMaterializeFlightRouteProvider, DatasetOntologyMaterializeFlightRouteResponse,
     OntologyCandidateInspectionFlightRouteProvider, OntologyCandidateInspectionFlightRouteResponse,

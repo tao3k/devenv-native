@@ -42,6 +42,10 @@ http-router = [
   "dep:tower-http",
   "dep:xiuxian-security",
 ]
+postgres-auth = [
+  "http-router",
+  "dep:tokio-postgres",
+]
 flight-transport = [
   "contracts",
   "dep:arrow",
@@ -120,6 +124,7 @@ test-support = [
 ]
 cli-bin-support = [
   "zhenfa-router",
+  "postgres-auth",
   "dep:clap",
   "dep:xiuxian-logging",
   "dep:xiuxian-wendao-client",
@@ -257,6 +262,7 @@ specta-typescript = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"], optional = true }
+tokio-postgres = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tokio-util = { workspace = true, features = ["rt"], optional = true }
 toml = { workspace = true, optional = true }

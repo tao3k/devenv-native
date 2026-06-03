@@ -88,6 +88,7 @@ in
     pkgs.nodejs
     pkgs.tree
     pkgs.duckdb
+    pkgs.postgresql
     pkgs.asciinema
     pkgs.ffmpeg
     nixpkgs-latest.jujutsu

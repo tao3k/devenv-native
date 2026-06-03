@@ -56,6 +56,60 @@ Shared security primitives such as public-surface labels, internal identity
 headers, signed-principal generation, and admission policy helpers live in
 [`xiuxian-security`](../xiuxian-security/README.md).
 
+## Gateway Auth Data Boundary
+
+Gateway is the only public auth boundary. It terminates external credentials on
+the HTTPS JSON/SSE and Arrow Flight public protocol surfaces, checks surface
+scope, rate limit, quota, and stream budget, strips the raw public bearer
+token, then signs an internal principal for Wendao, Qianji, and other internal
+services. Internal services verify the Gateway-issued service identity and
+signed principal; they do not validate public user tokens directly.
+
+The local Gateway API-token issuer is a bootstrap surface for development and
+single-process deployments. Its in-memory token store is not a production
+authority, even though the local admission path still rejects revoked or
+expired token records before accepting a presented credential. Production token
+lifecycle truth should come from a
+PostgreSQL-compatible control-plane store as the first supported authority for
+users, organizations, projects, API-key metadata, verifier hashes, scopes,
+roles, quotas, expiration, revocation, billing authority, and outbox events.
+Managed AuthN/AuthZ services may be added later as adapters around that
+repository contract, but they are not the primary storage authority for this
+lane. Valkey is reserved for hot token/session cache, rate-limit counters,
+stream budgets, nonce, and replay guards.
+
+When the `postgres-auth` feature is enabled, Gateway reads
+`XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_DSN` and uses the
+PostgreSQL-compatible store as the API-token repository for both `/v1/*`
+HTTPS JSON/SSE admission and Gateway Arrow Flight admission. By default
+`XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_AUTO_MIGRATE` is enabled and creates the
+`wendao_gateway_api_tokens` table when Gateway starts; set it to `false` when
+schema migration is owned by deployment tooling. Operators can verify the
+control-plane table with:
+
+```bash
+psql "$XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_DSN" \
+  -c '\d wendao_gateway_api_tokens'
+```
+
+If the DSN is unset, Gateway keeps the local in-memory repository as the
+development fallback. That fallback is not durable and must not be treated as
+a production authorization authority.
+
+For development-only static token seeding, Gateway reads
+`XIUXIAN_WENDAO_GATEWAY_API_TOKEN_STATUS` (`active` or `revoked`) and
+`XIUXIAN_WENDAO_GATEWAY_API_TOKEN_EXPIRES_AT_UNIX_SECONDS` in addition to the
+token prefix, verifier hash, verifier secret, and scopes. Invalid lifecycle
+metadata disables the static seed instead of silently widening admission.
+
+DuckDB, DuckLake, and Arrow-SQL remain Wendao data-plane tools. They are the
+right place for read-models, ontology materialization, evidence, benchmark
+history, projection caches, and append-only audit projections. They must not be
+the final authority for public API tokens, revoke/expire decisions,
+organization membership, or user-facing authorization policy. If a DuckLake
+catalog uses PostgreSQL, its catalog schema and credentials should stay
+separate from the control-plane auth schema.
+
 ## Feature Boundaries
 
 The lightweight `contracts` feature owns route contracts and OpenAPI route
@@ -82,6 +136,7 @@ Runtime concerns are layered behind explicit features:
 - `local-runtime`: repository indexing, search-plane, DuckDB/DataFusion,
   watcher, parser, and local project integration.
 - `studio`: full Studio composition.
+- `postgres-auth`: PostgreSQL-compatible Gateway API-token repository.
 - `cli-bin-support`: binary-only support for commands that require the full
   Studio runtime.
 

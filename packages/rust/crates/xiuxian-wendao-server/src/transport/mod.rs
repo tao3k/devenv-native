@@ -128,6 +128,7 @@ pub use server::{
     SemanticScopeFlightRouteProvider, SqlFlightRouteProvider, SqlFlightRouteResponse,
     Topology3dFlightRouteProvider, Topology3dFlightRouteResponse, VfsContentFlightRouteProvider,
     VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
-    VfsScanFlightRouteProvider, VfsScanFlightRouteResponse, WendaoFlightRouteProviders,
-    WendaoFlightService, run_wendao_flight_server_from_args,
+    VfsScanFlightRouteProvider, VfsScanFlightRouteResponse, WendaoFlightInternalSecurity,
+    WendaoFlightInternalSecurityError, WendaoFlightRouteProviders, WendaoFlightService,
+    run_wendao_flight_server_from_args,
 };
