@@ -7016,7 +7016,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=f64ec09013233cdee2306e1a5262d9e308123088#f64ec09013233cdee2306e1a5262d9e308123088"
+source = "git+https://github.com/tao3k/orgize?rev=1c9f7378c4dfb5ffe05281f0207561d603659df7#1c9f7378c4dfb5ffe05281f0207561d603659df7"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -8422,7 +8422,7 @@ dependencies = [
 [[package]]
 name = "rust-lang-project-harness"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604#70e2cbfdaae59baa2149839b8678266820c4b604"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=7ea58b53da8ec18b07fb89dc7517ae81c9757030#7ea58b53da8ec18b07fb89dc7517ae81c9757030"
 dependencies = [
  "cargo_toml",
  "proc-macro2",
