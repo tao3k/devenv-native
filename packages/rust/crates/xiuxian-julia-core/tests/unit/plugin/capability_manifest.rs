@@ -153,10 +153,14 @@ fn sample_response_batch() -> RecordBatch {
 }
 
 mod local_contract {
+    use std::collections::HashMap;
     use std::sync::Arc;
 
-    use arrow::array::{BooleanArray, NullArray, StringArray, StringViewArray, UInt64Array};
-    use arrow::datatypes::{DataType, Field, Schema};
+    use arrow::array::{
+        ArrayRef, BooleanArray, NullArray, StringArray, StringViewArray, UInt64Array, UnionArray,
+    };
+    use arrow::buffer::ScalarBuffer;
+    use arrow::datatypes::{DataType, Field, Schema, UnionFields, UnionMode};
     use arrow::record_batch::RecordBatch;
     use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
     use xiuxian_wendao_core::transport::PluginTransportKind;
