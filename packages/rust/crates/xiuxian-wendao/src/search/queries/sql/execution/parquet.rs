@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use xiuxian_db_store::EngineRecordBatch;
 
-use crate::duckdb::{
-    LocalRelationEngineKind, ParquetQueryEngine, resolve_search_duckdb_runtime_for_storage_root,
-};
+#[cfg(feature = "duckdb")]
+use crate::duckdb::resolve_search_duckdb_runtime_for_storage_root;
+use crate::duckdb::{LocalRelationEngineKind, ParquetQueryEngine};
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
 #[derive(Debug, Clone, PartialEq)]
