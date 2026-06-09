@@ -5,8 +5,10 @@
 use async_trait::async_trait;
 use futures::stream;
 use std::sync::{Arc, Mutex};
+#[cfg(feature = "wendao-integration")]
+use xiuxian_llm::llm::MessageContent;
 use xiuxian_llm::llm::client::ChatStream;
-use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmResult, MessageContent};
+use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmResult};
 use xiuxian_qianji::contracts::{FlowInstruction, QianjiMechanism};
 use xiuxian_qianji::executors::StreamingLlmAnalyzer;
 
@@ -32,10 +34,12 @@ impl LlmClient for MockLlmClient {
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 struct PromptCaptureLlmClient {
     seen_system_prompt: Arc<Mutex<Option<String>>>,
 }
 
+#[cfg(feature = "wendao-integration")]
 #[async_trait]
 impl LlmClient for PromptCaptureLlmClient {
     async fn chat(&self, request: ChatRequest) -> LlmResult<String> {
@@ -211,6 +215,7 @@ async fn llm_analyzer_uses_fallback_model_when_default_is_empty() {
     assert_eq!(model, "runtime-fallback-model");
 }
 
+#[cfg(feature = "wendao-integration")]
 #[tokio::test]
 async fn llm_analyzer_resolves_semantic_prompt_template_uri() {
     let seen_prompt = Arc::new(Mutex::new(None));
