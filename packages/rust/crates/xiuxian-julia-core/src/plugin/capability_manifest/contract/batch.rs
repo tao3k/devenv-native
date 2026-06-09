@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use arrow::array::{Array, ArrayRef, BooleanArray, StringArray};
+use arrow::array::{Array, ArrayRef, BooleanArray, LargeStringArray, StringArray, StringViewArray};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use xiuxian_db_store::{
@@ -197,13 +197,6 @@ pub(super) fn normalize_julia_plugin_capability_manifest_response_batches(
 fn normalize_julia_plugin_capability_manifest_response_batch(
     batch: &RecordBatch,
 ) -> Result<RecordBatch, RepoIntelligenceError> {
-    if batch
-        .column_by_name(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN)
-        .is_some()
-    {
-        return Ok(batch.clone());
-    }
-
     let mut fields = batch
         .schema()
         .fields()
@@ -211,28 +204,73 @@ fn normalize_julia_plugin_capability_manifest_response_batch(
         .map(|field| field.as_ref().clone())
         .collect::<Vec<_>>();
     let mut columns = batch.columns().to_vec();
-    let insert_index = batch
+    let variant_field = Field::new(
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
+        DataType::Utf8,
+        true,
+    );
+
+    if let Ok(index) = batch
         .schema()
-        .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN)
-        .map_or(fields.len(), |index| index + 1);
-    fields.insert(
-        insert_index,
-        Field::new(
+        .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN)
+    {
+        if columns[index].as_any().is::<StringArray>() {
+            return Ok(batch.clone());
+        }
+        fields[index] = variant_field;
+        columns[index] = normalize_optional_utf8_array(
+            &columns[index],
+            batch.num_rows(),
             JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
-            DataType::Utf8,
-            true,
-        ),
-    );
-    columns.insert(
-        insert_index,
-        Arc::new(StringArray::from(vec![None::<&str>; batch.num_rows()])) as ArrayRef,
-    );
+        )?;
+    } else {
+        let insert_index = batch
+            .schema()
+            .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN)
+            .map_or(fields.len(), |index| index + 1);
+        fields.insert(insert_index, variant_field);
+        columns.insert(
+            insert_index,
+            Arc::new(StringArray::from(vec![None::<&str>; batch.num_rows()])) as ArrayRef,
+        );
+    }
     RecordBatch::try_new(Arc::new(Schema::new(fields)), columns).map_err(|error| {
         manifest_contract_error(
             "response",
             format!("failed to normalize legacy capability-manifest response batch: {error}"),
         )
     })
+}
+
+fn normalize_optional_utf8_array(
+    array: &ArrayRef,
+    row_count: usize,
+    column_name: &str,
+) -> Result<ArrayRef, RepoIntelligenceError> {
+    if matches!(array.data_type(), DataType::Null) {
+        return Ok(Arc::new(StringArray::from(vec![None::<&str>; row_count])) as ArrayRef);
+    }
+    if let Some(values) = array.as_any().downcast_ref::<LargeStringArray>() {
+        return Ok(Arc::new(StringArray::from(
+            (0..row_count)
+                .map(|row| (!values.is_null(row)).then(|| values.value(row)))
+                .collect::<Vec<_>>(),
+        )) as ArrayRef);
+    }
+    if let Some(values) = array.as_any().downcast_ref::<StringViewArray>() {
+        return Ok(Arc::new(StringArray::from(
+            (0..row_count)
+                .map(|row| (!values.is_null(row)).then(|| values.value(row)))
+                .collect::<Vec<_>>(),
+        )) as ArrayRef);
+    }
+    Err(manifest_contract_error(
+        "response",
+        format!(
+            "unsupported optional Utf8 column `{column_name}` data type `{}`",
+            array.data_type()
+        ),
+    ))
 }
 
 struct JuliaPluginCapabilityManifestResponseColumns<'a> {

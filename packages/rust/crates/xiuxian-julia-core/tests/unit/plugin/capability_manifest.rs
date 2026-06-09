@@ -5,16 +5,12 @@ use arrow::array::{BooleanArray, StringArray, UInt64Array};
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use tempfile::tempdir;
-use xiuxian_wendao_core::{
-    repo_intelligence::{
-        AnalysisContext, RegisteredRepository, RepoIntelligencePlugin, RepositoryPluginConfig,
-        RepositoryRefreshPolicy,
-    },
-    transport::PluginTransportKind,
+use xiuxian_wendao_core::repo_intelligence::{
+    AnalysisContext, RegisteredRepository, RepoIntelligencePlugin, RepositoryPluginConfig,
+    RepositoryRefreshPolicy,
 };
 
 use super::{
-    JULIA_PLUGIN_CAPABILITY_MANIFEST_ROUTE, JULIA_PLUGIN_CAPABILITY_MANIFEST_SCHEMA_VERSION,
     JuliaPluginCapabilityManifestRequestRow, JuliaPluginCapabilityManifestRow,
     build_julia_capability_manifest_flight_transport_client,
     build_julia_plugin_capability_manifest_request_batch,
@@ -25,9 +21,7 @@ use super::{
     validate_julia_capability_manifest_preflight_for_repository,
     validate_julia_plugin_capability_manifest_response_batches,
 };
-use crate::compatibility::link_graph::{
-    JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID, JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID, JULIA_PLUGIN_ID,
-};
+use crate::compatibility::link_graph::{JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID, JULIA_PLUGIN_ID};
 use crate::plugin::entry::JuliaRepoIntelligencePlugin;
 use crate::plugin::graph_structural::GraphStructuralRouteKind;
 use crate::plugin::graph_structural_transport::build_graph_structural_flight_transport_client;
@@ -35,10 +29,6 @@ use crate::plugin::test_support::wendaosearch_services::{
     LIVE_REQUEST_TIMEOUT_SECS, LIVE_SERVICE_STARTUP_TIMEOUT_SECS, await_live_step,
     local_wendaosearch_package_available, reserve_real_service_port,
     spawn_real_wendaosearch_demo_capability_manifest_service, wait_for_service_ready_with_attempts,
-};
-use crate::{
-    JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
-    JULIA_PLUGIN_CAPABILITY_MANIFEST_PLUGIN_ID_COLUMN,
 };
 
 fn julia_plugin_capability_manifest_response_schema() -> Arc<Schema> {
@@ -162,5 +152,45 @@ fn sample_response_batch() -> RecordBatch {
     .unwrap_or_else(|error| panic!("sample response batch should build: {error}"))
 }
 
-include!("capability_manifest/local_contract.rs");
+mod local_contract {
+    use std::sync::Arc;
+
+    use arrow::array::{BooleanArray, NullArray, StringArray, StringViewArray, UInt64Array};
+    use arrow::datatypes::{DataType, Field, Schema};
+    use arrow::record_batch::RecordBatch;
+    use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
+    use xiuxian_wendao_core::transport::PluginTransportKind;
+
+    use super::{
+        JuliaPluginCapabilityManifestRequestRow, JuliaPluginCapabilityManifestRow,
+        build_julia_capability_manifest_flight_transport_client,
+        build_julia_plugin_capability_manifest_request_batch, configured_repository,
+        decode_julia_plugin_capability_manifest_rows,
+        graph_structural_binding_from_capability_manifest_rows,
+        julia_plugin_capability_manifest_response_schema, sample_response_batch,
+        validate_julia_plugin_capability_manifest_response_batches,
+    };
+    use crate::compatibility::link_graph::{JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID, JULIA_PLUGIN_ID};
+    use crate::plugin::graph_structural::GraphStructuralRouteKind;
+    use crate::{
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_BASE_URL_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_FILTER_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_ENABLED_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_HEALTH_ROUTE_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_PLUGIN_ID_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_RESPONSE_PLUGIN_ID_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_ROUTE, JULIA_PLUGIN_CAPABILITY_MANIFEST_ROUTE_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_SCHEMA_VERSION,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_SCHEMA_VERSION_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_TIMEOUT_SECS_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_TRANSPORT_KIND_COLUMN,
+    };
+
+    include!("capability_manifest/local_contract/client.rs");
+    include!("capability_manifest/local_contract/request.rs");
+    include!("capability_manifest/local_contract/response.rs");
+    include!("capability_manifest/local_contract/selection.rs");
+}
 include!("capability_manifest/live_manifest.rs");
