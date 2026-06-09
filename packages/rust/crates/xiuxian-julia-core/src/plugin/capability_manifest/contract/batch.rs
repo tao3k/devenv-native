@@ -174,7 +174,8 @@ fn validate_julia_plugin_capability_manifest_request_row(
 pub fn validate_julia_plugin_capability_manifest_response_batches(
     batches: &[RecordBatch],
 ) -> Result<(), RepoIntelligenceError> {
-    for batch in batches {
+    let batches = normalize_julia_plugin_capability_manifest_response_batches(batches)?;
+    for batch in &batches {
         let response_columns = JuliaPluginCapabilityManifestResponseColumns::new(batch)?;
         for row in 0..batch.num_rows() {
             validate_julia_plugin_capability_manifest_response_row(&response_columns, row)?;

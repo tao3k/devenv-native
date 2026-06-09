@@ -169,6 +169,9 @@ fn capability_manifest_decode_rows_normalizes_legacy_missing_variant_column() {
     )
     .unwrap_or_else(|error| panic!("legacy response batch should build: {error}"));
 
+    validate_julia_plugin_capability_manifest_response_batches(std::slice::from_ref(&batch))
+        .unwrap_or_else(|error| panic!("legacy response should validate: {error}"));
+
     let rows = decode_julia_plugin_capability_manifest_rows(&[batch])
         .unwrap_or_else(|error| panic!("legacy response should decode: {error}"));
 

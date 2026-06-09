@@ -4,8 +4,8 @@ use super::{
     resolve_search_duckdb_runtime_with_settings,
 };
 use super::{
-    DuckDbDatabasePath, TestResult, resolve_search_duckdb_runtime, serial,
-    write_search_duckdb_runtime_override,
+    DuckDbDatabasePath, TestResult, clear_link_graph_wendao_config_override,
+    resolve_search_duckdb_runtime, serial, write_search_duckdb_runtime_override,
 };
 
 #[test]
@@ -45,6 +45,27 @@ prefer_virtual_arrow = false
     assert!(!runtime.execution.prefer_virtual_arrow);
 
     Ok(())
+}
+
+#[cfg(feature = "duckdb")]
+#[test]
+#[serial]
+fn resolve_search_duckdb_runtime_isolates_default_file_path_for_tests() {
+    clear_link_graph_wendao_config_override();
+
+    let runtime = resolve_search_duckdb_runtime();
+    let DuckDbDatabasePath::File(database_path) = runtime.database_path else {
+        panic!("test runtime should preserve file-backed DuckDB defaults");
+    };
+    let rendered = database_path.to_string_lossy();
+    assert!(
+        rendered.contains("xiuxian-wendao-test-duckdb"),
+        "default test runtime should use an isolated DuckDB root, got {rendered}"
+    );
+    assert!(
+        rendered.contains(std::process::id().to_string().as_str()),
+        "default test runtime should include the process id, got {rendered}"
+    );
 }
 
 #[cfg(feature = "duckdb")]
