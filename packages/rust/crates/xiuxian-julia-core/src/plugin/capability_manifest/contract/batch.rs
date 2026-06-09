@@ -206,42 +206,58 @@ fn normalize_julia_plugin_capability_manifest_response_batch(
         .map(|field| field.as_ref().clone())
         .collect::<Vec<_>>();
     let mut columns = batch.columns().to_vec();
-    let variant_field = Field::new(
-        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
-        DataType::Utf8,
-        true,
-    );
 
-    if let Ok(index) = batch
-        .schema()
-        .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN)
-    {
-        if columns[index].as_any().is::<StringArray>() {
-            return Ok(batch.clone());
-        }
-        fields[index] = variant_field;
-        columns[index] = normalize_optional_utf8_array(
-            &columns[index],
-            batch.num_rows(),
-            JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
-        )?;
-    } else {
-        let insert_index = batch
-            .schema()
-            .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN)
-            .map_or(fields.len(), |index| index + 1);
-        fields.insert(insert_index, variant_field);
-        columns.insert(
-            insert_index,
-            Arc::new(StringArray::from(vec![None::<&str>; batch.num_rows()])) as ArrayRef,
-        );
-    }
+    normalize_optional_utf8_response_column(
+        &mut fields,
+        &mut columns,
+        batch.num_rows(),
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN,
+    )?;
+    normalize_optional_utf8_response_column(
+        &mut fields,
+        &mut columns,
+        batch.num_rows(),
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_HEALTH_ROUTE_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_ROUTE_COLUMN,
+    )?;
+
     RecordBatch::try_new(Arc::new(Schema::new(fields)), columns).map_err(|error| {
         manifest_contract_error(
             "response",
             format!("failed to normalize legacy capability-manifest response batch: {error}"),
         )
     })
+}
+
+fn normalize_optional_utf8_response_column(
+    fields: &mut Vec<Field>,
+    columns: &mut Vec<ArrayRef>,
+    row_count: usize,
+    column_name: &str,
+    insert_after_column: &str,
+) -> Result<(), RepoIntelligenceError> {
+    let field = Field::new(column_name, DataType::Utf8, true);
+
+    if let Some(index) = fields.iter().position(|field| field.name() == column_name) {
+        fields[index] = field;
+        if !columns[index].as_any().is::<StringArray>() {
+            columns[index] =
+                normalize_optional_utf8_array(&columns[index], row_count, column_name)?;
+        }
+        return Ok(());
+    }
+
+    let insert_index = fields
+        .iter()
+        .position(|field| field.name() == insert_after_column)
+        .map_or(fields.len(), |index| index + 1);
+    fields.insert(insert_index, field);
+    columns.insert(
+        insert_index,
+        Arc::new(StringArray::from(vec![None::<&str>; row_count])) as ArrayRef,
+    );
+    Ok(())
 }
 
 fn normalize_optional_utf8_array(
