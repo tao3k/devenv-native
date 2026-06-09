@@ -7,6 +7,8 @@ use xiuxian_wendao::pybindings::{
     unified_symbol_py::register_unified_symbol_module,
 };
 
+fn assert_registration_path_compiles<T>(_value: T) {}
+
 #[test]
 fn cargo_manifest_keeps_only_wendao_dependency() {
     let manifest = include_str!("../../Cargo.toml");
@@ -35,11 +37,13 @@ fn cargo_manifest_keeps_only_wendao_dependency() {
 
 #[test]
 fn compiles_wendao_binding_registration_paths() {
-    let _schema_fn: fn(&str) -> PyResult<String> = module::py_get_schema;
-    let _register_fn = module::register_module;
-    let _module_fn = module::xiuxian_core_rs;
-    let _create_fn = create_knowledge_entry;
-    let _hash_fn: fn(&str) -> String = xiuxian_wendao::pybindings::compute_hash;
-    let _dependency_indexer_fn = register_dependency_indexer_module;
-    let _unified_symbol_fn = register_unified_symbol_module;
+    assert_registration_path_compiles(module::py_get_schema as fn(&str) -> PyResult<String>);
+    assert_registration_path_compiles(module::register_module);
+    assert_registration_path_compiles(module::xiuxian_core_rs);
+    assert_registration_path_compiles(create_knowledge_entry);
+    assert_registration_path_compiles(
+        xiuxian_wendao::pybindings::compute_hash as fn(&str) -> String,
+    );
+    assert_registration_path_compiles(register_dependency_indexer_module);
+    assert_registration_path_compiles(register_unified_symbol_module);
 }

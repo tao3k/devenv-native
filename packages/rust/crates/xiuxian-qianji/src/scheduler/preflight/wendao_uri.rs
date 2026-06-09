@@ -126,7 +126,7 @@ impl LocalSkillRuntimeResolver {
         };
         let relative_entity = parsed.entity_relative_path();
         for references_dir in references_dirs {
-            let candidate = references_dir.join(&relative_entity);
+            let candidate = references_dir.join(relative_entity);
             if !candidate.is_file() {
                 continue;
             }
