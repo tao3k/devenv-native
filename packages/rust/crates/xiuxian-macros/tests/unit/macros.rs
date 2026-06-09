@@ -100,11 +100,14 @@ mod test_assert_timing {
 }
 
 mod test_bench_case {
+    use std::time::Duration;
+
     use xiuxian_macros::bench_case;
 
     #[test]
     fn test_bench_case_measures_time() {
         let elapsed = bench_case!({
+            std::thread::sleep(Duration::from_millis(1));
             let sum: i32 = (0..100).sum();
             assert_eq!(sum, 4950);
         });
