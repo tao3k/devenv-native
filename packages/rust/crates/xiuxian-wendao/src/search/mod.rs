@@ -147,6 +147,8 @@ pub(crate) use repo_content_chunk::RepoContentChunkSearchFilters;
 #[cfg(all(any(test, feature = "performance"), feature = "search-runtime"))]
 pub(crate) use repo_content_chunk::repo_content_chunk_file_fingerprints;
 #[cfg(feature = "search-runtime")]
+pub use repo_content_chunk::{REPO_CONTENT_CHUNK_COLUMN_ID, repo_content_chunk_engine_schema};
+#[cfg(feature = "search-runtime")]
 pub use repo_entity::{
     RepoEntityOverviewSummary, RepoEntitySearchError, summarize_repo_entity_overview,
 };

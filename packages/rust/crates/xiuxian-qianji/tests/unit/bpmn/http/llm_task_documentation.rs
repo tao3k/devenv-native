@@ -1,5 +1,4 @@
-#[path = "../../../../src/bpmn/http/llm_task_documentation.rs"]
-mod source;
+use crate::bpmn::http_transport::llm_task_documentation as source;
 
 #[test]
 fn extracts_prefixed_activity_documentation() {

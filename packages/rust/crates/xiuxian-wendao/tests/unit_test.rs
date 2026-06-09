@@ -9,6 +9,7 @@ mod episteme;
 #[path = "unit/repo_config_bridge_audit.rs"]
 mod repo_config_bridge_audit;
 
+#[cfg(feature = "performance")]
 #[path = "unit/link_graph_perf_support.rs"]
 mod link_graph_perf_support;
 

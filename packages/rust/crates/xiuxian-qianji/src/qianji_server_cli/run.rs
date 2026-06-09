@@ -115,14 +115,6 @@ pub(crate) async fn enforce_qianji_server_startup_readiness(
     })
 }
 
-#[cfg(test)]
-pub(crate) fn build_qianji_server_router(
-    command: &QianjiServerServeCommand,
-) -> anyhow::Result<Router> {
-    let control_ledger = build_qianji_server_control_ledger(command)?;
-    build_qianji_server_router_with_control_ledger(command, control_ledger)
-}
-
 fn build_qianji_server_router_with_control_ledger(
     command: &QianjiServerServeCommand,
     control_ledger: Option<SharedControlLedger>,
@@ -147,25 +139,56 @@ pub(crate) fn build_qianji_server_router_with_internal_security(
     )
 }
 
+#[cfg(test)]
+pub(crate) fn build_qianji_server_router_with_internal_security_and_runtime_env(
+    command: &QianjiServerServeCommand,
+    internal_security: Option<QianjiInternalServiceSecurity>,
+    runtime_env: QianjiRuntimeEnv,
+) -> anyhow::Result<Router> {
+    let control_ledger = build_qianji_server_control_ledger(command)?;
+    build_qianji_server_router_with_control_ledger_security_and_runtime_env(
+        command,
+        control_ledger,
+        internal_security,
+        runtime_env,
+    )
+}
+
 fn build_qianji_server_router_with_control_ledger_and_security(
     command: &QianjiServerServeCommand,
     control_ledger: Option<SharedControlLedger>,
     internal_security: Option<QianjiInternalServiceSecurity>,
 ) -> anyhow::Result<Router> {
+    build_qianji_server_router_with_control_ledger_security_and_runtime_env(
+        command,
+        control_ledger,
+        internal_security,
+        QianjiRuntimeEnv::default(),
+    )
+}
+
+fn build_qianji_server_router_with_control_ledger_security_and_runtime_env(
+    command: &QianjiServerServeCommand,
+    control_ledger: Option<SharedControlLedger>,
+    internal_security: Option<QianjiInternalServiceSecurity>,
+    runtime_env: QianjiRuntimeEnv,
+) -> anyhow::Result<Router> {
     let valkey_url = resolve_qianji_server_valkey_url(command)?;
     #[cfg(feature = "valkey")]
-    let workflow_state = build_workflow_http_state(
+    let workflow_state = build_workflow_http_state_with_runtime_env(
         build_workflow_control_service(command),
         QianjiBpmnHostBridge::default(),
         command,
         control_ledger,
+        runtime_env,
     )?;
     #[cfg(not(feature = "valkey"))]
-    let workflow_state = build_workflow_http_state(
+    let workflow_state = build_workflow_http_state_with_runtime_env(
         build_workflow_control_service(command),
         QianjiBpmnHostBridge::default(),
         command,
         control_ledger,
+        runtime_env,
     );
     let health_state = QianjiServerHealthState::new(valkey_url);
     let flowhub_state = QianjiServerFlowhubState::new(resolve_qianji_server_flowhub_root(
@@ -180,15 +203,31 @@ fn build_qianji_server_router_with_control_ledger_and_security(
     Ok(qianji_server_health_router(health_state).merge(business_router))
 }
 
-#[cfg(feature = "valkey")]
+#[cfg(all(test, feature = "valkey"))]
 pub(crate) fn build_workflow_http_state(
     service: QianjiBpmnWorkflowControlService,
     host: QianjiBpmnHostBridge,
     command: &QianjiServerServeCommand,
     control_ledger: Option<SharedControlLedger>,
 ) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
-    let state = QianjiBpmnWorkflowHttpState::new(service, host)
-        .with_runtime_env(QianjiRuntimeEnv::default());
+    build_workflow_http_state_with_runtime_env(
+        service,
+        host,
+        command,
+        control_ledger,
+        QianjiRuntimeEnv::default(),
+    )
+}
+
+#[cfg(feature = "valkey")]
+fn build_workflow_http_state_with_runtime_env(
+    service: QianjiBpmnWorkflowControlService,
+    host: QianjiBpmnHostBridge,
+    command: &QianjiServerServeCommand,
+    control_ledger: Option<SharedControlLedger>,
+    runtime_env: QianjiRuntimeEnv,
+) -> anyhow::Result<QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge>> {
+    let state = QianjiBpmnWorkflowHttpState::new(service, host).with_runtime_env(runtime_env);
     let state = install_recovery_hot_state(state, command)?;
     let Some(control_ledger) = control_ledger else {
         return Ok(state);
@@ -196,15 +235,31 @@ pub(crate) fn build_workflow_http_state(
     Ok(state.with_activity_evidence_ledger(control_ledger))
 }
 
-#[cfg(not(feature = "valkey"))]
+#[cfg(all(test, not(feature = "valkey")))]
 pub(crate) fn build_workflow_http_state(
     service: QianjiBpmnWorkflowControlService,
     host: QianjiBpmnHostBridge,
     command: &QianjiServerServeCommand,
     control_ledger: Option<SharedControlLedger>,
 ) -> QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge> {
-    let state = QianjiBpmnWorkflowHttpState::new(service, host)
-        .with_runtime_env(QianjiRuntimeEnv::default());
+    build_workflow_http_state_with_runtime_env(
+        service,
+        host,
+        command,
+        control_ledger,
+        QianjiRuntimeEnv::default(),
+    )
+}
+
+#[cfg(not(feature = "valkey"))]
+fn build_workflow_http_state_with_runtime_env(
+    service: QianjiBpmnWorkflowControlService,
+    host: QianjiBpmnHostBridge,
+    command: &QianjiServerServeCommand,
+    control_ledger: Option<SharedControlLedger>,
+    runtime_env: QianjiRuntimeEnv,
+) -> QianjiBpmnWorkflowHttpState<QianjiBpmnHostBridge> {
+    let state = QianjiBpmnWorkflowHttpState::new(service, host).with_runtime_env(runtime_env);
     let state = install_recovery_hot_state(state, command);
     let Some(control_ledger) = control_ledger else {
         return state;

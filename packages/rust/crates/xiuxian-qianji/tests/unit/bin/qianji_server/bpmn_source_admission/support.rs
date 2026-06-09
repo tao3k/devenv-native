@@ -155,6 +155,10 @@ pub(super) async fn repair_control_history(repair: &RepairRunFixture) -> Value {
 pub(super) fn server_router(project_root: &Path) -> Router {
     let runtime_env = QianjiRuntimeEnv {
         prj_root: Some(project_root.to_path_buf()),
+        openai_api_base: Some("http://127.0.0.1:1/v1".to_string()),
+        openai_api_key: Some("qianji-server-test-key".to_string()),
+        qianji_llm_model: Some("openai-compatible/qianji-test-model".to_string()),
+        qianji_llm_wire_api: Some("chat_completions".to_string()),
         ..QianjiRuntimeEnv::default()
     };
     let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env.clone());
@@ -167,6 +171,10 @@ pub(super) fn server_router_with_repair_runtime(project_root: &Path, valkey_url:
     let runtime_env = QianjiRuntimeEnv {
         prj_root: Some(project_root.to_path_buf()),
         qianji_checkpoint_valkey_url: Some(valkey_url),
+        openai_api_base: Some("http://127.0.0.1:1/v1".to_string()),
+        openai_api_key: Some("qianji-server-test-key".to_string()),
+        qianji_llm_model: Some("openai-compatible/qianji-test-model".to_string()),
+        qianji_llm_wire_api: Some("chat_completions".to_string()),
         ..QianjiRuntimeEnv::default()
     };
     let service = QianjiBpmnWorkflowControlService::new().with_runtime_env(runtime_env.clone());

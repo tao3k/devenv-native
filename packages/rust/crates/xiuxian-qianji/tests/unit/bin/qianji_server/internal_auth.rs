@@ -23,8 +23,9 @@ use crate::qianji_server_cli::security::{
 
 #[test]
 fn qianji_server_internal_security_requires_startup_secret() {
-    let error = require_qianji_internal_service_security_with_lookup(&|_| None)
-        .expect_err("qianji-server startup should require internal principal secret");
+    let Err(error) = require_qianji_internal_service_security_with_lookup(&|_| None) else {
+        panic!("qianji-server startup should require internal principal secret");
+    };
 
     assert!(
         error

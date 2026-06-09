@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 
-pub(super) fn shape_llm_content_for_bpmn_outputs(
+pub(in crate::bpmn) fn shape_llm_content_for_bpmn_outputs(
     content: &str,
     output_bindings: &[String],
 ) -> Value {

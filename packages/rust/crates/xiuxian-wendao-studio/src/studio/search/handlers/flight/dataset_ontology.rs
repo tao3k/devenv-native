@@ -46,7 +46,7 @@ use xiuxian_wendao_sql::dataset_ontology::{
 
 use crate::studio::GatewayState;
 #[cfg(feature = "julia")]
-use crate::studio::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
+use crate::studio::router::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 
 const HEALTHCARE_CONTRACT_ID: &str = "healthcare.synthetic_care_delivery.contract.v1";
 const HEALTHCARE_MAPPING_ID: &str = "healthcare.synthetic_care_delivery.v1";

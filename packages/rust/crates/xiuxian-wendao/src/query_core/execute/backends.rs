@@ -181,6 +181,7 @@ impl GraphBackend for LinkGraphNeighborsBackend {
 }
 
 /// Build the Arrow schema contract for graph-neighbor relation rows.
+#[must_use]
 pub fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
     ArrowSchemaContract::new(
         GRAPH_NEIGHBORS_RELATION_TABLE,
@@ -196,6 +197,7 @@ pub fn graph_neighbors_relation_contract() -> ArrowSchemaContract {
 }
 
 /// Build an Arrow schema reference with graph-neighbor table metadata.
+#[must_use]
 pub fn graph_neighbors_relation_schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
     let mut metadata = HashMap::new();
     metadata.insert(

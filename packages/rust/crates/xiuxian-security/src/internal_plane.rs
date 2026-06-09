@@ -144,7 +144,7 @@ impl InternalServiceSecurity {
 }
 
 /// Wrap an Axum router with internal service principal verification.
-#[must_use]
+#[must_use = "use the returned router so internal service security is mounted"]
 pub fn with_internal_service_security<S>(
     router: Router<S>,
     security: InternalServiceSecurity,

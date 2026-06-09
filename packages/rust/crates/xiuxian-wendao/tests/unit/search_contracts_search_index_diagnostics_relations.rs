@@ -1,5 +1,5 @@
 use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
-use xiuxian_wendao::search::contracts::search_index::diagnostics::relations::{
+use xiuxian_wendao::search::contracts::{
     QUERY_TELEMETRY_DIAGNOSTICS_TABLE, REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
     STATUS_DIAGNOSTICS_TABLE, STATUS_REASON_DIAGNOSTICS_TABLE, diagnostics_schema_ref,
     query_telemetry_contract, repo_read_pressure_contract, status_reason_contract,

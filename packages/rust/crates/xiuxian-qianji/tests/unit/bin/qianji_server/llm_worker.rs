@@ -217,6 +217,51 @@ async fn qianji_server_llm_worker_http_route_executes_openai_compatible_activity
 #[tokio::test]
 async fn qianji_server_llm_worker_stream_exposes_started_row_before_provider_completes()
 -> Result<(), String> {
+    let StreamingLlmFixture {
+        _temp_dir,
+        client,
+        server_url,
+        run_id,
+        output_dir,
+        request_rx,
+        release_tx,
+    } = streaming_llm_fixture().await?;
+    let activity_id = STREAMING_LLM_ACTIVITY_ID;
+    let worker = spawn_streaming_llm_worker(&client, &server_url, &run_id, &output_dir);
+    let provider_request = tokio::time::timeout(Duration::from_secs(10), request_rx)
+        .await
+        .map_err(|_| "provider request should arrive before timeout".to_owned())?
+        .map_err(|error| format!("provider request should be captured: {error}"))?;
+    assert!(provider_request.starts_with("POST /v1/chat/completions HTTP/1.1"));
+
+    let stream_json = load_control_stream(&client, &server_url, run_id.as_str()).await?;
+    assert_streaming_llm_in_flight_rows(&stream_json, activity_id);
+
+    release_tx
+        .send(())
+        .map_err(|()| "blocked provider release should send".to_owned())?;
+    let worker_json = worker
+        .await
+        .map_err(|error| format!("worker task should join: {error}"))??;
+    assert_eq!(worker_json["worker"]["processed"], 1, "{worker_json}");
+    let completed_stream_json = load_control_stream(&client, &server_url, run_id.as_str()).await?;
+    assert_streaming_llm_completion_rows(&completed_stream_json, activity_id);
+    Ok(())
+}
+
+const STREAMING_LLM_ACTIVITY_ID: &str = "activity-qianji-server-streaming-openai-compatible-loop";
+
+struct StreamingLlmFixture {
+    _temp_dir: TempDir,
+    client: reqwest::Client,
+    server_url: String,
+    run_id: RunId,
+    output_dir: std::path::PathBuf,
+    request_rx: tokio::sync::oneshot::Receiver<String>,
+    release_tx: tokio::sync::oneshot::Sender<()>,
+}
+
+async fn streaming_llm_fixture() -> Result<StreamingLlmFixture, String> {
     let temp_dir =
         TempDir::new().map_err(|error| format!("temporary directory should allocate: {error}"))?;
     let prompt_path = temp_dir.path().join("prompt.txt");
@@ -229,11 +274,32 @@ async fn qianji_server_llm_worker_stream_exposes_started_row_before_provider_com
     .await?;
     let ledger = Arc::new(InMemoryControlLedger::new());
     let hot_state = Arc::new(InMemoryHotStateStore::new());
-    let activity_id = "activity-qianji-server-streaming-openai-compatible-loop";
-    let run_id = seed_openai_compatible_llm_activity(ledger.as_ref(), &prompt_path, activity_id)?;
+    let run_id = seed_openai_compatible_llm_activity(
+        ledger.as_ref(),
+        &prompt_path,
+        STREAMING_LLM_ACTIVITY_ID,
+    )?;
+    let router = streaming_llm_router(temp_dir.path(), base_url, ledger, hot_state);
+    Ok(StreamingLlmFixture {
+        _temp_dir: temp_dir,
+        client: test_http_client()?,
+        server_url: spawn_http_router(router).await?,
+        run_id,
+        output_dir,
+        request_rx,
+        release_tx,
+    })
+}
+
+fn streaming_llm_router(
+    temp_path: &Path,
+    base_url: String,
+    ledger: Arc<InMemoryControlLedger>,
+    hot_state: Arc<InMemoryHotStateStore>,
+) -> Router {
     let control_ledger: Arc<dyn ControlLedger> = ledger;
     let control_hot_state: Arc<dyn HotStateStore> = hot_state;
-    let router = qianji_bpmn_workflow_router(
+    qianji_bpmn_workflow_router(
         QianjiBpmnWorkflowHttpState::new(
             QianjiBpmnWorkflowControlService::new(),
             QianjiBpmnHostBridge::default(),
@@ -241,21 +307,27 @@ async fn qianji_server_llm_worker_stream_exposes_started_row_before_provider_com
         .with_activity_evidence_ledger(control_ledger)
         .with_recovery_hot_state(control_hot_state)
         .with_runtime_env(QianjiRuntimeEnv {
-            prj_root: Some(temp_dir.path().join("project-root")),
-            prj_config_home: Some(temp_dir.path().join("config-home")),
-            openai_api_base: Some(base_url.clone()),
+            prj_root: Some(temp_path.join("project-root")),
+            prj_config_home: Some(temp_path.join("config-home")),
+            openai_api_base: Some(base_url),
             openai_api_key: Some("server-key".to_owned()),
             qianji_llm_model: Some("openrouter/qwen/qwen3-coder".to_owned()),
             ..QianjiRuntimeEnv::default()
         }),
-    );
-    let server_url = spawn_http_router(router).await?;
-    let client = test_http_client()?;
+    )
+}
+
+fn spawn_streaming_llm_worker(
+    client: &reqwest::Client,
+    server_url: &str,
+    run_id: &RunId,
+    output_dir: &Path,
+) -> tokio::task::JoinHandle<Result<serde_json::Value, String>> {
     let worker_client = client.clone();
-    let worker_server_url = server_url.clone();
+    let worker_server_url = server_url.to_owned();
     let worker_run_id = run_id.clone();
-    let worker_output_dir = output_dir.clone();
-    let worker = tokio::spawn(async move {
+    let worker_output_dir = output_dir.to_path_buf();
+    tokio::spawn(async move {
         let response = worker_client
             .post(format!(
                 "{worker_server_url}/control/runs/{}/workers/openai-compatible-llm/run",
@@ -282,67 +354,50 @@ async fn qianji_server_llm_worker_stream_exposes_started_row_before_provider_com
             .map_err(|error| format!("HTTP worker route should respond: {error}"))?;
         let status = response.status();
         let response_json = json_response(response, "streaming worker").await?;
-        if status != reqwest::StatusCode::OK {
-            return Err(format!(
+        if status == reqwest::StatusCode::OK {
+            Ok(response_json)
+        } else {
+            Err(format!(
                 "HTTP worker route returned {status}: {response_json}"
-            ));
+            ))
         }
-        Ok::<serde_json::Value, String>(response_json)
-    });
-    let provider_request = tokio::time::timeout(Duration::from_secs(10), request_rx)
-        .await
-        .map_err(|_| "provider request should arrive before timeout".to_owned())?
-        .map_err(|error| format!("provider request should be captured: {error}"))?;
-    assert!(provider_request.starts_with("POST /v1/chat/completions HTTP/1.1"));
+    })
+}
 
-    let stream_json = load_control_stream(&client, &server_url, run_id.as_str()).await?;
+fn assert_streaming_llm_in_flight_rows(stream_json: &serde_json::Value, activity_id: &str) {
     let rows = stream_json["rows"]
         .as_array()
         .unwrap_or_else(|| panic!("stream response should include rows: {stream_json}"));
     let started = stream_row_by_kind_source_activity(rows, "activity_started", "llm", activity_id);
-    assert_eq!(started["activity_id"], activity_id, "{stream_json}");
     let heartbeat =
         stream_row_by_kind_source_activity(rows, "worker_heartbeat_observed", "llm", activity_id);
+    assert_eq!(started["activity_id"], activity_id, "{stream_json}");
     assert_eq!(heartbeat["activity_id"], activity_id, "{stream_json}");
     assert_eq!(heartbeat["metadata"]["executor"], "openai-compatible-llm");
     assert_eq!(heartbeat["metadata"]["phase"], "provider_request_active");
-    assert!(
-        sequence(started) < sequence(heartbeat),
-        "LLM heartbeat should follow the durable activity start: {stream_json}"
-    );
+    assert!(sequence(started) < sequence(heartbeat), "{stream_json}");
     assert!(
         rows.iter().all(|row| {
             row["kind"] != "activity_completed" || row["activity_id"] != activity_id
         }),
         "stream must expose in-flight started state before provider completion: {stream_json}",
     );
+}
 
-    release_tx
-        .send(())
-        .map_err(|()| "blocked provider release should send".to_owned())?;
-    let worker_json = worker
-        .await
-        .map_err(|error| format!("worker task should join: {error}"))??;
-    assert_eq!(worker_json["worker"]["processed"], 1, "{worker_json}");
-    let completed_stream_json = load_control_stream(&client, &server_url, run_id.as_str()).await?;
-    let completed_rows = completed_stream_json["rows"]
+fn assert_streaming_llm_completion_rows(stream_json: &serde_json::Value, activity_id: &str) {
+    let rows = stream_json["rows"]
         .as_array()
-        .unwrap_or_else(|| panic!("stream response should include rows: {completed_stream_json}"));
-    let completed = stream_row_by_kind_source_activity(
-        completed_rows,
-        "activity_completed",
-        "llm",
-        activity_id,
-    );
+        .unwrap_or_else(|| panic!("stream response should include rows: {stream_json}"));
+    let completed =
+        stream_row_by_kind_source_activity(rows, "activity_completed", "llm", activity_id);
     assert_eq!(
         completed["message"], "Streaming route durable LLM result.",
-        "{completed_stream_json}"
+        "{stream_json}"
     );
     assert_eq!(
         completed["metadata"]["response_preview"], "Streaming route durable LLM result.",
-        "{completed_stream_json}"
+        "{stream_json}"
     );
-    Ok(())
 }
 
 #[cfg(feature = "valkey")]

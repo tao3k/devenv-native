@@ -14,14 +14,16 @@ use xiuxian_qianji_control::{
     record_admitted_activity_task_schedule_idempotent, record_run_created,
 };
 
-use super::support::{must_ok, write_file};
+use super::support::{
+    build_test_qianji_server_router, with_test_internal_service_headers, write_file,
+};
 use crate::qianji_server::flowhub_worker::{
     QianjiServerFlowhubServiceWorkerLoopRequest,
     run_qianji_server_flowhub_service_worker_completion_loop,
 };
 use crate::qianji_server_cli::cli::QianjiServerServeCommand;
 use crate::qianji_server_cli::flowhub::resolve_qianji_server_flowhub_root;
-use crate::qianji_server_cli::run::{build_qianji_server_router, build_workflow_control_service};
+use crate::qianji_server_cli::run::build_workflow_control_service;
 use crate::{
     FlowhubScenarioIdRef, FlowhubServiceActivityHttpScheduleInput, QianjiBpmnHostBridge,
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCheckpointBackend,
@@ -50,12 +52,7 @@ async fn qianji_server_flowhub_scenarios_serves_registry_contract() {
     let router = server_router(flowhub_root);
 
     let response = router
-        .oneshot(
-            Request::builder()
-                .uri("/flowhub/scenarios")
-                .body(Body::empty())
-                .unwrap_or_else(|error| panic!("request should build: {error}")),
-        )
+        .oneshot(get("/flowhub/scenarios"))
         .await
         .unwrap_or_else(|error| panic!("route should respond: {error}"));
 
@@ -235,8 +232,8 @@ async fn qianji_server_agent_coding_fixture_worker_bridge_completes_service_chai
     let flowhub_root = temp_dir.path().join("flowhub");
     copy_agent_coding_pair(&flowhub_root);
     let command = server_command_with_valkey(flowhub_root, valkey.url().to_string());
-    let router = must_ok(
-        build_qianji_server_router(&command),
+    let router = build_test_qianji_server_router(
+        &command,
         "qianji-server router should build with explicit Flowhub root",
     );
     let workflow_state = QianjiBpmnWorkflowHttpState::new(
@@ -404,12 +401,7 @@ async fn qianji_server_flowhub_scenarios_rejects_invalid_root() {
     let router = server_router(temp_dir.path().join("missing-flowhub"));
 
     let response = router
-        .oneshot(
-            Request::builder()
-                .uri("/flowhub/scenarios")
-                .body(Body::empty())
-                .unwrap_or_else(|error| panic!("request should build: {error}")),
-        )
+        .oneshot(get("/flowhub/scenarios"))
         .await
         .unwrap_or_else(|error| panic!("route should respond: {error}"));
 
@@ -434,8 +426,8 @@ fn server_router(flowhub_root: PathBuf) -> Router {
 
 fn server_router_with_valkey(flowhub_root: PathBuf, valkey_url: String) -> Router {
     let command = server_command_with_valkey(flowhub_root, valkey_url);
-    must_ok(
-        build_qianji_server_router(&command),
+    build_test_qianji_server_router(
+        &command,
         "qianji-server router should build with explicit Flowhub root",
     )
 }
@@ -455,14 +447,13 @@ fn server_command_with_valkey(
 }
 
 fn get(uri: &str) -> Request<Body> {
-    Request::builder()
-        .uri(uri)
+    with_test_internal_service_headers(Request::builder().uri(uri))
         .body(Body::empty())
         .unwrap_or_else(|error| panic!("GET request should build: {error}"))
 }
 
 fn post_json(uri: &str, body: &Value) -> Request<Body> {
-    Request::builder()
+    with_test_internal_service_headers(Request::builder())
         .method("POST")
         .uri(uri)
         .header(CONTENT_TYPE, "application/json")

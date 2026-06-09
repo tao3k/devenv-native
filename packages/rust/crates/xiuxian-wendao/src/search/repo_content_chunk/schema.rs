@@ -48,6 +48,7 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
 }
 
 /// Build the Arrow engine schema for repo content chunk rows.
+#[must_use]
 pub fn repo_content_chunk_engine_schema() -> SchemaRef {
     let contract = repo_content_chunk_engine_contract();
     let mut metadata = HashMap::new();

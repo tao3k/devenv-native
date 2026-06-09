@@ -46,13 +46,8 @@ pub use xiuxian_qianji::{bpmn, runtime_config, workflow_config};
 
 #[path = "unit/bpmn_engine_dependency.rs"]
 mod bpmn_engine_dependency;
-#[path = "unit/bpmn/mod.rs"]
-mod bpmn_tests;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
-#[path = "unit/support/valkey.rs"]
-#[cfg(feature = "valkey")]
-mod qianji_test_valkey_support;
 #[cfg(feature = "qianji-full")]
 #[path = "unit/unit_adversarial_loop.rs"]
 mod unit_adversarial_loop;

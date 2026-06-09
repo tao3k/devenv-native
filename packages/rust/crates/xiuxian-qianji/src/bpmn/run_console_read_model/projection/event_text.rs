@@ -1,113 +1,140 @@
 //! Event labels and operator-readable messages.
 
 use serde_json::Value;
-use xiuxian_qianji_control::ControlEventKind;
+use xiuxian_qianji_control::{ActivityId, ControlEventKind};
 
 pub(super) fn event_message(kind: &ControlEventKind) -> String {
+    run_event_message(kind)
+        .or_else(|| agent_event_message(kind))
+        .or_else(|| activity_event_message(kind))
+        .or_else(|| timer_event_message(kind))
+        .or_else(|| observation_event_message(kind))
+        .unwrap_or_else(|| event_kind_name(kind).replace('_', " "))
+}
+
+fn run_event_message(kind: &ControlEventKind) -> Option<String> {
     match kind {
         ControlEventKind::RunCreated { intent, .. } => {
-            format!("run created: {}", bounded_operator_text(intent))
+            Some(format!("run created: {}", bounded_operator_text(intent)))
         }
-        ControlEventKind::RunAdmitted => "run admitted by qianji control".to_owned(),
-        ControlEventKind::PlanRecorded { summary } => summary.clone(),
-        ControlEventKind::StepCreated { title, .. } => title.clone(),
+        ControlEventKind::RunAdmitted => Some("run admitted by qianji control".to_owned()),
+        ControlEventKind::PlanRecorded { summary } => Some(summary.clone()),
+        ControlEventKind::StepCreated { title, .. } => Some(title.clone()),
+        ControlEventKind::StepWaiting { reason } => Some(format!("{reason:?}")),
+        ControlEventKind::StepFailed { message, .. } | ControlEventKind::RunFailed { message } => {
+            Some(message.clone())
+        }
+        ControlEventKind::StepBlocked { reason }
+        | ControlEventKind::StepCancelled { reason }
+        | ControlEventKind::RunBlocked { reason }
+        | ControlEventKind::RunAborted { reason } => Some(reason.clone()),
+        _ => None,
+    }
+}
+
+fn agent_event_message(kind: &ControlEventKind) -> Option<String> {
+    match kind {
         ControlEventKind::ToolCallRecorded { tool_name, .. } => {
-            format!("tool call recorded: {}", tool_name)
+            Some(format!("tool call recorded: {tool_name}"))
         }
-        ControlEventKind::AgentProposalRecorded { proposal } => agent_proposal_message(
+        ControlEventKind::AgentProposalRecorded { proposal } => Some(agent_proposal_message(
             proposal.proposed_action.as_str(),
             proposal.tool_name.as_deref(),
-        ),
-        ControlEventKind::AgentDecisionRecorded { decision } => agent_decision_message(
+        )),
+        ControlEventKind::AgentDecisionRecorded { decision } => Some(agent_decision_message(
             format!("{:?}", decision.outcome).as_str(),
             decision.reason_code.as_str(),
             decision
                 .scheduled_activity_id
                 .as_ref()
-                .map(|activity_id| activity_id.as_str()),
-        ),
-        ControlEventKind::ActivityScheduled { task } => {
-            format!(
-                "{} scheduled on {}",
-                task.activity_type.as_str(),
-                task.task_queue.as_str()
-            )
-        }
+                .map(ActivityId::as_str),
+        )),
+        _ => None,
+    }
+}
+
+fn activity_event_message(kind: &ControlEventKind) -> Option<String> {
+    match kind {
+        ControlEventKind::ActivityScheduled { task } => Some(format!(
+            "{} scheduled on {}",
+            task.activity_type.as_str(),
+            task.task_queue.as_str()
+        )),
         ControlEventKind::ActivityStarted { activity_id, .. } => {
-            format!("{} started", activity_id.as_str())
+            Some(format!("{} started", activity_id.as_str()))
         }
         ControlEventKind::ActivityCompleted {
             activity_id,
             result,
             ..
-        } => activity_completion_message(activity_id.as_str(), &result.metadata),
-        ControlEventKind::ActivityFailed { failure, .. } => failure.message.clone(),
-        ControlEventKind::StepWaiting { reason } => format!("{reason:?}"),
-        ControlEventKind::StepFailed { message, .. } | ControlEventKind::RunFailed { message } => {
-            message.clone()
-        }
-        ControlEventKind::StepBlocked { reason }
-        | ControlEventKind::StepCancelled { reason }
-        | ControlEventKind::RunBlocked { reason }
-        | ControlEventKind::RunAborted { reason } => reason.clone(),
+        } => Some(activity_completion_message(
+            activity_id.as_str(),
+            &result.metadata,
+        )),
+        ControlEventKind::ActivityFailed { failure, .. } => Some(failure.message.clone()),
+        _ => None,
+    }
+}
+
+fn timer_event_message(kind: &ControlEventKind) -> Option<String> {
+    match kind {
         ControlEventKind::SignalReceived { signal } => {
-            format!("signal received: {}", signal.signal_name.as_str())
+            Some(format!("signal received: {}", signal.signal_name.as_str()))
         }
         ControlEventKind::TimerScheduled { timer } => {
-            format!("timer scheduled: {}", timer.timer_id.as_str())
+            Some(format!("timer scheduled: {}", timer.timer_id.as_str()))
         }
         ControlEventKind::TimerFired { timer_id } => {
-            format!("timer fired: {}", timer_id.as_str())
+            Some(format!("timer fired: {}", timer_id.as_str()))
         }
-        ControlEventKind::VersionPinned { pin } => {
-            format!(
-                "version pinned: {}={}",
-                pin.version_key.as_str(),
-                pin.version
-            )
-        }
-        ControlEventKind::ArtifactAttached { artifact } => format!(
+        ControlEventKind::VersionPinned { pin } => Some(format!(
+            "version pinned: {}={}",
+            pin.version_key.as_str(),
+            pin.version
+        )),
+        ControlEventKind::ArtifactAttached { artifact } => Some(format!(
             "artifact attached: {} {}",
             artifact.artifact_kind.as_str(),
             bounded_operator_text(artifact.uri.as_str())
-        ),
-        ControlEventKind::EvidenceAttached { evidence } => evidence_message(
+        )),
+        _ => None,
+    }
+}
+
+fn observation_event_message(kind: &ControlEventKind) -> Option<String> {
+    match kind {
+        ControlEventKind::EvidenceAttached { evidence } => Some(evidence_message(
             evidence
                 .requirement_key
                 .as_deref()
                 .unwrap_or_else(|| evidence.evidence_id.as_str()),
             evidence.source.as_str(),
             evidence.summary.as_deref(),
-        ),
-        ControlEventKind::CostObserved { observation } => cost_message(
+        )),
+        ControlEventKind::CostObserved { observation } => Some(cost_message(
             observation.provider.as_str(),
             observation.model.as_deref(),
             observation.observed_total_tokens(),
             observation.cost_usd_micros,
             observation.latency_ms,
-        ),
-        ControlEventKind::GateEvaluated { result } => gate_message(
+        )),
+        ControlEventKind::GateEvaluated { result } => Some(gate_message(
             result.gate_name.as_str(),
             result.passed,
             result.required_evidence_covered,
             result.selected_required_evidence.len(),
             result.missing_required_evidence.len(),
-        ),
-        ControlEventKind::RecoveryStarted { attempt } => {
-            format!("recovery attempt {}: {}", attempt.attempt, attempt.reason)
-        }
-        ControlEventKind::WorkerHeartbeatObserved { heartbeat } => worker_heartbeat_message(
+        )),
+        ControlEventKind::RecoveryStarted { attempt } => Some(format!(
+            "recovery attempt {}: {}",
+            attempt.attempt, attempt.reason
+        )),
+        ControlEventKind::WorkerHeartbeatObserved { heartbeat } => Some(worker_heartbeat_message(
             heartbeat.worker_id.as_str(),
             text_field(&heartbeat.metadata, "phase"),
             text_field(&heartbeat.metadata, "activity_id"),
-        ),
-        ControlEventKind::StepQueued
-        | ControlEventKind::StepLeaseAcquired { .. }
-        | ControlEventKind::StepLeaseRenewed { .. }
-        | ControlEventKind::StepLeaseReleased { .. }
-        | ControlEventKind::StepStarted
-        | ControlEventKind::StepSucceeded
-        | ControlEventKind::RunCompleted => event_kind_name(kind).replace('_', " "),
+        )),
+        _ => None,
     }
 }
 

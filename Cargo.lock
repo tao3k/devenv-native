@@ -7024,7 +7024,7 @@ dependencies = [
  "memchr",
  "nom 8.0.0",
  "rowan",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=2184bf574e4cf48b90752bdc71d58743603b7114)",
  "serde_json",
 ]
 
@@ -8427,6 +8427,21 @@ dependencies = [
  "cargo_toml",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.117",
+ "toml 1.1.2+spec-1.1.0",
+]
+
+[[package]]
+name = "rust-lang-project-harness"
+version = "0.1.0"
+source = "git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604#70e2cbfdaae59baa2149839b8678266820c4b604"
+dependencies = [
+ "cargo_toml",
+ "proc-macro2",
+ "quote",
+ "regex",
  "serde",
  "serde_json",
  "syn 2.0.117",
@@ -11503,7 +11518,7 @@ dependencies = [
  "ast-grep-language",
  "blake3",
  "insta",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "tempfile",
  "tree-sitter",
@@ -11515,7 +11530,7 @@ name = "xiuxian-code-intelligence"
 version = "0.1.1"
 dependencies = [
  "regex",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "tempfile",
  "thiserror 2.0.18",
@@ -11528,7 +11543,7 @@ dependencies = [
 name = "xiuxian-config-core"
 version = "0.1.1"
 dependencies = [
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "tempfile",
  "thiserror 2.0.18",
@@ -11557,7 +11572,7 @@ dependencies = [
  "foyer",
  "parquet",
  "redis",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tar",
@@ -11575,7 +11590,7 @@ dependencies = [
  "ignore",
  "rayon",
  "regex",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "similar",
  "tempfile",
@@ -11589,7 +11604,7 @@ name = "xiuxian-event"
 version = "0.1.1"
 dependencies = [
  "chrono",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tokio",
@@ -11602,7 +11617,7 @@ version = "0.1.1"
 dependencies = [
  "chrono",
  "gix",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tempfile",
@@ -11618,7 +11633,7 @@ version = "0.1.1"
 dependencies = [
  "merman-core",
  "petgraph 0.7.1",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "thiserror 2.0.18",
 ]
 
@@ -11630,7 +11645,7 @@ dependencies = [
  "memchr",
  "notify",
  "rayon",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde_json",
  "tempfile",
  "tera",
@@ -11655,7 +11670,7 @@ dependencies = [
  "inventory",
  "parquet",
  "regex",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -11683,7 +11698,7 @@ version = "0.1.1"
 dependencies = [
  "arrow",
  "chrono",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -11700,7 +11715,7 @@ version = "0.1.1"
 dependencies = [
  "arrow",
  "lance",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
 ]
 
 [[package]]
@@ -11718,7 +11733,7 @@ dependencies = [
  "num-traits",
  "regex",
  "reqwest 0.13.3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "spider",
@@ -11737,7 +11752,7 @@ name = "xiuxian-logging"
 version = "0.1.1"
 dependencies = [
  "clap",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "thiserror 2.0.18",
  "tracing-log",
  "tracing-subscriber",
@@ -11749,7 +11764,7 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "syn 2.0.117",
  "tempfile",
@@ -11768,7 +11783,7 @@ dependencies = [
  "num-traits",
  "rand 0.8.6",
  "redis",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -11783,7 +11798,7 @@ dependencies = [
 name = "xiuxian-polyglot-orchestrator"
 version = "0.1.1"
 dependencies = [
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "xiuxian-wendao-runtime",
@@ -11801,7 +11816,7 @@ dependencies = [
  "log",
  "redis",
  "reqwest 0.13.3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -11845,7 +11860,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.13.3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -11890,7 +11905,7 @@ dependencies = [
  "quick-xml 0.39.4",
  "rayon",
  "redis",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tempfile",
@@ -11904,7 +11919,7 @@ version = "0.1.1"
 dependencies = [
  "chrono",
  "orgize",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -11920,7 +11935,7 @@ version = "0.1.1"
 dependencies = [
  "async-trait",
  "duckdb",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tempfile",
@@ -11934,7 +11949,7 @@ name = "xiuxian-qianji-runtime"
 version = "0.1.1"
 dependencies = [
  "async-trait",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde_json",
  "sha2 0.10.9",
  "tokio",
@@ -11947,7 +11962,7 @@ name = "xiuxian-sandbox"
 version = "0.1.1"
 dependencies = [
  "async-trait",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tempfile",
@@ -11962,7 +11977,7 @@ dependencies = [
  "blake3",
  "rand 0.8.6",
  "regex",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -11975,7 +11990,7 @@ name = "xiuxian-tokenizer"
 version = "0.1.1"
 dependencies = [
  "rand 0.8.6",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "thiserror 2.0.18",
  "tiktoken-rs",
@@ -11985,7 +12000,7 @@ dependencies = [
 name = "xiuxian-types"
 version = "0.1.1"
 dependencies = [
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -12009,7 +12024,7 @@ dependencies = [
  "log",
  "parquet",
  "rand 0.8.6",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tempfile",
@@ -12051,7 +12066,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest 0.13.3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -12110,7 +12125,7 @@ dependencies = [
  "orgize",
  "pdfium-render",
  "rayon",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -12125,7 +12140,7 @@ name = "xiuxian-wendao-builtin"
 version = "0.1.1"
 dependencies = [
  "inventory",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde_json",
  "serde_yaml",
  "toml 0.8.23",
@@ -12145,7 +12160,7 @@ dependencies = [
  "criterion",
  "insta",
  "rayon",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -12170,7 +12185,7 @@ dependencies = [
  "arrow",
  "chrono",
  "inventory",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -12188,7 +12203,7 @@ dependencies = [
  "clap",
  "parquet",
  "quick-xml 0.39.4",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -12209,7 +12224,7 @@ dependencies = [
  "comrak",
  "jsonschema",
  "orgize",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -12234,7 +12249,7 @@ dependencies = [
  "datafusion",
  "futures",
  "include_dir",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -12260,7 +12275,7 @@ dependencies = [
  "base64",
  "criterion",
  "futures",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tokio",
@@ -12279,7 +12294,7 @@ dependencies = [
  "blake3",
  "duckdb",
  "parquet",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "sqlparser",
@@ -12315,7 +12330,7 @@ dependencies = [
  "num-traits",
  "prost",
  "reqwest 0.13.3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -12366,7 +12381,7 @@ name = "xiuxian-window"
 version = "0.1.1"
 dependencies = [
  "pyo3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
 ]
 
@@ -12379,7 +12394,7 @@ dependencies = [
  "pulldown-cmark",
  "quick-xml 0.39.4",
  "reqwest 0.13.3",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "schemars 1.2.1",
  "serde",
  "serde_json",
@@ -12401,7 +12416,7 @@ dependencies = [
  "include_dir",
  "log",
  "redis",
- "rust-lang-project-harness",
+ "rust-lang-project-harness 0.1.0 (git+https://github.com/tao3k/rust-lang-project-harness?rev=70e2cbfdaae59baa2149839b8678266820c4b604)",
  "serde",
  "serde_json",
  "tempfile",

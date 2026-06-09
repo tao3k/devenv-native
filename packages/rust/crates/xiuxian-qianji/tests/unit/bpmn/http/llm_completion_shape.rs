@@ -1,5 +1,4 @@
-#[path = "../../../../src/bpmn/http/llm_completion_shape.rs"]
-mod source;
+use crate::bpmn::http_transport::llm_completion_shape as source;
 
 #[test]
 fn fenced_json_satisfies_multi_output_bindings() {

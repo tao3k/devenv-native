@@ -17,9 +17,9 @@ mod execution_graph;
         test
     )
 ))]
-mod llm_completion_shape;
+pub(in crate::bpmn) mod llm_completion_shape;
 mod llm_host_work_schedule;
-mod llm_task_documentation;
+pub(in crate::bpmn) mod llm_task_documentation;
 #[path = "request/api.rs"]
 mod request_api;
 #[path = "response/api.rs"]

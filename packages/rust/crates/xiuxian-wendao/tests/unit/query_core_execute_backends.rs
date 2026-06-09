@@ -1,5 +1,5 @@
 use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
-use xiuxian_wendao::query_core::execute::backends::{
+use xiuxian_wendao::query_core::execute::{
     GRAPH_NEIGHBORS_RELATION_TABLE, graph_neighbors_relation_contract,
     graph_neighbors_relation_schema_ref,
 };

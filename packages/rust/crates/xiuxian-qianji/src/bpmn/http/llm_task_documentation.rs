@@ -2,7 +2,7 @@
 
 use std::fs;
 
-pub(super) fn bpmn_task_documentation(
+pub(in crate::bpmn) fn bpmn_task_documentation(
     bpmn_source_ref: Option<&str>,
     activity_id: Option<&str>,
 ) -> Option<String> {
@@ -15,7 +15,10 @@ pub(super) fn bpmn_task_documentation(
     extract_activity_documentation(&xml, activity_id)
 }
 
-pub(super) fn extract_activity_documentation(xml: &str, activity_id: &str) -> Option<String> {
+pub(in crate::bpmn) fn extract_activity_documentation(
+    xml: &str,
+    activity_id: &str,
+) -> Option<String> {
     for pattern in [
         format!("id=\"{activity_id}\""),
         format!("id='{activity_id}'"),
@@ -27,9 +30,7 @@ pub(super) fn extract_activity_documentation(xml: &str, activity_id: &str) -> Op
                 search_from = id_pos + pattern.len();
                 continue;
             };
-            let Some(tag_end_relative) = xml[id_pos..].find('>') else {
-                return None;
-            };
+            let tag_end_relative = xml[id_pos..].find('>')?;
             let tag_end = id_pos + tag_end_relative;
             let start_tag = &xml[tag_start + 1..tag_end];
             if start_tag.starts_with('/') || start_tag.ends_with('/') {
@@ -62,9 +63,7 @@ fn extract_first_documentation_text(xml: &str) -> Option<String> {
     let mut search_from = 0;
     while let Some(open_relative) = xml[search_from..].find('<') {
         let open = search_from + open_relative;
-        let Some(tag_end_relative) = xml[open..].find('>') else {
-            return None;
-        };
+        let tag_end_relative = xml[open..].find('>')?;
         let tag_end = open + tag_end_relative;
         let start_tag = xml[open + 1..tag_end].trim();
         if start_tag.starts_with('/') {
