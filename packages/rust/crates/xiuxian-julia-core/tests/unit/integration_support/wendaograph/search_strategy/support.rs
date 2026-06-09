@@ -14,6 +14,8 @@ use super::{
     SearchStrategyFlowPersistentHostStabilizationLimits, SearchStrategyFlowPersistentHostStabilizationReason,
     SearchStrategyFlowPersistentHostStabilizationReport,
     SearchStrategyFlowPersistentHostWarmPathStats,
+    WENDAOGRAPH_JULIA_PROJECT_ENV,
+    WENDAOGRAPH_PACKAGE_DIR_ENV,
     configured_wendaograph_search_strategy_flow_markdown_replay_families,
     configured_wendaograph_search_strategy_flow_markdown_replay_families_with_limit,
     enrich_wendaograph_search_strategy_flow_retrieval_routes,
@@ -80,6 +82,33 @@ const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_DEFAULT_INTENT: &str =
     "search strategy flow link graph python julia toml";
 const WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_FLIGHT_DEFAULT_TIMEOUT_SECONDS: u64 = 30;
 const ANALYSIS_SEMANTIC_SCOPE_ROUTE: &str = "/analysis/semantic-scope";
+
+fn local_wendaograph_package_available() -> bool {
+    if env_path_exists(WENDAOGRAPH_JULIA_PROJECT_ENV) {
+        return true;
+    }
+    if env_path_exists(WENDAOGRAPH_PACKAGE_DIR_ENV) {
+        return true;
+    }
+    workspace_root()
+        .join(".data")
+        .join("WendaoGraph.jl")
+        .is_dir()
+}
+
+fn env_path_exists(name: &str) -> bool {
+    env::var_os(name)
+        .map(PathBuf::from)
+        .is_some_and(|path| path.exists())
+}
+
+fn workspace_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(4)
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")))
+        .to_path_buf()
+}
 
 #[derive(Debug, Clone, Copy)]
 struct SearchStrategyFlowConfiguredMarkdownReplaySpec {

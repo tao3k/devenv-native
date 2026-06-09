@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -32,10 +32,21 @@ struct SourcePair {
 
 fn source_pairs_from_required_entries(required_entries: &[String]) -> BTreeMap<String, SourcePair> {
     let mut pairs = BTreeMap::new();
+    let bpmn_keys: BTreeSet<_> = required_entries
+        .iter()
+        .filter_map(|entry| {
+            let (key, extension) = source_pair_key(entry)?;
+            (extension == "bpmn").then_some(key)
+        })
+        .collect();
+
     for entry in required_entries {
         let Some((key, extension)) = source_pair_key(entry) else {
             continue;
         };
+        if extension == "org" && is_policy_org_entry(entry) && !bpmn_keys.contains(&key) {
+            continue;
+        }
         let pair: &mut SourcePair = pairs.entry(key).or_default();
         match extension.as_str() {
             "org" => pair.org = Some(entry.clone()),
@@ -44,6 +55,13 @@ fn source_pairs_from_required_entries(required_entries: &[String]) -> BTreeMap<S
         }
     }
     pairs
+}
+
+fn is_policy_org_entry(entry: &str) -> bool {
+    Path::new(entry)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == "POLICY.org" || name.ends_with("_POLICY.org"))
 }
 
 fn source_pair_key(entry: &str) -> Option<(String, String)> {

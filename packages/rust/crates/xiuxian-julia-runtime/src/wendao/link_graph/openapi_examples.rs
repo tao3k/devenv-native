@@ -4,10 +4,11 @@ use serde_json::{Value, json};
 
 use super::{
     DEFAULT_JULIA_DEPLOYMENT_ARTIFACT_SCHEMA_VERSION, DEFAULT_JULIA_RERANK_FLIGHT_ROUTE,
-    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH, JULIA_DEPLOYMENT_ARTIFACT_ID, JULIA_PLUGIN_ID,
+    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH, JULIA_DEPLOYMENT_ARTIFACT_ID,
     LinkGraphJuliaDeploymentArtifact, LinkGraphJuliaSearchLaunchManifest,
 };
 
+const JULIA_CORE_OPENAPI_PLUGIN_ID: &str = "xiuxian-julia-core";
 const OPENAPI_EXAMPLE_BASE_URL: &str = "http://127.0.0.1:18080";
 const OPENAPI_EXAMPLE_GENERATED_AT: &str = "2026-03-27T16:00:00+00:00";
 const OPENAPI_EXAMPLE_HEALTH_ROUTE: &str = "/healthz";
@@ -19,7 +20,7 @@ const OPENAPI_EXAMPLE_SERVICE_MODE: &str = "stream";
 #[must_use]
 pub fn julia_plugin_artifact_openapi_json_example() -> Value {
     json!({
-        "pluginId": JULIA_PLUGIN_ID,
+        "pluginId": JULIA_CORE_OPENAPI_PLUGIN_ID,
         "artifactId": JULIA_DEPLOYMENT_ARTIFACT_ID,
         "schemaVersion": OPENAPI_EXAMPLE_SCHEMA_VERSION,
         "baseUrl": OPENAPI_EXAMPLE_BASE_URL,
@@ -31,7 +32,7 @@ pub fn julia_plugin_artifact_openapi_json_example() -> Value {
 #[must_use]
 pub fn julia_plugin_artifact_openapi_toml_example() -> String {
     format!(
-        "plugin_id = \"{JULIA_PLUGIN_ID}\"\nartifact_id = \"{JULIA_DEPLOYMENT_ARTIFACT_ID}\"\nschema_version = \"{OPENAPI_EXAMPLE_SCHEMA_VERSION}\"\nbase_url = \"{OPENAPI_EXAMPLE_BASE_URL}\"\nroute = \"{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE}\"\n"
+        "plugin_id = \"{JULIA_CORE_OPENAPI_PLUGIN_ID}\"\nartifact_id = \"{JULIA_DEPLOYMENT_ARTIFACT_ID}\"\nschema_version = \"{OPENAPI_EXAMPLE_SCHEMA_VERSION}\"\nbase_url = \"{OPENAPI_EXAMPLE_BASE_URL}\"\nroute = \"{DEFAULT_JULIA_RERANK_FLIGHT_ROUTE}\"\n"
     )
 }
 

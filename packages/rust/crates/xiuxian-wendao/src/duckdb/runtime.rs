@@ -1,11 +1,11 @@
 //! `duckdb::runtime` owns Wendao duckdb runtime behavior.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::settings::{merged_wendao_settings, wendao_config_file_override};
 use xiuxian_config_core::resolve_project_root_or_cwd;
 use xiuxian_wendao_runtime::config::{
-    SearchDuckDbRuntimeConfig, resolve_search_duckdb_runtime_with_settings,
+    DuckDbDatabasePath, SearchDuckDbRuntimeConfig, resolve_search_duckdb_runtime_with_settings,
 };
 
 /// Resolve the current `search.duckdb` runtime configuration from merged
@@ -15,6 +15,17 @@ pub fn resolve_search_duckdb_runtime() -> SearchDuckDbRuntimeConfig {
     let project_root = resolved_wendao_settings_root();
     let settings = merged_wendao_settings();
     resolve_search_duckdb_runtime_with_settings(project_root.as_path(), &settings)
+}
+
+#[cfg(feature = "duckdb")]
+pub(crate) fn resolve_search_duckdb_runtime_for_storage_root(
+    storage_root: &Path,
+) -> SearchDuckDbRuntimeConfig {
+    let mut runtime = resolve_search_duckdb_runtime();
+    let runtime_root = storage_root.join("_runtime").join("duckdb");
+    runtime.database_path = DuckDbDatabasePath::File(runtime_root.join("search.duckdb"));
+    runtime.temp_directory = runtime_root.join("tmp");
+    runtime
 }
 
 fn resolved_wendao_settings_root() -> PathBuf {

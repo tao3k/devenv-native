@@ -396,7 +396,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "pluginId": "xiuxian-wendao-julia",
+                  "pluginId": "xiuxian-julia-core",
                   "artifactId": "deployment",
                   "schemaVersion": "v1",
                   "baseUrl": "http://127.0.0.1:18080",
@@ -404,7 +404,7 @@
                 }
               },
               "text/plain": {
-                "example": "plugin_id = \"xiuxian-wendao-julia\"\nartifact_id = \"deployment\"\nschema_version = \"v1\"\nbase_url = \"http://127.0.0.1:18080\"\nroute = \"/rerank\"\n"
+                "example": "plugin_id = \"xiuxian-julia-core\"\nartifact_id = \"deployment\"\nschema_version = \"v1\"\nbase_url = \"http://127.0.0.1:18080\"\nroute = \"/rerank\"\n"
               }
             }
           },

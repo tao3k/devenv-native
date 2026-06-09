@@ -2,7 +2,9 @@ use std::path::PathBuf;
 
 use xiuxian_db_store::EngineRecordBatch;
 
-use crate::duckdb::{LocalRelationEngineKind, ParquetQueryEngine};
+use crate::duckdb::{
+    LocalRelationEngineKind, ParquetQueryEngine, resolve_search_duckdb_runtime_for_storage_root,
+};
 use crate::search::{SearchCorpusKind, SearchPlaneService};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -15,9 +17,11 @@ pub(crate) struct PublishedParquetQueryExecution {
 
 #[cfg(feature = "duckdb")]
 pub(crate) fn configured_parquet_query_engine(
-    _service: &SearchPlaneService,
+    service: &SearchPlaneService,
 ) -> Result<ParquetQueryEngine, String> {
-    ParquetQueryEngine::configured().map_err(|error| {
+    let mut runtime = resolve_search_duckdb_runtime_for_storage_root(service.storage_root());
+    runtime.enabled = true;
+    ParquetQueryEngine::duckdb_from_runtime(runtime).map_err(|error| {
         format!("shared published parquet query-engine configuration failed: {error}")
     })
 }

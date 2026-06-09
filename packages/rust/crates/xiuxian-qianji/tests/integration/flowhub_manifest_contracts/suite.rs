@@ -6,7 +6,7 @@ use std::path::PathBuf;
 #[path = "../support/workspace.rs"]
 mod workspace;
 use tempfile::TempDir;
-use xiuxian_qianji::contracts::{FlowhubGraphTopology, TemplateLinkRef, TemplateUseSpec};
+use xiuxian_qianji::contracts::{TemplateLinkRef, TemplateUseSpec};
 use xiuxian_qianji::{
     load_flowhub_module_manifest, load_flowhub_scenario_manifest, parse_flowhub_module_manifest,
     parse_flowhub_scenario_manifest, resolve_flowhub_module_children,
@@ -60,7 +60,9 @@ fn flowhub_rust_module_manifest_parses_as_leaf_node() {
     assert_eq!(manifest.module.name, "rust");
     assert_eq!(manifest.exports.entry, "task.rust-start");
     assert_eq!(manifest.exports.ready, "task.constraints-ready");
-    assert!(manifest.contract.is_none());
+    assert!(manifest.contract.as_ref().is_some_and(|contract| {
+        contract.register.is_empty() && contract.required == vec!["RUST_POLICY.org".to_string()]
+    }));
     assert!(manifest.graph.is_empty());
     assert!(manifest.validation.is_empty());
     assert!(manifest.template.is_none());
@@ -109,7 +111,10 @@ fn load_flowhub_module_manifest_reads_real_leaf_file() {
 
     assert_eq!(manifest.module.name, "blueprint");
     assert_eq!(manifest.exports.ready, "task.blueprint-ready");
-    assert!(manifest.contract.is_none());
+    assert!(manifest.contract.as_ref().is_some_and(|contract| {
+        contract.register.is_empty()
+            && contract.required == vec!["BLUEPRINT_POLICY.org".to_string()]
+    }));
     assert!(manifest.graph.is_empty());
     assert!(manifest.template.is_none());
     assert!(manifest.validation.is_empty());

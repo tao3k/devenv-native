@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use arrow::array::{Array, BooleanArray, StringArray};
-use arrow::datatypes::Schema;
+use arrow::array::{Array, ArrayRef, BooleanArray, StringArray};
+use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use xiuxian_db_store::{
     ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, build_arrow_schema,
@@ -184,6 +184,57 @@ pub fn validate_julia_plugin_capability_manifest_response_batches(
     Ok(())
 }
 
+pub(super) fn normalize_julia_plugin_capability_manifest_response_batches(
+    batches: &[RecordBatch],
+) -> Result<Vec<RecordBatch>, RepoIntelligenceError> {
+    batches
+        .iter()
+        .map(normalize_julia_plugin_capability_manifest_response_batch)
+        .collect()
+}
+
+fn normalize_julia_plugin_capability_manifest_response_batch(
+    batch: &RecordBatch,
+) -> Result<RecordBatch, RepoIntelligenceError> {
+    if batch
+        .column_by_name(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN)
+        .is_some()
+    {
+        return Ok(batch.clone());
+    }
+
+    let mut fields = batch
+        .schema()
+        .fields()
+        .iter()
+        .map(|field| field.as_ref().clone())
+        .collect::<Vec<_>>();
+    let mut columns = batch.columns().to_vec();
+    let insert_index = batch
+        .schema()
+        .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN)
+        .map(|index| index + 1)
+        .unwrap_or(fields.len());
+    fields.insert(
+        insert_index,
+        Field::new(
+            JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_VARIANT_COLUMN,
+            DataType::Utf8,
+            true,
+        ),
+    );
+    columns.insert(
+        insert_index,
+        Arc::new(StringArray::from(vec![None::<&str>; batch.num_rows()])) as ArrayRef,
+    );
+    RecordBatch::try_new(Arc::new(Schema::new(fields)), columns).map_err(|error| {
+        manifest_contract_error(
+            "response",
+            format!("failed to normalize legacy capability-manifest response batch: {error}"),
+        )
+    })
+}
+
 struct JuliaPluginCapabilityManifestResponseColumns<'a> {
     plugin_id: &'a StringArray,
     capability_id: &'a StringArray,
@@ -348,10 +399,11 @@ fn validate_manifest_response_route(
 pub fn decode_julia_plugin_capability_manifest_rows(
     batches: &[RecordBatch],
 ) -> Result<Vec<JuliaPluginCapabilityManifestRow>, RepoIntelligenceError> {
-    validate_julia_plugin_capability_manifest_response_batches(batches)?;
+    let batches = normalize_julia_plugin_capability_manifest_response_batches(batches)?;
+    validate_julia_plugin_capability_manifest_response_batches(batches.as_slice())?;
 
     let mut rows = Vec::new();
-    for batch in batches {
+    for batch in &batches {
         push_decoded_manifest_rows(batch, &mut rows)?;
     }
 

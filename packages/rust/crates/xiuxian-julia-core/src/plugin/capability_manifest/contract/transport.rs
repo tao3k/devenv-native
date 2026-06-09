@@ -29,6 +29,7 @@ use crate::plugin::graph_structural::GraphStructuralRouteKind;
 use super::batch::{
     build_julia_plugin_capability_manifest_request_batch,
     decode_julia_plugin_capability_manifest_rows,
+    normalize_julia_plugin_capability_manifest_response_batches,
     validate_julia_plugin_capability_manifest_request_batches,
     validate_julia_plugin_capability_manifest_response_batches,
 };
@@ -82,6 +83,8 @@ pub async fn process_julia_capability_manifest_flight_batches(
         .map_err(|error| RepoIntelligenceError::AnalysisFailed {
             message: format!("Julia capability-manifest Flight request failed: {error}"),
         })?;
+    let response_batches =
+        normalize_julia_plugin_capability_manifest_response_batches(response_batches.as_slice())?;
     validate_julia_plugin_capability_manifest_response_batches(response_batches.as_slice())?;
     Ok(response_batches)
 }

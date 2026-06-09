@@ -13,6 +13,8 @@ use arrow::record_batch::RecordBatch;
 
 use super::{
     SearchStrategyFlowCandidateInput, SearchStrategyFlowCandidateInputBatch,
+    WENDAOGRAPH_JULIA_PROJECT_ENV, WENDAOGRAPH_PACKAGE_DIR_ENV,
+    local_wendaograph_package_available,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements,
     search_strategy_flow_candidate_input_batch,
@@ -20,6 +22,13 @@ use super::{
 
 #[test]
 fn search_strategy_flow_rust_bridge_reserves_required_evidence_frontier() {
+    if !local_wendaograph_package_available() {
+        eprintln!(
+            "skipping WendaoGraph required-evidence frontier bridge; set {WENDAOGRAPH_PACKAGE_DIR_ENV} or {WENDAOGRAPH_JULIA_PROJECT_ENV}"
+        );
+        return;
+    }
+
     let candidates = vec![
         candidate(
             "packages/rust/crates/xiuxian-julia-core/README.md",
@@ -108,6 +117,13 @@ fn search_strategy_flow_rust_bridge_reserves_required_evidence_frontier() {
 
 #[test]
 fn search_strategy_flow_rust_bridge_applies_agent_branch_judgements() {
+    if !local_wendaograph_package_available() {
+        eprintln!(
+            "skipping WendaoGraph branch-judgement frontier bridge; set {WENDAOGRAPH_PACKAGE_DIR_ENV} or {WENDAOGRAPH_JULIA_PROJECT_ENV}"
+        );
+        return;
+    }
+
     let candidates = vec![
         candidate(
             "docs/a.md",

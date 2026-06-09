@@ -248,15 +248,20 @@ fn materialize_flowhub_scenario_reports_follow_up_query_for_invalid_generated_su
     assert!(rendered.contains("Generated work surface"));
     assert!(rendered.contains("# Validation Failed"));
     assert!(rendered.contains("Missing flowchart backbone"));
-    assert!(rendered.contains("## Follow-up Query"));
-    assert_eq!(rendered.matches("## Follow-up Query").count(), 1);
-    assert!(rendered.contains("Surfaces: blueprint, plan"));
-    assert!(rendered.contains(
-        "select path, surface, surface_kind, heading_path, skeleton \
+    #[cfg(feature = "wendao-integration")]
+    {
+        assert!(rendered.contains("## Follow-up Query"));
+        assert_eq!(rendered.matches("## Follow-up Query").count(), 1);
+        assert!(rendered.contains("Surfaces: blueprint, plan"));
+        assert!(rendered.contains(
+            "select path, surface, surface_kind, heading_path, skeleton \
 from markdown \
 where surface in ('blueprint', 'plan') \
 order by surface, path, heading_path"
-    ));
+        ));
+    }
+    #[cfg(not(feature = "wendao-integration"))]
+    assert!(!rendered.contains("## Follow-up Query"));
 }
 
 #[test]

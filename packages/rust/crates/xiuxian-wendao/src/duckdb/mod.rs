@@ -64,6 +64,8 @@ pub use event_lake::{
 pub use parquet::DuckDbParquetQueryEngine;
 pub use parquet::{DataFusionParquetQueryEngine, ParquetQueryEngine};
 pub use runtime::resolve_search_duckdb_runtime;
+#[cfg(feature = "duckdb")]
+pub(crate) use runtime::resolve_search_duckdb_runtime_for_storage_root;
 pub use xiuxian_wendao_runtime::config::{
     DuckDbDatabasePath, SearchDuckDbExecutionConfig, SearchDuckDbRuntimeConfig,
 };

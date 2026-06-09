@@ -1,6 +1,8 @@
 use std::fs;
 
 use super::{
+    WENDAOGRAPH_JULIA_PROJECT_ENV, WENDAOGRAPH_PACKAGE_DIR_ENV,
+    local_wendaograph_package_available,
     run_wendaograph_search_strategy_flow_json_with_candidate_batch,
     search_strategy_flow_registry_authority_candidate_input_batch,
 };
@@ -8,6 +10,13 @@ use super::{
 #[test]
 fn search_strategy_flow_registry_authority_batch_replays_through_julia()
 -> Result<(), Box<dyn std::error::Error>> {
+    if !local_wendaograph_package_available() {
+        eprintln!(
+            "skipping WendaoGraph registry authority replay; set {WENDAOGRAPH_PACKAGE_DIR_ENV} or {WENDAOGRAPH_JULIA_PROJECT_ENV}"
+        );
+        return Ok(());
+    }
+
     let temp_dir = tempfile::tempdir()?;
     let root = temp_dir.path();
     fs::write(
