@@ -213,8 +213,7 @@ fn normalize_julia_plugin_capability_manifest_response_batch(
     let insert_index = batch
         .schema()
         .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_CAPABILITY_ID_COLUMN)
-        .map(|index| index + 1)
-        .unwrap_or(fields.len());
+        .map_or(fields.len(), |index| index + 1);
     fields.insert(
         insert_index,
         Field::new(

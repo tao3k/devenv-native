@@ -124,7 +124,37 @@ fn search_strategy_flow_rust_bridge_applies_agent_branch_judgements() {
         return;
     }
 
-    let candidates = vec![
+    let candidates = branch_judgement_candidates();
+    let batch = candidate_batch(&candidates);
+    let branch_judgements = BranchJudgementsArrowFile::new(&branch_judgement_rows());
+
+    let trace =
+        run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements(
+            "find the SearchStrategyFlow ownership boundary and validation path",
+            ".",
+            batch,
+            branch_judgements.path_str(),
+        )
+        .unwrap_or_else(|error| panic!("run branch judgement frontier bridge trace: {error}"));
+    let trace: serde_json::Value = serde_json::from_str(&trace)
+        .unwrap_or_else(|error| panic!("parse branch judgement frontier trace: {error}"));
+    let selected_ids = selected_candidate_ids(&trace);
+
+    assert!(selected_ids.contains(&"docs/a.md#owner"));
+    assert!(selected_ids.contains(&"docs/b.md#validation"));
+    assert!(selected_ids.contains(&"docs/c.md#relation"));
+    assert!(!selected_ids.contains(&"docs/d.md#blocked"));
+    assert_eq!(
+        trace
+            .get("validation")
+            .and_then(|validation| validation.get("requiredEvidenceCovered"))
+            .and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+}
+
+fn branch_judgement_candidates() -> Vec<SearchStrategyFlowCandidateInput> {
+    vec![
         candidate(
             "docs/a.md",
             "owner",
@@ -157,9 +187,11 @@ fn search_strategy_flow_rust_bridge_applies_agent_branch_judgements() {
             (0.90, 0.90, 0.90, 0.90, 0.02),
             &["general"],
         ),
-    ];
-    let batch = candidate_batch(&candidates);
-    let branch_judgements = BranchJudgementsArrowFile::new(&[
+    ]
+}
+
+fn branch_judgement_rows() -> [BranchJudgementRow<'static>; 4] {
+    [
         BranchJudgementRow::new(
             "docs/a.md#owner",
             "authority",
@@ -192,38 +224,18 @@ fn search_strategy_flow_rust_bridge_applies_agent_branch_judgements() {
             true,
             "Agent rejected this branch.",
         ),
-    ]);
+    ]
+}
 
-    let trace =
-        run_wendaograph_search_strategy_flow_json_with_candidate_batch_and_branch_judgements(
-            "find the SearchStrategyFlow ownership boundary and validation path",
-            ".",
-            batch,
-            branch_judgements.path_str(),
-        )
-        .unwrap_or_else(|error| panic!("run branch judgement frontier bridge trace: {error}"));
-    let trace: serde_json::Value = serde_json::from_str(&trace)
-        .unwrap_or_else(|error| panic!("parse branch judgement frontier trace: {error}"));
-    let selected_ids = trace
+fn selected_candidate_ids(trace: &serde_json::Value) -> Vec<&str> {
+    trace
         .get("frontier")
         .and_then(serde_json::Value::as_array)
         .into_iter()
         .flatten()
         .filter(|row| row.get("selected").and_then(serde_json::Value::as_bool) == Some(true))
         .filter_map(|row| row.get("candidateId").and_then(serde_json::Value::as_str))
-        .collect::<Vec<_>>();
-
-    assert!(selected_ids.contains(&"docs/a.md#owner"));
-    assert!(selected_ids.contains(&"docs/b.md#validation"));
-    assert!(selected_ids.contains(&"docs/c.md#relation"));
-    assert!(!selected_ids.contains(&"docs/d.md#blocked"));
-    assert_eq!(
-        trace
-            .get("validation")
-            .and_then(|validation| validation.get("requiredEvidenceCovered"))
-            .and_then(serde_json::Value::as_bool),
-        Some(true)
-    );
+        .collect()
 }
 
 struct BranchJudgementRow<'a> {

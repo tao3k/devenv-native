@@ -1,4 +1,4 @@
-//! Feature-disabled DuckDB local relation engine placeholder.
+//! Feature-disabled `DuckDB` local relation engine placeholder.
 
 use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
@@ -9,12 +9,12 @@ use super::types::{LocalRelationEngine, LocalRelationEngineKind, LocalRelationRe
 const DISABLED_MESSAGE: &str =
     "DuckDB local relation engine requires the `duckdb` feature on xiuxian-wendao-sql";
 
-/// Feature-disabled DuckDB local relation engine placeholder.
+/// Feature-disabled `DuckDB` local relation engine placeholder.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct FeatureDisabledDuckDbLocalRelationEngine;
 
 impl FeatureDisabledDuckDbLocalRelationEngine {
-    /// Create a fresh in-memory DuckDB local relation engine.
+    /// Create a fresh in-memory `DuckDB` local relation engine.
     ///
     /// # Errors
     ///
