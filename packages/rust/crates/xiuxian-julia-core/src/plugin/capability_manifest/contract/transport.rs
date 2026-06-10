@@ -1,5 +1,7 @@
 //! Flight transport and repository preflight for Julia capability manifests.
 
+use std::collections::HashSet;
+
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::{
     capabilities::{ContractVersion, PluginCapabilityBinding},
@@ -59,6 +61,33 @@ pub fn build_julia_capability_manifest_flight_transport_client(
             ),
         }
     })
+}
+
+fn capability_row_matches_variant(
+    row: &JuliaPluginCapabilityManifestRow,
+    route_kind: GraphStructuralRouteKind,
+) -> bool {
+    let Some(variant) = row.capability_variant.as_deref() else {
+        return false;
+    };
+    graph_structural_capability_variants(route_kind).contains(&variant)
+}
+
+fn capability_row_matches_route(
+    row: &JuliaPluginCapabilityManifestRow,
+    route_kind: GraphStructuralRouteKind,
+) -> bool {
+    let normalized_route = normalize_flight_route(row.route.as_str()).ok();
+    matches!(normalized_route.as_deref(), Some(route) if route == route_kind.route())
+}
+
+fn graph_structural_capability_variants(
+    route_kind: GraphStructuralRouteKind,
+) -> &'static [&'static str] {
+    match route_kind {
+        GraphStructuralRouteKind::StructuralRerank => &["structural_rerank", "rerank"],
+        GraphStructuralRouteKind::ConstraintFilter => &["constraint_filter", "filter"],
+    }
 }
 
 /// Send capability-manifest batches through one negotiated Flight client.
@@ -156,22 +185,54 @@ pub(crate) fn graph_structural_binding_from_capability_manifest_rows(
     rows: &[JuliaPluginCapabilityManifestRow],
     route_kind: GraphStructuralRouteKind,
 ) -> Result<Option<PluginCapabilityBinding>, RepoIntelligenceError> {
-    let mut matching_rows = rows.iter().filter(|row| {
-        row.capability_id.as_str() == JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID
-            && row.capability_variant.as_deref() == Some(route_kind.capability_variant())
-    });
-    let Some(row) = matching_rows.next() else {
+    let matching_rows = rows
+        .iter()
+        .filter(|row| row.capability_id.as_str() == JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID)
+        .filter(|row| row.enabled.value())
+        .collect::<Vec<_>>();
+
+    let candidate_rows = {
+        let exact_rows = matching_rows
+            .iter()
+            .copied()
+            .filter(|row| capability_row_matches_variant(row, route_kind))
+            .collect::<Vec<_>>();
+        let fallback_rows = matching_rows
+            .iter()
+            .copied()
+            .filter(|row| capability_row_matches_route(row, route_kind))
+            .collect::<Vec<_>>();
+
+        if exact_rows.is_empty() {
+            collapse_duplicate_capability_rows(fallback_rows)
+        } else {
+            collapse_duplicate_capability_rows(exact_rows)
+        }
+    };
+
+    let Some(row) = candidate_rows.first() else {
         return Ok(None);
     };
-    if matching_rows.next().is_some() {
+    if candidate_rows.len() > 1 {
         return Err(RepoIntelligenceError::AnalysisFailed {
             message: format!(
-                "Julia capability-manifest returned multiple graph-structural rows for variant `{}`",
-                route_kind.capability_variant()
+                "Julia capability-manifest returned multiple graph-structural rows for `{}`",
+                route_kind.route()
             ),
         });
     }
     row.to_binding()
+}
+
+fn collapse_duplicate_capability_rows(
+    rows: Vec<&JuliaPluginCapabilityManifestRow>,
+) -> Vec<&JuliaPluginCapabilityManifestRow> {
+    rows.into_iter()
+        .scan(HashSet::<(&str, &str)>::new(), |seen, row| {
+            let key = (row.route.as_str(), row.base_url.as_str());
+            if seen.insert(key) { Some(row) } else { None }
+        })
+        .collect()
 }
 
 pub(crate) fn discover_julia_graph_structural_binding_from_manifest_for_repository(
