@@ -3,7 +3,8 @@
 use std::sync::Arc;
 
 use arrow::array::{
-    Array, ArrayRef, BooleanArray, LargeStringArray, StringArray, StringViewArray, UnionArray,
+    Array, ArrayRef, BooleanArray, LargeStringArray, StringArray, StringViewArray, UInt64Array,
+    UnionArray,
 };
 use arrow::datatypes::{DataType, Field, Schema, UnionMode};
 use arrow::record_batch::RecordBatch;
@@ -221,6 +222,13 @@ fn normalize_julia_plugin_capability_manifest_response_batch(
         JULIA_PLUGIN_CAPABILITY_MANIFEST_HEALTH_ROUTE_COLUMN,
         JULIA_PLUGIN_CAPABILITY_MANIFEST_ROUTE_COLUMN,
     )?;
+    normalize_optional_u64_response_column(
+        &mut fields,
+        &mut columns,
+        batch.num_rows(),
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_TIMEOUT_SECS_COLUMN,
+        JULIA_PLUGIN_CAPABILITY_MANIFEST_SCHEMA_VERSION_COLUMN,
+    )?;
 
     RecordBatch::try_new(Arc::new(Schema::new(fields)), columns).map_err(|error| {
         manifest_contract_error(
@@ -258,6 +266,52 @@ fn normalize_optional_utf8_response_column(
         Arc::new(StringArray::from(vec![None::<&str>; row_count])) as ArrayRef,
     );
     Ok(())
+}
+
+fn normalize_optional_u64_response_column(
+    fields: &mut Vec<Field>,
+    columns: &mut Vec<ArrayRef>,
+    row_count: usize,
+    column_name: &str,
+    insert_after_column: &str,
+) -> Result<(), RepoIntelligenceError> {
+    let field = Field::new(column_name, DataType::UInt64, true);
+
+    if let Some(index) = fields.iter().position(|field| field.name() == column_name) {
+        fields[index] = field;
+        if !columns[index].as_any().is::<UInt64Array>() {
+            columns[index] = normalize_optional_u64_array(&columns[index], row_count, column_name)?;
+        }
+        return Ok(());
+    }
+
+    let insert_index = fields
+        .iter()
+        .position(|field| field.name() == insert_after_column)
+        .map_or(fields.len(), |index| index + 1);
+    fields.insert(insert_index, field);
+    columns.insert(
+        insert_index,
+        Arc::new(UInt64Array::from(vec![None::<u64>; row_count])) as ArrayRef,
+    );
+    Ok(())
+}
+
+fn normalize_optional_u64_array(
+    array: &ArrayRef,
+    row_count: usize,
+    column_name: &str,
+) -> Result<ArrayRef, RepoIntelligenceError> {
+    if matches!(array.data_type(), DataType::Null) {
+        return Ok(Arc::new(UInt64Array::from(vec![None::<u64>; row_count])) as ArrayRef);
+    }
+    Err(manifest_contract_error(
+        "response",
+        format!(
+            "unsupported optional UInt64 column `{column_name}` data type `{}`",
+            array.data_type()
+        ),
+    ))
 }
 
 fn normalize_optional_utf8_array(

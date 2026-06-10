@@ -52,6 +52,20 @@ fn capability_manifest_decode_rows_normalizes_legacy_missing_health_route_column
 }
 
 #[test]
+fn capability_manifest_decode_rows_normalizes_legacy_missing_timeout_secs_column() {
+    let batch = legacy_response_batch_without_timeout_secs();
+
+    validate_julia_plugin_capability_manifest_response_batches(std::slice::from_ref(&batch))
+        .unwrap_or_else(|error| panic!("legacy response should validate: {error}"));
+
+    let rows = decode_julia_plugin_capability_manifest_rows(&[batch])
+        .unwrap_or_else(|error| panic!("legacy response should decode: {error}"));
+
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].timeout_secs, None);
+}
+
+#[test]
 fn capability_manifest_decode_rows_normalizes_legacy_null_variant_column() {
     let batch = legacy_response_batch(
         Some(Field::new(
@@ -258,11 +272,19 @@ fn legacy_response_batch(
 }
 
 fn legacy_response_batch_without_health_route() -> RecordBatch {
+    legacy_response_batch_without_column(JULIA_PLUGIN_CAPABILITY_MANIFEST_HEALTH_ROUTE_COLUMN)
+}
+
+fn legacy_response_batch_without_timeout_secs() -> RecordBatch {
+    legacy_response_batch_without_column(JULIA_PLUGIN_CAPABILITY_MANIFEST_TIMEOUT_SECS_COLUMN)
+}
+
+fn legacy_response_batch_without_column(column_name: &str) -> RecordBatch {
     let batch = legacy_response_batch(None, None);
     let schema = batch.schema();
     let index = schema
-        .index_of(JULIA_PLUGIN_CAPABILITY_MANIFEST_HEALTH_ROUTE_COLUMN)
-        .unwrap_or_else(|error| panic!("legacy response should contain health route: {error}"));
+        .index_of(column_name)
+        .unwrap_or_else(|error| panic!("legacy response should contain `{column_name}`: {error}"));
     let mut fields = schema
         .fields()
         .iter()
@@ -273,6 +295,6 @@ fn legacy_response_batch_without_health_route() -> RecordBatch {
     columns.remove(index);
 
     RecordBatch::try_new(Arc::new(Schema::new(fields)), columns).unwrap_or_else(|error| {
-        panic!("legacy response batch without health route should build: {error}")
+        panic!("legacy response batch without `{column_name}` should build: {error}")
     })
 }
