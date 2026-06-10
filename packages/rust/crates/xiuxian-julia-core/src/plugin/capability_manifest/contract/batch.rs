@@ -305,6 +305,9 @@ fn normalize_optional_u64_array(
     if matches!(array.data_type(), DataType::Null) {
         return Ok(Arc::new(UInt64Array::from(vec![None::<u64>; row_count])) as ArrayRef);
     }
+    if let Some(values) = array.as_any().downcast_ref::<UnionArray>() {
+        return normalize_optional_u64_union(values, row_count, column_name);
+    }
     Err(manifest_contract_error(
         "response",
         format!(
@@ -312,6 +315,51 @@ fn normalize_optional_u64_array(
             array.data_type()
         ),
     ))
+}
+
+fn normalize_optional_u64_union(
+    array: &UnionArray,
+    row_count: usize,
+    column_name: &str,
+) -> Result<ArrayRef, RepoIntelligenceError> {
+    if !matches!(array.data_type(), DataType::Union(_, UnionMode::Dense)) {
+        return Err(manifest_contract_error(
+            "response",
+            format!(
+                "unsupported optional UInt64 column `{column_name}` data type `{}`",
+                array.data_type()
+            ),
+        ));
+    }
+
+    let mut values = Vec::with_capacity(row_count);
+    for row in 0..row_count {
+        let type_id = array.type_id(row);
+        let offset = array.value_offset(row);
+        let child = array.child(type_id);
+        match child.data_type() {
+            DataType::Null => values.push(None),
+            DataType::UInt64 => {
+                let integers = child
+                    .as_any()
+                    .downcast_ref::<UInt64Array>()
+                    .ok_or_else(|| {
+                        manifest_contract_error("response", "`UInt64` child must downcast")
+                    })?;
+                values.push((!integers.is_null(offset)).then(|| integers.value(offset)));
+            }
+            data_type => {
+                return Err(manifest_contract_error(
+                    "response",
+                    format!(
+                        "unsupported optional UInt64 column `{column_name}` union child `{type_id}` data type `{data_type}`",
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(Arc::new(UInt64Array::from(values)) as ArrayRef)
 }
 
 fn normalize_optional_utf8_array(
