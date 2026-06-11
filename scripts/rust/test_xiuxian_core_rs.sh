@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cargo_bin="${CARGO_BIN:-${script_dir}/cargo_exec.sh}"
+run_cargo() {
+  if [[ -n ${CARGO_BIN:-} ]]; then
+    "${CARGO_BIN}" "$@"
+  else
+    direnv exec . cargo "$@"
+  fi
+}
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "${ROOT_DIR}"
 
@@ -53,9 +58,9 @@ case "$(uname -s)" in
 Darwin)
   DYLD_INSERT_LIBRARIES="${PYLIB_PATH}" \
     CARGO_TARGET_DIR="${TARGET_DIR}" \
-    "${cargo_bin}" test -p xiuxian-core-rs "$@"
+    run_cargo test -p xiuxian-core-rs "$@"
   ;;
 *)
-  CARGO_TARGET_DIR="${TARGET_DIR}" "${cargo_bin}" test -p xiuxian-core-rs "$@"
+  CARGO_TARGET_DIR="${TARGET_DIR}" run_cargo test -p xiuxian-core-rs "$@"
   ;;
 esac

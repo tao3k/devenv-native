@@ -85,13 +85,13 @@ Default behavior remains non-persistent unless explicitly enabled.
 
 Validated with `cargo nextest`:
 
-- `scripts/rust/cargo_exec.sh nextest run -p xiuxian-daochang --test config_settings`
-- `scripts/rust/cargo_exec.sh nextest run -p xiuxian-daochang --test channels_managed_commands`
-- `scripts/rust/cargo_exec.sh nextest run -p xiuxian-daochang --test test_support_parsers`
-- `scripts/rust/cargo_exec.sh nextest run -p xiuxian-daochang --lib runtime_handle_inbound_session_scope_alias_updates_mode`
-- `scripts/rust/cargo_exec.sh nextest run -p xiuxian-daochang --lib process_discord_message_handles_scope_alias_and_updates_mode`
-- `scripts/rust/cargo_exec.sh nextest run -p xiuxian-daochang --lib runtime_handle_inbound_session_partition_status_and_toggle`
-- `scripts/rust/cargo_exec.sh clippy -p xiuxian-daochang -- -W clippy::too_many_lines`
+- `direnv exec . cargo nextest run -p xiuxian-daochang --test config_settings`
+- `direnv exec . cargo nextest run -p xiuxian-daochang --test channels_managed_commands`
+- `direnv exec . cargo nextest run -p xiuxian-daochang --test test_support_parsers`
+- `direnv exec . cargo nextest run -p xiuxian-daochang --lib runtime_handle_inbound_session_scope_alias_updates_mode`
+- `direnv exec . cargo nextest run -p xiuxian-daochang --lib process_discord_message_handles_scope_alias_and_updates_mode`
+- `direnv exec . cargo nextest run -p xiuxian-daochang --lib runtime_handle_inbound_session_partition_status_and_toggle`
+- `direnv exec . cargo clippy -p xiuxian-daochang -- -W clippy::too_many_lines`
 
 ### 4.3 Live Webhook Validation
 

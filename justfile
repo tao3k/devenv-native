@@ -923,7 +923,7 @@ rust-test-layout:
 [group('validate')]
 rust-clippy:
     @echo "Running Rust clippy across the full workspace (warnings denied)..."
-    @CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" scripts/rust/cargo_exec.sh clippy --workspace -- -D warnings
+    @CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" direnv exec . cargo clippy --workspace -- -D warnings
 
 [group('validate')]
 rust-nextest:
@@ -933,7 +933,7 @@ rust-nextest:
         echo "Install with: nix profile add nixpkgs#cargo-nextest"; \
         exit 1; \
     fi
-    @CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" scripts/rust/cargo_exec.sh nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast
+    @CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" direnv exec . cargo nextest run --workspace --exclude xiuxian-core-rs --no-fail-fast
 
 [group('validate')]
 rust-security-audit:
@@ -953,7 +953,7 @@ rust-security-deny:
         echo "Install with: nix profile add nixpkgs#cargo-deny"; \
         exit 1; \
     fi
-    @scripts/rust/cargo_exec.sh deny check advisories bans sources
+    @direnv exec . cargo deny check advisories bans sources
 
 [group('validate')]
 rust-security-gate: rust-security-audit rust-security-deny
@@ -1030,12 +1030,12 @@ rust-retrieval-audits:
 [group('validate')]
 rust-wendao-performance-quick:
     @echo "Running Wendao performance quick gate via nextest..."
-    @RUNNER_OS="{{ xiuxian_wendao_runner_os }}" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" scripts/rust/cargo_exec.sh nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "not ({{ xiuxian_wendao_gateway_formal_filter }})"
+    @RUNNER_OS="{{ xiuxian_wendao_runner_os }}" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" direnv exec . cargo nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "not ({{ xiuxian_wendao_gateway_formal_filter }})"
 
 [group('validate')]
 rust-wendao-performance-gateway-formal:
     @echo "Running Wendao formal gateway warm-cache perf cases..."
-    @RUNNER_OS="{{ xiuxian_wendao_runner_os }}" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" scripts/rust/cargo_exec.sh nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "{{ xiuxian_wendao_gateway_formal_filter }}"
+    @RUNNER_OS="{{ xiuxian_wendao_runner_os }}" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" direnv exec . cargo nextest run -p xiuxian-wendao --features performance --test wendao-validation-gate -E "{{ xiuxian_wendao_gateway_formal_filter }}"
 
 [group('validate')]
 wendao-gateway-perf-summary:
@@ -1059,7 +1059,7 @@ wendao-gateway-perf-summary-real-workspace:
 [group('validate')]
 rust-wendao-performance-gateway-real-workspace:
     @echo "Running Wendao manual real-workspace gateway perf samples..."
-    @RUNNER_OS="{{ xiuxian_wendao_runner_os }}" XIUXIAN_WENDAO_GATEWAY_PERF_WORKSPACE_ROOT="${XIUXIAN_WENDAO_GATEWAY_PERF_WORKSPACE_ROOT:-.data/wendao-frontend}" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" scripts/rust/cargo_exec.sh test -p xiuxian-wendao --features performance --test wendao-validation-gate real_workspace -- --ignored --nocapture
+    @RUNNER_OS="{{ xiuxian_wendao_runner_os }}" XIUXIAN_WENDAO_GATEWAY_PERF_WORKSPACE_ROOT="${XIUXIAN_WENDAO_GATEWAY_PERF_WORKSPACE_ROOT:-.data/wendao-frontend}" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" direnv exec . cargo test -p xiuxian-wendao --features performance --test wendao-validation-gate real_workspace -- --ignored --nocapture
     @just wendao-gateway-perf-summary-real-workspace
 
 [group('validate')]
@@ -1070,7 +1070,7 @@ rust-wendao-performance-gate:
 [group('validate')]
 rust-wendao-performance-stress:
     @echo "Running Wendao performance stress gate (ignored-only) via nextest..."
-    @CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" scripts/rust/cargo_exec.sh nextest run -p xiuxian-wendao --features "performance performance-stress" --test wendao-validation-gate --run-ignored ignored-only
+    @CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" direnv exec . cargo nextest run -p xiuxian-wendao --features "performance performance-stress" --test wendao-validation-gate --run-ignored ignored-only
 
 [group('validate')]
 rust-wendao-performance-bench:
@@ -1084,14 +1084,14 @@ rust-wendao-performance-bench-fast:
       CARGO_PROFILE_BENCH_CODEGEN_UNITS="${CARGO_PROFILE_BENCH_CODEGEN_UNITS:-16}" \
       CARGO_PROFILE_BENCH_DEBUG="${CARGO_PROFILE_BENCH_DEBUG:-0}" \
       CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}" \
-      scripts/rust/cargo_exec.sh bench -p xiuxian-wendao --features performance --bench wendao_performance --no-run
+      direnv exec . cargo bench -p xiuxian-wendao --features performance --bench wendao_performance --no-run
 
 # KG cache (xiuxian-wendao) and Lance storage-shell cache tests.
 [group('validate')]
 rust-test-cache:
     @echo "Running Rust cache tests (test_kg_cache, vector storage search_cache)..."
-    @scripts/rust/cargo_exec.sh test -p xiuxian-wendao --test test_kg_cache -- --test-threads=1
-    @scripts/rust/cargo_exec.sh test -p xiuxian-vector --test test_search_cache -- --test-threads=1
+    @direnv exec . cargo test -p xiuxian-wendao --test test_kg_cache -- --test-threads=1
+    @direnv exec . cargo test -p xiuxian-vector --test test_search_cache -- --test-threads=1
 
 [group('validate')]
 test:
@@ -1535,7 +1535,7 @@ generate-bindings:
 [group('dev')]
 clean-rust:
     @echo "Cleaning Rust build artifacts via cargo clean..."
-    @scripts/rust/cargo_exec.sh clean
+    @direnv exec . cargo clean
     @echo "Rust build artifacts cleaned"
 
 [group('dev')]
@@ -1879,7 +1879,7 @@ build-rust-dev:
 
     # maturin develop uses debug build by default (much faster than release)
     # First cargo build, then install
-    "${root_dir}/scripts/rust/cargo_exec.sh" build && maturin develop
+    direnv exec . cargo build && maturin develop
 
     echo "✅ Rust debug library installed to venv"
 
