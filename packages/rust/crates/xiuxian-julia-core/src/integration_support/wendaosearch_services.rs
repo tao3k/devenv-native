@@ -1,7 +1,9 @@
 //! Process-managed `WendaoSearch` services used by integration tests.
 
+use std::collections::HashSet;
 use std::env;
 use std::process::{Command, Stdio};
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
 use serde_json::json;
@@ -48,6 +50,10 @@ pub use types::{
 
 const WENDAOSEARCH_SOLVER_DEMO_BASE_URL_ENV: &str = "WENDAOSEARCH_SOLVER_DEMO_BASE_URL";
 const WENDAOSEARCH_SOLVER_DEMO_READY_TIMEOUT_SECS: u64 = 90;
+const WENDAOSEARCH_SOLVER_DEMO_READY_ATTEMPTS_ENV: &str = "WENDAOSEARCH_SOLVER_DEMO_READY_ATTEMPTS";
+const WENDAOSEARCH_SOLVER_DEMO_READY_ATTEMPTS_DEFAULT: usize = 180;
+
+static EXTERNAL_SOLVER_DEMO_READY_URLS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 
 /// Spawns the managed `WendaoSearch` structural-rerank service in `demo`
 /// mode.
@@ -350,13 +356,41 @@ fn configured_solver_demo_base_url() -> Option<String> {
 }
 
 async fn wait_for_external_solver_demo_service(base_url: &str) {
-    wait_for_service_ready_with_attempts(base_url, 600)
+    let ready_urls = EXTERNAL_SOLVER_DEMO_READY_URLS.get_or_init(|| Mutex::new(HashSet::new()));
+    let already_ready = {
+        ready_urls
+            .lock()
+            .unwrap_or_else(|error| {
+                panic!("solver-demo readiness cache lock failure: {error}");
+            })
+            .contains(base_url)
+    };
+    if already_ready {
+        return;
+    }
+
+    wait_for_service_ready_with_attempts(base_url, wendaosearch_solver_demo_ready_attempts())
         .await
         .unwrap_or_else(|error| {
             panic!(
                 "wait for externally managed WendaoSearch solver-demo service readiness: {error}"
             )
         });
+
+    ready_urls
+        .lock()
+        .unwrap_or_else(|error| {
+            panic!("solver-demo readiness cache lock failure: {error}");
+        })
+        .insert(base_url.to_string());
+}
+
+fn wendaosearch_solver_demo_ready_attempts() -> usize {
+    env::var(WENDAOSEARCH_SOLVER_DEMO_READY_ATTEMPTS_ENV)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|attempts| *attempts > 0)
+        .unwrap_or(WENDAOSEARCH_SOLVER_DEMO_READY_ATTEMPTS_DEFAULT)
 }
 
 #[cfg(test)]
@@ -527,7 +561,7 @@ fn graph_structural_manifest_repository(base_url: &str) -> RegisteredRepository 
 }
 
 async fn spawn_wendaosearch_service(route_name: &str, mode: &str) -> (String, JuliaServiceGuard) {
-    spawn_wendaosearch_service_with_code_parser_routes(route_name, mode, &[], 600).await
+    spawn_wendaosearch_service_with_code_parser_routes(route_name, mode, &[], 120).await
 }
 
 async fn spawn_wendaosearch_service_with_code_parser_routes(
@@ -608,7 +642,7 @@ async fn spawn_wendaosearch_multi_route_service(mode: &str) -> (String, JuliaSer
         });
     let mut guard = JuliaServiceGuard::new(child);
 
-    wait_for_service_ready_with_attempts(base_url.as_str(), 600)
+    wait_for_service_ready_with_attempts(base_url.as_str(), 120)
         .await
         .unwrap_or_else(|error| {
             guard.kill();

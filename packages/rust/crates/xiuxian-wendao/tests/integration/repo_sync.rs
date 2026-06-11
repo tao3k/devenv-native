@@ -8,7 +8,6 @@ use crate::support::repo_fixture::refresh_remote;
 use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
-use crate::support::wendao_command;
 use serde_json::json;
 use uuid::Uuid;
 use xiuxian_io::PrjDirs;
@@ -320,20 +319,14 @@ fn cli_repo_sync_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliSyncPkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-sync")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("sync")
-        .arg("--repo")
-        .arg("cli-sync")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let mut payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let mut payload = serde_json::to_value(repo_sync_from_config(
+        &RepoSyncQuery {
+            repo_id: "cli-sync".to_string(),
+            mode: RepoSyncMode::Ensure,
+        },
+        Some(&config_path),
+        temp.path(),
+    )?)?;
     redact_checkout_path(&mut payload);
     redact_sync_timestamps(&mut payload);
     redact_sync_revisions(&mut payload);

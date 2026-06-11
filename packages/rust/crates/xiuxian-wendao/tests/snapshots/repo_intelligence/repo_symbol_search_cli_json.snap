@@ -1,37 +1,118 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
-assertion_line: 33
 expression: value
 ---
 {
   "repo_id": "cli-symbol",
+  "symbols": [
+    {
+      "repo_id": "cli-symbol",
+      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.Problem",
+      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+      "name": "Problem",
+      "qualified_name": "CliSymbolPkg.Problem",
+      "kind": "type",
+      "path": "src/CliSymbolPkg.jl",
+      "line_start": 11,
+      "line_end": 13,
+      "signature": "struct Problem",
+      "audit_status": "unreviewed",
+      "verification_state": "verified",
+      "attributes": {
+        "module_kind": "module",
+        "module_name": "CliSymbolPkg",
+        "module_path": "CliSymbolPkg",
+        "owner_kind": "module",
+        "owner_name": "CliSymbolPkg",
+        "owner_path": "CliSymbolPkg",
+        "parser_kind": "type",
+        "top_level": "true",
+        "type_kind": "struct"
+      }
+    },
+    {
+      "repo_id": "cli-symbol",
+      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
+      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+      "name": "ExtraProblem",
+      "qualified_name": "CliSymbolPkg.ExtraProblem",
+      "kind": "type",
+      "path": "src/nested/extra.jl",
+      "line_start": 5,
+      "line_end": 7,
+      "signature": "struct ExtraProblem",
+      "audit_status": "unreviewed",
+      "verification_state": "verified",
+      "attributes": {
+        "parser_kind": "type",
+        "top_level": "true",
+        "type_kind": "struct"
+      }
+    },
+    {
+      "repo_id": "cli-symbol",
+      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
+      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+      "name": "fastsolve",
+      "qualified_name": "CliSymbolPkg.fastsolve",
+      "kind": "function",
+      "path": "src/solvers.jl",
+      "line_start": 5,
+      "line_end": 5,
+      "signature": "fastsolve(problem::Problem) = problem.x",
+      "audit_status": "unreviewed",
+      "verification_state": "verified",
+      "attributes": {
+        "function_has_varargs": "false",
+        "function_keyword_arity": "0",
+        "function_positional_arity": "1",
+        "parser_kind": "function",
+        "top_level": "true"
+      }
+    },
+    {
+      "repo_id": "cli-symbol",
+      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.solve",
+      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+      "name": "solve",
+      "qualified_name": "CliSymbolPkg.solve",
+      "kind": "function",
+      "path": "src/CliSymbolPkg.jl",
+      "line_start": 18,
+      "line_end": 20,
+      "signature": "solve(problem::Problem)",
+      "audit_status": "unreviewed",
+      "verification_state": "verified",
+      "attributes": {
+        "function_has_varargs": "false",
+        "function_keyword_arity": "0",
+        "function_positional_arity": "1",
+        "module_kind": "module",
+        "module_name": "CliSymbolPkg",
+        "module_path": "CliSymbolPkg",
+        "owner_kind": "module",
+        "owner_name": "CliSymbolPkg",
+        "owner_path": "CliSymbolPkg",
+        "parser_kind": "function",
+        "top_level": "true"
+      }
+    }
+  ],
   "symbol_hits": [
     {
-      "audit_status": "unreviewed",
-      "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:CliSymbolPkg.jl/repo:cli-symbol:symbol:CliSymbolPkg.Problem",
-      "hierarchy": [
-        "src",
-        "CliSymbolPkg.jl"
-      ],
-      "implicit_backlink_items": [
-        {
-          "id": "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem",
-          "kind": "documents",
-          "path": "src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem",
-          "title": "Problem"
-        }
-      ],
-      "implicit_backlinks": [
-        "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem"
-      ],
-      "projection_page_ids": [
-        "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem",
-        "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.Problem"
-      ],
-      "rank": 1,
-      "saliency_score": 1.0,
-      "score": 1.0,
       "symbol": {
+        "repo_id": "cli-symbol",
+        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.Problem",
+        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+        "name": "Problem",
+        "qualified_name": "CliSymbolPkg.Problem",
+        "kind": "type",
+        "path": "src/CliSymbolPkg.jl",
+        "line_start": 11,
+        "line_end": 13,
+        "signature": "struct Problem",
+        "audit_status": "unreviewed",
+        "verification_state": "verified",
         "attributes": {
           "module_kind": "module",
           "module_name": "CliSymbolPkg",
@@ -42,143 +123,143 @@ expression: value
           "parser_kind": "type",
           "top_level": "true",
           "type_kind": "struct"
-        },
-        "audit_status": "unreviewed",
-        "kind": "type",
-        "line_end": 13,
-        "line_start": 11,
-        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-        "name": "Problem",
-        "path": "src/CliSymbolPkg.jl",
-        "qualified_name": "CliSymbolPkg.Problem",
-        "repo_id": "cli-symbol",
-        "signature": "struct Problem",
-        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.Problem",
-        "verification_state": "verified"
+        }
       },
+      "score": 1.0,
+      "rank": 1,
+      "saliency_score": 1.0,
+      "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:CliSymbolPkg.jl/repo:cli-symbol:symbol:CliSymbolPkg.Problem",
+      "hierarchy": [
+        "src",
+        "CliSymbolPkg.jl"
+      ],
+      "implicit_backlinks": [
+        "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem",
+          "title": "Problem",
+          "path": "src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem",
+          "kind": "documents"
+        }
+      ],
+      "projection_page_ids": [
+        "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.Problem",
+        "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.Problem"
+      ],
+      "audit_status": "unreviewed",
       "verification_state": "verified"
     },
     {
-      "audit_status": "unreviewed",
+      "symbol": {
+        "repo_id": "cli-symbol",
+        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
+        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+        "name": "ExtraProblem",
+        "qualified_name": "CliSymbolPkg.ExtraProblem",
+        "kind": "type",
+        "path": "src/nested/extra.jl",
+        "line_start": 5,
+        "line_end": 7,
+        "signature": "struct ExtraProblem",
+        "audit_status": "unreviewed",
+        "verification_state": "verified",
+        "attributes": {
+          "parser_kind": "type",
+          "top_level": "true",
+          "type_kind": "struct"
+        }
+      },
+      "score": 0.5,
+      "rank": 2,
+      "saliency_score": 1.0,
       "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:nested:extra.jl/repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
       "hierarchy": [
         "src",
         "nested",
         "extra.jl"
       ],
+      "implicit_backlinks": [
+        "repo:cli-symbol:doc:src/nested/extra.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem"
+      ],
       "implicit_backlink_items": [
         {
           "id": "repo:cli-symbol:doc:src/nested/extra.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
-          "kind": "documents",
+          "title": "ExtraProblem",
           "path": "src/nested/extra.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
-          "title": "ExtraProblem"
+          "kind": "documents"
         }
-      ],
-      "implicit_backlinks": [
-        "repo:cli-symbol:doc:src/nested/extra.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem"
       ],
       "projection_page_ids": [
         "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/nested/extra.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
         "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem"
       ],
-      "rank": 2,
-      "saliency_score": 1.0,
-      "score": 0.5,
-      "symbol": {
-        "attributes": {
-          "parser_kind": "type",
-          "top_level": "true",
-          "type_kind": "struct"
-        },
-        "audit_status": "unreviewed",
-        "kind": "type",
-        "line_end": 7,
-        "line_start": 5,
-        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-        "name": "ExtraProblem",
-        "path": "src/nested/extra.jl",
-        "qualified_name": "CliSymbolPkg.ExtraProblem",
-        "repo_id": "cli-symbol",
-        "signature": "struct ExtraProblem",
-        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
-        "verification_state": "verified"
-      },
+      "audit_status": "unreviewed",
       "verification_state": "verified"
     },
     {
-      "audit_status": "unreviewed",
-      "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:solvers.jl/repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
-      "hierarchy": [
-        "src",
-        "solvers.jl"
-      ],
-      "implicit_backlink_items": [
-        {
-          "id": "repo:cli-symbol:doc:src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
-          "kind": "documents",
-          "path": "src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
-          "title": "fastsolve"
-        }
-      ],
-      "implicit_backlinks": [
-        "repo:cli-symbol:doc:src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve"
-      ],
-      "projection_page_ids": [
-        "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
-        "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve"
-      ],
-      "rank": 3,
-      "saliency_score": 1.0,
-      "score": 0.25,
       "symbol": {
+        "repo_id": "cli-symbol",
+        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
+        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+        "name": "fastsolve",
+        "qualified_name": "CliSymbolPkg.fastsolve",
+        "kind": "function",
+        "path": "src/solvers.jl",
+        "line_start": 5,
+        "line_end": 5,
+        "signature": "fastsolve(problem::Problem) = problem.x",
+        "audit_status": "unreviewed",
+        "verification_state": "verified",
         "attributes": {
           "function_has_varargs": "false",
           "function_keyword_arity": "0",
           "function_positional_arity": "1",
           "parser_kind": "function",
           "top_level": "true"
-        },
-        "audit_status": "unreviewed",
-        "kind": "function",
-        "line_end": 5,
-        "line_start": 5,
-        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-        "name": "fastsolve",
-        "path": "src/solvers.jl",
-        "qualified_name": "CliSymbolPkg.fastsolve",
-        "repo_id": "cli-symbol",
-        "signature": "fastsolve(problem::Problem) = problem.x",
-        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
-        "verification_state": "verified"
+        }
       },
-      "verification_state": "verified"
-    },
-    {
-      "audit_status": "unreviewed",
-      "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:CliSymbolPkg.jl/repo:cli-symbol:symbol:CliSymbolPkg.solve",
+      "score": 0.25,
+      "rank": 3,
+      "saliency_score": 1.0,
+      "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:solvers.jl/repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
       "hierarchy": [
         "src",
-        "CliSymbolPkg.jl"
+        "solvers.jl"
+      ],
+      "implicit_backlinks": [
+        "repo:cli-symbol:doc:src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve"
       ],
       "implicit_backlink_items": [
         {
-          "id": "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve",
-          "kind": "documents",
-          "path": "src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve",
-          "title": "solve"
+          "id": "repo:cli-symbol:doc:src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
+          "title": "fastsolve",
+          "path": "src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
+          "kind": "documents"
         }
       ],
-      "implicit_backlinks": [
-        "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve"
-      ],
       "projection_page_ids": [
-        "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve",
-        "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.solve"
+        "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/solvers.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
+        "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.fastsolve"
       ],
-      "rank": 4,
-      "saliency_score": 1.0,
-      "score": 0.25,
+      "audit_status": "unreviewed",
+      "verification_state": "verified"
+    },
+    {
       "symbol": {
+        "repo_id": "cli-symbol",
+        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.solve",
+        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
+        "name": "solve",
+        "qualified_name": "CliSymbolPkg.solve",
+        "kind": "function",
+        "path": "src/CliSymbolPkg.jl",
+        "line_start": 18,
+        "line_end": 20,
+        "signature": "solve(problem::Problem)",
+        "audit_status": "unreviewed",
+        "verification_state": "verified",
         "attributes": {
           "function_has_varargs": "false",
           "function_keyword_arity": "0",
@@ -191,114 +272,32 @@ expression: value
           "owner_path": "CliSymbolPkg",
           "parser_kind": "function",
           "top_level": "true"
-        },
-        "audit_status": "unreviewed",
-        "kind": "function",
-        "line_end": 20,
-        "line_start": 18,
-        "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-        "name": "solve",
-        "path": "src/CliSymbolPkg.jl",
-        "qualified_name": "CliSymbolPkg.solve",
-        "repo_id": "cli-symbol",
-        "signature": "solve(problem::Problem)",
-        "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.solve",
-        "verification_state": "verified"
+        }
       },
-      "verification_state": "verified"
-    }
-  ],
-  "symbols": [
-    {
-      "attributes": {
-        "module_kind": "module",
-        "module_name": "CliSymbolPkg",
-        "module_path": "CliSymbolPkg",
-        "owner_kind": "module",
-        "owner_name": "CliSymbolPkg",
-        "owner_path": "CliSymbolPkg",
-        "parser_kind": "type",
-        "top_level": "true",
-        "type_kind": "struct"
-      },
+      "score": 0.25,
+      "rank": 4,
+      "saliency_score": 1.0,
+      "hierarchical_uri": "wendao://repo/unknown/cli-symbol/api/src:CliSymbolPkg.jl/repo:cli-symbol:symbol:CliSymbolPkg.solve",
+      "hierarchy": [
+        "src",
+        "CliSymbolPkg.jl"
+      ],
+      "implicit_backlinks": [
+        "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve"
+      ],
+      "implicit_backlink_items": [
+        {
+          "id": "repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve",
+          "title": "solve",
+          "path": "src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve",
+          "kind": "documents"
+        }
+      ],
+      "projection_page_ids": [
+        "repo:cli-symbol:projection:reference:doc:repo:cli-symbol:doc:src/CliSymbolPkg.jl#symbol-id:repo:cli-symbol:symbol:CliSymbolPkg.solve",
+        "repo:cli-symbol:projection:reference:symbol:repo:cli-symbol:symbol:CliSymbolPkg.solve"
+      ],
       "audit_status": "unreviewed",
-      "kind": "type",
-      "line_end": 13,
-      "line_start": 11,
-      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-      "name": "Problem",
-      "path": "src/CliSymbolPkg.jl",
-      "qualified_name": "CliSymbolPkg.Problem",
-      "repo_id": "cli-symbol",
-      "signature": "struct Problem",
-      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.Problem",
-      "verification_state": "verified"
-    },
-    {
-      "attributes": {
-        "parser_kind": "type",
-        "top_level": "true",
-        "type_kind": "struct"
-      },
-      "audit_status": "unreviewed",
-      "kind": "type",
-      "line_end": 7,
-      "line_start": 5,
-      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-      "name": "ExtraProblem",
-      "path": "src/nested/extra.jl",
-      "qualified_name": "CliSymbolPkg.ExtraProblem",
-      "repo_id": "cli-symbol",
-      "signature": "struct ExtraProblem",
-      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.ExtraProblem",
-      "verification_state": "verified"
-    },
-    {
-      "attributes": {
-        "function_has_varargs": "false",
-        "function_keyword_arity": "0",
-        "function_positional_arity": "1",
-        "parser_kind": "function",
-        "top_level": "true"
-      },
-      "audit_status": "unreviewed",
-      "kind": "function",
-      "line_end": 5,
-      "line_start": 5,
-      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-      "name": "fastsolve",
-      "path": "src/solvers.jl",
-      "qualified_name": "CliSymbolPkg.fastsolve",
-      "repo_id": "cli-symbol",
-      "signature": "fastsolve(problem::Problem) = problem.x",
-      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.fastsolve",
-      "verification_state": "verified"
-    },
-    {
-      "attributes": {
-        "function_has_varargs": "false",
-        "function_keyword_arity": "0",
-        "function_positional_arity": "1",
-        "module_kind": "module",
-        "module_name": "CliSymbolPkg",
-        "module_path": "CliSymbolPkg",
-        "owner_kind": "module",
-        "owner_name": "CliSymbolPkg",
-        "owner_path": "CliSymbolPkg",
-        "parser_kind": "function",
-        "top_level": "true"
-      },
-      "audit_status": "unreviewed",
-      "kind": "function",
-      "line_end": 20,
-      "line_start": 18,
-      "module_id": "repo:cli-symbol:module:CliSymbolPkg",
-      "name": "solve",
-      "path": "src/CliSymbolPkg.jl",
-      "qualified_name": "CliSymbolPkg.solve",
-      "repo_id": "cli-symbol",
-      "signature": "solve(problem::Problem)",
-      "symbol_id": "repo:cli-symbol:symbol:CliSymbolPkg.solve",
       "verification_state": "verified"
     }
   ]

@@ -125,6 +125,12 @@ pub(crate) fn wendaosearch_julia_project() -> PathBuf {
         .unwrap_or_else(|error| panic!("resolve WendaoSearch Julia project dir: {error}"))
 }
 
+const WENDAOSEARCH_SERVICE_READY_DELAY_MILLIS_ENV: &str = "WENDAOSEARCH_SERVICE_READY_DELAY_MILLIS";
+const WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS_ENV: &str =
+    "WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS";
+const WENDAOSEARCH_SERVICE_READY_RETRY_DELAY_MILLIS: u64 = 100;
+const WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS: u64 = 30_000;
+
 pub(crate) fn wendaocodeparser_package_dir() -> PathBuf {
     if let Some(configured) = env::var_os("WENDAO_CODE_PARSER_PACKAGE_DIR") {
         return resolve_existing_path("WendaoCodeParser package dir", configured);
@@ -335,20 +341,64 @@ pub(crate) async fn wait_for_service_ready_with_attempts(
     base_url: &str,
     attempts: usize,
 ) -> Result<(), String> {
+    let timeout_millis = service_ready_max_wait_millis(attempts);
+    let base_delay_millis = service_ready_retry_delay_millis();
+    let start = std::time::Instant::now();
+
     let socket_addr = base_url
         .strip_prefix("http://")
         .or_else(|| base_url.strip_prefix("https://"))
         .unwrap_or(base_url)
         .to_string();
 
-    for _ in 0..attempts {
+    let mut delay_millis = base_delay_millis;
+    for attempt in 0..attempts {
         if TcpStream::connect(&socket_addr).await.is_ok() {
             return Ok(());
         }
-        sleep(Duration::from_millis(200)).await;
+        if attempt + 1 >= attempts || start.elapsed().as_millis() >= u128::from(timeout_millis) {
+            break;
+        }
+
+        sleep(Duration::from_millis(delay_millis)).await;
+        delay_millis = (delay_millis.saturating_mul(2)).min(1_000);
     }
 
-    Err("real Julia Flight service did not become ready in time".to_string())
+    Err(format!(
+        "real Julia Flight service did not become ready in time after {:?} with {} attempts",
+        start.elapsed(),
+        attempts,
+    ))
+}
+
+fn service_ready_max_wait_millis(attempts: usize) -> u64 {
+    let delay_millis = parse_positive_u64_env(
+        WENDAOSEARCH_SERVICE_READY_DELAY_MILLIS_ENV,
+        WENDAOSEARCH_SERVICE_READY_RETRY_DELAY_MILLIS,
+    );
+    let attempts_based_millis = (attempts as u128)
+        .saturating_mul(delay_millis as u128)
+        .min(u128::from(u64::MAX / 2));
+    parse_positive_u64_env(
+        WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS_ENV,
+        WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS,
+    )
+    .min(attempts_based_millis as u64)
+}
+
+fn service_ready_retry_delay_millis() -> u64 {
+    parse_positive_u64_env(
+        WENDAOSEARCH_SERVICE_READY_DELAY_MILLIS_ENV,
+        WENDAOSEARCH_SERVICE_READY_RETRY_DELAY_MILLIS,
+    )
+}
+
+fn parse_positive_u64_env(name: &str, default: u64) -> u64 {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(default)
 }
 
 #[cfg(test)]

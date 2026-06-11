@@ -9,7 +9,7 @@ use toml::Value;
 
 use super::common::{
     ChildGuard, repo_root, reserve_test_port, wendaosearch_config, wendaosearch_julia_project,
-    wendaosearch_script,
+    wendaosearch_package_dir, wendaosearch_script,
 };
 
 pub(crate) const LIVE_SERVICE_STARTUP_TIMEOUT_SECS: u64 = 150;
@@ -132,6 +132,23 @@ pub(crate) async fn wait_for_service_ready_with_attempts(
     base_url: &str,
     attempts: usize,
 ) -> Result<(), String> {
+    if let Some((host, port)) = parse_base_url_host_port(base_url) {
+        for attempt in 0..attempts {
+            if service_tcp_ready(&host, port).await {
+                if let Ok(true) = probe_wendaosearch_service(&host, port).await {
+                    return Ok(());
+                }
+            }
+            if attempt + 1 == attempts {
+                break;
+            }
+            sleep(Duration::from_millis(200)).await;
+        }
+        return Err(
+            "real Julia WendaoSearch service did not become query-ready in time".to_string(),
+        );
+    }
+
     let socket_addr = base_url
         .strip_prefix("http://")
         .or_else(|| base_url.strip_prefix("https://"))
@@ -145,6 +162,63 @@ pub(crate) async fn wait_for_service_ready_with_attempts(
         sleep(Duration::from_millis(200)).await;
     }
     Err("real Julia Flight service did not become ready in time".to_string())
+}
+
+fn parse_base_url_host_port(base_url: &str) -> Option<(String, u16)> {
+    let socket_addr = base_url
+        .strip_prefix("http://")
+        .or_else(|| base_url.strip_prefix("https://"))
+        .unwrap_or(base_url);
+    let mut split = socket_addr.split(':');
+    let host = split.next()?.to_string();
+    let port = split.next()?.parse::<u16>().ok()?;
+    if split.next().is_some() {
+        return None;
+    }
+    Some((host, port))
+}
+
+async fn service_tcp_ready(host: &str, port: u16) -> bool {
+    TcpStream::connect(format!("{host}:{port}")).await.is_ok()
+}
+
+async fn probe_wendaosearch_service(host: &str, port: u16) -> Result<bool, String> {
+    if !wendaosearch_probe_script_available() {
+        return Ok(true);
+    }
+
+    let probe_script = wendaosearch_script("probe_search_service.jl");
+    let mut command = Command::new("julia");
+    command
+        .arg(format!(
+            "--project={}",
+            wendaosearch_julia_project().display()
+        ))
+        .arg(probe_script)
+        .arg("--route-name")
+        .arg("capability_manifest")
+        .arg("--host")
+        .arg(host)
+        .arg("--port")
+        .arg(port.to_string())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .current_dir(repo_root());
+
+    let output = command
+        .output()
+        .map_err(|error| format!("spawn WendaoSearch probe command: {error}"))?;
+
+    if output.status.success() {
+        return Ok(true);
+    }
+
+    Ok(false)
+}
+
+fn wendaosearch_probe_script_available() -> bool {
+    let probe_script = wendaosearch_package_dir().join("scripts/probe_search_service.jl");
+    probe_script.is_file()
 }
 
 pub(crate) fn reserve_real_service_port() -> u16 {
@@ -296,6 +370,15 @@ fn devenv_processes_command<const N: usize>(args: [&str; N]) -> Command {
 }
 
 async fn service_is_ready(base_url: &str) -> bool {
+    if let Some((host, port)) = parse_base_url_host_port(base_url) {
+        if !service_tcp_ready(&host, port).await {
+            return false;
+        }
+        return probe_wendaosearch_service(&host, port)
+            .await
+            .unwrap_or(false);
+    }
+
     let socket_addr = base_url
         .strip_prefix("http://")
         .or_else(|| base_url.strip_prefix("https://"))

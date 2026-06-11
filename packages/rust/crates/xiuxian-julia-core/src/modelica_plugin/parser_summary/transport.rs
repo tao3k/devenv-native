@@ -37,7 +37,8 @@ const PARSER_SUMMARY_TRANSPORT_KEY: &str = "parser_summary_transport";
 const DEFAULT_MODELICA_HEALTH_ROUTE: &str = "/healthz";
 const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";
 const PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
-const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 120;
+const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 30;
+const PARSER_SUMMARY_TIMEOUT_SECS_ENV: &str = "WENDAO_PARSER_SUMMARY_TIMEOUT_SECS";
 const DEFAULT_MODELICA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS: u64 = 1;
 
 fn resolve_parser_summary_base_url() -> String {
@@ -198,7 +199,15 @@ pub(crate) fn modelica_parser_summary_timeout_secs_for_repository(
     Ok(binding
         .endpoint
         .timeout_secs
-        .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS))
+        .unwrap_or(default_modelica_parser_summary_timeout_secs()))
+}
+
+fn default_modelica_parser_summary_timeout_secs() -> u64 {
+    std::env::var(PARSER_SUMMARY_TIMEOUT_SECS_ENV)
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS)
 }
 
 fn modelica_parser_summary_provider_selector() -> PluginProviderSelector {
@@ -263,7 +272,7 @@ fn parser_summary_transport_cache_key(
         timeout_secs: binding
             .endpoint
             .timeout_secs
-            .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS),
+            .unwrap_or(default_modelica_parser_summary_timeout_secs()),
         max_in_flight_requests: binding
             .endpoint
             .max_in_flight_requests
@@ -358,7 +367,7 @@ fn build_parser_summary_flight_transport_binding(
                 ),
             }
         })?,
-        None => DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS,
+        None => default_modelica_parser_summary_timeout_secs(),
     };
     let max_in_flight_requests = match options.max_in_flight_requests {
         Some(max_in_flight_requests) => {

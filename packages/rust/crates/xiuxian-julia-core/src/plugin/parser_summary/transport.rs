@@ -34,6 +34,7 @@ const DEFAULT_JULIA_HEALTH_ROUTE: &str = "/healthz";
 const DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK: &str = "http://127.0.0.1:41081";
 const PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
 const DEFAULT_JULIA_PARSER_SUMMARY_MAX_IN_FLIGHT_REQUESTS: u64 = 1;
+const PARSER_SUMMARY_TIMEOUT_SECS_ENV: &str = "WENDAO_PARSER_SUMMARY_TIMEOUT_SECS";
 
 fn resolve_parser_summary_base_url() -> String {
     std::env::var(PARSER_SUMMARY_BASE_URL_ENV)
@@ -41,7 +42,15 @@ fn resolve_parser_summary_base_url() -> String {
         .filter(|v| !v.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL_FALLBACK.to_string())
 }
-const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 120;
+const DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS: u64 = 30;
+
+fn julia_parser_summary_timeout_secs_default() -> u64 {
+    std::env::var(PARSER_SUMMARY_TIMEOUT_SECS_ENV)
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|seconds| *seconds > 0)
+        .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS)
+}
 
 pub(crate) const JULIA_PARSER_SUMMARY_SCHEMA_VERSION: &str = "v3";
 
@@ -217,7 +226,7 @@ pub(crate) fn julia_parser_summary_timeout_secs_for_repository(
     Ok(binding
         .endpoint
         .timeout_secs
-        .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS))
+        .unwrap_or(julia_parser_summary_timeout_secs_default()))
 }
 
 fn julia_parser_summary_client_cache()
@@ -271,7 +280,7 @@ fn parser_summary_transport_cache_key(
         timeout_secs: binding
             .endpoint
             .timeout_secs
-            .unwrap_or(DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS),
+            .unwrap_or(julia_parser_summary_timeout_secs_default()),
         max_in_flight_requests: binding
             .endpoint
             .max_in_flight_requests
@@ -357,6 +366,7 @@ fn build_parser_summary_flight_transport_binding(
         )?,
         None => JULIA_PARSER_SUMMARY_SCHEMA_VERSION.to_string(),
     };
+
     let timeout_secs = match options.timeout_secs {
         Some(timeout_secs) => validate_flight_timeout_secs(timeout_secs).map_err(|error| {
             RepoIntelligenceError::ConfigLoad {
@@ -367,7 +377,7 @@ fn build_parser_summary_flight_transport_binding(
                 ),
             }
         })?,
-        None => DEFAULT_PARSER_SUMMARY_TIMEOUT_SECS,
+        None => julia_parser_summary_timeout_secs_default(),
     };
     let max_in_flight_requests = match options.max_in_flight_requests {
         Some(max_in_flight_requests) => {

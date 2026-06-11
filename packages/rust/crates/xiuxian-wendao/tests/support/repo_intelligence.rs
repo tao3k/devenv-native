@@ -10,7 +10,7 @@ use xiuxian_julia_core::integration_support::{
 };
 use xiuxian_wendao::analyzers::{
     DocRecord, ModuleRecord, RelationKind, RelationRecord, RepoSymbolKind,
-    RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord,
+    RepositoryAnalysisOutput, RepositoryRecord, SymbolRecord, analyze_repository_from_config,
 };
 
 use super::repo_fixture;
@@ -18,6 +18,11 @@ use super::repo_parser_summary;
 use repo_parser_summary::{FakeParserSummaryServiceGuard, spawn_fake_julia_parser_summary_service};
 
 pub type TestResultPath = repo_fixture::TestResultPath;
+
+const WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY: &str =
+    "WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY";
+const WENDAO_INTELLIGENCE_FORCE_REAL_PARSER_SUMMARY: &str =
+    "WENDAO_INTELLIGENCE_FORCE_REAL_PARSER_SUMMARY";
 
 struct RepoIntelligenceParserSummaryService {
     base_url: String,
@@ -36,6 +41,72 @@ enum RepoIntelligenceParserSummaryGuard {
 static REPO_INTELLIGENCE_PARSER_SUMMARY_SERVICE: OnceLock<
     Result<RepoIntelligenceParserSummaryService, String>,
 > = OnceLock::new();
+static REPO_ANALYSIS_CACHE: OnceLock<
+    Mutex<BTreeMap<String, Result<RepositoryAnalysisOutput, String>>>,
+> = OnceLock::new();
+static REPO_INTELLIGENCE_PARSER_SUMMARY_TEST_FAKE: OnceLock<bool> = OnceLock::new();
+
+fn preserve_fast_fake_parser_summary_for_tests() -> bool {
+    *REPO_INTELLIGENCE_PARSER_SUMMARY_TEST_FAKE.get_or_init(|| {
+        if std::env::var_os(WENDAO_INTELLIGENCE_FORCE_REAL_PARSER_SUMMARY).is_some() {
+            return false;
+        }
+        if std::env::var_os(WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY).is_some() {
+            return true;
+        }
+
+        true
+    })
+}
+
+fn io_error_to_box(error: impl std::fmt::Display) -> Box<dyn std::error::Error> {
+    Box::new(IoError::other(error.to_string()))
+}
+
+fn repo_analysis_cache()
+-> &'static Mutex<BTreeMap<String, Result<RepositoryAnalysisOutput, String>>> {
+    REPO_ANALYSIS_CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn cache_key_for_analysis(repo_id: &str, config_path: Option<&Path>, cwd: &Path) -> String {
+    let cache_path = config_path
+        .and_then(|path| path.canonicalize().ok())
+        .or_else(|| cwd.canonicalize().ok())
+        .unwrap_or_else(|| {
+            config_path
+                .map(|path| path.to_path_buf())
+                .unwrap_or_else(|| cwd.to_path_buf())
+        });
+    format!(
+        "repo-analysis|repo:{}|config:{}",
+        repo_id,
+        cache_path.display(),
+    )
+}
+
+pub fn analyze_repository_from_config_cached(
+    repo_id: &str,
+    config_path: Option<&Path>,
+    cwd: &Path,
+) -> Result<RepositoryAnalysisOutput, Box<dyn std::error::Error>> {
+    preserve_fast_fake_parser_summary_for_tests();
+    let mut cache = repo_analysis_cache()
+        .lock()
+        .map_err(|error| io_error_to_box(format!("repo analysis cache lock failed: {error}")))?;
+    let key = cache_key_for_analysis(repo_id, config_path, cwd);
+    if let Some(cached) = cache.get(&key) {
+        return cached
+            .as_ref()
+            .map(|value| value.clone())
+            .map_err(|error| io_error_to_box(error.clone()));
+    }
+
+    let output = analyze_repository_from_config(repo_id, config_path, cwd)
+        .map_err(|error| io_error_to_box(error.to_string()))?;
+    cache.insert(key, Ok(output.clone()));
+
+    Ok(output)
+}
 
 pub fn create_sample_julia_repo(
     base: &Path,
@@ -43,6 +114,20 @@ pub fn create_sample_julia_repo(
     expected_root: bool,
 ) -> TestResultPath {
     repo_fixture::create_sample_julia_repo(base, package_name, expected_root)
+}
+
+pub fn create_cached_sample_julia_repo(
+    fixture_name: &str,
+    package_name: &str,
+    expected_root: bool,
+    extra_files: &[(&str, &str)],
+) -> TestResultPath {
+    repo_fixture::create_cached_sample_julia_repo(
+        fixture_name,
+        package_name,
+        expected_root,
+        extra_files,
+    )
 }
 
 pub fn create_sample_modelica_repo(base: &Path, package_name: &str) -> TestResultPath {
@@ -60,6 +145,7 @@ pub fn assert_repo_json_snapshot(name: &str, value: impl Serialize) {
 }
 
 pub fn write_repo_config(base: &Path, repo_dir: &Path, repo_id: &str) -> TestResultPath {
+    preserve_fast_fake_parser_summary_for_tests();
     let parser_summary_base_url = repo_intelligence_parser_summary_base_url()?;
     let config_path = base.join(format!("{repo_id}.wendao.toml"));
     fs::write(
@@ -118,6 +204,12 @@ fn spawn_repo_intelligence_parser_summary_service()
 }
 
 fn real_repo_intelligence_parser_summary_service_is_available() -> bool {
+    if preserve_fast_fake_parser_summary_for_tests() {
+        return false;
+    }
+    if std::env::var_os(WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY).is_some() {
+        return false;
+    }
     std::env::var_os("WENDAO_CODE_PARSER_PACKAGE_DIR")
         .filter(|value| !value.is_empty())
         .is_some_and(|path| Path::new(&path).exists())
