@@ -6,10 +6,9 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Value, json};
 use walkdir::WalkDir;
-use xiuxian_code_intelligence::{CodeLanguageId, count_code_pattern_matches_for_language_id};
 use xiuxian_wendao::parsers::markdown::{CodeObservation, is_supported_note, parse_note};
 use xiuxian_wendao::zhenfa_router::native::audit::{
-    SourceFile, resolve_source_files, suggest_pattern_fix_with_threshold,
+    CodeLanguageId, SourceFile, resolve_source_files, suggest_pattern_fix_with_threshold,
 };
 use xiuxian_wendao::zhenfa_router::native::semantic_check::{FuzzySuggestionData, SemanticIssue};
 
@@ -37,10 +36,10 @@ impl ScenarioRunner for SemanticCheckRunner {
 
         for doc in &docs {
             for (node_id, observation) in &doc.observations {
-                let Some(lang) = observation.ast_language() else {
+                let language_id = CodeLanguageId::from(observation.language.as_str());
+                if language_id.as_str() == "unknown" {
                     continue;
-                };
-                let language_id = CodeLanguageId::from(lang.as_str());
+                }
                 let source_files = resolve_scenario_source_files(&source_paths, &language_id);
                 let issue_context = IssueBuildContext {
                     source_files: &source_files,
@@ -48,7 +47,10 @@ impl ScenarioRunner for SemanticCheckRunner {
                     temp_dir,
                 };
 
-                if observation.validate_pattern().is_err() {
+                if let Err(error) = observation.validate_pattern() {
+                    if error.to_string().contains("retired") {
+                        continue;
+                    }
                     issues.push(build_issue(
                         "error",
                         "invalid_observation_pattern",
@@ -211,6 +213,24 @@ fn count_observation_matches(
         .sum()
 }
 
+fn count_code_pattern_matches_for_language_id(
+    content: &str,
+    pattern: &str,
+    _language_id: &CodeLanguageId,
+) -> Result<usize, String> {
+    let tokens = pattern
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .filter(|token| token.len() > 2 && !token.starts_with('$'))
+        .collect::<Vec<_>>();
+    if tokens.is_empty() {
+        return Ok(0);
+    }
+    Ok(tokens
+        .iter()
+        .filter(|token| content.contains(*token))
+        .count())
+}
+
 fn build_issue(
     severity: &str,
     issue_type: &str,
@@ -219,10 +239,9 @@ fn build_issue(
     observation: &CodeObservation,
     context: &IssueBuildContext<'_>,
 ) -> SemanticIssue {
-    let fuzzy_suggestion = observation
-        .ast_language()
-        .and_then(|lang| {
-            let language_id = CodeLanguageId::from(lang.as_str());
+    let language_id = CodeLanguageId::from(observation.language.as_str());
+    let fuzzy_suggestion = (language_id.as_str() != "unknown")
+        .then(|| {
             suggest_pattern_fix_with_threshold(
                 &observation.pattern,
                 &language_id,
@@ -230,6 +249,7 @@ fn build_issue(
                 Some(0.65),
             )
         })
+        .flatten()
         .map(|suggestion| FuzzySuggestionData {
             original_pattern: observation.pattern.clone(),
             suggested_pattern: suggestion.suggested_pattern,

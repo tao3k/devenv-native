@@ -10,7 +10,7 @@ use axum::{
 };
 use serde_json::Value;
 use tokio::net::TcpListener;
-use xiuxian_llm::model_routing::{
+use xiuxian_io::model_routing::{
     VLLM_SR_SELECTED_DECISION_HEADER, VLLM_SR_SELECTED_MODEL_HEADER, WendaoChatRouteConfig,
     WendaoModelRoutingMode,
 };

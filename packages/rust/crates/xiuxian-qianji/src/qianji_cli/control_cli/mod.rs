@@ -10,6 +10,7 @@ mod activity_finish;
 mod activity_mirror;
 mod activity_reclaim;
 mod activity_release;
+mod activity_result;
 mod activity_schedule_llm;
 mod activity_settle;
 mod activity_start;

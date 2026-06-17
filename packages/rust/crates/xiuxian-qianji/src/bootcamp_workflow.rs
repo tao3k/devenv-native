@@ -1,6 +1,5 @@
 //! Bootcamp workflow surface for `xiuxian-qianji`.
 
-use super::llm::resolve_bootcamp_llm_client;
 pub(super) use super::manifest::{parse_manifest, parsed_manifest_requires_link_graph};
 use super::manifest::{parsed_manifest_requires_llm, resolve_flow_manifest_toml};
 use super::runtime::{
@@ -8,8 +7,6 @@ use super::runtime::{
 };
 use super::{BootcampRunOptions, BootcampVfsMount, WorkflowReport};
 use crate::error::QianjiError;
-#[cfg(feature = "llm")]
-use crate::runtime_config::resolve_qianji_runtime_llm_config;
 use crate::scheduler_preflight::{RuntimeWendaoMount, with_runtime_wendao_mounts};
 use crate::{QianjiApp, QianjiManifestPipelineRequest, QianjiPipelineDependencies};
 use serde_json::Value;
@@ -130,7 +127,6 @@ async fn run_workflow_from_manifest_payload(
 ) -> Result<WorkflowReport, QianjiError> {
     let manifest = parse_manifest(manifest_toml)?;
     let requires_llm = parsed_manifest_requires_llm(&manifest);
-    let mut initial_context = initial_context;
 
     let BootcampRunOptions {
         repo_path,
@@ -140,14 +136,15 @@ async fn run_workflow_from_manifest_payload(
         index,
         orchestrator,
         persona_registry,
-        llm_mode,
         consensus_manager,
     } = options;
 
-    #[cfg(feature = "llm")]
-    inject_runtime_default_llm_model_fallback_if_missing(&mut initial_context, &llm_mode)?;
-    #[cfg(not(feature = "llm"))]
-    inject_runtime_default_llm_model_fallback_if_missing(&mut initial_context, llm_mode);
+    if requires_llm {
+        return Err(QianjiError::Topology(
+            "bootcamp workflow manifest contains llm nodes; local Qianji LLM execution is retired, use marlin-agent-core or an external service adapter"
+                .to_string(),
+        ));
+    }
 
     let index = match index {
         Some(index) => index,
@@ -159,9 +156,7 @@ async fn run_workflow_from_manifest_payload(
     let orchestrator = orchestrator
         .unwrap_or_else(|| Arc::new(ThousandFacesOrchestrator::new(genesis_rules, None)));
     let registry = persona_registry.unwrap_or_else(|| Arc::new(PersonaRegistry::with_builtins()));
-    let llm_client = resolve_bootcamp_llm_client(requires_llm, llm_mode)?;
     let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
-        .with_llm_client(llm_client)
         .with_consensus_manager(consensus_manager);
     let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
@@ -193,57 +188,6 @@ async fn run_workflow_from_manifest_payload(
         duration_ms,
         final_context,
     })
-}
-
-#[cfg(feature = "llm")]
-fn inject_runtime_default_llm_model_fallback_if_missing(
-    context: &mut Value,
-    llm_mode: &super::BootcampLlmMode,
-) -> Result<(), QianjiError> {
-    if !matches!(llm_mode, super::BootcampLlmMode::RuntimeDefault) {
-        return Ok(());
-    }
-
-    let runtime = resolve_qianji_runtime_llm_config().map_err(|error| {
-        QianjiError::Topology(format!(
-            "failed to resolve qianji llm runtime config for bootcamp context injection: {error}"
-        ))
-    })?;
-    inject_llm_model_fallback_if_missing(context, runtime.model.as_str());
-    Ok(())
-}
-
-#[cfg(not(feature = "llm"))]
-fn inject_runtime_default_llm_model_fallback_if_missing(
-    _context: &mut Value,
-    _llm_mode: super::BootcampLlmMode,
-) {
-}
-
-#[cfg(any(feature = "llm", test))]
-fn inject_llm_model_fallback_if_missing(context: &mut Value, default_model: &str) {
-    let Some(map) = context.as_object_mut() else {
-        return;
-    };
-
-    let has_explicit_model = map
-        .get("llm_model")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .is_some_and(|value| !value.is_empty());
-    let has_fallback_model = map
-        .get("llm_model_fallback")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .is_some_and(|value| !value.is_empty());
-    if has_explicit_model || has_fallback_model || default_model.trim().is_empty() {
-        return;
-    }
-
-    map.insert(
-        "llm_model_fallback".to_string(),
-        Value::String(default_model.to_string()),
-    );
 }
 
 #[cfg(test)]

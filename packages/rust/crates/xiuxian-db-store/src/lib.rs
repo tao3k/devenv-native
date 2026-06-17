@@ -8,7 +8,10 @@
 //! - the local `DuckDB` surface keeps type-only config and runtime connection
 //!   features split so config crates do not compile `DuckDB` unless needed
 
-#[cfg(feature = "arrow-codec")]
+#[cfg(any(
+    all(feature = "arrow-codec", not(feature = "vector-store")),
+    all(feature = "artifact-cache", feature = "arrow-codec")
+))]
 mod arrow_codec;
 #[cfg(feature = "arrow-codec")]
 /// Shared Arrow table-schema contract helpers.

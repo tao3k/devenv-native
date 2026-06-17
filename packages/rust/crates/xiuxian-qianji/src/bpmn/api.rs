@@ -33,22 +33,6 @@ pub use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 pub use super::execution::{
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode,
 };
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use super::http_transport::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use super::http_transport::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use super::http_transport::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowHttpCheckpointBackend,

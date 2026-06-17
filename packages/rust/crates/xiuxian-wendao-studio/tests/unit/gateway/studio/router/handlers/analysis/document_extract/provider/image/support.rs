@@ -4,7 +4,7 @@ use axum::http::{HeaderMap, HeaderValue};
 use axum::{Json, Router, routing::post};
 use serde_json::json;
 use tokio::net::TcpListener;
-use xiuxian_llm::model_routing::{
+use xiuxian_io::model_routing::{
     VLLM_SR_REQUEST_ID_HEADER, VLLM_SR_SELECTED_DECISION_HEADER, VLLM_SR_SELECTED_MODEL_HEADER,
 };
 

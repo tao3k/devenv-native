@@ -3,9 +3,7 @@ use std::path::Path;
 use crate::contract_feedback::{CollectionContext, ContractRunConfig, NoopAdvisoryAuditExecutor};
 use crate::contract_feedback::{
     build_rest_docs_collection_context, persist_contract_feedback_run,
-    run_and_persist_rest_docs_contract_feedback,
-    run_and_persist_rest_docs_contract_feedback_with_live_advisory,
-    run_rest_docs_contract_feedback, run_rest_docs_contract_feedback_with_live_advisory,
+    run_and_persist_rest_docs_contract_feedback, run_rest_docs_contract_feedback,
 };
 
 use super::config::build_contract_feedback_config;
@@ -15,7 +13,6 @@ use super::output::{
 };
 use super::support::{
     build_contract_feedback_session_id, build_contract_feedback_sink,
-    build_live_contract_feedback_options, build_live_contract_feedback_runtime,
     build_scaffold_advisory_executor,
 };
 use super::types::{
@@ -146,17 +143,14 @@ async fn handle_rest_docs_contract_feedback(
         .advisory_policy_for_pack(REST_DOCS_PACK_ID)
         .requested_roles;
 
-    let output = if command.live_advisory {
-        run_live_rest_docs_contract_feedback(
-            &command,
-            &openapi_path,
-            &workspace_root,
-            collection_context,
-            &config,
-            advisory_roles,
-        )
-        .await?
-    } else if advisory_roles.is_empty() {
+    if command.live_advisory {
+        return Err(
+            "live contract-feedback advisory is retired from Qianji local LLM execution; use marlin-agent-core or an external advisory adapter"
+                .into(),
+        );
+    }
+
+    let output = if advisory_roles.is_empty() {
         run_deterministic_rest_docs_contract_feedback(
             &command,
             &openapi_path,
@@ -179,56 +173,4 @@ async fn handle_rest_docs_contract_feedback(
     };
 
     print_contract_feedback_output(&output)
-}
-
-async fn run_live_rest_docs_contract_feedback(
-    command: &RestDocsCliCommand,
-    openapi_path: &Path,
-    workspace_root: &Path,
-    collection_context: CollectionContext,
-    config: &ContractRunConfig,
-    advisory_roles: Vec<String>,
-) -> Result<ContractFeedbackCliOutput, Box<dyn std::error::Error>> {
-    let runtime = build_live_contract_feedback_runtime()?;
-    let options = build_live_contract_feedback_options(command)?;
-
-    if command.no_persist {
-        let run = run_rest_docs_contract_feedback_with_live_advisory(
-            openapi_path,
-            collection_context,
-            config,
-            runtime,
-            options,
-        )
-        .await?;
-        return Ok(build_contract_feedback_output(
-            openapi_path.to_path_buf(),
-            workspace_root.to_path_buf(),
-            true,
-            advisory_roles,
-            run,
-            Vec::new(),
-            None,
-        ));
-    }
-
-    let sink = build_contract_feedback_sink(command, workspace_root);
-    let persisted = run_and_persist_rest_docs_contract_feedback_with_live_advisory(
-        openapi_path,
-        collection_context,
-        config,
-        runtime,
-        options,
-        &sink,
-    )
-    .await?;
-
-    Ok(build_persisted_contract_feedback_output(
-        openapi_path.to_path_buf(),
-        workspace_root.to_path_buf(),
-        true,
-        advisory_roles,
-        persisted,
-        storage_output_from_sink(&sink),
-    ))
 }

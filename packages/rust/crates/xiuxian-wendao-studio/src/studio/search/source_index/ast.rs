@@ -1,19 +1,13 @@
 use std::collections::HashSet;
 use std::path::Path;
 use walkdir::WalkDir;
-use xiuxian_code_intelligence::{
-    CodeLanguageId, extract_code_structure_symbols_for_language_id,
-    supported_code_language_id_from_path,
-};
 
 use crate::studio::types::AstSearchHit;
 use crate::studio::types::UiProjectConfig;
 
 use super::filters::{is_markdown_path, should_skip_entry};
 use super::markdown::{build_markdown_ast_hits, markdown_scope_name};
-use super::navigation::ast_navigation_target;
 use crate::studio::search::project_scope::{configured_project_scan_roots, index_path_for_entry};
-use crate::studio::search::support::infer_crate_name;
 
 pub(crate) fn build_ast_index(
     project_root: &Path,
@@ -77,47 +71,8 @@ fn build_markdown_ast_hits_for_content(
     .collect()
 }
 
-fn build_code_ast_hits_from_content(normalized_path: &str, content: &str) -> Vec<AstSearchHit> {
-    let normalized_path_ref = Path::new(normalized_path);
-    let Some(language_id) = ast_search_language_id(normalized_path_ref) else {
-        return Vec::new();
-    };
-    let crate_name = infer_crate_name(normalized_path_ref);
-    let mut hits = Vec::new();
-    let mut seen = HashSet::new();
-    for symbol in extract_code_structure_symbols_for_language_id(content, &language_id) {
-        let dedupe_key = format!(
-            "{normalized_path}:{}:{}:{}",
-            symbol.line_start, symbol.line_end, symbol.name
-        );
-        if !seen.insert(dedupe_key) {
-            continue;
-        }
-
-        hits.push(AstSearchHit {
-            name: symbol.name,
-            signature: symbol.signature,
-            path: normalized_path.to_string(),
-            language: language_id.as_str().to_string(),
-            crate_name: crate_name.clone(),
-            project_name: None,
-            root_label: None,
-            node_kind: None,
-            owner_title: None,
-            navigation_target: ast_navigation_target(
-                normalized_path,
-                crate_name.as_str(),
-                None,
-                None,
-                symbol.line_start,
-                symbol.line_end,
-            ),
-            line_start: symbol.line_start,
-            line_end: symbol.line_end,
-            score: 0.0,
-        });
-    }
-    hits
+fn build_code_ast_hits_from_content(_normalized_path: &str, _content: &str) -> Vec<AstSearchHit> {
+    Vec::new()
 }
 
 fn ast_hits_for_scan_root(project_root: &Path, scan_root: &Path) -> Vec<AstSearchHit> {
@@ -142,8 +97,4 @@ fn ast_hit_dedupe_key(hit: &AstSearchHit) -> String {
         "{}:{}:{}:{}",
         hit.path, hit.line_start, hit.line_end, hit.name
     )
-}
-
-fn ast_search_language_id(path: &Path) -> Option<CodeLanguageId> {
-    supported_code_language_id_from_path(path).map(CodeLanguageId::from)
 }

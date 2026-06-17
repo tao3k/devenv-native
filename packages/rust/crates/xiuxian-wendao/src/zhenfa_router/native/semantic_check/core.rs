@@ -8,7 +8,7 @@ use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
 use crate::link_graph::{LinkGraphIndex, PageIndexNode, RegistryIndex};
 use crate::parsers::docs_governance::is_package_local_crate_doc;
 use crate::zhenfa_router::native::WendaoContextExt;
-use crate::zhenfa_router::native::audit::{SourceFile, resolve_source_files};
+use crate::zhenfa_router::native::audit::{CodeLanguageId, SourceFile, resolve_source_files};
 
 use super::checks::{
     check_code_observations, check_contracts, check_dead_links, check_deprecated_refs,
@@ -162,13 +162,13 @@ fn resolved_source_files(args: &WendaoSemanticCheckArgs) -> Vec<SourceFile> {
         .collect()
 }
 
-fn audit_source_language_ids() -> [xiuxian_code_intelligence::CodeLanguageId; 5] {
+fn audit_source_language_ids() -> [CodeLanguageId; 5] {
     [
-        xiuxian_code_intelligence::CodeLanguageId::from("rust"),
-        xiuxian_code_intelligence::CodeLanguageId::from("python"),
-        xiuxian_code_intelligence::CodeLanguageId::from("typescript"),
-        xiuxian_code_intelligence::CodeLanguageId::from("javascript"),
-        xiuxian_code_intelligence::CodeLanguageId::from("go"),
+        CodeLanguageId::from("rust"),
+        CodeLanguageId::from("python"),
+        CodeLanguageId::from("typescript"),
+        CodeLanguageId::from("javascript"),
+        CodeLanguageId::from("go"),
     ]
 }
 

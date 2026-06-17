@@ -176,7 +176,7 @@ backend_profile = "hosted-vlm-image-extract-v1"
     };
     assert!(matches!(
         config.mode,
-        Some(xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic)
+        Some(xiuxian_io::model_routing::WendaoModelRoutingMode::Deterministic)
     ));
     assert_eq!(config.default_provider.as_deref(), Some("openrouter"));
     assert_eq!(

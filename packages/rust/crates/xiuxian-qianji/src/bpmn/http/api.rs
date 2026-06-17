@@ -18,22 +18,6 @@ pub use super::request_api::{
     QianjiControlBpmnSourceAdmissionHttpRequest, QianjiControlRecoveryApplyHttpRequest,
     QianjiControlWorkflowSourceAdmissionHttpRequest, QianjiControlWorkflowSourceCompilerMode,
 };
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use super::response_api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use super::response_api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowCancelHttpResponse,
     QianjiBpmnWorkflowRunHttpResponse, QianjiBpmnWorkflowSnapshotHttpResponse,

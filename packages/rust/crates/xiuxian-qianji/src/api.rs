@@ -7,8 +7,8 @@ pub use crate::app::{
 };
 #[cfg(feature = "wendao-integration")]
 pub use crate::bootcamp::{
-    BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario,
-    run_workflow, run_workflow_from_manifest_toml, run_workflow_with_mounts,
+    BootcampRunOptions, BootcampVfsMount, WorkflowReport, run_scenario, run_workflow,
+    run_workflow_from_manifest_toml, run_workflow_with_mounts,
 };
 pub use crate::bpmn::{
     BPMN_HOST_WORK_ACTIVITY_METADATA_KEY, BPMN_HOST_WORK_ACTIVITY_SCHEMA,
@@ -87,17 +87,6 @@ pub use crate::bpmn::{
     qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
     qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,
 };
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use crate::bpmn::{
-    QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse,
-    QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse,
-};
 pub use crate::construct_cards::{
     ConstructCard, ConstructIndexEntry, ConstructLintMapping, ConstructStatus, construct_cards,
     construct_index_entries, find_construct_card, render_construct_card,
@@ -111,12 +100,6 @@ pub use crate::construct_plan::{
 };
 #[cfg(feature = "wendao-integration")]
 pub use crate::contract_feedback::{QianjiContractFeedbackRun, run_contract_feedback_flow};
-#[cfg(all(feature = "llm", feature = "wendao-integration"))]
-pub use crate::contract_feedback::{
-    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
-    run_and_persist_contract_feedback_flow_with_live_advisory,
-    run_contract_feedback_flow_with_live_advisory,
-};
 #[cfg(feature = "wendao-integration")]
 pub use crate::contract_feedback::{
     QianjiPersistedContractFeedbackRun, persist_contract_feedback_run,
@@ -209,9 +192,7 @@ pub use crate::workflow_kernel::{
     WorkflowStageFacts, WorkflowStageStatus, WorkflowStageTrace, WorkflowTopology,
     WorkflowTopologyEdge, WorkflowTopologyError, WorkflowTrace,
 };
-pub use crate::{
-    error::QianjiError, llm_client::QianjiLlmClient, scheduler_identity::SchedulerAgentIdentity,
-};
+pub use crate::{error::QianjiError, scheduler_identity::SchedulerAgentIdentity};
 pub use crate::{
     qianji_server::flowhub_worker::{
         QianjiServerFlowhubServiceWorkerLoopOutput, QianjiServerFlowhubServiceWorkerLoopRequest,

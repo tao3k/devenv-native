@@ -2,7 +2,6 @@
 
 use super::build;
 use super::presets::{MEMORY_PROMOTION_PIPELINE_TOML, RESEARCH_TRINITY_TOML};
-use crate::QianjiLlmClient;
 use crate::consensus::ConsensusManager;
 use crate::error::QianjiError;
 use crate::scheduler::QianjiScheduler;
@@ -19,8 +18,6 @@ pub struct QianjiPipelineDependencies {
     pub orchestrator: Arc<ThousandFacesOrchestrator>,
     /// Persona registry used for agent resolution.
     pub registry: Arc<PersonaRegistry>,
-    /// Optional LLM client injected into LLM-capable nodes.
-    pub llm_client: Option<Arc<QianjiLlmClient>>,
     /// Optional consensus manager for distributed calibration.
     pub consensus_manager: Option<Arc<ConsensusManager>>,
 }
@@ -37,16 +34,8 @@ impl QianjiPipelineDependencies {
             index,
             orchestrator,
             registry,
-            llm_client: None,
             consensus_manager: None,
         }
-    }
-
-    /// Attach an optional LLM client.
-    #[must_use]
-    pub fn with_llm_client(mut self, llm_client: Option<Arc<QianjiLlmClient>>) -> Self {
-        self.llm_client = llm_client;
-        self
     }
 
     /// Attach an optional consensus manager.
@@ -90,7 +79,6 @@ impl QianjiApp {
             dependencies.index,
             dependencies.orchestrator,
             dependencies.registry,
-            dependencies.llm_client,
             dependencies.consensus_manager,
         )
     }

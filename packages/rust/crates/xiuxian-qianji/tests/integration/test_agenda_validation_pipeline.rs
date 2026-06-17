@@ -3,21 +3,9 @@
 #![cfg(feature = "wendao-integration")]
 
 use async_trait::async_trait;
-#[cfg(feature = "llm")]
-use futures::stream;
 use serde_json::json;
-#[cfg(feature = "llm")]
-use std::collections::HashMap;
 use std::sync::Arc;
-#[cfg(feature = "llm")]
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
-#[cfg(feature = "llm")]
-use xiuxian_llm::llm::client::ChatStream;
-#[cfg(feature = "llm")]
-use xiuxian_llm::llm::{ChatRequest, LlmClient, LlmResult};
-#[cfg(feature = "llm")]
-use xiuxian_qianhuan::persona::PersonaProfile;
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_qianji::safety::logic::Invariant;
 use xiuxian_qianji::{
@@ -161,209 +149,8 @@ fn agenda_validation_manifest_contains_required_nodes_and_bindings() {
     );
 }
 
-#[cfg(feature = "llm")]
-struct StaticScoreLlmClient {
-    response: String,
-    seen_models: Arc<Mutex<Vec<String>>>,
-}
-
-#[cfg(feature = "llm")]
-#[async_trait]
-impl LlmClient for StaticScoreLlmClient {
-    async fn chat(&self, request: ChatRequest) -> LlmResult<String> {
-        if let Ok(mut models) = self.seen_models.lock() {
-            models.push(request.model);
-        }
-        Ok(self.response.clone())
-    }
-
-    async fn chat_stream(&self, request: ChatRequest) -> LlmResult<ChatStream> {
-        if let Ok(mut models) = self.seen_models.lock() {
-            models.push(request.model);
-        }
-        Ok(Box::pin(stream::iter(vec![Ok(self.response.clone())])))
-    }
-}
-
-#[cfg(feature = "llm")]
-#[tokio::test]
-async fn agenda_validation_pipeline_compiles_and_runs_happy_path() {
-    let temp_dir = tempfile::tempdir()
-        .unwrap_or_else(|error| panic!("temp dir should be created successfully: {error}"));
-    let index = Arc::new(
-        LinkGraphIndex::build(temp_dir.path())
-            .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
-    );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "agenda_steward".to_string(),
-        name: "Agenda Steward".to_string(),
-        background: None,
-        voice_tone: "Direct and structured.".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: vec!["timeboxing".to_string()],
-        cot_template: "1. Parse intent -> 2. Produce agenda.".to_string(),
-        forbidden_words: vec![],
-        metadata: HashMap::new(),
-    });
-    registry.register(PersonaProfile {
-        id: "strict_teacher".to_string(),
-        name: "Strict Teacher".to_string(),
-        background: None,
-        voice_tone: "Critical and precise.".to_string(),
-        guidelines: vec!["Evaluate agenda rigor.".to_string()],
-        style_anchors: Vec::new(),
-        cot_template: "1. Critique -> 2. Score -> 3. Decide".to_string(),
-        forbidden_words: vec![],
-        metadata: HashMap::new(),
-    });
-    let registry = Arc::new(registry);
-    let seen_models = Arc::new(Mutex::new(Vec::new()));
-    let llm_client: Arc<xiuxian_qianji::QianjiLlmClient> = Arc::new(StaticScoreLlmClient {
-        response: "<score>0.95</score><reason>acceptable</reason>".to_string(),
-        seen_models: Arc::clone(&seen_models),
-    });
-    let manifest_toml = agenda_validation_manifest_toml();
-
-    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
-        .with_llm_client(Some(llm_client));
-    let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
-        manifest_toml,
-        dependencies,
-    })
-    .unwrap_or_else(|error| {
-        panic!("agenda validation pipeline should compile successfully: {error}")
-    });
-    let output = scheduler
-        .run(json!({
-            "raw_facts": "timeboxing; milimeter-level alignment; architectural consistency",
-            "request": "Critique today's agenda",
-        }))
-        .await
-        .unwrap_or_else(|error| panic!("agenda validation pipeline should execute: {error}"));
-
-    assert_eq!(output["audit_status"], "passed");
-    assert!(
-        output["student_proposal"].as_str().is_some(),
-        "student proposal should be present"
-    );
-    assert!(
-        output["steward_feedback"].as_str().is_some(),
-        "steward feedback should be present"
-    );
-    assert!(
-        output["professor_annotated_prompt"].as_str().is_some(),
-        "professor audit prompt should be present"
-    );
-    assert!(
-        output["professor_conclusion"].as_str().is_some(),
-        "professor conclusion should be present"
-    );
-    assert!(
-        output["final_synaptic_report"].as_str().is_some(),
-        "final reflection should be materialized when audit passes"
-    );
-    let governance_score = output["governance_score"]
-        .as_f64()
-        .unwrap_or_else(|| panic!("governance_score should be numeric"));
-    assert!((governance_score - 0.95).abs() < 1e-6);
-    let models = seen_models
-        .lock()
-        .map(|guard| guard.clone())
-        .unwrap_or_default();
-    assert_eq!(models, vec![String::new()]);
-}
-
-#[cfg(feature = "llm")]
-#[tokio::test]
-async fn agenda_validation_pipeline_professor_prompt_stays_flattened() {
-    const DEDUP_MARKER: &str = "agenda-dedup-marker-8cf1";
-
-    let temp_dir = tempfile::tempdir()
-        .unwrap_or_else(|error| panic!("temp dir should be created successfully: {error}"));
-    let index = Arc::new(
-        LinkGraphIndex::build(temp_dir.path())
-            .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
-    );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "agenda_steward".to_string(),
-        name: "Agenda Steward".to_string(),
-        background: None,
-        voice_tone: "Direct and structured.".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: vec!["timeboxing".to_string()],
-        cot_template: "1. Parse intent -> 2. Produce agenda.".to_string(),
-        forbidden_words: vec![],
-        metadata: HashMap::new(),
-    });
-    registry.register(PersonaProfile {
-        id: "strict_teacher".to_string(),
-        name: "Strict Teacher".to_string(),
-        background: None,
-        voice_tone: "Critical and precise.".to_string(),
-        guidelines: vec!["Evaluate agenda rigor.".to_string()],
-        style_anchors: Vec::new(),
-        cot_template: "1. Critique -> 2. Score -> 3. Decide".to_string(),
-        forbidden_words: vec![],
-        metadata: HashMap::new(),
-    });
-    let registry = Arc::new(registry);
-    let llm_client: Arc<xiuxian_qianji::QianjiLlmClient> = Arc::new(StaticScoreLlmClient {
-        response: "<score>0.95</score><reason>acceptable</reason>".to_string(),
-        seen_models: Arc::new(Mutex::new(Vec::new())),
-    });
-    let manifest_toml = agenda_validation_manifest_toml();
-
-    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
-        .with_llm_client(Some(llm_client));
-    let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
-        manifest_toml,
-        dependencies,
-    })
-    .unwrap_or_else(|error| {
-        panic!("agenda validation pipeline should compile successfully: {error}")
-    });
-    let output = scheduler
-        .run(json!({
-            "raw_facts": format!(
-                "timeboxing; execution order; deadline awareness; review loop; tool output fidelity; single message clarity; language alignment; cognitive load; historical carryover; execution realism; risk-first review; carryover=1; milimeter-level alignment; audit trail; traceability; architectural consistency; {DEDUP_MARKER}"
-            ),
-            "request": "Generate today agenda and critique it with explicit risk-first review.",
-        }))
-        .await
-        .unwrap_or_else(|error| panic!("agenda validation pipeline should execute: {error}"));
-
-    let professor_prompt = output["professor_annotated_prompt"]
-        .as_str()
-        .unwrap_or_else(|| panic!("professor_annotated_prompt should be a string"));
-    assert!(
-        !professor_prompt.contains("&lt;system_prompt_injection&gt;"),
-        "professor prompt should not contain escaped nested snapshots"
-    );
-    assert!(
-        professor_prompt.len() <= 4096,
-        "professor prompt should stay within a bounded transport budget, got {} bytes",
-        professor_prompt.len()
-    );
-    assert_eq!(
-        professor_prompt.matches(DEDUP_MARKER).count(),
-        1,
-        "professor prompt should not carry duplicate flattened narrative segments: {professor_prompt}"
-    );
-}
-
-#[cfg(not(feature = "llm"))]
 #[test]
-fn agenda_validation_pipeline_requires_llm_feature() {
+fn agenda_validation_pipeline_rejects_retired_local_llm_execution() {
     let temp_dir = tempfile::tempdir()
         .unwrap_or_else(|error| panic!("temp dir should be created successfully: {error}"));
     let index = Arc::new(
@@ -386,7 +173,10 @@ fn agenda_validation_pipeline_requires_llm_feature() {
     .unwrap_or_else(|| panic!("agenda validation pipeline should fail without llm feature"));
     let message = error.to_string();
     assert!(message.contains("formal_audit"));
-    assert!(message.contains("feature `llm`"));
+    assert!(
+        message.contains("local Qianji LLM execution is retired")
+            || message.contains("marlin-agent-core")
+    );
 }
 
 struct AgendaStewardLoopProposer {

@@ -1,19 +1,23 @@
 //! Integration tests for OpenAI-compatible quantum-fusion semantic ignition.
 
+#[cfg(feature = "llm")]
 use axum::Json;
+#[cfg(feature = "llm")]
 use axum::Router;
+#[cfg(feature = "llm")]
 use axum::routing::post;
+#[cfg(feature = "llm")]
 use serde_json::json;
+#[cfg(feature = "llm")]
 use std::fs;
 use tempfile::TempDir;
 use xiuxian_db_store::VectorStore;
-use xiuxian_wendao::{
-    LinkGraphIndex,
-    link_graph::{
-        OpenAiCompatibleSemanticIgnition, OpenAiCompatibleSemanticIgnitionError,
-        QuantumFusionOptions, QuantumSemanticIgnition, QuantumSemanticSearchRequest,
-    },
+use xiuxian_wendao::link_graph::{
+    OpenAiCompatibleSemanticIgnition, OpenAiCompatibleSemanticIgnitionError,
+    QuantumSemanticIgnition, QuantumSemanticSearchRequest,
 };
+#[cfg(feature = "llm")]
+use xiuxian_wendao::{LinkGraphIndex, link_graph::QuantumFusionOptions};
 
 #[test]
 fn test_openai_ignition_uses_precomputed_query_vector() -> Result<(), Box<dyn std::error::Error>> {
@@ -68,6 +72,34 @@ fn test_openai_ignition_requires_query_vector_or_text() -> Result<(), Box<dyn st
 }
 
 #[test]
+#[cfg(not(feature = "llm"))]
+fn test_openai_ignition_rejects_text_embedding_without_llm_feature()
+-> Result<(), Box<dyn std::error::Error>> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+    let (_temp, store, table_name) = runtime.block_on(build_test_store())?;
+    let ignition = OpenAiCompatibleSemanticIgnition::new(store, table_name, "http://127.0.0.1:9");
+    let empty_query_vector: [f32; 0] = [];
+    let Err(error) = runtime.block_on(ignition.search_anchors(QuantumSemanticSearchRequest {
+        query_text: Some("alpha signal"),
+        query_vector: &empty_query_vector,
+        candidate_limit: 1,
+        min_vector_score: None,
+        max_vector_score: None,
+    })) else {
+        return Err("expected EmbeddingProviderDisabled".into());
+    };
+
+    assert!(matches!(
+        error,
+        OpenAiCompatibleSemanticIgnitionError::EmbeddingProviderDisabled
+    ));
+    Ok(())
+}
+
+#[test]
+#[cfg(feature = "llm")]
 fn test_openai_ignition_embeds_query_text_with_openai_compatible_path()
 -> Result<(), Box<dyn std::error::Error>> {
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -93,6 +125,7 @@ fn test_openai_ignition_embeds_query_text_with_openai_compatible_path()
 }
 
 #[test]
+#[cfg(feature = "llm")]
 fn test_quantum_contexts_from_retrieval_plan_embeds_text_only_queries()
 -> Result<(), Box<dyn std::error::Error>> {
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -140,6 +173,7 @@ async fn build_test_store() -> Result<(TempDir, VectorStore, String), Box<dyn st
     Ok((temp, store, table_name))
 }
 
+#[cfg(feature = "llm")]
 fn build_test_index() -> Result<(TempDir, LinkGraphIndex), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     fs::write(
@@ -154,6 +188,7 @@ fn build_test_index() -> Result<(TempDir, LinkGraphIndex), Box<dyn std::error::E
     Ok((temp, index))
 }
 
+#[cfg(feature = "llm")]
 async fn start_embedding_mock_server()
 -> Result<(String, tokio::task::JoinHandle<()>), Box<dyn std::error::Error>> {
     let app = Router::new().route(

@@ -3,7 +3,6 @@ use super::common::{
     mock_llm_options, runtime_default_llm_options, zhixing_mount,
 };
 use serde_json::json;
-use std::fs;
 use tempfile::tempdir;
 use xiuxian_qianji::run_scenario;
 
@@ -20,7 +19,7 @@ async fn bootcamp_runs_embedded_forge_flow_with_mock_llm() {
     let target_persona_dir = project_root.path().join("personas");
     let expected_manifested_path = target_persona_dir.join("soul_forger_v2.md");
 
-    let report = run_scenario(
+    let error = run_scenario(
         FORGE_FLOW_URI_CANONICAL,
         json!({
             "failure_trace": "retry loop exceeded threshold in agenda validation for three consecutive sessions",
@@ -37,36 +36,12 @@ async fn bootcamp_runs_embedded_forge_flow_with_mock_llm() {
         options,
     )
     .await
-    .unwrap_or_else(|error| panic!("bootcamp should execute forge flow with mock llm: {error}"));
-
-    assert_eq!(report.manifest_name, "Evolution_Trinity_Soul_Forge_Flow");
-    assert_eq!(report.node_count, 4);
-    assert!(report.final_context["forge_candidate_blueprint"].is_string());
-    let manifested_path = report.final_context["manifestation_result"]["path"]
-        .as_str()
-        .unwrap_or_else(|| panic!("manifestation_result.path should be present"));
-    let manifested_content = fs::read_to_string(manifested_path)
-        .unwrap_or_else(|error| panic!("manifested file should be readable: {error}"));
-    assert_eq!(
-        manifested_content,
-        report.final_context["forge_candidate_blueprint"]
-            .as_str()
-            .unwrap_or_else(|| panic!("forge_candidate_blueprint should be string"))
-    );
-    assert_eq!(
-        report.final_context["forge_index_refresh"]["changed_paths"][0]
-            .as_str()
-            .unwrap_or_else(|| panic!("forge_index_refresh.changed_paths[0] should be string")),
-        manifested_path
-    );
-    assert_eq!(report.final_context["forge_index_refresh"]["mode"], "delta");
-    assert_eq!(
-        report.final_context["forge_index_refresh"]["changed_count"],
-        1
-    );
-    assert_eq!(
-        report.final_context["forge_index_refresh"]["fallback"],
-        false
+    .expect_err("local Qianji LLM execution should be retired");
+    assert!(
+        error
+            .to_string()
+            .contains("local Qianji LLM execution is retired"),
+        "unexpected error: {error}"
     );
 }
 
@@ -83,9 +58,13 @@ async fn bootcamp_runs_real_forge_flow() {
     ensure_runtime_forge_context_defaults(&mut context);
     let options = runtime_default_llm_options();
 
-    let report = run_scenario(FORGE_FLOW_URI_CANONICAL, context, &mounts, options)
+    let error = run_scenario(FORGE_FLOW_URI_CANONICAL, context, &mounts, options)
         .await
-        .unwrap_or_else(|error| panic!("Real-world forge flow failed: {error}"));
-
-    println!("Forge Output:\n{:#?}", report.final_context);
+        .expect_err("local Qianji LLM execution should be retired");
+    assert!(
+        error
+            .to_string()
+            .contains("local Qianji LLM execution is retired"),
+        "unexpected error: {error}"
+    );
 }

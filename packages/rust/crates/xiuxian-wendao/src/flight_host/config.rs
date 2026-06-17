@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
-use xiuxian_wendao_runtime::transport::{
+use xiuxian_wendao_server::transport::{
     EffectiveRerankFlightHostSettings, EffectiveRerankFlightHostSettingsInput, RerankScoreWeights,
     rerank_score_weights_from_env, resolve_effective_rerank_flight_host_settings,
     split_rerank_flight_host_overrides,

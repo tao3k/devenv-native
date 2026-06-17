@@ -11,19 +11,24 @@
 ## Overview
 
 `OpenAiCompatibleSemanticIgnition` extends Wendao's hybrid retrieval ignition
-layer to accept query text and resolve vectors from an OpenAI-compatible
-`/v1/embeddings` endpoint before searching the Lance vector-store facade.
+layer for vector-store backed semantic search. Default Wendao builds use
+precomputed query vectors only. In-process OpenAI-compatible `/v1/embeddings`
+transport is a compatibility path behind the explicit `llm` Cargo feature.
 
-The adapter is designed for real gateway environments (for example local GLM
-gateway deployments) without changing the Arrow-native fusion and scoring
-pipeline.
+The adapter is designed for gateway environments where embedding execution is
+usually owned by an external Agent or model service. Enabling `llm` keeps a
+legacy local transport path available without making provider execution part of
+the default Wendao boundary.
 
 ## Architecture Position
 
 1. Input: `QuantumSemanticSearchRequest`.
 2. Query vector resolution:
    - Use `query_vector` directly when provided.
-   - Else call OpenAI-compatible embedding transport with `query_text`.
+   - Else, when the explicit `llm` feature is enabled, call
+     OpenAI-compatible embedding transport with `query_text`.
+   - Else reject text-only input with a provider-disabled error so callers send
+     a precomputed vector or route embedding work to an external service.
 3. Vector retrieval: call `VectorStore::search_optimized`.
 4. Fusion: pass anchors into existing quantum orchestration and Arrow scoring.
 
@@ -33,9 +38,10 @@ pipeline.
 - Telemetry reports the storage detail as `lance-vector-store` instead of the
   retiring `xiuxian-vector` crate name.
 - Authentication can be injected by supplying a custom `reqwest::Client` with
-  default headers through `with_embedding_client(...)`.
+  default headers through `with_embedding_client(...)` when `llm` is enabled.
 - The embedding endpoint base URL is normalized through
-  `xiuxian_llm::embedding::openai_compat`.
+  `xiuxian_llm::embedding::openai_compat` only in that explicit compatibility
+  build.
 
 ## Runtime Activation
 
@@ -81,16 +87,17 @@ The same runtime can also be supplied through environment variables:
 
 ## Query Contract
 
-Text-only semantic queries are now treated as valid ignition input. When
-`query_text` is present, Wendao resolves embeddings first and no longer drops
-the request just because `query_vector` is empty.
+Default semantic queries must provide `query_vector`. Text-only semantic
+queries are accepted only in explicit `llm` compatibility builds, where Wendao
+resolves embeddings before vector search. Without `llm`, text-only queries fail
+closed with `EmbeddingProviderDisabled`.
 
 ## Validation Target
 
 - `direnv exec . cargo test -p xiuxian-wendao --lib link_graph::runtime_config::tests::`
-- `CARGO_TARGET_DIR=/tmp/xiuxian-artisan-workshop-codex-semantic-ignition-target direnv exec . cargo test -p xiuxian-wendao --test planned_search_semantic_ignition`
-- `CARGO_TARGET_DIR=/tmp/xiuxian-artisan-workshop-codex-semantic-ignition-target direnv exec . cargo test -p xiuxian-wendao --test quantum_fusion_openai_ignition`
-- `CARGO_TARGET_DIR=/tmp/xiuxian-artisan-workshop-codex-semantic-ignition-target direnv exec . cargo clippy -p xiuxian-wendao --tests -- -D warnings`
+- `direnv exec . cargo test -p xiuxian-wendao --test quantum_fusion_openai_ignition --features vector-store`
+- `direnv exec . cargo test -p xiuxian-wendao --test quantum_fusion_openai_ignition --features "vector-store llm"`
+- `direnv exec . cargo clippy -p xiuxian-wendao --tests --features vector-store -- -D warnings`
 
 :RELATIONS:
 :LINKS: [[03_features/203_agentic_navigation|Agentic Navigation (wendao.agentic_nav)]], [[03_features/205_semantic_auditor|Semantic Auditor (wendao audit)]]

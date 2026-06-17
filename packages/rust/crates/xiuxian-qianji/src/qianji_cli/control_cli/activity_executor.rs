@@ -1,8 +1,9 @@
 use std::io;
 
+use super::activity_result::control_error;
 use crate::qianji_cli::invalid_input;
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-pub(crate) use crate::qianji_worker::ActivityExecutorOutcome;
+
+pub(crate) use super::activity_result::ActivityExecutorOutcome;
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 use super::activity_args::ActivitySettleOutcomeArg;
@@ -147,9 +148,7 @@ impl ActivityExecutorRegistry {
     pub(crate) const fn can_execute(self, executor: ActivityExecutorKindArg) -> bool {
         match executor {
             ActivityExecutorKindArg::Fixture => self.fixture_enabled,
-            ActivityExecutorKindArg::OpenAiCompatibleLlm => {
-                cfg!(any(feature = "qianji-full", test))
-            }
+            ActivityExecutorKindArg::OpenAiCompatibleLlm => false,
             ActivityExecutorKindArg::FlowhubService => true,
         }
     }
@@ -476,9 +475,4 @@ fn parse_metadata(metadata: Option<&str>) -> io::Result<serde_json::Value> {
         }),
         None => Ok(serde_json::Value::Null),
     }
-}
-
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-fn control_error(error: &xiuxian_qianji_control::ControlError) -> io::Error {
-    invalid_input(format!("{error}"))
 }

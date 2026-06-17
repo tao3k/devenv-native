@@ -19,7 +19,7 @@ async fn test_probabilistic_routing_from_resource() -> TestResult {
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
     let registry = Arc::new(PersonaRegistry::with_builtins());
 
-    let compiler = QianjiCompiler::new(index, orchestrator, registry, None);
+    let compiler = QianjiCompiler::new(index, orchestrator, registry);
     let engine = compiler.compile(BRANCH_TOML)?;
     let scheduler = QianjiScheduler::new(engine);
 
@@ -37,7 +37,7 @@ async fn semantic_guard_route_fixture_routes_review_branch() -> TestResult {
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
     let registry = Arc::new(PersonaRegistry::with_builtins());
 
-    let compiler = QianjiCompiler::new(index, orchestrator, registry, None);
+    let compiler = QianjiCompiler::new(index, orchestrator, registry);
     let engine = compiler.compile(SEMANTIC_GUARD_ROUTE_BRANCH_TOML)?;
     let scheduler = QianjiScheduler::new(engine);
 

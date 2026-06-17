@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_llm::model_routing::WendaoModelRoutingTomlConfig;
+use xiuxian_io::model_routing::WendaoModelRoutingTomlConfig;
 use xiuxian_wendao_server::transport::{
     DOCUMENT_EXTRACT_FULL_PROFILE, DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
     DocumentExtractFlightRequest, DocumentExtractFlightRouteProvider,

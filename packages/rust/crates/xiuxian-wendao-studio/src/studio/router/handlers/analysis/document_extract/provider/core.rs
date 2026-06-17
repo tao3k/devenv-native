@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 
 use tokio::sync::{Mutex, Semaphore};
 use tonic::transport::Channel;
-use xiuxian_llm::model_routing::WendaoModelRoutingTomlConfig;
+use xiuxian_io::model_routing::WendaoModelRoutingTomlConfig;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;

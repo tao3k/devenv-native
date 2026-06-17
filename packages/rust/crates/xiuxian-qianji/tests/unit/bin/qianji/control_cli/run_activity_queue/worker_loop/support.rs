@@ -1,10 +1,7 @@
-use std::path::Path;
-
 use crate::qianji_cli::tests::control_cli::support::{activity_task, must_ok};
 use xiuxian_qianji_control::{
-    ActivityId, ActivityRetryPolicy, ArtifactId, ArtifactKind, ArtifactRef, ControlEvent,
-    ControlEventKind, ControlLedger, HotStateStore, InMemoryHotStateStore, RecoveryAttempt,
-    RecoveryPolicy, RunId, RunnableActivityTask, StepId,
+    ActivityId, ControlEvent, ControlEventKind, ControlLedger, HotStateStore,
+    InMemoryHotStateStore, RunId, RunnableActivityTask, StepId,
 };
 
 pub(super) async fn enqueue_worker_task(
@@ -40,73 +37,6 @@ fn worker_task(
     .into_iter()
     .find(|task| task.activity_id.as_str() == activity_id)
     .ok_or_else(|| format!("missing worker task for {activity_id}"))
-}
-
-pub(super) fn append_control_run_with_openai_compatible_local_prompt(
-    ledger: &impl ControlLedger,
-    prompt_path: &Path,
-    activity_id: &str,
-) -> RunId {
-    let run_id = append_empty_control_run_to_ledger(ledger);
-    let activity_id = must_ok(
-        ActivityId::new(activity_id),
-        "should build governed LLM activity id",
-    );
-    let prompt_ref = ArtifactRef {
-        artifact_id: must_ok(
-            ArtifactId::new("artifact-openai-compatible-loop-prompt"),
-            "should build prompt artifact id",
-        ),
-        artifact_kind: must_ok(
-            ArtifactKind::new("llm.prompt"),
-            "should build prompt artifact kind",
-        ),
-        uri: prompt_path.display().to_string(),
-        content_digest: None,
-        metadata: serde_json::Value::Null,
-    };
-    let mut task =
-        activity_task(activity_id, "llm.plan", "llm.openrouter").with_input_ref(prompt_ref.clone());
-    task.retry_policy = Some(must_ok(
-        ActivityRetryPolicy::new(3).map(|policy| policy.with_initial_interval_ms(25)),
-        "should build governed LLM retry policy",
-    ));
-    task.metadata = serde_json::json!({
-        "qianji_llm_activity_request": {
-            "schema": "qianji.llm_activity_request_audit.v1",
-            "model": "openrouter/qwen/qwen3-coder",
-            "prompt_ref": prompt_ref,
-            "context_ref": null,
-            "tool_schema_hash": null,
-            "temperature_millis": 0,
-            "max_tokens": 1024,
-            "response_schema_ref": null,
-            "budget": null,
-            "request_metadata": null,
-            "admission_metadata": null
-        }
-    });
-    must_ok(
-        ledger.append_event(ControlEvent::run(
-            run_id.clone(),
-            2,
-            ControlEventKind::ActivityScheduled { task },
-        )),
-        "should append governed OpenAI-compatible loop LLM route activity",
-    );
-    run_id
-}
-
-pub(super) fn recovery_attempt() -> RecoveryAttempt {
-    RecoveryAttempt {
-        attempt: 1,
-        reason: "recover OpenAI-compatible provider failure".to_string(),
-        policy: RecoveryPolicy {
-            max_attempts: 3,
-            backoff_ms: 25,
-            require_human_approval: false,
-        },
-    }
 }
 
 pub(super) fn append_control_run_with_scheduled_activity_queue(

@@ -3,20 +3,20 @@
 :PROPERTIES:
 :ID: feat-code-observation
 :PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
-:TAGS: feature, ast, sgrep, non-invasive
+:TAGS: feature, language-provider, non-invasive
 :STATUS: STABLE
 :VERSION: 2.7
 :END:
 
 ## Overview
 
-Non-Invasive Code Observation allows Wendao documents to "bind" to source code blocks using structural `ast-grep` patterns. This ensures that documentation and implementation remain semantically aligned without polluting the source code.
+Non-Invasive Code Observation allows Wendao documents to "bind" to source code blocks using provider-owned structural patterns. This keeps documentation and implementation semantically aligned without polluting the source code.
 
 ## Core Mechanism
 
-- **Engine**: Powered by the internal `xiuxian-ast` library.
+- **Engine**: Owned by the external language-provider boundary; local structural parser crates are retired from Wendao.
 - **Trigger**: Property drawer attribute `:OBSERVE: lang:<language> "<pattern>"`.
-- **Validation**: `wendao audit` triggers a native AST parse pass to verify pattern syntax and reachability.
+- **Validation**: `wendao audit` preserves the `:OBSERVE:` contract and delegates structural validation to the language-provider integration when that provider is available.
 
 ## Multi-Observation Support
 
@@ -36,7 +36,7 @@ If a pattern is syntactically invalid, the auditor provides granular feedback:
 ```xml
 <issue code="ERR_INVALID_OBSERVER_SYNTAX" severity="ERROR">
   <message>Invalid pattern: Unexpected EOF</message>
-  <suggestion>Ensure the sgrep pattern contains a complete structural unit.</suggestion>
+  <suggestion>Ensure the provider pattern contains a complete structural unit.</suggestion>
 </issue>
 ```
 

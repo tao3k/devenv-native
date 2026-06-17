@@ -4,11 +4,9 @@ use serde_json::json;
 use std::sync::Arc;
 use tempfile::tempdir;
 use xiuxian_qianhuan::ManifestationInterface;
-use xiuxian_qianji::{BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, run_scenario};
 use xiuxian_wendao::entity::{Entity, EntityType};
 use xiuxian_wendao::graph::KnowledgeGraph;
 use xiuxian_zhixing::ATTR_JOURNAL_CARRYOVER;
-use xiuxian_zhixing::RESOURCES;
 use xiuxian_zhixing::storage::MarkdownStorage;
 use xiuxian_zhixing::{ZhixingHeyi, ZhixingHeyiInit};
 
@@ -70,50 +68,5 @@ async fn test_strict_teacher_blocker() -> std::result::Result<(), Box<dyn std::e
     // Strict teacher blocks agenda view path.
     let agenda_result = heyi.render_agenda();
     assert!(agenda_result.is_err());
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_strict_teacher_agenda_flow_runs_via_qianji_scenario()
--> std::result::Result<(), Box<dyn std::error::Error>> {
-    let mounts = [BootcampVfsMount::new(
-        "agenda-management",
-        "zhixing/skills/agenda-management/references",
-        &RESOURCES,
-    )];
-    let options = BootcampRunOptions {
-        llm_mode: BootcampLlmMode::Mock {
-            response: "<agenda_critique_report><score>0.95</score><critique>Scope is executable.</critique></agenda_critique_report>"
-                .to_string(),
-        },
-        ..BootcampRunOptions::default()
-    };
-
-    let report = run_scenario(
-        "wendao://skills/agenda-management/references/agenda_flow.toml",
-        json!({
-            "request": "Plan the afternoon with strict feasibility checks.",
-            "raw_facts": "timeboxing, risk-first planning with milimeter-level alignment, full audit trail, end-to-end traceability, and architectural consistency constraints",
-            "wendao_search_results": "<hit id=\"task:stale\" type=\"task\" carryover=\"3\">Stale Task</hit>"
-        }),
-        &mounts,
-        options,
-    )
-    .await?;
-
-    assert!(
-        matches!(
-            report.manifest_name.as_str(),
-            "Triangular_Agenda_Governance_Flow" | "Self_Healing_Agenda_Governance_Flow"
-        ),
-        "unexpected manifest: {}",
-        report.manifest_name
-    );
-    assert_eq!(report.final_context["audit_status"], "passed");
-    let governance_score = report.final_context["governance_score"]
-        .as_f64()
-        .ok_or("governance_score should be numeric")?;
-    assert!((governance_score - 0.95).abs() < 1e-5);
-    assert!(report.final_context["final_synaptic_report"].is_string());
     Ok(())
 }

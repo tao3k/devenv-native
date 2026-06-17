@@ -22,7 +22,6 @@ jobs:
           - xiuxian-event-release
           - xiuxian-io-release
           - xiuxian-lance-release
-          - xiuxian-llm-release
           - xiuxian-logging-release
           - xiuxian-macros-release
           - xiuxian-memory-engine-release

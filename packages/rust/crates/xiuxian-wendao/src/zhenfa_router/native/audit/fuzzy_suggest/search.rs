@@ -3,13 +3,10 @@
 use super::cache::{
     CONFIDENCE_THRESHOLD, hash_content, lookup_cached_candidates, store_cached_candidates,
 };
+use super::language::CodeLanguageId;
 use super::pattern::PatternSkeleton;
 use super::similarity::{calculate_skeleton_similarity, string_similarity};
 use super::types::{CandidateMatch, FuzzySuggestion, SourceFile};
-use xiuxian_code_intelligence::{
-    CodeLanguageId, code_pattern_signature_line_for_language_id,
-    extract_code_structure_symbols_for_language_id,
-};
 
 /// Search for similar patterns when validation fails.
 ///
@@ -159,25 +156,22 @@ fn scan_for_candidates(
         return candidates;
     }
 
-    let candidates = extract_code_structure_symbols_for_language_id(content, language_id)
-        .into_iter()
-        .map(|symbol| {
-            let signature =
-                code_pattern_signature_line_for_language_id(symbol.signature.as_str(), language_id);
-            let identifier = symbol
-                .captures
-                .get("NAME")
-                .cloned()
-                .or_else(|| symbol.captures.values().next().cloned());
-            let skeleton = PatternSkeleton::extract(&signature);
-
-            CandidateMatch {
-                matched_text: signature,
-                file_path: file_path.to_string(),
-                line_number: symbol.line_start,
-                identifier,
-                skeleton,
-            }
+    let candidates = content
+        .lines()
+        .enumerate()
+        .filter_map(|(line_index, line)| {
+            let signature = code_pattern_signature_line_for_language_id(line, language_id);
+            looks_like_candidate_signature(signature.as_str()).then(|| {
+                let identifier = identifier_from_signature(signature.as_str());
+                let skeleton = PatternSkeleton::extract(&signature);
+                CandidateMatch {
+                    matched_text: signature,
+                    file_path: file_path.to_string(),
+                    line_number: line_index + 1,
+                    identifier,
+                    skeleton,
+                }
+            })
         })
         .collect::<Vec<_>>();
 
@@ -199,6 +193,41 @@ fn generate_suggested_pattern(
 
     // Convert to a pattern by replacing identifiers with metavariables
     patternize_signature(&signature, best_match.identifier.as_ref())
+}
+
+fn code_pattern_signature_line_for_language_id(
+    signature: &str,
+    _language_id: &CodeLanguageId,
+) -> String {
+    signature.trim().to_string()
+}
+
+fn looks_like_candidate_signature(signature: &str) -> bool {
+    let signature = signature.trim();
+    if signature.is_empty()
+        || signature.starts_with("//")
+        || signature.starts_with('#')
+        || signature.starts_with('*')
+    {
+        return false;
+    }
+
+    signature.contains('(')
+        && signature.contains(')')
+        && (signature.contains("fn ")
+            || signature.contains("def ")
+            || signature.contains("function ")
+            || signature.contains("=>")
+            || signature.contains('{'))
+}
+
+fn identifier_from_signature(signature: &str) -> Option<String> {
+    let before_args = signature.split_once('(')?.0;
+    before_args
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .rev()
+        .find(|token| !token.is_empty() && *token != "fn" && *token != "def")
+        .map(str::to_string)
 }
 
 /// Convert a signature to a pattern by adding metavariables.

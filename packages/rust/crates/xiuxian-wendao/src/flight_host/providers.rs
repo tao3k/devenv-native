@@ -8,7 +8,8 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use tonic::Status;
 use xiuxian_db_store::LanceRecordBatch;
-use xiuxian_wendao_runtime::transport::{
+use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest as RuntimeRepoSearchFlightRequest;
+use xiuxian_wendao_server::transport::{
     AnalysisFlightRouteResponse, GraphNeighborsFlightRouteProvider,
     GraphNeighborsFlightRouteResponse, RepoProjectedPageIndexTreeFlightRouteProvider,
     RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRequest,
@@ -303,6 +304,7 @@ impl RepoSearchFlightRouteProvider for RepoSearchFlightHostProvider {
         request: &RepoSearchFlightRequest,
     ) -> Result<LanceRecordBatch, String> {
         let request = request_with_default_repo(request, self.repo_id.as_str());
+        let request = runtime_repo_search_request(&request);
         search_repo_content_batch(self.search_plane.as_ref(), &request).await
     }
 }
@@ -446,6 +448,21 @@ fn request_with_default_repo(
     let mut request = request.clone();
     request.repo_id = default_repo_id.to_string();
     request
+}
+
+fn runtime_repo_search_request(
+    request: &RepoSearchFlightRequest,
+) -> RuntimeRepoSearchFlightRequest {
+    RuntimeRepoSearchFlightRequest {
+        repo_id: request.repo_id.clone(),
+        query_text: request.query_text.clone(),
+        limit: request.limit,
+        language_filters: request.language_filters.clone(),
+        path_prefixes: request.path_prefixes.clone(),
+        title_filters: request.title_filters.clone(),
+        tag_filters: request.tag_filters.clone(),
+        filename_filters: request.filename_filters.clone(),
+    }
 }
 
 fn effective_repo_id(candidate: &str, default_repo_id: &str) -> String {

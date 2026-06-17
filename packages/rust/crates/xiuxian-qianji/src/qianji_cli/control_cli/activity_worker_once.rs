@@ -1,7 +1,5 @@
 use std::io;
 use std::path::Path;
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-use std::path::PathBuf;
 
 use crate::qianji_cli::invalid_input;
 
@@ -16,11 +14,6 @@ use super::activity_executor::{
     ActivityExecutionRequest, ActivityExecutorOutcome, ActivityExecutorRegistry,
 };
 use super::types::ControlCliOutput;
-#[cfg(any(
-    all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-    test
-))]
-use crate::qianji_worker::{OpenAiCompatibleLlmExecutionRequest, execute_openai_compatible_llm};
 
 pub(super) use super::activity_worker_once_args::parse;
 
@@ -391,7 +384,10 @@ async fn execute_worker_outcome(
             execute_fixture_outcome(executor_registry, task, request)
         }
         ActivityExecutorKindArg::OpenAiCompatibleLlm => {
-            execute_openai_compatible_worker_outcome(task, request).await
+            let _ = (task, request);
+            Err(invalid_input(
+                "`control activity-worker-once --executor openai-compatible-llm` is an admission gate only; local Qianji LLM provider execution is retired, use marlin-agent-core or an external service adapter",
+            ))
         }
         ActivityExecutorKindArg::FlowhubService => {
             executor_registry.execute(ActivityExecutionRequest {
@@ -440,104 +436,21 @@ fn execute_fixture_outcome(
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-async fn execute_openai_compatible_worker_outcome(
-    task: &xiuxian_qianji_control::WorkerActivityTask,
-    request: &ActivityWorkerOnceStoreRequest<'_>,
-) -> io::Result<ActivityExecutorOutcome> {
-    #[cfg(any(feature = "qianji-full", test))]
-    {
-        let base_url = request.openai_compatible_base_url.ok_or_else(|| {
-            invalid_input(
-                "missing `--openai-compatible-base-url <url>` for `control activity-worker-once --executor openai-compatible-llm`",
-            )
-        })?;
-        let output_artifact_path = openai_compatible_output_artifact_path(task, request)?;
-        let execution_request = OpenAiCompatibleLlmExecutionRequest {
-            task,
-            base_url,
-            api_key: request.openai_compatible_api_key,
-            timeout_ms: request.openai_compatible_timeout_ms,
-            output_artifact_path: output_artifact_path.as_path(),
-            output_artifact_id: request.output_artifact_id,
-            output_artifact_kind: request.output_artifact_kind,
-        };
-        return execute_openai_compatible_llm(&execution_request).await;
-    }
-
-    #[cfg(not(any(feature = "qianji-full", test)))]
-    {
-        let _ = (task, request);
-        Err(invalid_input(
-            "`control activity-worker-once --executor openai-compatible-llm` requires the `qianji-full` feature",
-        ))
-    }
-}
-
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 fn validate_openai_compatible_request(
     request: &ActivityWorkerOnceStoreRequest<'_>,
 ) -> io::Result<()> {
     if request.executor != ActivityExecutorKindArg::OpenAiCompatibleLlm {
         return Ok(());
     }
-    if request
-        .openai_compatible_base_url
-        .is_none_or(|base_url| base_url.trim().is_empty())
-    {
-        return Err(invalid_input(
-            "missing `--openai-compatible-base-url <url>` for `control activity-worker-once --executor openai-compatible-llm`",
-        ));
-    }
-    if request.output_artifact_path.is_some() && request.output_artifact_dir.is_some() {
-        return Err(invalid_input(
-            "`control activity-worker-once --executor openai-compatible-llm` accepts either `--output-artifact-path` or a loop-provided output artifact directory, not both",
-        ));
-    }
-    if request.output_artifact_path.is_none() && request.output_artifact_dir.is_none() {
-        return Err(invalid_input(
-            "missing output artifact path for `control activity-worker-once --executor openai-compatible-llm`",
-        ));
-    }
-    Ok(())
-}
-
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-fn openai_compatible_output_artifact_path(
-    task: &xiuxian_qianji_control::WorkerActivityTask,
-    request: &ActivityWorkerOnceStoreRequest<'_>,
-) -> io::Result<PathBuf> {
-    if let Some(path) = request.output_artifact_path {
-        return Ok(path.to_path_buf());
-    }
-    let artifact_dir = request.output_artifact_dir.ok_or_else(|| {
-        invalid_input(
-            "missing output artifact path for `control activity-worker-once --executor openai-compatible-llm`",
-        )
-    })?;
-    Ok(artifact_dir.join(format!(
-        "{}-attempt-{}.openai-compatible-llm.json",
-        activity_artifact_stem(task.activity_id.as_str()),
-        task.next_attempt
-    )))
-}
-
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-fn activity_artifact_stem(activity_id: &str) -> String {
-    let stem: String = activity_id
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
-                ch
-            } else {
-                '_'
-            }
-        })
-        .collect();
-    if stem.is_empty() {
-        "activity".to_string()
-    } else {
-        stem
-    }
+    let _ = (
+        request.output_artifact_dir,
+        request.openai_compatible_base_url,
+        request.openai_compatible_api_key,
+        request.openai_compatible_timeout_ms,
+    );
+    Err(invalid_input(
+        "`control activity-worker-once --executor openai-compatible-llm` is an admission gate only; local Qianji LLM provider execution is retired, use marlin-agent-core or an external service adapter",
+    ))
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]

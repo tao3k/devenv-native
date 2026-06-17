@@ -38,7 +38,6 @@ pub mod flowhub;
 /// Graphical layout and aesthetic engine (QGS).
 #[cfg(feature = "qianji-full")]
 pub mod layout;
-mod llm_client;
 /// Manifest inspection helpers.
 #[cfg(feature = "qianji-full")]
 pub mod manifest;
@@ -49,14 +48,6 @@ pub(crate) mod markdown;
 mod qianji_cli;
 mod qianji_server;
 mod qianji_server_cli;
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-mod qianji_worker;
 /// Runtime configuration resolver (`resources/config/qianji.toml` + user overrides).
 pub mod runtime_config;
 /// Formal logic and safety auditing.
@@ -174,7 +165,7 @@ pub use api::{
     QianjiControlWorkflowSourceAdmissionHttpResponse,
     QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
     QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
-    QianjiError, QianjiLlmClient, QianjiRunConsoleElementState, QianjiRuntimeBpmnInstanceIdRef,
+    QianjiError, QianjiRunConsoleElementState, QianjiRuntimeBpmnInstanceIdRef,
     QianjiRuntimeInstantMs, QianjiRuntimeLeaseTtlMs, QianjiRuntimeWorkerIdRef,
     QianjiServerCliError, QianjiServerFlowhubServiceWorkerLoopOutput,
     QianjiServerFlowhubServiceWorkerLoopRequest, QianjiServerFlowhubServiceWorkerStepOutput,
@@ -207,20 +198,20 @@ pub use api::{
 };
 #[cfg(feature = "wendao-integration")]
 pub use api::{
-    BootcampLlmMode, BootcampRunOptions, BootcampVfsMount, MEMORY_PROMOTION_PIPELINE_TOML,
-    QianjiApp, QianjiContractFeedbackRun, QianjiManifestPipelineRequest,
-    QianjiPersistedContractFeedbackRun, QianjiPipelineDependencies, RESEARCH_TRINITY_TOML,
-    WENDAO_SQL_AUTHORING_V1_TOML, WendaoDocsContractShow, WorkdirCheckFollowUpQuery,
-    WorkdirSemanticEvidenceStatus, WorkdirSemanticProjectionPolicySummary,
-    WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
-    WorkdirSemanticScopeObjectKind, WorkdirSemanticScopeObjectStatus,
-    WorkdirSemanticScopeObjectSummary, WorkdirSemanticSqlGuardSummary, WorkflowReport,
-    build_workdir_check_follow_up_query, persist_contract_feedback_run,
-    query_workdir_check_follow_up_payload, query_workdir_markdown_payload,
-    render_wendao_docs_contract_show, render_workdir_semantic_scope_guard_trace,
-    run_and_persist_contract_feedback_flow, run_contract_feedback_flow, run_scenario, run_workflow,
-    run_workflow_from_manifest_toml, run_workflow_with_mounts, show_wendao_docs_contract,
-    trace_workdir_semantic_scope_bundle, trace_workdir_semantic_scope_bundle_with_evidence,
+    BootcampRunOptions, BootcampVfsMount, MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp,
+    QianjiContractFeedbackRun, QianjiManifestPipelineRequest, QianjiPersistedContractFeedbackRun,
+    QianjiPipelineDependencies, RESEARCH_TRINITY_TOML, WENDAO_SQL_AUTHORING_V1_TOML,
+    WendaoDocsContractShow, WorkdirCheckFollowUpQuery, WorkdirSemanticEvidenceStatus,
+    WorkdirSemanticProjectionPolicySummary, WorkdirSemanticScopeGuardStatus,
+    WorkdirSemanticScopeGuardTrace, WorkdirSemanticScopeObjectKind,
+    WorkdirSemanticScopeObjectStatus, WorkdirSemanticScopeObjectSummary,
+    WorkdirSemanticSqlGuardSummary, WorkflowReport, build_workdir_check_follow_up_query,
+    persist_contract_feedback_run, query_workdir_check_follow_up_payload,
+    query_workdir_markdown_payload, render_wendao_docs_contract_show,
+    render_workdir_semantic_scope_guard_trace, run_and_persist_contract_feedback_flow,
+    run_contract_feedback_flow, run_scenario, run_workflow, run_workflow_from_manifest_toml,
+    run_workflow_with_mounts, show_wendao_docs_contract, trace_workdir_semantic_scope_bundle,
+    trace_workdir_semantic_scope_bundle_with_evidence,
     trace_workdir_semantic_scope_bundle_with_sql_guard_evidence, trace_workdir_semantic_scope_json,
     workdir_semantic_scope_guard_trace_json,
 };
@@ -237,24 +228,6 @@ pub use api::{
     qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
     qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,
 };
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use api::{
-    QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse,
-    QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse,
-};
-#[cfg(all(feature = "llm", feature = "wendao-integration"))]
-pub use api::{
-    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
-    run_and_persist_contract_feedback_flow_with_live_advisory,
-    run_contract_feedback_flow_with_live_advisory,
-};
-
 #[path = "../tests/unit/support/valkey.rs"]
 #[cfg(all(test, feature = "valkey"))]
 pub(crate) mod qianji_test_valkey_support;

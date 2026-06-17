@@ -295,10 +295,12 @@ async fn worker_once_rejects_openai_compatible_gate_before_durable_start() -> Re
         "hot state snapshot should retain active lease for reclaim",
     );
 
+    #[cfg(feature = "llm")]
+    let expected_error = "missing `--openai-compatible-base-url <url>`";
+    #[cfg(not(feature = "llm"))]
+    let expected_error = "provider execution is not enabled";
     assert!(
-        error
-            .to_string()
-            .contains("missing `--openai-compatible-base-url <url>`"),
+        error.to_string().contains(expected_error),
         "unexpected error: {error}"
     );
     assert!(

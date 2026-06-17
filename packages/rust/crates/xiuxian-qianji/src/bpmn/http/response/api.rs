@@ -13,14 +13,6 @@ use crate::bpmn::run_console_read_model::{
     QIANJI_CONTROL_RUN_STREAM_SCHEMA_VERSION, QianjiControlRunStreamRow,
     qianji_control_run_stream_rows,
 };
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-use crate::qianji_server::llm_worker::QianjiServerOpenAiCompatibleLlmWorkerLoopOutput;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use xiuxian_qianji_bpmn_engine::{
@@ -582,83 +574,6 @@ impl QianjiControlRecoveryApplyHttpResponse {
             run_id: diagnostics.run_id.as_str().to_owned(),
             application,
             diagnostics,
-        }
-    }
-}
-
-/// HTTP response for one bounded qianji-server OpenAI-compatible LLM worker run.
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
-    /// Stable control-plane run identifier.
-    run_id: String,
-    /// Bounded qianji-server worker-loop trace.
-    worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
-}
-
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-impl QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse {
-    pub(in crate::bpmn::http_transport) fn new(
-        run_id: String,
-        worker: QianjiServerOpenAiCompatibleLlmWorkerLoopOutput,
-    ) -> Self {
-        Self { run_id, worker }
-    }
-}
-
-/// HTTP response for one bounded qianji-server OpenAI-compatible LLM worker
-/// run that also completes matching BPMN host work server-side.
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-#[derive(Debug, Clone, Serialize)]
-pub struct QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
-    /// Stable control-plane run identifier.
-    run_id: String,
-    /// Bounded worker-loop traces executed by qianji-server.
-    worker_runs: Vec<QianjiServerOpenAiCompatibleLlmWorkerLoopOutput>,
-    /// Number of BPMN host-work completions applied by qianji-server.
-    completed_count: usize,
-    /// Last workflow response after server-owned BPMN completion.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
-}
-
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-impl QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse {
-    pub(in crate::bpmn::http_transport) fn new(
-        run_id: String,
-        worker_runs: Vec<QianjiServerOpenAiCompatibleLlmWorkerLoopOutput>,
-        completed_count: usize,
-        final_workflow: Option<QianjiBpmnWorkflowRunHttpResponse>,
-    ) -> Self {
-        Self {
-            run_id,
-            worker_runs,
-            completed_count,
-            final_workflow,
         }
     }
 }

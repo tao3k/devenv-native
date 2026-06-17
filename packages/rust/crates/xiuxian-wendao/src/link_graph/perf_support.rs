@@ -14,7 +14,7 @@ use xiuxian_db_store::{
     validate_arrow_ipc_stream_with_options, validate_record_batch_schema_with_options,
 };
 
-use super::LinkGraphIndex;
+pub use super::LinkGraphIndex;
 
 /// Arrow table name for encoded core document rows.
 pub const CORE_DOCS_TABLE: &str = "link_graph_perf_core_docs";

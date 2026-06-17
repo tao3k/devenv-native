@@ -1,4 +1,3 @@
-use crate::QianjiLlmClient;
 use crate::consensus::ConsensusManager;
 use crate::engine::QianjiCompiler;
 use crate::error::QianjiError;
@@ -12,10 +11,9 @@ pub(super) fn compile_scheduler(
     index: Arc<LinkGraphIndex>,
     orchestrator: Arc<ThousandFacesOrchestrator>,
     registry: Arc<PersonaRegistry>,
-    llm_client: Option<Arc<QianjiLlmClient>>,
     consensus_manager: Option<Arc<ConsensusManager>>,
 ) -> Result<QianjiScheduler, QianjiError> {
-    let compiler = QianjiCompiler::new(index, orchestrator, registry, llm_client);
+    let compiler = QianjiCompiler::new(index, orchestrator, registry);
     let engine = compiler.compile(manifest_toml)?;
     Ok(QianjiScheduler::with_consensus_manager(
         engine,

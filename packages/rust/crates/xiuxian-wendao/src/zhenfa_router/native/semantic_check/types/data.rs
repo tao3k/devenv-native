@@ -83,7 +83,7 @@ pub enum CheckType {
     MissingIdentity,
     /// Check for legacy syntax markers (Blueprint v2.2).
     LegacySyntax,
-    /// Validate :OBSERVE: code patterns using xiuxian-ast (Blueprint v2.7).
+    /// Validate :OBSERVE: code patterns using the language-provider boundary.
     CodeObservations,
     /// Validate package-local crate docs governance rules.
     DocGovernance,

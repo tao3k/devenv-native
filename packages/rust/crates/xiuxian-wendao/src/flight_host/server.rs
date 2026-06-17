@@ -68,7 +68,7 @@ pub async fn run_repo_search_flight_server_from_args(
 
 async fn serve_search_flight(
     bind_addr: std::net::SocketAddr,
-    flight_service: xiuxian_wendao_runtime::transport::WendaoFlightService,
+    flight_service: xiuxian_wendao_server::transport::WendaoFlightService,
 ) -> FlightHostResult<()> {
     let listener = TcpListener::bind(bind_addr).await?;
     let local_addr = listener.local_addr()?;

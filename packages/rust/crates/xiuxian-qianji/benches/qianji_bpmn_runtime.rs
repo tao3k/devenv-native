@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use criterion::{BatchSize, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, Throughput, black_box};
 use serde_json::json;
 use xiuxian_qianji::{QianjiBpmnExecutionDriver, QianjiBpmnExecutionRequest, QianjiBpmnHostBridge};
 use xiuxian_qianji_bpmn_engine::{
@@ -61,5 +61,8 @@ fn minimal_bpmn_package() -> BpmnPackage {
     )
 }
 
-criterion_group!(benches, bench_bpmn_runtime_driver);
-criterion_main!(benches);
+fn main() {
+    let mut criterion = Criterion::default().configure_from_args();
+    bench_bpmn_runtime_driver(&mut criterion);
+    criterion.final_summary();
+}

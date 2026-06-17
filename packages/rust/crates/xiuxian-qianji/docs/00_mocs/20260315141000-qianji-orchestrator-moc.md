@@ -89,4 +89,4 @@ This is the **Map of Content** for the Qianji Orchestration engine. It serves as
 
 - Parent: [[docs/01_core/qianji/PROTOTYPE_DESIGN]]
 - Related: [[20260315151000-zhenfa-matrix-moc]]
-- Depends on: [[xiuxian-llm]]
+- Depends on: [[xiuxian-qianji-control]]

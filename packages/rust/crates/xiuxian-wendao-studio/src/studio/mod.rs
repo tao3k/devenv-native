@@ -40,6 +40,9 @@ mod analysis;
 #[path = "arrow_types.rs"]
 pub(crate) mod arrow_types;
 #[cfg(feature = "zhenfa-router")]
+#[path = "code_language.rs"]
+pub(crate) mod code_language;
+#[cfg(feature = "zhenfa-router")]
 #[path = "pathing.rs"]
 mod pathing;
 /// Performance fixtures and helpers for Studio gateway benchmarks.

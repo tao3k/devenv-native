@@ -251,6 +251,7 @@ pub(super) struct Ocr2RegionMaterializationStats {
 }
 
 impl Ocr2RegionMaterializationStats {
+    #[cfg(feature = "document-extract-pdf-render")]
     pub(super) fn record_render_artifact_cache_report(
         &mut self,
         report: &PdfPageRenderShardReport,

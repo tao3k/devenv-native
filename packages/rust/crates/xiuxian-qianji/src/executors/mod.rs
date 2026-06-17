@@ -39,10 +39,6 @@ mod wendao_sql;
 #[path = "../executors_write_file.rs"]
 mod write_file;
 
-#[cfg(feature = "llm")]
-#[path = "../executors_llm.rs"]
-mod llm;
-
 pub use self::api::{
     CliCallMechanism, ContextAnnotator, FormalAuditMechanism, HttpCallMechanism, MockMechanism,
     ProbabilisticRouter, QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan,
@@ -54,13 +50,6 @@ pub use self::api::{
     KnowledgeSeeker, WendaoIngesterMechanism, WendaoRefreshMechanism, WendaoSqlDiscoverMechanism,
     WendaoSqlExecuteMechanism, WendaoSqlValidateMechanism,
 };
-#[cfg(feature = "llm")]
-pub use self::api::{
-    LlmAnalyzer, LlmAugmentedAuditMechanism, OutputFlags, PipelineFlags,
-    QianjiLlmAdvisoryAuditExecutor, StreamingLlmAnalyzer, StreamingLlmAnalyzerBuilder,
-    StreamingPipelineSettings,
-};
-
 #[cfg(test)]
 #[cfg(feature = "wendao-integration")]
 pub(crate) use self::api::{parse_sql_author_spec_xml, parse_surface_bundle_xml};

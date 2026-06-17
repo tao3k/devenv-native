@@ -135,10 +135,10 @@ fn run_template_command_renders_compilable_semantic_guard_route_manifest() {
         let index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap_or_else(|error| {
             panic!("link graph index should build: {error}");
         }));
-        QianjiCompiler::new(index, orchestrator, registry, None)
+        QianjiCompiler::new(index, orchestrator, registry)
     };
     #[cfg(not(feature = "wendao-integration"))]
-    let compiler = QianjiCompiler::new(orchestrator, registry, None);
+    let compiler = QianjiCompiler::new(orchestrator, registry);
 
     compiler
         .compile(&output.rendered)

@@ -3,10 +3,6 @@
 use std::path::PathBuf;
 
 use xiuxian_db_store::artifact_cache::ARTIFACT_CACHE_ROOT_ENV;
-use xiuxian_llm::model_routing::{
-    WendaoModelRoutingMode, WendaoModelRoutingTomlConfig,
-    wendao_audio_transcript_route_config_with_model_routing_config,
-};
 
 pub(super) const AUDIO_BACKEND_PROFILE_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE";
 pub(super) const AUDIO_CHUNK_MS_ENV: &str = "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS";
@@ -59,10 +55,6 @@ const DEFAULT_FFPROBE: &str = "ffprobe";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct AudioDocumentExtractConfig {
     pub(crate) backend_profile: String,
-    pub(crate) route_provider: Option<String>,
-    pub(crate) route_model: String,
-    pub(crate) model_routing_mode: WendaoModelRoutingMode,
-    pub(crate) vllm_sr_base_url: String,
     pub(crate) chunk_duration_ms: u64,
     pub(crate) context_before_ms: u64,
     pub(crate) context_after_ms: u64,
@@ -86,9 +78,8 @@ pub(crate) struct AudioDocumentExtractConfig {
 }
 
 impl AudioDocumentExtractConfig {
-    pub(crate) fn from_model_routing_config(
-        model_routing: Option<&WendaoModelRoutingTomlConfig>,
-    ) -> Result<Self, String> {
+    pub(crate) fn from_model_routing_config(model_routing: Option<&()>) -> Result<Self, String> {
+        let _ = model_routing;
         document_extract_audio_config_with_model_routing(model_routing, &|key| {
             std::env::var(key).ok()
         })
@@ -103,11 +94,10 @@ pub(crate) fn document_extract_audio_config(
 }
 
 pub(crate) fn document_extract_audio_config_with_model_routing(
-    model_routing: Option<&WendaoModelRoutingTomlConfig>,
+    model_routing: Option<&()>,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> Result<AudioDocumentExtractConfig, String> {
-    let route_config =
-        wendao_audio_transcript_route_config_with_model_routing_config(model_routing, lookup)?;
+    let _ = model_routing;
     let backend_profile = string_value(lookup, AUDIO_BACKEND_PROFILE_ENV, DEFAULT_BACKEND_PROFILE);
     if backend_profile.trim().is_empty() {
         return Err(format!("{AUDIO_BACKEND_PROFILE_ENV} must not be blank"));
@@ -116,15 +106,7 @@ pub(crate) fn document_extract_audio_config_with_model_routing(
     let transcript_admission_dir =
         audio_transcript_admission_dir_value(lookup, artifact_cache_dir.as_ref());
     Ok(AudioDocumentExtractConfig {
-        backend_profile: if backend_profile == DEFAULT_BACKEND_PROFILE {
-            route_config.backend_profile
-        } else {
-            backend_profile
-        },
-        route_provider: route_config.route_provider,
-        route_model: route_config.route_model,
-        model_routing_mode: route_config.model_routing_mode,
-        vllm_sr_base_url: route_config.vllm_sr_base_url,
+        backend_profile,
         chunk_duration_ms: u64_value(lookup, AUDIO_CHUNK_MS_ENV, DEFAULT_CHUNK_MS)?,
         context_before_ms: u64_non_negative_value(
             lookup,

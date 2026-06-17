@@ -10,14 +10,6 @@ mod control_trace;
 #[path = "error/api.rs"]
 mod error_api;
 mod execution_graph;
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub(in crate::bpmn) mod llm_completion_shape;
 mod llm_host_work_schedule;
 pub(in crate::bpmn) mod llm_task_documentation;
 #[path = "request/api.rs"]
@@ -29,22 +21,6 @@ mod source_authoring;
 mod state;
 mod workflow_source_admission;
 
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,
     QianjiBpmnWorkflowCancelHttpResponse, QianjiBpmnWorkflowHttpCheckpointBackend,

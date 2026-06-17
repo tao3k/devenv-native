@@ -1,14 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::contract_feedback::{
-    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
-};
 use crate::executors::QianjiAdvisoryAuditExecutor;
-use crate::runtime_config::resolve_qianji_runtime_llm_config;
 use crate::sovereign::KnowledgeStorageContractFeedbackSink;
 use xiuxian_config_core::resolve_data_home;
-use xiuxian_llm::llm::{LlmClient, OpenAICompatibleClient, OpenAIWireApi};
 use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 
 use super::types::RestDocsCliCommand;
@@ -21,37 +16,6 @@ pub(crate) fn normalize_prj_data_home(_workspace_root: &Path, resolved: PathBuf)
 pub(super) fn build_scaffold_advisory_executor() -> QianjiAdvisoryAuditExecutor {
     let (orchestrator, registry) = build_contract_feedback_role_runtime();
     QianjiAdvisoryAuditExecutor::new(orchestrator, registry)
-}
-
-pub(super) fn build_live_contract_feedback_runtime()
--> Result<QianjiLiveContractFeedbackRuntime, Box<dyn std::error::Error>> {
-    let llm_runtime = resolve_qianji_runtime_llm_config()?;
-    let (orchestrator, registry) = build_contract_feedback_role_runtime();
-    let client: Arc<dyn LlmClient> = Arc::new(OpenAICompatibleClient {
-        api_key: llm_runtime.api_key,
-        base_url: llm_runtime.base_url,
-        wire_api: OpenAIWireApi::parse(Some(llm_runtime.wire_api.as_str())),
-        http: reqwest::Client::new(),
-    });
-
-    Ok(QianjiLiveContractFeedbackRuntime::new(
-        orchestrator,
-        registry,
-        client,
-    ))
-}
-
-pub(super) fn build_live_contract_feedback_options(
-    command: &RestDocsCliCommand,
-) -> Result<QianjiLiveContractFeedbackOptions, Box<dyn std::error::Error>> {
-    let mut options = QianjiLiveContractFeedbackOptions::default();
-    let resolved = resolve_qianji_runtime_llm_config()?;
-    options.model = command.model.clone().unwrap_or(resolved.model);
-    if let Some(temperature) = command.temperature {
-        options.temperature = temperature;
-    }
-    options.cognitive_early_halt_threshold = command.cognitive_early_halt_threshold;
-    Ok(options)
 }
 
 pub(super) fn build_contract_feedback_sink(

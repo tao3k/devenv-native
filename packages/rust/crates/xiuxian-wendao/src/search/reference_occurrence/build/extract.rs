@@ -3,7 +3,6 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use regex::Regex;
-use xiuxian_code_intelligence::supported_code_language_id_from_path;
 
 use crate::search::contracts::{ReferenceSearchHit, SearchProjectConfig, StudioNavigationTarget};
 use crate::search::contracts::{infer_crate_name, project_metadata_for_path};
@@ -86,7 +85,23 @@ pub(crate) fn build_reference_occurrences_for_file(
 }
 
 fn reference_scan_lang(path: &Path) -> Option<&'static str> {
-    supported_code_language_id_from_path(path)
+    source_language_id_from_path(path)
+}
+
+fn source_language_id_from_path(path: &Path) -> Option<&'static str> {
+    match path.extension().and_then(std::ffi::OsStr::to_str) {
+        Some(ext) if ext.eq_ignore_ascii_case("rs") => Some("rust"),
+        Some(ext) if ext.eq_ignore_ascii_case("py") => Some("python"),
+        Some(ext) if ext.eq_ignore_ascii_case("ts") || ext.eq_ignore_ascii_case("tsx") => {
+            Some("typescript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("jsx") => {
+            Some("javascript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("jl") => Some("julia"),
+        Some(ext) if ext.eq_ignore_ascii_case("mo") => Some("modelica"),
+        _ => None,
+    }
 }
 
 fn reference_navigation_target(

@@ -2,10 +2,6 @@
 use std::path::{Component, Path, PathBuf};
 
 use walkdir::DirEntry;
-use xiuxian_ast::Lang;
-use xiuxian_code_intelligence::{
-    extract_code_structure_symbols, supported_code_language_from_path,
-};
 use xiuxian_wendao_parsers::sections::MarkdownSection;
 
 use crate::parsers::markdown::extract_observations;
@@ -179,55 +175,24 @@ pub(crate) fn build_code_ast_hits_from_content(
     normalized_path: &str,
     content: &str,
 ) -> Vec<AstSearchHit> {
-    let normalized_path_ref = Path::new(normalized_path);
-    let Some(lang) = ast_search_lang(normalized_path_ref) else {
-        return Vec::new();
-    };
-    let crate_name = infer_crate_name(normalized_path_ref);
-    let mut hits = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-    for symbol in extract_code_structure_symbols(content, lang) {
-        if symbol.signature.is_empty() {
-            continue;
-        }
-        let dedupe_key = format!(
-            "{normalized_path}:{}:{}:{}",
-            symbol.line_start,
-            symbol.line_end,
-            symbol.name.as_str()
-        );
-        if !seen.insert(dedupe_key) {
-            continue;
-        }
-
-        hits.push(AstSearchHit {
-            name: symbol.name,
-            signature: symbol.signature,
-            path: normalized_path.to_string(),
-            language: lang.as_str().to_string(),
-            crate_name: crate_name.clone(),
-            project_name: None,
-            root_label: None,
-            node_kind: None,
-            owner_title: None,
-            navigation_target: ast_navigation_target(
-                normalized_path,
-                crate_name.as_str(),
-                None,
-                None,
-                symbol.line_start,
-                symbol.line_end,
-            ),
-            line_start: symbol.line_start,
-            line_end: symbol.line_end,
-            score: 0.0,
-        });
-    }
-    hits
+    let _ = (normalized_path, content);
+    Vec::new()
 }
 
-pub(crate) fn ast_search_lang(path: &Path) -> Option<Lang> {
-    supported_code_language_from_path(path)
+pub(crate) fn ast_search_lang(path: &Path) -> Option<&'static str> {
+    match path.extension().and_then(std::ffi::OsStr::to_str) {
+        Some(ext) if ext.eq_ignore_ascii_case("rs") => Some("rust"),
+        Some(ext) if ext.eq_ignore_ascii_case("py") => Some("python"),
+        Some(ext) if ext.eq_ignore_ascii_case("ts") || ext.eq_ignore_ascii_case("tsx") => {
+            Some("typescript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("jsx") => {
+            Some("javascript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("jl") => Some("julia"),
+        Some(ext) if ext.eq_ignore_ascii_case("mo") => Some("modelica"),
+        _ => None,
+    }
 }
 
 pub(crate) fn markdown_scope_name(path: &Path) -> String {

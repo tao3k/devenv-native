@@ -3,8 +3,8 @@ use std::path::Path;
 use crate::studio::router::handlers::analysis::document_extract::provider::audio::{
     audio_worker_budget_with_lookup, document_extract_audio_config, parse_ffprobe_duration_ms,
 };
-use xiuxian_llm::model_routing::wendao_model_routing_config_from_toml_str;
-use xiuxian_llm::model_routing::{DEFAULT_WENDAO_VLLM_SR_BASE_URL, WendaoModelRoutingMode};
+use xiuxian_io::model_routing::wendao_model_routing_config_from_toml_str;
+use xiuxian_io::model_routing::{DEFAULT_WENDAO_VLLM_SR_BASE_URL, WendaoModelRoutingMode};
 
 #[test]
 fn audio_config_defaults_are_model_neutral() -> Result<(), String> {

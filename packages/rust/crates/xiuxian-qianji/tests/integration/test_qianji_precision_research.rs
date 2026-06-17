@@ -37,7 +37,7 @@ async fn test_qianji_high_precision_research_loop()
     });
     let registry_arc = Arc::new(registry);
 
-    let compiler = QianjiCompiler::new(index, orchestrator, registry_arc, None);
+    let compiler = QianjiCompiler::new(index, orchestrator, registry_arc);
     let engine = compiler.compile(PRECISION_RESEARCH_TOML)?;
     let scheduler = QianjiScheduler::new(engine);
 

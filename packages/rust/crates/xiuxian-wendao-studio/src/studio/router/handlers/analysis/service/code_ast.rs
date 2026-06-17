@@ -2,13 +2,13 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use xiuxian_code_intelligence::CodeLanguageId;
 use xiuxian_git_repo::MaterializedRepo;
 use xiuxian_git_repo::SyncMode;
 #[cfg(feature = "julia")]
 use xiuxian_julia_core::fetch_modelica_ast_query_analysis_blocking_for_repository;
 use xiuxian_wendao_core::repo_intelligence::RegisteredRepository;
 
+use crate::studio::code_language::CodeLanguageId;
 use crate::studio::router::{
     GatewayState, StudioApiError, configured_repositories, map_repo_intelligence_error,
 };
@@ -144,7 +144,7 @@ fn maybe_build_generic_code_ast_response(
 ) -> Option<CodeAstAnalysisResponse> {
     let lang = repository_generic_ast_lang_for_path(repository, Path::new(repo_path))?;
     let source_content = source_content?;
-    let language_id = CodeLanguageId::from(lang.as_str());
+    let language_id = CodeLanguageId::from(lang);
     let mut response = build_generic_code_ast_analysis_response(
         repo_id.to_string(),
         repo_path.to_string(),

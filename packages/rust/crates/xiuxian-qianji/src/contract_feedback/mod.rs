@@ -33,16 +33,3 @@ pub use rest_docs::{
 };
 pub use rule_pack::{ContractSuite, RulePack, RulePackDescriptor};
 pub use runner::{ContractRunConfig, ContractSuiteRunner};
-
-#[cfg(all(feature = "llm", feature = "wendao-integration"))]
-pub use rest_docs::{
-    run_and_persist_rest_docs_contract_feedback_with_live_advisory,
-    run_rest_docs_contract_feedback_with_live_advisory,
-};
-
-#[cfg(all(feature = "llm", feature = "wendao-integration"))]
-pub use pipeline::{
-    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
-    run_and_persist_contract_feedback_flow_with_live_advisory,
-    run_contract_feedback_flow_with_live_advisory,
-};

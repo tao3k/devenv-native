@@ -48,8 +48,6 @@ use super::unique_instance_id;
 #[cfg(feature = "valkey")]
 use super::valkey_support::TestValkey;
 
-#[path = "http/llm_completion_shape.rs"]
-mod llm_completion_shape;
 #[path = "http/llm_task_documentation.rs"]
 mod llm_task_documentation;
 

@@ -1,11 +1,11 @@
 use std::collections::{BTreeSet, HashSet};
 use std::sync::Arc;
 
-use xiuxian_code_intelligence::all_code_language_ids;
 use xiuxian_wendao_server::transport::{
     SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE,
 };
 
+use crate::studio::code_language::all_code_language_ids;
 use crate::studio::router::repository::configured_repositories;
 use crate::studio::router::state::project_config::supported_code_kinds;
 use crate::studio::router::state::types::{StudioConfiguredOwners, StudioState};
@@ -160,7 +160,7 @@ impl StudioState {
             .collect::<Vec<_>>();
         let mut supported_languages = all_code_language_ids()
             .into_iter()
-            .map(|language_id| language_id.as_str().to_string())
+            .map(str::to_string)
             .collect::<BTreeSet<_>>();
         supported_languages.extend(plugin_languages);
         let supported_languages = supported_languages.into_iter().collect();

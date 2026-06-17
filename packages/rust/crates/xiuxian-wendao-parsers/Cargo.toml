@@ -8,8 +8,7 @@ license.workspace = true
 publish = false
 
 [features]
-default = ["ast-validation"]
-ast-validation = ["dep:xiuxian-ast"]
+default = []
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
@@ -23,8 +22,6 @@ blake3 = { workspace = true }
 chrono = { workspace = true, features = ["std", "clock"] }
 uuid = { workspace = true }
 walkdir = { workspace = true }
-xiuxian-ast = { path = "../xiuxian-ast", optional = true }
-
 [lints]
 workspace = true
 

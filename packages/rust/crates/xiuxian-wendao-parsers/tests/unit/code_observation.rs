@@ -140,37 +140,13 @@ fn test_path_matches_scope_multiple_double_star_segments() {
 }
 
 #[test]
-fn test_ast_language_rust() {
-    let obs = parse_valid_observation(r#"lang:rust "fn main()""#);
-    assert_eq!(obs.ast_language(), Some(xiuxian_ast::Lang::Rust));
-}
-
-#[test]
-fn test_ast_language_python() {
-    let obs = parse_valid_observation(r#"lang:python "def main():""#);
-    assert_eq!(obs.ast_language(), Some(xiuxian_ast::Lang::Python));
-}
-
-#[test]
-fn test_ast_language_unsupported() {
-    let obs = parse_valid_observation(r#"lang:brainfuck "+-<>""#);
-    assert!(obs.ast_language().is_none());
-}
-
-#[test]
-fn test_validate_pattern_valid() {
+fn test_validate_pattern_retired() {
     let obs = parse_valid_observation(r#"lang:rust "fn $NAME()""#);
-    assert!(obs.validate_pattern().is_ok());
-}
-
-#[test]
-fn test_validate_pattern_unsupported_lang() {
-    let obs = parse_valid_observation(r#"lang:brainfuck "+-<>""#);
     let result = obs.validate_pattern();
     assert!(result.is_err());
     match result {
-        Err(error) => assert!(error.contains("Unsupported language")),
-        Ok(()) => panic!("expected unsupported language validation failure"),
+        Err(error) => assert!(error.contains("language-provider boundary")),
+        Ok(()) => panic!("expected retired validation failure"),
     }
 }
 

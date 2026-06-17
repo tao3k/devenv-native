@@ -1,6 +1,5 @@
 //! Engine compiler api surface for `xiuxian-qianji`.
 
-use crate::QianjiLlmClient;
 use crate::engine::QianjiEngine;
 use crate::error::QianjiError;
 use std::sync::Arc;
@@ -17,36 +16,16 @@ pub struct QianjiCompiler {
     pub(super) index: Arc<LinkGraphIndex>,
     pub(super) orchestrator: Arc<ThousandFacesOrchestrator>,
     pub(super) registry: Arc<PersonaRegistry>,
-    #[cfg(feature = "llm")]
-    pub(super) llm_client: Option<Arc<QianjiLlmClient>>,
 }
 
 impl QianjiCompiler {
     /// Creates a new compiler with provided trinity dependencies.
-    #[cfg(all(feature = "llm", feature = "wendao-integration"))]
+    #[cfg(feature = "wendao-integration")]
     #[must_use]
     pub fn new(
         index: Arc<LinkGraphIndex>,
         orchestrator: Arc<ThousandFacesOrchestrator>,
         registry: Arc<PersonaRegistry>,
-        llm_client: Option<Arc<QianjiLlmClient>>,
-    ) -> Self {
-        Self {
-            index,
-            orchestrator,
-            registry,
-            llm_client,
-        }
-    }
-
-    /// Creates a new compiler with provided trinity dependencies.
-    #[cfg(all(not(feature = "llm"), feature = "wendao-integration"))]
-    #[must_use]
-    pub fn new(
-        index: Arc<LinkGraphIndex>,
-        orchestrator: Arc<ThousandFacesOrchestrator>,
-        registry: Arc<PersonaRegistry>,
-        _llm_client: Option<Arc<QianjiLlmClient>>,
     ) -> Self {
         Self {
             index,
@@ -56,27 +35,11 @@ impl QianjiCompiler {
     }
 
     /// Creates a new compiler for Qianji-only manifests.
-    #[cfg(all(feature = "llm", not(feature = "wendao-integration")))]
+    #[cfg(not(feature = "wendao-integration"))]
     #[must_use]
     pub fn new(
         orchestrator: Arc<ThousandFacesOrchestrator>,
         registry: Arc<PersonaRegistry>,
-        llm_client: Option<Arc<QianjiLlmClient>>,
-    ) -> Self {
-        Self {
-            orchestrator,
-            registry,
-            llm_client,
-        }
-    }
-
-    /// Creates a new compiler for Qianji-only manifests.
-    #[cfg(all(not(feature = "llm"), not(feature = "wendao-integration")))]
-    #[must_use]
-    pub fn new(
-        orchestrator: Arc<ThousandFacesOrchestrator>,
-        registry: Arc<PersonaRegistry>,
-        _llm_client: Option<Arc<QianjiLlmClient>>,
     ) -> Self {
         Self {
             orchestrator,

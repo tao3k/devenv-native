@@ -236,8 +236,7 @@ stale qianji-server processes before relying on recently added routes such as
 `bpmn.workflow.activity-evidence`,
 `qianji.control.workflow-source.admit`,
 `qianji.control.bpmn-source.admit`, `qianji.control.bpmn-source`,
-`qianji.control.history`, `qianji.control.recovery.apply`, or
-`qianji.control.worker.openai-compatible-llm.run`.
+`qianji.control.history`, or `qianji.control.recovery.apply`.
 
 qianji-server is an internal-plane service, not a public authentication
 boundary. Public user tokens are validated by the Gateway. When
@@ -430,28 +429,24 @@ OpenRouter, and local model workers. It also recognizes the deterministic
 Episteme review route `episteme.ontology.reasoning_fill` on
 `episteme.ontology.reasoning`; fixture completions on that route are
 review-artifact outputs only and do not promote RDF or mutate Episteme source
-truth. The worker-once adapter also carries an
-OpenAI-compatible LLM executor for admitted `llm.openai`, `llm.openrouter`,
-`llm.local`, and `episteme.ontology.reasoning` tasks when the claimed activity
-type is explicitly admitted. Episteme reasoning tasks use local prompt and
-context artifacts as request-audit inputs; their provider outputs remain
-review artifacts and do not promote RDF. That executor requires a claimed task
-input reference, admitted request-audit metadata, a local-file prompt reference
-that matches the task input reference, `--openai-compatible-base-url`, and
-`--output-artifact-path`. For `episteme.ontology.reasoning_fill`, the
-request-audit metadata must also carry a local-file context reference with kind
-`episteme.reasoning_fill_context`, the expected context schema, and non-empty
-`contextEvidence` text. The context must also include the Episteme
-object-model `targetContract` schema so the provider receives a deterministic
-review-only `ObjectType` or `LinkType` candidate contract. The contract must
-declare object-model compatibility, RDF source authority, disabled runtime
-mutation, disabled RDF mutation, and allowed object-model patch kinds. It
-delegates raw OpenAI-compatible `/chat/completions` transport to
-`xiuxian-llm`, writes successful provider responses to the output artifact,
-and stores a canonical `episteme_review` JSON object after accepting either raw
-JSON or fenced JSON provider content. Qianji still owns the worker claim,
-request-audit validation, durable terminal event, and retry/failure policy;
-`xiuxian-llm` owns provider HTTP transport and wire-level response validation.
+truth. The worker-once adapter treats OpenAI-compatible LLM work as a governed
+external-task contract only. Qianji builds admit and validate the task route but
+do not execute provider transport in process. Episteme reasoning tasks use
+local prompt and context artifacts as request-audit inputs; their provider
+outputs remain review artifacts and do not promote RDF. External model
+adapters must use a claimed task input reference, admitted request-audit
+metadata, a local-file prompt reference that matches the task input reference,
+provider endpoint configuration, and deterministic output artifacts. For
+`episteme.ontology.reasoning_fill`, the request-audit metadata must also carry
+a local-file context reference with kind `episteme.reasoning_fill_context`, the
+expected context schema, and non-empty `contextEvidence` text. The context must
+also include the Episteme object-model `targetContract` schema so the provider
+receives a deterministic review-only `ObjectType` or `LinkType` candidate
+contract. The contract must declare object-model compatibility, RDF source
+authority, disabled runtime mutation, disabled RDF mutation, and allowed
+object-model patch kinds. Qianji owns the worker claim, request-audit
+validation, durable terminal event, and retry/failure policy; provider
+execution belongs to `marlin-agent-core` or an external service adapter.
 Episteme review content must match the expected schema, fill item id, target
 ledger field group, allowed patch kind, `candidatePatchCount`, candidate
 evidence, and `rdfMutation=false` contract before completion. The durable
@@ -466,22 +461,12 @@ profile is `bpmn-host-work-llm`, which maps stable BPMN pending-host identity
 to an admitted `LlmActivityTask` with `llm.plan`, `llm.openrouter`, retry,
 timeout, and prompt claim-check requirements. `qianji.toml` remains the
 server/global runtime default surface; task-level workflow routing is not
-stored in `xiuxian-llm` model-routing config.
-For server-backed execution, `qianji-server` exposes a bounded
-`run_qianji_server_openai_compatible_llm_worker_loop` facade. The facade
-mirrors replay-derived `llm.*` activities into hot state, claims leases,
-records durable start and terminal events, delegates raw provider transport to
-`xiuxian-llm`, writes deterministic response artifacts, and releases leases.
-It is intentionally explicit and finite; always-on background supervision is a
-separate server process concern rather than a task-profile or `xiuxian-llm`
-model-routing concern. When the server is built with the full Valkey worker
-features and has both a control ledger and hot-state store, the same bounded
-worker is available over
-`POST /control/runs/{run_id}/workers/openai-compatible-llm/run`. Provider
-base URL, API key, model, and wire API resolve from `qianji.toml` and process
-environment through the Qianji runtime config; the HTTP request supplies only
-worker bounds, queue selection, timestamps, timeout, and the local artifact
-output directory.
+stored in a model-routing sidecar.
+For server-backed execution, `qianji-server` owns durable workflow replay,
+lease claims, start/terminal events, artifact claim-checks, and release
+semantics. Provider execution is not part of Qianji's service core. External
+provider services should consume the same admitted task contract and return
+deterministic artifacts through Qianji's durable completion/failure paths.
 The `flowhub-service` executor is the deterministic worker path for BPMN
 service tasks materialized from Flowhub Org+BPMN scenarios. It admits only
 `flowhub.service` tasks on `flowhub.*` queues, requires the replay-derived
@@ -514,11 +499,11 @@ not sleep, spawn a daemon, or append ledger events for empty polls. When
 heartbeat through the same Valkey hot-state and durable ledger path before the
 fixture result is applied. Empty polls still do not write heartbeats because
 there is no run-scoped activity task to anchor the durable event. With
-`--executor openai-compatible-llm`, the loop requires `--outcome complete`,
-`--openai-compatible-base-url`, and `--output-artifact-dir`; each claimed LLM
-task derives a deterministic provider-response artifact path from the activity
-id and attempt number, then reuses the worker-once OpenAI-compatible executor
-so provider failures remain durable activity failures after start.
+`--executor openai-compatible-llm`, the loop is an admission gate only and
+returns a retired-local-provider error rather than executing provider
+transport. Use `marlin-agent-core` or an external service adapter for model
+calls, then record deterministic completion or failure through the durable
+Qianji activity contract.
 With `--executor flowhub-service`, the loop uses the same deterministic
 contract-completion behavior as `activity-worker-once` for each claimed
 Flowhub service task and rejects output artifact or ad-hoc metadata flags.
@@ -776,7 +761,7 @@ server-recorded source reference so browser canvases can align markers with
 real BPMN ids instead of a registry projection.
 `GET /control/runs/{run_id}/summary` projects the same ledger stream into an
 operator-safe summary, including failed activity counters for recovery UI and
-subagent-runner status checks. `GET /control/runs/{run_id}/recovery` exposes
+external runner status checks. `GET /control/runs/{run_id}/recovery` exposes
 the read-only recovery plan derived from the same event stream, such as retry
 review or terminal escalation actions, but does not enqueue work, retry
 activities, fire timers, reclaim leases, mutate hot state, delete checkpoints,

@@ -1,0 +1,112 @@
+---
+source: packages/rust/crates/xiuxian-wendao-studio/src/studio/../../tests/unit/gateway/studio/support.rs
+assertion_line: 17
+expression: value
+---
+{
+  "focus_node_id": "repo:lance:generic_ast:src/lib.rs:3:5:scan_rows",
+  "language": "rust",
+  "nodes": [
+    {
+      "id": "repo:lance:generic_ast:src/lib.rs:1:1:Dataset",
+      "kind": "type",
+      "label": "Dataset",
+      "line_end": 1,
+      "line_start": 1,
+      "path": "src/lib.rs"
+    },
+    {
+      "id": "repo:lance:generic_ast:src/lib.rs:3:5:scan_rows",
+      "kind": "function",
+      "label": "scan_rows",
+      "line_end": 5,
+      "line_start": 3,
+      "path": "src/lib.rs"
+    }
+  ],
+  "path": "lance/src/lib.rs",
+  "repo_id": "lance",
+  "retrieval_atoms": [
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "rust"
+        ]
+      ],
+      "display_label": "Declaration Rail · Dataset",
+      "excerpt": "pub struct Dataset;",
+      "line_end": 1,
+      "line_start": 1,
+      "owner_id": "repo:lance:generic_ast:src/lib.rs:1:1:Dataset",
+      "semantic_type": "type"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "rust"
+        ]
+      ],
+      "display_label": "Symbol Rail · Dataset",
+      "excerpt": "Dataset",
+      "line_end": 1,
+      "line_start": 1,
+      "owner_id": "repo:lance:generic_ast:src/lib.rs:1:1:Dataset",
+      "semantic_type": "type"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "rust"
+        ]
+      ],
+      "display_label": "Declaration Rail · scan_rows",
+      "excerpt": "fn scan_rows(dataset: &Dataset) {",
+      "line_end": 5,
+      "line_start": 3,
+      "owner_id": "repo:lance:generic_ast:src/lib.rs:3:5:scan_rows",
+      "semantic_type": "function"
+    },
+    {
+      "attributes": [
+        [
+          "analysis_mode",
+          "ast-grep"
+        ],
+        [
+          "language",
+          "rust"
+        ]
+      ],
+      "display_label": "Symbol Rail · scan_rows",
+      "excerpt": "scan_rows",
+      "line_end": 5,
+      "line_start": 3,
+      "owner_id": "repo:lance:generic_ast:src/lib.rs:3:5:scan_rows",
+      "semantic_type": "function"
+    },
+    {
+      "attributes": [],
+      "display_label": "Execution Block · let _ = dataset;",
+      "excerpt": "    let _ = dataset;\n}",
+      "line_end": 5,
+      "line_start": 4,
+      "owner_id": "block:execution:4-5",
+      "semantic_type": "execution"
+    }
+  ]
+}

@@ -41,22 +41,6 @@ mod session;
 #[path = "../bpmn_adapter_wait.rs"]
 mod wait;
 
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use api::QianjiControlOpenAiCompatibleLlmWorkerCompleteHttpResponse;
-#[cfg(all(
-    feature = "llm",
-    any(
-        all(feature = "duckdb", feature = "valkey", feature = "qianji-full"),
-        test
-    )
-))]
-pub use api::QianjiControlOpenAiCompatibleLlmWorkerRunHttpResponse;
 pub use api::{
     BpmnAdapterError, BpmnOrchestrationError, BpmnUnsupportedStartNodeKind,
     DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS, QianjiBpmnActivityId, QianjiBpmnCheckpointStore,

@@ -9,7 +9,6 @@ use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServi
 use futures::TryStreamExt;
 use tokio::sync::{OwnedSemaphorePermit, TryAcquireError};
 use tonic::transport::{Channel, Endpoint};
-use xiuxian_llm::model_routing::wendao_model_route_metadata;
 use xiuxian_polyglot_orchestrator::{
     DocumentExtractPressureEvidenceInput, document_extract_pressure_evidence,
     document_extract_schedule_plan,
@@ -244,15 +243,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .add_header(WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, value.as_str())
                 .map_err(|error| format!("invalid page range header: {error}"))?;
         }
-        if let Some(model_route) = request.model_route {
-            for (key, value) in
-                wendao_model_route_metadata(&model_route.intent, &model_route.decision)
-            {
-                client
-                    .add_header(key, value.as_str())
-                    .map_err(|error| format!("invalid model route header `{key}`: {error}"))?;
-            }
-        }
+        let _ = request.model_route;
 
         let descriptor = FlightDescriptor::new_path(
             ANALYSIS_DOCUMENT_EXTRACT_ROUTE

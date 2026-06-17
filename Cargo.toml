@@ -5,8 +5,6 @@ resolver = "2"
 members = [
   "packages/rust/bindings/python",
   "packages/rust/crates/xiuxian-config-core",
-  "packages/rust/crates/xiuxian-ast",
-  "packages/rust/crates/xiuxian-edit",
   "packages/rust/crates/xiuxian-event",
   "packages/rust/crates/xiuxian-graph-core",
   "packages/rust/crates/xiuxian-io",
@@ -26,15 +24,12 @@ members = [
   "packages/rust/crates/xiuxian-memory-engine",
   "packages/rust/crates/xiuxian-logging",
   "packages/rust/crates/xiuxian-security",
-  "packages/rust/crates/xiuxian-sandbox",
-  "packages/rust/crates/xiuxian-code-intelligence",
   "packages/rust/crates/xiuxian-tokenizer",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
   "packages/rust/crates/xiuxian-db-store",
   "packages/rust/crates/xiuxian-qianhuan",
   "packages/rust/crates/xiuxian-qianji-bpmn-engine",
-  "packages/rust/crates/xiuxian-llm",
   "packages/rust/crates/xiuxian-julia-core",
   "packages/rust/crates/xiuxian-julia-runtime",
   "packages/rust/crates/xiuxian-polyglot-orchestrator",
@@ -101,17 +96,12 @@ tower-http = "0.6"
 proc-macro2 = "1"
 syn = { version = "2.0", features = ["full"] }
 quote = "1"
-ast-grep-core = "0.40.5"
-ast-grep-language = "0.40.5"
-ast-grep-config = "0.40.5"
 tera = "1"
 aho-corasick = "1.1"
 ignore = "0.4"
 similar = "2.7"
 unicode-normalization = "0.1"
 xxhash-rust = "0.8"
-tree-sitter = "0.26.5"
-tree-sitter-python = "0.25.0"
 graphql-parser = "0.4"
 merman-core = "0.5.0"
 image = "0.25"
@@ -188,16 +178,143 @@ criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
 rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "7ea58b53da8ec18b07fb89dc7517ae81c9757030" }
 
-# Performance optimization - Thin LTO for reduced memory
+# Release profile optimizations for better performance
 [profile.release]
-opt-level = 3
+# "thin" LTO: cross-crate inlining without the full monolithic link pass.
+# Cuts CI build time vs lto=true while keeping most optimizations.
 lto = "thin"
-strip = true
+opt-level = 3
+# Parallel code generation; faster link than codegen-units=1.
+codegen-units = 4
 panic = "abort"
+strip = true
 
+# Development profile - faster builds.
 [profile.dev]
+incremental = true
+# Minimal debug info for faster builds while preserving useful backtraces.
 debug = 1
+# Split debuginfo for faster linking on macOS.
 split-debuginfo = "unpacked"
+# Match Cargo's fast incremental default explicitly so future edits do not
+# accidentally trade edit-build latency for local-crate code quality.
+codegen-units = 256
+
+# No debug info for external dependencies; local crates still use profile.dev.
+[profile.dev.package."*"]
+debug = false
+
+# Build scripts and proc macros run during compilation, so keep them lightly
+# optimized without carrying debug info.
+[profile.dev.build-override]
+opt-level = 1
+debug = false
+codegen-units = 256
+
+# Hot-path crates that still get optimized in dev because their inner loops are
+# user-perceivable: parsing, image processing, hashing, diffing, regex, file
+# walking, fuzzy matching, parallelism, and compression.
+[profile.dev.package.image]
+opt-level = 2
+
+[profile.dev.package.png]
+opt-level = 2
+
+[profile.dev.package.zune-jpeg]
+opt-level = 2
+
+[profile.dev.package.blake3]
+opt-level = 2
+
+[profile.dev.package.xxhash-rust]
+opt-level = 2
+
+[profile.dev.package.sha2]
+opt-level = 2
+
+[profile.dev.package.similar]
+opt-level = 2
+
+[profile.dev.package.regex]
+opt-level = 2
+
+[profile.dev.package.regex-automata]
+opt-level = 2
+
+[profile.dev.package.memchr]
+opt-level = 2
+
+[profile.dev.package.rayon]
+opt-level = 2
+
+[profile.dev.package.rayon-core]
+opt-level = 2
+
+[profile.dev.package.flate2]
+opt-level = 2
+
+[profile.dev.package.miniz_oxide]
+opt-level = 2
+
+[profile.dev.package.zstd-safe]
+opt-level = 2
+
+[profile.dev.package.zstd-sys]
+opt-level = 2
+
+[profile.dev.package.zip]
+opt-level = 2
+
+[profile.dev.package.ignore]
+opt-level = 2
+
+[profile.dev.package.globset]
+opt-level = 2
+
+[profile.dev.package.aho-corasick]
+opt-level = 2
+
+[profile.dev.package.tantivy]
+opt-level = 2
+
+[profile.dev.package.arrow-array]
+opt-level = 2
+
+[profile.dev.package.arrow-buffer]
+opt-level = 2
+
+[profile.dev.package.arrow-data]
+opt-level = 2
+
+[profile.dev.package.arrow-ipc]
+opt-level = 2
+
+[profile.dev.package.arrow-string]
+opt-level = 2
+
+[profile.dev.package.parquet]
+opt-level = 2
+
+# Fast test build: produces optimized-enough artifacts without release LTO.
+[profile.dev-build]
+inherits = "dev"
+opt-level = 1
+debug = false
+strip = true
+
+# Explicit maximum-runtime profile for benchmark evidence and final local
+# performance gates. Do not use as the default CI release profile.
+[profile.release-max]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+
+# Release-equivalent runtime with symbols preserved enough for profilers.
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = "none"
+
 
 
 [workspace.lints.rust]

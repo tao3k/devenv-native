@@ -978,9 +978,11 @@ the stable request-row identity and assembles a Julia-ready Arrow batch from
 
 `OpenAiCompatibleSemanticIgnition` now exposes the same
 `build_julia_rerank_request_batch(...)` surface. It resolves the effective
-query vector from either an explicit `query_vector` or an
-OpenAI-compatible embedding call, then builds the canonical WendaoArrow `v1`
-request batch from the resulting anchors and stored embeddings.
+query vector from an explicit `query_vector` in default builds, then builds the
+canonical WendaoArrow `v1` request batch from the resulting anchors and stored
+embeddings. Text-to-vector OpenAI-compatible embedding transport is available
+only behind the explicit `llm` compatibility feature; default Wendao builds
+expect callers or external Agent/model services to provide the query vector.
 
 For the link-graph runtime, `link_graph.retrieval.julia_rerank` is now the
 dedicated config namespace for the future WendaoArrow post-processing step.

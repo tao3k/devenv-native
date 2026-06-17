@@ -96,7 +96,7 @@ template_target = "critique_report.md"
         metadata: HashMap::new(),
     });
 
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry), None);
+    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));
@@ -159,7 +159,7 @@ output_key = "critic_snapshot_xml"
         metadata: HashMap::new(),
     });
 
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry), None);
+    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));
@@ -238,7 +238,7 @@ input_keys = ["$wendao://skills/agenda-management/references/agenda_flow.toml"]
         metadata: HashMap::new(),
     });
 
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry), None);
+    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));
@@ -296,7 +296,7 @@ input_keys = ["$raw_facts_selector"]
         metadata: HashMap::new(),
     });
 
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry), None);
+    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));

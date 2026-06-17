@@ -33,20 +33,12 @@ pub(crate) fn zhixing_mount(
 
 #[cfg(feature = "llm")]
 pub(crate) fn runtime_default_llm_options() -> BootcampRunOptions {
-    BootcampRunOptions {
-        llm_mode: xiuxian_qianji::BootcampLlmMode::RuntimeDefault,
-        ..BootcampRunOptions::default()
-    }
+    BootcampRunOptions::default()
 }
 
 #[cfg(feature = "llm")]
-pub(crate) fn mock_llm_options(response: &str) -> BootcampRunOptions {
-    BootcampRunOptions {
-        llm_mode: xiuxian_qianji::BootcampLlmMode::Mock {
-            response: response.to_string(),
-        },
-        ..BootcampRunOptions::default()
-    }
+pub(crate) fn mock_llm_options(_response: &str) -> BootcampRunOptions {
+    BootcampRunOptions::default()
 }
 
 #[cfg(feature = "llm")]

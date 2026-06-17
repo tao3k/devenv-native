@@ -5,20 +5,14 @@
 mod executors_annotation;
 #[path = "integration/executors_formal_audit.rs"]
 mod executors_formal_audit;
-#[path = "integration/llm_augmented_formal_audit/mod.rs"]
-mod llm_augmented_formal_audit;
 #[path = "integration/manifest_requires_llm.rs"]
 mod manifest_requires_llm;
-#[path = "integration/runtime_live_llm.rs"]
-mod runtime_live_llm;
 #[path = "integration/test_agenda_validation_pipeline.rs"]
 mod test_agenda_validation_pipeline;
 #[path = "integration/test_bootcamp_api.rs"]
 mod test_bootcamp_api;
 #[path = "integration/test_compiler_dispatch_routes/mod.rs"]
 mod test_compiler_dispatch_routes;
-#[path = "integration/test_compiler_dispatch_routes_llm.rs"]
-mod test_compiler_dispatch_routes_llm;
 #[path = "integration/test_consensus.rs"]
 mod test_consensus;
 #[path = "integration/test_context_isolation_and_concurrency.rs"]
@@ -33,8 +27,6 @@ mod test_layout_bpmn;
 mod test_memory_promotion_pipeline;
 #[path = "integration/test_probabilistic_routing.rs"]
 mod test_probabilistic_routing;
-#[path = "integration/test_qianji_master_research.rs"]
-mod test_qianji_master_research;
 #[path = "integration/test_qianji_precision_research.rs"]
 mod test_qianji_precision_research;
 #[path = "integration/test_qianji_qianhuan_binding.rs"]

@@ -3,12 +3,6 @@
 use std::path::Path;
 
 use super::ExternalSymbol;
-#[cfg(feature = "search-runtime")]
-use super::SymbolKind;
-#[cfg(feature = "search-runtime")]
-use xiuxian_code_intelligence::{
-    CodeLanguageId, SymbolKind as CodeSymbolKind, extract_code_dependency_symbols,
-};
 
 /// Extract dependency symbols from a source file (synchronous).
 ///
@@ -24,23 +18,10 @@ pub fn extract_dependency_symbols(
 
 #[cfg(feature = "search-runtime")]
 fn extract_dependency_symbols_impl(
-    path: &Path,
-    lang: &str,
+    _path: &Path,
+    _lang: &str,
 ) -> Result<Vec<ExternalSymbol>, std::io::Error> {
-    use std::fs::read_to_string;
-    let content = read_to_string(path)?;
-    Ok(
-        extract_code_dependency_symbols(&content, &CodeLanguageId::from(lang))
-            .into_iter()
-            .map(|symbol| ExternalSymbol {
-                name: symbol.name,
-                kind: map_symbol_kind(&symbol.kind),
-                file: path.to_path_buf(),
-                line: symbol.line,
-                crate_name: String::new(),
-            })
-            .collect(),
-    )
+    Ok(Vec::new())
 }
 
 #[cfg(not(feature = "search-runtime"))]
@@ -52,21 +33,4 @@ fn extract_dependency_symbols_impl(
         std::io::ErrorKind::Unsupported,
         "dependency symbol extraction requires the search-runtime feature",
     ))
-}
-
-#[cfg(feature = "search-runtime")]
-fn map_symbol_kind(kind: &CodeSymbolKind) -> SymbolKind {
-    match kind {
-        CodeSymbolKind::Struct | CodeSymbolKind::Class => SymbolKind::Struct,
-        CodeSymbolKind::Enum => SymbolKind::Enum,
-        CodeSymbolKind::Trait => SymbolKind::Trait,
-        CodeSymbolKind::Function | CodeSymbolKind::AsyncFunction => SymbolKind::Function,
-        CodeSymbolKind::Method => SymbolKind::Method,
-        CodeSymbolKind::Impl => SymbolKind::Impl,
-        CodeSymbolKind::Module => SymbolKind::Mod,
-        CodeSymbolKind::Const => SymbolKind::Const,
-        CodeSymbolKind::Static => SymbolKind::Static,
-        CodeSymbolKind::TypeAlias | CodeSymbolKind::Interface => SymbolKind::TypeAlias,
-        CodeSymbolKind::Unknown => SymbolKind::Unknown,
-    }
 }

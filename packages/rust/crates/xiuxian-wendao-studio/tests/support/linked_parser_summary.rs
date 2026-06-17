@@ -106,10 +106,11 @@ pub fn linked_modelica_parser_summary_base_url() -> Result<String, Box<dyn std::
 pub fn linked_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
     preserve_fake_parser_summary_for_tests();
     if let Some(base_url) = explicit_parser_summary_base_url() {
-        if wait_for_service_ready(
+        if wait_for_service_ready_with_delay(
             base_url.as_str(),
             parser_summary_process_managed_quick_ready_attempts(),
             parser_summary_service_ready_fast_delay(),
+            DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS,
         )
         .is_ok()
         {
@@ -264,7 +265,10 @@ fn ensure_process_managed_parser_summary_service(
 ) -> TestResult {
     let service = PROCESS_MANAGED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let base_url = process_managed_parser_summary_base_url()?;
-        if !service_is_ready(base_url.as_str())? {
+        if !service_is_ready(
+            base_url.as_str(),
+            DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS,
+        )? {
             start_process_managed_parser_summary_service(base_url.as_str(), mode)?;
         }
         wait_for_service_ready(base_url.as_str(), mode.already_running_attempts())?;
@@ -385,7 +389,7 @@ fn wait_for_service_ready(base_url: &str, attempts: usize) -> Result<(), String>
         base_url,
         attempts,
         parser_summary_service_ready_delay(),
-        parser_summary_service_ready_timeout(),
+        parser_summary_service_ready_timeout(DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS),
     )
 }
 

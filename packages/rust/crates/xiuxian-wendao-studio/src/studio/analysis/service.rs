@@ -63,7 +63,8 @@ pub(crate) async fn analyze_markdown(
         )
     })?;
 
-    let content = std::fs::read_to_string(&full_path)
+    let content = tokio::fs::read_to_string(&full_path)
+        .await
         .map_err(|e| AnalysisError::Vfs(format!("Failed to read file: {e}")))?;
 
     let compiled: CompiledDocument = compile_markdown_ir(path, &content);

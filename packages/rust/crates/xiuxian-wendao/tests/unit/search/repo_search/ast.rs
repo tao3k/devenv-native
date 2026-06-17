@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use serde_json::json;
-use xiuxian_ast::Lang;
 
 use super::{
     build_repo_ast_analysis_index_from_checkout, excluded_ast_languages_for_repository,
@@ -13,16 +12,16 @@ use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig};
 #[test]
 fn supported_ast_lang_accepts_toml_when_not_excluded() {
     assert_eq!(
-        supported_ast_lang(Path::new("Cargo.toml"), &HashSet::new()),
-        Some(Lang::Toml)
+        supported_ast_lang(Path::new("src/lib.rs"), &HashSet::new()).map(|lang| lang.as_str()),
+        Some("rust")
     );
 }
 
 #[test]
 fn supported_ast_lang_skips_language_owned_by_plugin_window() {
-    let excluded_languages = HashSet::from(["toml".to_string()]);
+    let excluded_languages = HashSet::from(["rust".to_string()]);
     assert_eq!(
-        supported_ast_lang(Path::new("Cargo.toml"), &excluded_languages),
+        supported_ast_lang(Path::new("src/lib.rs"), &excluded_languages),
         None
     );
 }
@@ -59,7 +58,7 @@ fn excluded_ast_languages_for_repository_uses_plugin_ids_and_explicit_options() 
 }
 
 #[test]
-fn repo_ast_analysis_index_reuses_symbols_for_async_queries()
+fn repo_ast_analysis_index_preserves_scan_boundary_after_ast_retirement()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let source_dir = temp
@@ -99,12 +98,7 @@ RepoCodeSearchOutcome { count: 1 }
     let hits = index.search(Some("search_repo_code_outcome_for_query"), 10);
 
     assert_eq!(index.file_count(), 1);
-    assert!(index.symbol_count() >= 2);
-    assert_eq!(hits.len(), 1);
-    assert_eq!(
-        hits[0].path,
-        "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-    );
-    assert_eq!(hits[0].stem, "search_repo_code_outcome_for_query");
+    assert_eq!(index.symbol_count(), 0);
+    assert!(hits.is_empty());
     Ok(())
 }

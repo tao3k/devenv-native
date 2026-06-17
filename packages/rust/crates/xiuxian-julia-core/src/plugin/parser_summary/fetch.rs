@@ -1,6 +1,8 @@
-use std::sync::OnceLock;
-use std::sync::mpsc::RecvTimeoutError;
-use std::time::Duration;
+use std::{
+    future::Future,
+    sync::{OnceLock, mpsc},
+    time::Duration,
+};
 
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
@@ -92,29 +94,25 @@ pub(crate) fn fetch_julia_parser_file_summary_blocking_for_repository(
         ParserSummaryRouteKind::FileSummary,
     )?
     .min(MAX_JULIA_PARSER_SUMMARY_BLOCKING_TIMEOUT_SECS);
-    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
-    runtime.spawn(async move {
-        let result = fetch_julia_parser_file_summary_for_repository(
-            &repository,
-            &source_id_for_task,
-            &source_text,
+    let timeout = Duration::from_secs(timeout_secs);
+    let result = run_julia_parser_summary_blocking(runtime, async move {
+        tokio::time::timeout(
+            timeout,
+            fetch_julia_parser_file_summary_for_repository(
+                &repository,
+                &source_id_for_task,
+                &source_text,
+            ),
         )
-        .await;
-        let _ = sender.send(result);
-    });
-    receiver
-        .recv_timeout(Duration::from_secs(timeout_secs))
-        .map_err(|error| match error {
-            RecvTimeoutError::Timeout => RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "Julia parser-summary file-summary task exceeded {timeout_secs}s for `{source_id}`"
-                ),
-            },
-            RecvTimeoutError::Disconnected => RepoIntelligenceError::AnalysisFailed {
-                message: "Julia parser-summary file-summary task stopped before returning"
-                    .to_string(),
-            },
-        })?
+        .await
+    })
+    .map_err(|_| RepoIntelligenceError::AnalysisFailed {
+        message: format!(
+            "Julia parser-summary file-summary task exceeded {timeout_secs}s for `{source_id}`"
+        ),
+    })?;
+    let result = result?;
+    Ok(result)
 }
 
 pub(crate) fn fetch_julia_parser_root_summary_blocking_for_repository(
@@ -132,29 +130,25 @@ pub(crate) fn fetch_julia_parser_root_summary_blocking_for_repository(
         ParserSummaryRouteKind::RootSummary,
     )?
     .min(MAX_JULIA_PARSER_SUMMARY_BLOCKING_TIMEOUT_SECS);
-    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
-    runtime.spawn(async move {
-        let result = fetch_julia_parser_root_summary_for_repository(
-            &repository,
-            &source_id_for_task,
-            &source_text,
+    let timeout = Duration::from_secs(timeout_secs);
+    let result = run_julia_parser_summary_blocking(runtime, async move {
+        tokio::time::timeout(
+            timeout,
+            fetch_julia_parser_root_summary_for_repository(
+                &repository,
+                &source_id_for_task,
+                &source_text,
+            ),
         )
-        .await;
-        let _ = sender.send(result);
-    });
-    receiver
-        .recv_timeout(Duration::from_secs(timeout_secs))
-        .map_err(|error| match error {
-            RecvTimeoutError::Timeout => RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "Julia parser-summary root-summary task exceeded {timeout_secs}s for `{source_id}`"
-                ),
-            },
-            RecvTimeoutError::Disconnected => RepoIntelligenceError::AnalysisFailed {
-                message: "Julia parser-summary root-summary task stopped before returning"
-                    .to_string(),
-            },
-        })?
+        .await
+    })
+    .map_err(|_| RepoIntelligenceError::AnalysisFailed {
+        message: format!(
+            "Julia parser-summary root-summary task exceeded {timeout_secs}s for `{source_id}`"
+        ),
+    })?;
+    let result = result?;
+    Ok(result)
 }
 
 pub(crate) fn validate_julia_parser_summary_preflight_for_repository(
@@ -191,6 +185,31 @@ fn shared_julia_parser_summary_runtime_identity_for_tests() -> Result<usize, Rep
 {
     let runtime = julia_parser_summary_runtime()?;
     Ok(std::ptr::from_ref(runtime) as usize)
+}
+
+fn run_julia_parser_summary_blocking<T, TFuture>(
+    runtime: &'static tokio::runtime::Runtime,
+    future: TFuture,
+) -> T
+where
+    T: Send + 'static,
+    TFuture: Future<Output = T> + Send + 'static,
+{
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread {
+            tokio::task::block_in_place(|| runtime.block_on(future))
+        } else {
+            let (sender, receiver) = mpsc::sync_channel(1);
+            std::thread::spawn(move || {
+                let _ = sender.send(runtime.block_on(future));
+            });
+            receiver.recv().unwrap_or_else(|error| {
+                panic!("failed to run julia parser-summary blocking task: {error}")
+            })
+        }
+    } else {
+        runtime.block_on(future)
+    }
 }
 
 #[cfg(test)]

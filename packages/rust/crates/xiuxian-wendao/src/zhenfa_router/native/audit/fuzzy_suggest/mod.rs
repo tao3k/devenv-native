@@ -23,7 +23,7 @@
 //!
 //! let suggestion = suggest_pattern_fix(
 //!     "fn process_data($$$)",
-//!     &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+//!     &CodeLanguageId::from("rust"),
 //!     &[source],
 //! );
 //!
@@ -39,6 +39,7 @@
 
 mod cache;
 mod format;
+mod language;
 mod pattern;
 mod search;
 mod similarity;
@@ -47,6 +48,7 @@ mod types;
 
 pub use cache::{cache_stats, clear_candidate_cache};
 pub use format::format_suggestion;
+pub use language::{CodeLanguageId, code_language_id_from_path};
 pub use search::{suggest_pattern_fix, suggest_pattern_fix_with_threshold};
 pub use sources::resolve_source_files;
 pub use types::{FuzzySuggestion, SourceFile};

@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use walkdir::{DirEntry, WalkDir};
-use xiuxian_code_intelligence::code_language_id_from_path;
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
@@ -224,7 +223,23 @@ fn normalize_filters(filters: &HashSet<String>) -> HashSet<String> {
 }
 
 fn infer_repo_source_language(path: &str) -> Option<String> {
-    code_language_id_from_path(Path::new(path)).map(str::to_string)
+    source_language_id_from_path(Path::new(path)).map(str::to_string)
+}
+
+fn source_language_id_from_path(path: &Path) -> Option<&'static str> {
+    match path.extension().and_then(std::ffi::OsStr::to_str) {
+        Some(ext) if ext.eq_ignore_ascii_case("rs") => Some("rust"),
+        Some(ext) if ext.eq_ignore_ascii_case("py") => Some("python"),
+        Some(ext) if ext.eq_ignore_ascii_case("ts") || ext.eq_ignore_ascii_case("tsx") => {
+            Some("typescript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("jsx") => {
+            Some("javascript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("jl") => Some("julia"),
+        Some(ext) if ext.eq_ignore_ascii_case("mo") => Some("modelica"),
+        _ => None,
+    }
 }
 
 fn source_search_score(line: &str, query: &str, exact_match: bool) -> f64 {

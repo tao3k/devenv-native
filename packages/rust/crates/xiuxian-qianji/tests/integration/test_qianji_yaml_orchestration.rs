@@ -22,8 +22,7 @@ async fn test_qianji_native_toml_orchestration_diamond() {
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
     let registry = Arc::new(PersonaRegistry::with_builtins());
 
-    // Fix: Inject None for llm_client
-    let compiler = QianjiCompiler::new(index, orchestrator, registry, None);
+    let compiler = QianjiCompiler::new(index, orchestrator, registry);
     let engine = compiler
         .compile(DIAMOND_DAG_TOML)
         .expect("Compilation failed");

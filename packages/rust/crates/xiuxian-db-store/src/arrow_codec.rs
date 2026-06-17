@@ -1,9 +1,12 @@
 //! Arrow IPC encoding helpers for record-batch payload transport.
 
+#[cfg(not(feature = "vector-store"))]
 use std::collections::HashMap;
 use std::io::Cursor;
+#[cfg(not(feature = "vector-store"))]
 use std::sync::Arc;
 
+#[cfg(not(feature = "vector-store"))]
 use arrow::datatypes::Schema;
 use arrow::error::ArrowError;
 use arrow::record_batch::RecordBatch;
@@ -16,6 +19,7 @@ use crate::artifact_cache::{
     ArtifactKey,
 };
 
+#[cfg(not(feature = "vector-store"))]
 const TRACE_ID_METADATA_KEY: &str = "trace_id";
 
 /// Encode a single Arrow `RecordBatch` into IPC stream bytes.
@@ -59,6 +63,7 @@ pub fn encode_record_batches_ipc(batches: &[RecordBatch]) -> Result<Vec<u8>, Arr
 ///
 /// Returns [`ArrowError`] when the batch cannot be rebuilt with the merged
 /// schema metadata.
+#[cfg(not(feature = "vector-store"))]
 pub fn attach_record_batch_metadata<K, V, I>(
     batch: &RecordBatch,
     metadata: I,
@@ -88,6 +93,7 @@ where
 ///
 /// Returns [`ArrowError`] when the batch cannot be rebuilt with the updated
 /// schema metadata.
+#[cfg(not(feature = "vector-store"))]
 pub fn attach_record_batch_trace_id(
     batch: &RecordBatch,
     trace_id: impl Into<String>,

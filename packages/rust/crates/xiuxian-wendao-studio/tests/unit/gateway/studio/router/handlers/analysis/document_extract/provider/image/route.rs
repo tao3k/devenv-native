@@ -1,7 +1,7 @@
 use super::support::spawn_vllm_sr_route_probe;
 use std::sync::{Arc, Mutex};
 
-use xiuxian_llm::model_routing::VLLM_SR_AUTO_MODEL;
+use xiuxian_io::model_routing::VLLM_SR_AUTO_MODEL;
 use xiuxian_wendao_server::transport::DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE;
 
 use super::{
@@ -23,7 +23,7 @@ async fn image_route_admission_uses_vllm_sr_decision() -> Result<(), String> {
     let config = ImageDocumentExtractRouteConfig {
         route_provider: Some("openrouter".to_owned()),
         route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
-        model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::VllmSr,
+        model_routing_mode: xiuxian_io::model_routing::WendaoModelRoutingMode::VllmSr,
         vllm_sr_base_url,
     };
 
@@ -73,7 +73,7 @@ async fn image_route_deterministic_mode_returns_gateway_decision() -> Result<(),
     let config = ImageDocumentExtractRouteConfig {
         route_provider: Some("openrouter".to_owned()),
         route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
-        model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic,
+        model_routing_mode: xiuxian_io::model_routing::WendaoModelRoutingMode::Deterministic,
         vllm_sr_base_url: "http://127.0.0.1:8888".to_owned(),
     };
 
@@ -98,7 +98,7 @@ async fn image_route_deterministic_mode_returns_gateway_decision() -> Result<(),
     );
     assert_eq!(
         route.model_routing_mode,
-        xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic
+        xiuxian_io::model_routing::WendaoModelRoutingMode::Deterministic
     );
     Ok(())
 }
@@ -111,7 +111,7 @@ async fn image_route_uses_precomputed_source_hash_when_available() -> Result<(),
     let config = ImageDocumentExtractRouteConfig {
         route_provider: Some("openrouter".to_owned()),
         route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
-        model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::Deterministic,
+        model_routing_mode: xiuxian_io::model_routing::WendaoModelRoutingMode::Deterministic,
         vllm_sr_base_url: "http://127.0.0.1:8888".to_owned(),
     };
 
@@ -147,7 +147,7 @@ async fn image_route_metadata_is_forwarded_to_document_extract_flight() -> Resul
     let config = ImageDocumentExtractRouteConfig {
         route_provider: Some("openrouter".to_owned()),
         route_model: "qwen/qwen3-vl-8b-instruct".to_owned(),
-        model_routing_mode: xiuxian_llm::model_routing::WendaoModelRoutingMode::VllmSr,
+        model_routing_mode: xiuxian_io::model_routing::WendaoModelRoutingMode::VllmSr,
         vllm_sr_base_url,
     };
     let route = image_document_extract_model_route_with_config(

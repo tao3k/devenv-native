@@ -1,10 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use xiuxian_code_intelligence::{
-    CodeLanguageId, extract_code_structure_symbols_for_language_id, first_code_signature_line,
-};
-
+use crate::studio::code_language::CodeLanguageId;
 use crate::studio::types::{
     CodeAstAnalysisResponse, CodeAstNode, CodeAstNodeKind, CodeAstProjection,
     CodeAstProjectionKind, CodeAstRetrievalAtomScope,
@@ -18,6 +15,13 @@ struct GenericAstItem {
     id: String,
     label: String,
     kind: CodeAstNodeKind,
+    signature: String,
+    line_start: usize,
+    line_end: usize,
+}
+
+struct GenericCodeSymbol {
+    name: String,
     signature: String,
     line_start: usize,
     line_end: usize,
@@ -137,12 +141,9 @@ fn extract_generic_ast_items(
     let mut items = Vec::new();
     let mut seen = HashSet::new();
 
-    for symbol in extract_code_structure_symbols_for_language_id(source_content, language_id) {
-        let label = symbol
-            .captures
-            .get("NAME")
-            .cloned()
-            .filter(|value| !value.trim().is_empty())
+    for symbol in extract_generic_code_symbols(source_content, language_id) {
+        let label = (!symbol.name.trim().is_empty())
+            .then(|| symbol.name.clone())
             .unwrap_or_else(|| fallback_item_label(path, symbol.signature.as_str()));
         let dedupe_key = format!("{path}:{}:{}:{label}", symbol.line_start, symbol.line_end);
         if !seen.insert(dedupe_key) {
@@ -210,7 +211,56 @@ fn fallback_item_label(path: &str, fallback: &str) -> String {
 }
 
 fn first_signature_line(text: &str) -> &str {
-    first_code_signature_line(text)
+    text.lines()
+        .find(|line| !line.trim().is_empty())
+        .map(str::trim)
+        .unwrap_or("")
+}
+
+fn extract_generic_code_symbols(
+    source_content: &str,
+    language_id: &CodeLanguageId,
+) -> Vec<GenericCodeSymbol> {
+    source_content
+        .lines()
+        .enumerate()
+        .filter_map(|(line_index, line)| {
+            let signature = line.trim();
+            let kind = infer_generic_ast_node_kind(language_id, signature);
+            (kind != CodeAstNodeKind::Other).then(|| GenericCodeSymbol {
+                name: identifier_from_signature(signature)
+                    .unwrap_or_else(|| fallback_item_label("", signature)),
+                signature: signature.to_string(),
+                line_start: line_index + 1,
+                line_end: line_index + 1,
+            })
+        })
+        .collect()
+}
+
+fn identifier_from_signature(signature: &str) -> Option<String> {
+    let before_args = signature
+        .split_once('(')
+        .map_or(signature, |(head, _)| head);
+    before_args
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .rev()
+        .find(|token| {
+            !token.is_empty()
+                && !matches!(
+                    *token,
+                    "fn" | "def"
+                        | "function"
+                        | "struct"
+                        | "class"
+                        | "impl"
+                        | "pub"
+                        | "async"
+                        | "const"
+                        | "let"
+                )
+        })
+        .map(str::to_string)
 }
 
 fn infer_generic_ast_node_kind(language_id: &CodeLanguageId, signature: &str) -> CodeAstNodeKind {

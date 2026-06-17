@@ -18,11 +18,6 @@ use crate::sovereign::ContractFeedbackKnowledgeSink;
 use super::pipeline::{
     QianjiContractFeedbackRun, QianjiPersistedContractFeedbackRun, persist_contract_feedback_run,
 };
-#[cfg(feature = "llm")]
-use super::pipeline::{
-    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
-    build_live_contract_feedback_executor,
-};
 
 const REST_DOCS_SUITE_ID: &str = "qianji-rest-docs-contract-feedback";
 const REST_DOCS_PACK_ID: &str = "rest_docs";
@@ -647,52 +642,6 @@ pub async fn run_and_persist_rest_docs_contract_feedback(
         collection_context,
         config,
         &NoopAdvisoryAuditExecutor,
-    )
-    .await?;
-    persist_contract_feedback_run(run, sink).await
-}
-
-/// Run file-backed `rest_docs` contract feedback with live advisory execution.
-///
-/// # Errors
-///
-/// Returns an error when deterministic REST docs evaluation fails or the live advisory executor
-/// fails.
-#[cfg(feature = "llm")]
-/// Positional boundary: this compatibility API keeps the established public call shape.
-pub async fn run_rest_docs_contract_feedback_with_live_advisory(
-    openapi_path: impl Into<PathBuf>,
-    collection_context: CollectionContext,
-    config: &ContractRunConfig,
-    runtime: QianjiLiveContractFeedbackRuntime,
-    options: QianjiLiveContractFeedbackOptions,
-) -> Result<QianjiContractFeedbackRun> {
-    let live_executor = build_live_contract_feedback_executor(runtime, options);
-
-    run_rest_docs_contract_feedback(openapi_path, collection_context, config, &live_executor).await
-}
-
-/// Run and persist file-backed `rest_docs` contract feedback with live advisory execution.
-///
-/// # Errors
-///
-/// Returns an error when contract feedback execution fails or the sink rejects generated entries.
-#[cfg(feature = "llm")]
-/// Positional boundary: this compatibility API keeps the established public call shape.
-pub async fn run_and_persist_rest_docs_contract_feedback_with_live_advisory(
-    openapi_path: impl Into<PathBuf>,
-    collection_context: CollectionContext,
-    config: &ContractRunConfig,
-    runtime: QianjiLiveContractFeedbackRuntime,
-    options: QianjiLiveContractFeedbackOptions,
-    sink: &dyn ContractFeedbackKnowledgeSink,
-) -> Result<QianjiPersistedContractFeedbackRun> {
-    let run = run_rest_docs_contract_feedback_with_live_advisory(
-        openapi_path,
-        collection_context,
-        config,
-        runtime,
-        options,
     )
     .await?;
     persist_contract_feedback_run(run, sink).await

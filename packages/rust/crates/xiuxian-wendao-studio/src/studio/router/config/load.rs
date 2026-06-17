@@ -5,9 +5,6 @@ use std::path::{Path, PathBuf};
 
 use crate::studio::types::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
 use xiuxian_config_core::load_toml_value_with_imports;
-use xiuxian_llm::model_routing::{
-    WendaoModelRoutingTomlConfig, wendao_model_routing_config_from_toml_value,
-};
 use xiuxian_wendao::episteme::EpistemeRegistryEntry;
 
 use super::paths::studio_effective_wendao_toml_path;
@@ -76,25 +73,16 @@ pub(crate) fn load_document_extract_endpoint_from_wendao_toml_path(
 
 pub(crate) fn load_model_routing_config_from_wendao_toml(
     config_root: &Path,
-) -> Result<Option<WendaoModelRoutingTomlConfig>, String> {
+) -> Result<Option<()>, String> {
     let config_path = studio_effective_wendao_toml_path(config_root);
     load_model_routing_config_from_wendao_toml_path(config_path.as_path())
 }
 
 pub(crate) fn load_model_routing_config_from_wendao_toml_path(
     config_path: &Path,
-) -> Result<Option<WendaoModelRoutingTomlConfig>, String> {
-    if !config_path.is_file() {
-        return Ok(None);
-    }
-
-    let merged = load_toml_value_with_imports(config_path).map_err(|error| {
-        format!(
-            "failed to load merged TOML `{}`: {error}",
-            config_path.display()
-        )
-    })?;
-    wendao_model_routing_config_from_toml_value(merged).map(Some)
+) -> Result<Option<()>, String> {
+    let _ = config_path;
+    Ok(None)
 }
 
 pub(crate) fn load_episteme_registry_from_wendao_toml(

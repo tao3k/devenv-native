@@ -8,7 +8,8 @@ license.workspace = true
 publish = false
 
 [features]
-default = ["duckdb", "llm", "qianji-full"]
+default = ["duckdb", "qianji-full"]
+llm = []
 duckdb = [
   "run-console-flight",
   "dep:tokio-stream",
@@ -23,7 +24,6 @@ run-console-flight = [
   "dep:xiuxian-db-store",
   "xiuxian-db-store/arrow-codec",
 ]
-llm = ["dep:xiuxian-llm"]
 performance = ["dep:criterion"]
 valkey = [
   "dep:redis",
@@ -38,7 +38,6 @@ advisory-prompt-pack-cache = [
 ]
 qianji-full = [
   "duckdb",
-  "llm",
   "valkey",
   "dep:globset",
   "dep:include_dir",
@@ -114,7 +113,6 @@ xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
-xiuxian-llm = { path = "../xiuxian-llm", optional = true }
 xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
@@ -139,7 +137,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "qianji"
 path = "src/bin/qianji.rs"
-required-features = ["llm", "qianji-full", "wendao-integration"]
+required-features = ["qianji-full", "wendao-integration"]
 
 [[bin]]
 name = "qianji-server"
@@ -150,35 +148,9 @@ name = "qianji_bpmn_runtime"
 harness = false
 required-features = ["performance"]
 
-# Integration tests requiring llm feature
-[[test]]
-name = "llm_augmented_formal_audit"
-path = "tests/integration/llm_augmented_formal_audit/mod.rs"
-required-features = ["llm", "qianji-full", "wendao-integration"]
-
-[[test]]
-name = "llm_analyzer"
-path = "tests/integration/llm_analyzer.rs"
-required-features = ["llm", "qianji-full"]
-
-[[test]]
-name = "llm_multi_tenancy"
-path = "tests/integration/llm_multi_tenancy.rs"
-required-features = ["llm", "qianji-full", "wendao-integration"]
-
 [[test]]
 name = "runtime_config"
 path = "tests/integration/runtime_config/mod.rs"
-
-[[test]]
-name = "formal_audit_advisory_llm"
-path = "tests/integration/formal_audit_advisory_llm.rs"
-required-features = ["llm", "qianji-full"]
-
-[[test]]
-name = "contract_feedback_pipeline_llm"
-path = "tests/integration/contract_feedback_pipeline_llm.rs"
-required-features = ["llm", "qianji-full", "wendao-integration"]
 
 [[test]]
 name = "contract_feedback_pipeline"

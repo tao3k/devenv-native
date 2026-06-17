@@ -2,12 +2,11 @@ use std::path::Path;
 
 use crate::link_graph::PageIndexNode;
 use crate::parsers::markdown::CodeObservation;
-use crate::zhenfa_router::native::audit::{SourceFile, suggest_pattern_fix_with_threshold};
+use crate::zhenfa_router::native::audit::{
+    CodeLanguageId, SourceFile, code_language_id_from_path, suggest_pattern_fix_with_threshold,
+};
 use crate::zhenfa_router::native::semantic_check::types::{
     FuzzySuggestionData, IssueLocation, SemanticIssue,
-};
-use xiuxian_code_intelligence::{
-    CodeLanguageId, code_language_id_from_path, count_code_pattern_matches_for_language_id,
 };
 
 fn push_invalid_observation_language_issue(
@@ -94,7 +93,25 @@ fn count_observation_matches(
         .sum()
 }
 
-/// Check :OBSERVE: code patterns for validity using xiuxian-ast (Blueprint v2.7).
+fn count_code_pattern_matches_for_language_id(
+    content: &str,
+    pattern: &str,
+    _language_id: &CodeLanguageId,
+) -> Result<usize, String> {
+    let tokens = pattern
+        .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .filter(|token| token.len() > 2 && !token.starts_with('$'))
+        .collect::<Vec<_>>();
+    if tokens.is_empty() {
+        return Ok(0);
+    }
+    Ok(tokens
+        .iter()
+        .filter(|token| content.contains(*token))
+        .count())
+}
+
+/// Check :OBSERVE: code patterns with the retired local AST boundary.
 pub(crate) fn check_code_observations(
     node: &PageIndexNode,
     doc_id: &str,
@@ -103,13 +120,16 @@ pub(crate) fn check_code_observations(
     issues: &mut Vec<SemanticIssue>,
 ) {
     for obs in &node.metadata.observations {
-        let Some(lang) = obs.ast_language() else {
+        let language_id = CodeLanguageId::from(obs.language.as_str());
+        if language_id.as_str() == "unknown" {
             push_invalid_observation_language_issue(node, doc_id, obs, issues);
             continue;
-        };
-        let language_id = CodeLanguageId::from(lang.as_str());
+        }
 
         if let Err(error) = obs.validate_pattern() {
+            if error.to_string().contains("retired") {
+                continue;
+            }
             let fuzzy_suggestion_data = build_observation_fuzzy_suggestion(
                 obs,
                 &language_id,
@@ -120,7 +140,7 @@ pub(crate) fn check_code_observations(
                 &obs.pattern,
                 "is invalid. Consider updating to:",
                 fuzzy_suggestion_data.as_ref(),
-                "Fix the pattern syntax or check xiuxian-ast documentation for valid sgrep patterns",
+                "Fix the pattern syntax or use the language-provider boundary for structural validation",
             );
 
             issues.push(SemanticIssue {

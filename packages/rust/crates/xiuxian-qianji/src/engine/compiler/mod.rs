@@ -7,10 +7,6 @@ mod calibration;
 mod formal_audit;
 mod graph_assembly;
 mod io_mechanisms;
-#[cfg(feature = "llm")]
-mod llm_client;
-#[cfg(feature = "llm")]
-mod llm_node;
 mod manifest_parser;
 mod mechanism_dispatch;
 #[path = "../../engine_compiler_pipeline.rs"]

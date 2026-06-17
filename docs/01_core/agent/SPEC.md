@@ -1,42 +1,39 @@
 ---
 type: knowledge
-title: "Xiuxian-Agent: The Thin Orchestrator & Execution Container"
+title: "Externalized Agent Boundary"
 category: "core"
 tags:
   - agent
-  - container
-  - runtime
+  - external-service
+  - archived
 metadata:
-  title: "Xiuxian-Agent: The Thin Orchestrator (赛博修仙主脑)"
+  title: "Externalized Agent Boundary"
 ---
 
-# Xiuxian-Agent: The Thin Orchestrator (赛博修仙主脑)
+# Externalized Agent Boundary
 
-`xiuxian-agent` is the primary high-performance execution container for the Xiuxian OS. It follows the **"Ignorant Host"** paradigm, where the core remains stateless and delegates all domain-specific logic to Synaptic Flows.
+This document is retained as a historical architecture note. The current
+workspace does not own an in-process Agent kernel, long-lived provider runtime,
+or LLM orchestration core. Those capabilities are external service concerns.
+This repository owns durable workflow contracts through Qianji and knowledge
+engine/search contracts through Wendao.
 
-## 1. Radical Thinning Architecture (ADR-010)
+## Current Boundary
 
-The Agent core is a stateless orchestrator. All domain-specific knowledge and internal states have been physically offloaded to specialized crates:
+- Qianji owns workflow state, BPMN/Flowhub control, leases, checkpoints,
+  activity contracts, and deterministic completion/failure recording.
+- Wendao owns knowledge-engine indexing, search, graph, Arrow/SQL, and Gateway
+  protocol surfaces.
+- Provider execution, model routing, subagent kernels, and long-lived LLM
+  orchestration are integrated through service protocols or explicit
+  compatibility adapters, not as this workspace's core ownership.
 
-- **LLM Infrastructure**: Cooldowns, dimension repair, and provider routing are offloaded to `xiuxian-llm`.
-- **Cognitive Memory**: Ranking, filtering, and Q-reranking reside in `xiuxian-memory-engine`.
-- **Manifestation**: Persona registries and prompt injection management are governed by `xiuxian-qianhuan`.
+## Compatibility Surfaces
 
-## 2. The Validated Feeding Artery (ADR-011)
+Existing `xiuxian-llm` and OpenAI-compatible paths remain compatibility
+adapters where explicitly enabled. They must not be treated as the default
+durable workflow core or as an Agent kernel implementation.
 
-To ensure zero-trust data security and structural integrity, the Agent utilizes the **Zhenfa Transmuter** as its primary data artery.
-
-- **Workflow**: `Extract (VFS) -> Wash (Zhenfa) -> Validate (Predicate) -> Feed (LLM)`.
-- **Benefit**: Prevents prompt injection and formatting hallucinations by ensuring only "Sealed" data enters the model context.
-
-## 3. Workflow-Driven Execution
-
-The Agent's primary lifecycle is driven by declarative TOML manifests:
-
-- **Late Binding**: Resources (personas, templates) are resolved on-demand using the **`$` placeholder** mapping to `wendao://` URIs.
-- **Bootcamp Integration**: Agent utilizes the `Qianji` Bootcamp API for deterministic scenario validation, ensuring that business logic is verified in a controlled laboratory environment before live deployment.
-
-## 4. Performance Standards
-
-- **Parallel Pipeline (ADR-006)**: Non-blocking fan-out for history, recall, and validation.
-- **Zero-Copy Loading**: Integrated with the `SkillRuntimeResolver` for microsecond-level pointer-based resource access.
+Future work that combines an external Agent kernel with Xiuxian should live in
+a separate integration repository or service deployment, with this workspace
+providing stable workflow and knowledge-engine contracts.

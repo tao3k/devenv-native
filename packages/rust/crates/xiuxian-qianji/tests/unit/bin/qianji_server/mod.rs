@@ -7,7 +7,5 @@ mod config;
 mod flowhub;
 mod health;
 mod internal_auth;
-#[cfg(feature = "qianji-full")]
-mod llm_worker;
 mod parse;
 mod support;

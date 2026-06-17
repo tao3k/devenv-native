@@ -28,7 +28,7 @@ pub struct CodeObservation {
     pub raw_value: String,
     /// Line number within the document where this observation was declared.
     pub line_number: Option<usize>,
-    /// Whether the pattern has been validated by `xiuxian-ast`.
+    /// Whether the pattern has been validated by an external language provider.
     pub is_validated: bool,
     /// Validation error message if pattern validation failed.
     pub validation_error: Option<String>,
@@ -110,42 +110,16 @@ impl CodeObservation {
         Some(build_observation(parsed))
     }
 
-    /// Get the language for `xiuxian-ast` queries.
-    #[cfg(feature = "ast-validation")]
-    #[must_use]
-    pub fn ast_language(&self) -> Option<xiuxian_ast::Lang> {
-        xiuxian_ast::Lang::try_from(self.language.as_str()).ok()
-    }
-
-    /// Validate the pattern using `xiuxian-ast`.
+    /// Report that local AST pattern validation is no longer available.
     ///
     /// # Errors
     ///
-    /// Returns an error when the observation language is not supported by
-    /// `xiuxian-ast` or when the configured pattern is not accepted by the
-    /// target parser.
-    #[cfg(feature = "ast-validation")]
-    pub fn validate_pattern(&self) -> Result<(), String> {
-        let language = self
-            .ast_language()
-            .ok_or_else(|| format!("Unsupported language: {}", self.language))?;
-
-        xiuxian_ast::pattern(&self.pattern, language)
-            .map_err(|error| format!("Invalid pattern: {error}"))?;
-
-        Ok(())
-    }
-
-    /// Validate the pattern using the optional `xiuxian-ast` integration.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when this crate is built without the `ast-validation`
-    /// feature.
-    #[cfg(not(feature = "ast-validation"))]
+    /// Always returns an error because local tree-sitter/ast-grep validation
+    /// was retired from this crate. Code intelligence will be provided by the
+    /// external language-provider boundary.
     pub fn validate_pattern(&self) -> Result<(), String> {
         Err(format!(
-            "code observation validation for `{}` requires the `ast-validation` feature",
+            "code observation validation for `{}` is retired; use the language-provider boundary",
             self.language
         ))
     }

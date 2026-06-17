@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use sha2::Digest;
-use xiuxian_llm::model_routing::{DEFAULT_WENDAO_VLLM_SR_BASE_URL, WendaoModelRoutingMode};
+use xiuxian_io::model_routing::{DEFAULT_WENDAO_VLLM_SR_BASE_URL, WendaoModelRoutingMode};
 use xiuxian_qianji::{WorkflowStageFacts, WorkflowStageStatus, WorkflowStageTrace, WorkflowTrace};
 use xiuxian_wendao_attachments::audio::AudioShardManifestItem;
 use xiuxian_wendao_server::transport::{DocumentExtractFlightRequest, DocumentExtractMode};

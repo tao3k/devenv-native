@@ -1,7 +1,7 @@
 ---
 type: knowledge
-title: "ADR-010: The Ignorant Host - Workflow-Driven Agent Container"
-status: "Accepted"
+title: "ADR-010: The Ignorant Host - Historical Agent Container Boundary"
+status: "Superseded"
 date: "2026-02-28"
 category: "architecture"
 tags:
@@ -11,10 +11,18 @@ tags:
   - ssot
   - decoupling
 metadata:
-  title: "ADR-010: The Ignorant Host - Workflow-Driven Agent Container"
+  title: "ADR-010: The Ignorant Host - Historical Agent Container Boundary"
 ---
 
-# ADR-010: The Ignorant Host - Workflow-Driven Agent Container
+# ADR-010: The Ignorant Host - Historical Agent Container Boundary
+
+## Supersession Note
+
+This ADR is retained as historical design context. Current Xiuxian workspace
+ownership is narrower: Qianji owns durable workflow contracts, Wendao owns
+knowledge-engine and Gateway contracts, and Agent kernels or long-lived provider
+runtimes are external service concerns. New implementation work must not use
+this ADR to justify adding an in-process Agent core to this repository.
 
 ## 1. Context and Problem Statement
 
@@ -45,7 +53,7 @@ We strictly prohibit the creation of "special-case" Rust files within the Agent 
 
 **Terminology Update:**
 
-- ❌ **Validation** (too restrictive) -> ✅ **Synaptic Flow** (reflects the reactive, neural nature of the workload).
+- **Validation** (too restrictive) -> **Synaptic Flow** (reflects the reactive, neural nature of the workload).
 
 ### 3.2 Qianji Protocol Feature
 

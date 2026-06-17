@@ -23,14 +23,6 @@ pub use super::wendao_sql::{
 };
 pub use super::write_file::WriteFileMechanism;
 
-#[cfg(feature = "llm")]
-pub use super::formal_audit::{LlmAugmentedAuditMechanism, QianjiLlmAdvisoryAuditExecutor};
-#[cfg(feature = "llm")]
-pub use super::llm::{
-    LlmAnalyzer, OutputFlags, PipelineFlags, StreamingLlmAnalyzer, StreamingLlmAnalyzerBuilder,
-    StreamingPipelineSettings,
-};
-
 #[cfg(test)]
 #[cfg(feature = "wendao-integration")]
 pub(crate) use super::wendao_sql::{parse_sql_author_spec_xml, parse_surface_bundle_xml};

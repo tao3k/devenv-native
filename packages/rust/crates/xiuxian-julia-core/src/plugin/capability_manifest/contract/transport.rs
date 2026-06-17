@@ -1,6 +1,10 @@
 //! Flight transport and repository preflight for Julia capability manifests.
 
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    future::Future,
+    sync::{OnceLock, mpsc},
+};
 
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_core::{
@@ -35,9 +39,10 @@ use super::batch::{
     validate_julia_plugin_capability_manifest_request_batches,
     validate_julia_plugin_capability_manifest_response_batches,
 };
-use super::support::{
-    bool_option, object_option, panic_payload_message, string_option, u64_option,
-};
+use super::support::{bool_option, object_option, string_option, u64_option};
+
+static JULIA_CAPABILITY_MANIFEST_RUNTIME: OnceLock<Result<tokio::runtime::Runtime, String>> =
+    OnceLock::new();
 
 /// Build a Julia capability-manifest Flight transport client from repository config.
 ///
@@ -235,6 +240,31 @@ fn collapse_duplicate_capability_rows(
         .collect()
 }
 
+fn run_capability_manifest_blocking<T, TFuture>(
+    runtime: &'static tokio::runtime::Runtime,
+    future: TFuture,
+) -> T
+where
+    T: Send + 'static,
+    TFuture: Future<Output = T> + Send + 'static,
+{
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread {
+            tokio::task::block_in_place(|| runtime.block_on(future))
+        } else {
+            let (sender, receiver) = mpsc::sync_channel(1);
+            std::thread::spawn(move || {
+                let _ = sender.send(runtime.block_on(future));
+            });
+            receiver.recv().unwrap_or_else(|error| {
+                panic!("failed to execute capability-manifest blocking task: {error}")
+            })
+        }
+    } else {
+        runtime.block_on(future)
+    }
+}
+
 pub(crate) fn discover_julia_graph_structural_binding_from_manifest_for_repository(
     repository: &RegisteredRepository,
     route_kind: GraphStructuralRouteKind,
@@ -251,29 +281,46 @@ fn fetch_julia_plugin_capability_manifest_rows_blocking_for_repository(
     rows: &[JuliaPluginCapabilityManifestRequestRow],
 ) -> Result<Vec<JuliaPluginCapabilityManifestRow>, RepoIntelligenceError> {
     let repository = repository.clone();
+    let repository_for_error = repository.id.clone();
     let rows = rows.to_vec();
-    std::thread::spawn(move || {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|error| RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "failed to build Julia capability-manifest preflight runtime for repo `{}`: {error}",
-                    repository.id
-                ),
-            })?;
-        runtime.block_on(fetch_julia_plugin_capability_manifest_rows_for_repository(
-            &repository,
-            &rows,
-        ))
+    let runtime = capability_manifest_runtime()?;
+    let result = run_capability_manifest_blocking(runtime, async move {
+        fetch_julia_plugin_capability_manifest_rows_for_repository_owned(repository, rows).await
     })
-    .join()
-    .map_err(|panic_payload| RepoIntelligenceError::AnalysisFailed {
+    .map_err(|error| RepoIntelligenceError::AnalysisFailed {
         message: format!(
-            "Julia capability-manifest preflight thread panicked: {}",
-            panic_payload_message(&panic_payload)
+            "failed to fetch Julia capability-manifest rows for repo `{}`: {error}",
+            repository_for_error
         ),
-    })?
+    })?;
+    Ok(result)
+}
+
+async fn fetch_julia_plugin_capability_manifest_rows_for_repository_owned(
+    repository: RegisteredRepository,
+    rows: Vec<JuliaPluginCapabilityManifestRequestRow>,
+) -> Result<Vec<JuliaPluginCapabilityManifestRow>, RepoIntelligenceError> {
+    fetch_julia_plugin_capability_manifest_rows_for_repository(&repository, rows.as_slice()).await
+}
+
+fn capability_manifest_runtime() -> Result<&'static tokio::runtime::Runtime, RepoIntelligenceError>
+{
+    JULIA_CAPABILITY_MANIFEST_RUNTIME
+        .get_or_init(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(1)
+                .thread_name("wendao-julia-capability-manifest")
+                .enable_all()
+                .build()
+                .map_err(|error| RepoIntelligenceError::AnalysisFailed {
+                    message: format!("failed to build Julia capability-manifest runtime: {error}"),
+                })
+                .map_err(|error| error.to_string())
+        })
+        .as_ref()
+        .map_err(|message| RepoIntelligenceError::AnalysisFailed {
+            message: format!("failed to initialize Julia capability-manifest runtime: {message}"),
+        })
 }
 
 fn validate_capability_manifest_preflight_rows(

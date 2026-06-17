@@ -6,7 +6,7 @@ use crate::studio::document_extract_audio_client::{
 use crate::unit::gateway::studio::document_extract_audio_client::support::{
     ObservedAudioShardWindow, sample_input, spawn_audio_shard_service,
 };
-use xiuxian_llm::model_routing::{WendaoModelDecision, WendaoRouteIntent};
+use xiuxian_io::model_routing::{WendaoModelDecision, WendaoRouteIntent};
 use xiuxian_wendao_attachments::audio::{AudioShardResult, build_audio_shard_result_batch};
 
 #[tokio::test]

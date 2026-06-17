@@ -176,13 +176,3 @@ pub(crate) fn parse_transport_kind(
         )),
     }
 }
-
-pub(super) fn panic_payload_message(panic_payload: &Box<dyn std::any::Any + Send>) -> String {
-    if let Some(message) = panic_payload.downcast_ref::<String>() {
-        return message.clone();
-    }
-    if let Some(message) = panic_payload.downcast_ref::<&'static str>() {
-        return (*message).to_string();
-    }
-    "unknown panic payload".to_string()
-}

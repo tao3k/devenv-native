@@ -9,7 +9,6 @@ use crate::link_graph::models::{QuantumAnchorHit, QuantumSemanticSearchRequest};
 use arrow::record_batch::RecordBatch;
 use thiserror::Error;
 use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError};
-use xiuxian_llm::embedding::openai_compat::embed_openai_compatible;
 #[cfg(feature = "julia")]
 use xiuxian_wendao_runtime::transport::{
     PluginArrowVectorStoreRequestBatchInput, PluginArrowVectorStoreRequestBuildError,
@@ -17,8 +16,11 @@ use xiuxian_wendao_runtime::transport::{
     build_plugin_arrow_request_batch_from_vector_store_with_metadata,
 };
 
-/// Semantic ignition adapter backed by an OpenAI-compatible embeddings API plus
-/// the Lance vector-store facade.
+/// Semantic ignition adapter backed by precomputed vectors by default.
+///
+/// Text-to-vector OpenAI-compatible embedding transport is available only when
+/// the explicit `llm` feature is enabled. Default Wendao builds keep provider
+/// execution outside this crate.
 #[derive(Clone)]
 pub struct OpenAiCompatibleSemanticIgnition {
     store: VectorStore,
@@ -103,23 +105,15 @@ impl OpenAiCompatibleSemanticIgnition {
             .query_text
             .filter(|value| !value.trim().is_empty())
             .ok_or(OpenAiCompatibleSemanticIgnitionError::MissingQuerySignal)?;
-        let texts = vec![query_text.to_string()];
-        let vectors = embed_openai_compatible(
-            &self.embedding_client,
-            self.embedding_base_url.as_str(),
-            &texts,
-            self.embedding_model.as_deref(),
-        )
-        .await
-        .ok_or(OpenAiCompatibleSemanticIgnitionError::EmbeddingUnavailable)?;
-        let mut vectors = vectors.into_iter();
-        let vector = vectors
-            .next()
-            .ok_or(OpenAiCompatibleSemanticIgnitionError::EmbeddingUnavailable)?;
-        if vector.is_empty() {
-            return Err(OpenAiCompatibleSemanticIgnitionError::EmptyEmbeddingVector);
-        }
-        Ok(vector)
+        self.embed_query_text(query_text).await
+    }
+
+    #[cfg(feature = "julia")]
+    async fn embed_query_text(
+        &self,
+        _query_text: &str,
+    ) -> Result<Vec<f32>, OpenAiCompatibleSemanticIgnitionError> {
+        Err(OpenAiCompatibleSemanticIgnitionError::EmbeddingProviderDisabled)
     }
 
     #[cfg(feature = "julia")]
@@ -229,6 +223,11 @@ pub enum OpenAiCompatibleSemanticIgnitionError {
     /// OpenAI-compatible embedding request failed or returned invalid payload.
     #[error("openai-compatible embedding unavailable")]
     EmbeddingUnavailable,
+    /// This build does not enable in-process embedding provider transport.
+    #[error(
+        "openai-compatible embedding provider transport is owned by the external LLM provider boundary"
+    )]
+    EmbeddingProviderDisabled,
     /// OpenAI-compatible embedding succeeded but returned an empty vector.
     #[error("openai-compatible embedding returned empty vector")]
     EmptyEmbeddingVector,
@@ -303,23 +302,13 @@ impl QuantumSemanticIgnition for OpenAiCompatibleSemanticIgnition {
                     .as_deref()
                     .filter(|value| !value.trim().is_empty())
                     .ok_or(OpenAiCompatibleSemanticIgnitionError::MissingQuerySignal)?;
-                let texts = vec![query_text.to_string()];
-                let vectors = embed_openai_compatible(
+                embed_query_text(
                     &embedding_client,
                     embedding_base_url.as_str(),
-                    &texts,
+                    query_text,
                     embedding_model.as_deref(),
                 )
-                .await
-                .ok_or(OpenAiCompatibleSemanticIgnitionError::EmbeddingUnavailable)?;
-                let mut vectors = vectors.into_iter();
-                let vector = vectors
-                    .next()
-                    .ok_or(OpenAiCompatibleSemanticIgnitionError::EmbeddingUnavailable)?;
-                if vector.is_empty() {
-                    return Err(OpenAiCompatibleSemanticIgnitionError::EmptyEmbeddingVector);
-                }
-                vector
+                .await?
             } else {
                 query_vector
             };
@@ -336,6 +325,15 @@ impl QuantumSemanticIgnition for OpenAiCompatibleSemanticIgnition {
                 .collect())
         })
     }
+}
+
+async fn embed_query_text(
+    _embedding_client: &reqwest::Client,
+    _embedding_base_url: &str,
+    _query_text: &str,
+    _embedding_model: Option<&str>,
+) -> Result<Vec<f32>, OpenAiCompatibleSemanticIgnitionError> {
+    Err(OpenAiCompatibleSemanticIgnitionError::EmbeddingProviderDisabled)
 }
 
 #[cfg(all(test, feature = "julia"))]

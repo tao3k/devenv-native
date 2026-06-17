@@ -29,16 +29,14 @@ async fn bootcamp_runs_real_adversarial_flow() {
     ));
 
     let flow_uri = "wendao://skills/zhixing/references/agenda_flow.toml";
-    let report = run_scenario(flow_uri, initial_context, &mounts, options)
+    let error = run_scenario(flow_uri, initial_context, &mounts, options)
         .await
-        .unwrap_or_else(|error| panic!("Real-world adversarial flow failed: {error}"));
-
-    if let Some(final_report) = report.final_context.get("final_synaptic_report") {
-        println!("Final Synaptic Report:\n{final_report}");
-    }
-    println!(
-        "Reasoning Trace: Node Count = {node_count}",
-        node_count = report.node_count
+        .expect_err("local Qianji LLM execution should be retired");
+    assert!(
+        error
+            .to_string()
+            .contains("local Qianji LLM execution is retired"),
+        "unexpected error: {error}"
     );
 }
 
@@ -50,7 +48,7 @@ async fn bootcamp_runs_embedded_agenda_flow_with_mock_llm() {
         "<agenda_critique_report><score>0.95</score><reason>approved</reason></agenda_critique_report>",
     );
 
-    let report = run_scenario(
+    let error = run_scenario(
         AGENDA_FLOW_URI_FROM_ALIAS,
         json!({
             "request": "Generate today's agenda and then critique it.",
@@ -60,16 +58,11 @@ async fn bootcamp_runs_embedded_agenda_flow_with_mock_llm() {
         options,
     )
     .await
-    .unwrap_or_else(|error| panic!("bootcamp should execute agenda flow with mock llm: {error}"));
-
+    .expect_err("local Qianji LLM execution should be retired");
     assert!(
-        report.manifest_name.contains("Agenda_Governance_Flow"),
-        "unexpected agenda manifest name: {}",
-        report.manifest_name
-    );
-    assert!(
-        report.node_count >= 4,
-        "agenda flow should have at least 4 nodes, got {}",
-        report.node_count
+        error
+            .to_string()
+            .contains("local Qianji LLM execution is retired"),
+        "unexpected error: {error}"
     );
 }

@@ -20,7 +20,7 @@ fn build_compiler(index_root: &Path) -> Result<QianjiCompiler, Box<dyn std::erro
     let index = Arc::new(LinkGraphIndex::build(index_root)?);
     let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
     let registry = Arc::new(PersonaRegistry::with_builtins());
-    Ok(QianjiCompiler::new(index, orchestrator, registry, None))
+    Ok(QianjiCompiler::new(index, orchestrator, registry))
 }
 
 #[tokio::test]

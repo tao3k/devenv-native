@@ -1,7 +1,4 @@
-use std::sync::mpsc::RecvTimeoutError;
-use std::time::Duration;
-
-use std::sync::OnceLock;
+use std::{future::Future, sync::OnceLock, sync::mpsc, time::Duration};
 
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepoIntelligenceError};
 
@@ -51,29 +48,25 @@ pub(crate) fn fetch_modelica_parser_file_summary_blocking_for_repository(
     let source_id_for_task = source_id.clone();
     let source_text = source_text.to_string();
     let timeout_secs = modelica_file_summary_blocking_timeout_secs_for_repository(&repository)?;
-    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
-    runtime.spawn(async move {
-        let result = fetch_modelica_parser_file_summary_for_repository(
-            &repository,
-            &source_id_for_task,
-            &source_text,
+    let timeout = Duration::from_secs(timeout_secs);
+    let result = run_modelica_parser_summary_blocking(runtime, async move {
+        tokio::time::timeout(
+            timeout,
+            fetch_modelica_parser_file_summary_for_repository(
+                &repository,
+                &source_id_for_task,
+                &source_text,
+            ),
         )
-        .await;
-        let _ = sender.send(result);
-    });
-    receiver
-        .recv_timeout(Duration::from_secs(timeout_secs))
-        .map_err(|error| match error {
-            RecvTimeoutError::Timeout => RepoIntelligenceError::AnalysisFailed {
-                message: format!(
-                    "Modelica parser-summary file-summary task exceeded {timeout_secs}s for `{source_id}`"
-                ),
-            },
-            RecvTimeoutError::Disconnected => RepoIntelligenceError::AnalysisFailed {
-                message: "Modelica parser-summary file-summary task stopped before returning"
-                    .to_string(),
-            },
-        })?
+        .await
+    })
+    .map_err(|_| RepoIntelligenceError::AnalysisFailed {
+        message: format!(
+            "Modelica parser-summary file-summary task exceeded {timeout_secs}s for `{source_id}`"
+        ),
+    })?;
+    let result = result?;
+    Ok(result)
 }
 
 fn modelica_file_summary_blocking_timeout_secs_for_repository(
@@ -117,6 +110,31 @@ fn shared_modelica_parser_summary_runtime_identity_for_tests()
 -> Result<usize, RepoIntelligenceError> {
     let runtime = modelica_parser_summary_runtime()?;
     Ok(std::ptr::from_ref(runtime) as usize)
+}
+
+fn run_modelica_parser_summary_blocking<T, F>(
+    runtime: &'static tokio::runtime::Runtime,
+    future: F,
+) -> T
+where
+    T: Send + 'static,
+    F: Future<Output = T> + Send + 'static,
+{
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread {
+            tokio::task::block_in_place(|| runtime.block_on(future))
+        } else {
+            let (sender, receiver) = mpsc::sync_channel(1);
+            std::thread::spawn(move || {
+                let _ = sender.send(runtime.block_on(future));
+            });
+            receiver.recv().unwrap_or_else(|error| {
+                panic!("failed to run parser-summary blocking task: {error}")
+            })
+        }
+    } else {
+        runtime.block_on(future)
+    }
 }
 
 #[cfg(test)]

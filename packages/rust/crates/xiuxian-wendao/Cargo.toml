@@ -24,8 +24,6 @@ zhenfa-router = [
   "dep:notify-debouncer-full",
   "dep:reqwest",
   "dep:tower",
-  "dep:xiuxian-ast",
-  "xiuxian-wendao-parsers/ast-validation",
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/gateway",
   "search-runtime",
@@ -48,9 +46,7 @@ vector-store = [
 search-runtime = [
   "repo-lexical-index",
   "dep:graphql-parser",
-  "dep:xiuxian-ast",
-  "dep:xiuxian-code-intelligence",
-  "xiuxian-wendao-parsers/ast-validation",
+  "dep:xiuxian-wendao-server",
   "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/engine",
   "runtime-transport",
@@ -65,8 +61,6 @@ search-runtime = [
 studio = [
   "search-runtime",
   "repo-lexical-index",
-  "dep:xiuxian-ast",
-  "xiuxian-wendao-parsers/ast-validation",
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/native",
 ]
@@ -140,20 +134,18 @@ xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
-xiuxian-llm = { path = "../xiuxian-llm" }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
 xiuxian-wendao-client = { path = "../xiuxian-wendao-client", default-features = false }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
+xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, features = ["transport"], optional = true }
 xiuxian-julia-core = { path = "../xiuxian-julia-core", optional = true }
 xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"], optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"], optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", default-features = false }
-xiuxian-ast = { path = "../xiuxian-ast", optional = true }
-xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 # Macro utilities
