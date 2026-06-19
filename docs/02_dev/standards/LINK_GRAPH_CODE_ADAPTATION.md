@@ -92,7 +92,7 @@ This project implements a hybrid storage strategy to balance semantic precision 
 ### 5.2 Valkey (Hippocampal Engine)
 
 - **Role:** Low-cost structural walk and weight updates.
-- **Naming Standard:** Use domain prefixes `xw` (Wendao) and `xq` (Qianhuan) with versioning.
+- **Naming Standard:** Use domain prefixes such as `xw` (Wendao) with versioning; downstream packages should define their own prefixes at the package boundary.
 
 | Domain           | Key Template                  | Type       | Artisan Rationale                                                          |
 | :--------------- | :---------------------------- | :--------- | :------------------------------------------------------------------------- |
@@ -129,39 +129,43 @@ The system must treat the `.data/research/papers` directory as its **Core Belief
 
 ### 9.2 Grounded Reflection
 
-- When `xiuxian-qianhuan` generates a snapshot, it must check if any `#research/foundational` nodes are in the Top-K.
-- If yes, the `ToneShifter` must prioritize their technical claims as the "Root of Truth" for the current reasoning turn.
+- When Qianji local annotation or advisory prompt-context planning generates a snapshot,
+  it must check if any `#research/foundational` nodes are in the Top-K.
+- If yes, the snapshot planner must prioritize their technical claims as the
+  "Root of Truth" for the current reasoning turn.
 
 ---
 
-## 10. Rust Core Injection Adaptation (`xiuxian-qianhuan`)
+## 10. Rust Core Injection Adaptation
 
-This section documents the Rust-native implementation of the "Thousand Faces" engine.
+Context injection is owned by the consuming Rust crate instead of a separate
+prompt-persona crate. Qianji owns workflow annotation snapshots and advisory
+prompt-context records directly.
 
-### 10.1 XML-Based Context Tagging (`src/xml.rs`)
+### 10.1 XML-Based Context Tagging
 
 To ensure strict isolation between system rules and RAG data (Basis: _Contextual Snapshots 2025_), the engine uses XML tags:
 
-- `<genesis_rules>`: Pin L0 metadata.
-- `<persona_steering>`: Inject L1 style anchors.
+- `<persona_id>` and `<persona_name>`: Pin the active role identity.
 - `<narrative_context>`: Inject L2 LinkGraph subgraphs.
-- **Validation:** A robust stack-based XML validator is implemented in `orchestrator.rs` to prevent tag-escape injections.
+- `<working_history>`: Carry bounded appended-mode context when the workflow
+  explicitly requests history reuse.
+- **Validation:** Snapshot builders must escape XML text before insertion to
+  prevent tag-escape injections.
 
-### 10.2 The "ToneShift" Trait (`src/transmuter.rs`)
+### 10.2 Local Annotation Contracts
 
-Define a trait for parallel context transmutation:
+Qianji annotation uses local profile data and node-level manifest bindings to
+assemble deterministic snapshots. It does not depend on an external persona
+runtime crate.
 
-```rust
-pub trait ToneTransmuter {
-    async fn transmute(&self, raw_fact: &str, persona: &PersonaProfile) -> Result<String, InjectionError>;
-}
-```
+### 10.3 Core Modules
 
-### 10.3 Core Modules (Implemented)
-
-- **`persona.rs`**: Manages `PersonaProfile` registry and YAML loading via `include_str!`.
-- **`orchestrator.rs`**: Assembles asynchronous XML snapshots with layer-specific tagging.
-- **`transmuter.rs`**: Defines the transmutation interface and provides a `MockTransmuter`.
+- **Qianji annotation executor**: Assembles workflow-local XML snapshots.
+- **Qianji advisory prompt-context planner**: Builds typed role-mix snapshots for
+  contract feedback.
+- **Zhixing manifestation trait**: Provides a lightweight template rendering
+  boundary without depending on a separate prompt-persona crate.
 
 ## 11. Architectural Principle: Rust-Hard, Python-Thin
 
@@ -175,7 +179,7 @@ To maintain maximum performance, safety, and cognitive integrity, this project e
 
 ### 11.2 Interface Exposure (PyO3)
 
-- **Thin Slices:** Python modules (e.g., `_xiuxian_qianhuan`) should only expose high-level orchestration methods.
+- **Thin Slices:** Python modules should only expose high-level orchestration methods.
 - **Zero-Logic Python:** Python-side "backends" should be simple wrappers that delegate 100% of the work to Rust calls.
 
 ---
@@ -183,6 +187,6 @@ To maintain maximum performance, safety, and cognitive integrity, this project e
 ## 12. Final Implementation Status (Audit Pass)
 
 - **LinkGraph Evolution:** ✅ Integrated in `xiuxian-wendao`.
-- **Thousand Faces Engine:** ✅ Implemented in `xiuxian-qianhuan` with PyO3 bindings.
+- **Context Injection:** Implemented locally in consuming Rust crates.
 - **Research Grounding:** ✅ Configured via `.data/research/papers` indexing.
 - **Schema Purity:** ✅ Resource localization pattern established.

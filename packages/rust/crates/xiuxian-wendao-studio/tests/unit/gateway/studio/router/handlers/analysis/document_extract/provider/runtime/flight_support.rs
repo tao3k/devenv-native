@@ -14,11 +14,6 @@ use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use xiuxian_io::model_routing::{
-    WENDAO_ROUTE_ID_HEADER, WENDAO_ROUTE_MODALITY_HEADER, WENDAO_ROUTE_PRECISION_TIER_HEADER,
-    WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER, WENDAO_ROUTE_SELECTED_MODEL_HEADER,
-    WENDAO_ROUTE_SELECTED_PROVIDER_HEADER, WENDAO_ROUTE_TASK_KIND_HEADER,
-};
 use xiuxian_wendao_server::transport::{
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER,
@@ -32,13 +27,6 @@ pub(crate) struct ObservedDocumentExtractRequest {
     pub(crate) source_path: Option<String>,
     pub(crate) output_dir: Option<String>,
     pub(crate) profile: Option<String>,
-    pub(crate) route_id: Option<String>,
-    pub(crate) route_task_kind: Option<String>,
-    pub(crate) route_modality: Option<String>,
-    pub(crate) route_selected_provider: Option<String>,
-    pub(crate) route_selected_model: Option<String>,
-    pub(crate) route_selected_backend_profile: Option<String>,
-    pub(crate) route_precision_tier: Option<String>,
 }
 
 #[derive(Clone)]
@@ -94,19 +82,6 @@ impl FlightService for DocumentExtractTestFlightService {
                 .get(WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER)
                 .and_then(|value| value.to_str().ok())
                 .map(ToOwned::to_owned),
-            route_id: metadata_header(&metadata, WENDAO_ROUTE_ID_HEADER),
-            route_task_kind: metadata_header(&metadata, WENDAO_ROUTE_TASK_KIND_HEADER),
-            route_modality: metadata_header(&metadata, WENDAO_ROUTE_MODALITY_HEADER),
-            route_selected_provider: metadata_header(
-                &metadata,
-                WENDAO_ROUTE_SELECTED_PROVIDER_HEADER,
-            ),
-            route_selected_model: metadata_header(&metadata, WENDAO_ROUTE_SELECTED_MODEL_HEADER),
-            route_selected_backend_profile: metadata_header(
-                &metadata,
-                WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER,
-            ),
-            route_precision_tier: metadata_header(&metadata, WENDAO_ROUTE_PRECISION_TIER_HEADER),
         };
         *self
             .observed
@@ -231,11 +206,4 @@ pub(crate) async fn spawn_document_extract_service_with_observed_requests(
         }
     });
     Ok((format!("http://{address}"), handle))
-}
-
-fn metadata_header(metadata: &tonic::metadata::MetadataMap, key: &str) -> Option<String> {
-    metadata
-        .get(key)
-        .and_then(|value| value.to_str().ok())
-        .map(ToOwned::to_owned)
 }

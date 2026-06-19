@@ -14,13 +14,6 @@ tokio = { workspace = true, features = ["fs", "io-util"] }
 rayon = { workspace = true }
 tera = { workspace = true }
 serde_json = { workspace = true }
-serde = { workspace = true }
-toml = { workspace = true }
-reqwest = { workspace = true }
-sha2 = { workspace = true }
-hex = { workspace = true }
-xiuxian_config_core = { package = "xiuxian-config-core", path = "../xiuxian-config-core" }
-xiuxian-tokenizer = { path = "../xiuxian-tokenizer" }
 # Event Bus for reactive file watching (optional)
 xiuxian-event = { path = "../xiuxian-event", optional = true }
 # File watching crate (optional, requires notify feature)

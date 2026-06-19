@@ -115,7 +115,7 @@ Replace Studio request-path search hot spots with a background-built search plan
 - Julia analyzer cache identity now uses that same semantic owner for `src/*.jl` too. `RepositoryAnalysisCacheKey.analysis_identity` now prefers Julia parser-summary file fingerprints over raw file bytes for single-plugin Julia source files, while keeping a raw-contents fallback when parser-summary is unavailable so the cache-key path does not become a mandatory parser-summary bootstrap edge
 - Modelica analyzer cache identity now follows the same bounded semantic-owner rule for single-plugin `.mo` repositories. `RepositoryAnalysisCacheKey.analysis_identity` prefers Modelica parser-summary plus doc-surface semantic fingerprints over raw contents for AST-equivalent source churn, but preserves the raw-contents fallback when parser-summary is unavailable so cache-key lookup does not require a mandatory Modelica parser-summary bootstrap
 - the next bounded mixed-plugin owner is now closed too: repositories that only register `julia` and `modelica` keep parser-summary semantic identity for `.jl` and `.mo` files instead of dropping back to raw contents just because the repository is mixed, while unknown-plugin mixes still stay on the conservative raw-contents path until a broader capability owner exists
-- analyzer-cache identity now also has one generic AST structural owner instead of only language-specific special cases. `xiuxian-ast` provides a generic semantic fingerprint helper for supported structural languages, and `RepositoryAnalysisCacheKey.analysis_identity` now dispatches per file: parser-summary owners still win for Julia and Modelica, but every remaining AST-supported file can reuse structural fingerprints by file language alone without requiring a matching repo-intelligence plugin id, while unowned paths still stay on the conservative raw-contents fallback
+- analyzer-cache identity now delegates generic structural ownership to the external language-provider protocol instead of a local AST crate. `RepositoryAnalysisCacheKey.analysis_identity` still dispatches per file: parser-summary owners win for Julia and Modelica, remaining supported structural files can reuse provider fingerprints by file language, and unowned paths stay on the conservative raw-contents fallback
 - note-based markdown incrementality now also has one parser-owned semantic owner instead of corpus-local row or hit hashing. `xiuxian_wendao_parsers::note::fingerprint_markdown_note` computes one semantic fingerprint from `MarkdownNote`, `search::markdown_snapshot` caches that parser fingerprint beside the adapted note parse, and `knowledge_section` plus `attachment` now reuse it before row or hit materialization so metadata-only note edits stop before rebuilding Wendao-owned payloads
 - the markdown branch of `local_symbol` now follows the same parser-owned boundary instead of hashing Wendao-owned markdown `AstSearchHit` payloads. `xiuxian_wendao_parsers::note::fingerprint_markdown_symbol_surface` computes one parser-owned symbol fingerprint from `comrak` structural traversal plus parser-owned section metadata, `search::markdown_snapshot` caches that symbol fingerprint and lazily materializes markdown AST hits, and `local_symbol` now compares the parser-owned symbol fingerprint before AST-hit materialization so metadata-only Markdown edits skip rebuild while heading/task/property/observation changes still invalidate
 - repo-index incremental preflight now reuses that same semantic-owner dispatcher for known semantic-owner plugin sets such as `rust`. When every analysis-affecting changed path remains semantically equivalent, the coordinator reloads the previous cached analysis directly instead of widening into a new language-specific incremental branch; modified directory diff entries recurse into child semantic-owner files before the reuse decision is made, and unknown plugin mixes still stay on the conservative fallback
@@ -255,13 +255,7 @@ Replace Studio request-path search hot spots with a background-built search plan
   gated behind `vector-store`, so `cargo check -p xiuxian-wendao --lib
 --no-default-features` stops paying for those default-disabled surfaces by
   construction
-- that compile-thinning lane now has its next bounded owner cut too:
-  `graphql-parser` and `xiuxian-vector` are explicit `search-runtime`
-  dependencies, `notify` plus `notify-debouncer-full` are explicit
-  `zhenfa-router` dependencies, and `reqwest` plus `xiuxian-zhenfa` now sit
-  behind their real `vector-store` / `zhenfa-router` / `studio` owners, so the
-  remaining direct `--no-default-features` edges are down to `tantivy`,
-  `xiuxian-ast`, and `xiuxian-wendao-runtime`
+- that compile-thinning lane now has its next bounded owner cut too: `graphql-parser` and `xiuxian-vector` are explicit `search-runtime` dependencies, `notify` plus `notify-debouncer-full` are explicit `zhenfa-router` dependencies, and `reqwest` plus `xiuxian-zhenfa` now sit behind their real `vector-store` / `zhenfa-router` / `studio` owners. Code-intelligence ownership has moved out of Wendao's crate graph and into the external language-provider protocol.
 - the repo-index parser-summary incremental lane now has its first true
   Modelica semantic overlay cut. Single-plugin safe leaf API `.mo` files now
   incremental-merge real declaration changes on top of the previous analysis
@@ -313,17 +307,9 @@ Replace Studio request-path search hot spots with a background-built search plan
   `package.mo` files stop being reread multiple times inside the same pass
   without widening parser-summary fallback or the existing bounded lexical and
   incremental admission rules
-- `xiuxian-ast` is now pulled only when one of its real owners is enabled too:
-  `search-runtime`, `studio`, and `zhenfa-router` each declare the dependency
-  explicitly, and `cargo tree -p xiuxian-wendao --no-default-features -e normal`
-  now shows only `tantivy` plus `xiuxian-wendao-runtime` as remaining direct
-  edges in the minimal build
+- code-intelligence dependencies have moved out of the Wendao crate graph. `cargo tree -p xiuxian-wendao --no-default-features -e normal` should bottom out at runtime/search-owned edges instead of pulling a local AST crate.
 - `tantivy` is now pulled only behind the new `repo-lexical-index` owner too:
-  the indexed fast path remains enabled for default and Studio builds, while
-  the no-feature lane falls back to the existing lexical / heuristic ranking
-  helpers, and `cargo tree -p xiuxian-wendao --no-default-features -e normal`
-  now bottoms out at `xiuxian-wendao-runtime` as the only remaining direct edge
-- the response-level telemetry surface now also groups by raw scope hint. `/api/search/index/status` `queryTelemetrySummary` keeps the global totals and now adds `scopes[]` buckets with per-scope source counts, latest capture time, scan/match/result totals, and bounded-rerank trim/drop totals so clients can see which lane or repo last drove pressure without re-summing corpus rows
+- code-intelligence dependencies have moved out of the Wendao crate graph. `cargo tree -p xiuxian-wendao --no-default-features -e normal` should bottom out at runtime/search-owned edges instead of pulling a local AST crate.
 - the formal `search_index_status` warm-cache gate now consumes those scope buckets too. The repo-scoped code-search warmup must leave a `gateway-sync` bucket in `queryTelemetrySummary.scopes`, and the performance support layer now formats scope pressure into compact diagnostics so a failing gate names the hot scope instead of only saying that the summary was malformed
 - that formal status gate no longer warms telemetry through the full HTTP `intent` path. `GatewayPerfFixture::warm_repo_scope_query(...)` now exercises `SearchPlaneService` directly for repo-scoped telemetry seeding, which preserves the same `gateway-sync` scope bucket while eliminating the slow nextest wall-clock inflation from unnecessary handler-path setup
 - `local_symbol` build identity is now file-sensitive. Instead of hashing only project/config topology, `fingerprint_projects(...)` now walks the same searchable file set used by AST extraction and folds normalized path + file size + mtime into the build fingerprint. This is still coarse-grained rebuilds, not true per-file incremental Lance mutations, but it closes the immediate correctness hole where editing a local source file could leave the old epoch permanently “already ready”

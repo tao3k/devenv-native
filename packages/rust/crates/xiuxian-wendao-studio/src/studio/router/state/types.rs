@@ -173,6 +173,7 @@ impl StudioState {
         self.search_plane.clone()
     }
 
+    #[cfg(test)]
     pub(crate) fn model_routing_config(&self) -> Result<Option<()>, String> {
         (*self.model_routing_config).clone()
     }

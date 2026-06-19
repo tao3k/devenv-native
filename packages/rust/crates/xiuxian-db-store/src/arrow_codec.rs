@@ -27,6 +27,7 @@ const TRACE_ID_METADATA_KEY: &str = "trace_id";
 /// # Errors
 ///
 /// Returns [`ArrowError`] when Arrow IPC stream construction fails.
+#[cfg(not(feature = "vector-store"))]
 pub fn encode_record_batch_ipc(batch: &RecordBatch) -> Result<Vec<u8>, ArrowError> {
     encode_record_batches_ipc(std::slice::from_ref(batch))
 }

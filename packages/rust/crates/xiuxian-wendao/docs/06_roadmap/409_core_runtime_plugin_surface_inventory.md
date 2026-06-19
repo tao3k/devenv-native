@@ -1054,7 +1054,7 @@ Current dependency reality:
 
 1. live monolith-era `xiuxian-wendao` direct dependencies still exist in
    `xiuxian-qianji`, `xiuxian-zhixing`, and `xiuxian-daochang`
-2. `xiuxian-qianhuan` still carries an optional monolith dependency
+2. the retired prompt/persona package no longer participates in this inventory
 3. `xiuxian-wendao-modelica` already uses `xiuxian-wendao-core` for
    production code, but still retains a monolith dev-dependency for
    integration tests
@@ -1067,9 +1067,8 @@ Current source-level concentration:
 1. `xiuxian-qianji` still depends on monolith exports for `LinkGraphIndex`,
    graph document types, and later cutover families beyond the now-cleared
    resource/VFS and contract-feedback / knowledge-entry seams
-2. `xiuxian-qianhuan` no longer carries root-qualified source imports for the
-   cleared resource/VFS family, but it still keeps the optional monolith
-   dependency for later contraction work
+2. the retired prompt/persona package has been removed from the active
+   consumer surface
 3. `xiuxian-daochang` still depends on monolith exports for
    `LinkGraphIndex` and related host helpers
 4. `xiuxian-zhixing` still depends on monolith exports for repo-intelligence
@@ -1092,7 +1091,7 @@ First bounded cutover candidate:
 Current Stage-B progress:
 
 1. the first resource/VFS source-consumer cutover slice is now landed across
-   `xiuxian-qianhuan`, `xiuxian-qianji`, and `xiuxian-daochang`
+   `xiuxian-qianji` and `xiuxian-daochang`
 2. those source consumers now import from the owner seams instead of from the
    monolith crate root:
    - `xiuxian_wendao::skill_runtime::*`
@@ -1262,18 +1261,15 @@ extract_markdown_config_blocks}`
 55. the natural next Stage-B follow-up is still another small bounded
     consumer family that stays off a broad `LinkGraphIndex` cut
 56. the next bounded `Stage B` slice is now also landed on the
-    `WendaoSearchTool` family across sibling test consumers
+    `wendao_search` family across sibling test consumers
 57. the touched consumers now use the owner seam instead of crate-root
     imports:
-    - `xiuxian_wendao::zhenfa_router::WendaoSearchTool`
+    - `xiuxian_wendao::zhenfa_router::wendao_search`
 58. the touched files are:
-    - `xiuxian-qianhuan/tests/test_zhenfa_native_tools.rs`
     - `xiuxian-daochang/tests/scenario_adversarial_evolution.rs`
 59. bounded verification for this family is clean on the positive consumer
     path:
-    - `xiuxian-qianhuan --test test_zhenfa_native_tools --features zhenfa-router --no-run`
-      passes
-    - sibling-consumer grep for crate-root `WendaoSearchTool` imports is
+    - sibling-consumer grep for crate-root `wendao_search` imports is
       clean
 60. the affected-package
     `xiuxian-daochang --test scenario_adversarial_evolution --no-run`
@@ -1303,12 +1299,9 @@ extract_markdown_config_blocks}`
 68. the touched tests now use the owner seam instead of the crate-root import:
     - `xiuxian_wendao::link_graph::LinkGraphIndex`
 69. the touched files are:
-    - `xiuxian-qianhuan/tests/test_zhenfa_native_tools.rs`
     - `xiuxian-daochang/tests/scenario_adversarial_evolution.rs`
 70. bounded verification for this test-only leaf is clean on the positive
     consumer path:
-    - `xiuxian-qianhuan --test test_zhenfa_native_tools --features zhenfa-router --no-run`
-      passes
     - grep for crate-root `LinkGraphIndex` imports in the touched files is
       clean
 71. the affected-package
@@ -1323,7 +1316,7 @@ extract_markdown_config_blocks}`
 73. the next bounded `Stage B` slice is now also landed on a residual
     `xiuxian-qianji` integration-test `LinkGraphIndex` leaf
 74. the touched files now use the owner seam instead of the crate-root import:
-    - `xiuxian-qianji/tests/integration/test_qianji_qianhuan_binding.rs`
+    - `xiuxian-qianji/tests/integration/test_qianji_annotation_binding.rs`
     - `xiuxian-qianji/tests/integration/test_agenda_validation_pipeline.rs`
     - `xiuxian-qianji/tests/integration/test_qianji_trinity_integration.rs`
     - `xiuxian_wendao::link_graph::LinkGraphIndex`

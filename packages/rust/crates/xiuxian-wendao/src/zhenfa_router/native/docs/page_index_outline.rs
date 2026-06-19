@@ -2,7 +2,7 @@
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use super::shared::{require_non_empty_argument, serialize_payload};
 use crate::zhenfa_router::native::resolve_docs_tool_runtime;
@@ -22,11 +22,6 @@ pub struct WendaoDocsGetPageIndexOutlineArgs {
 /// service is missing from the native context, or the underlying docs lookup
 /// fails.
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.docs.get_page_index_outline",
-    description = "Open one text-free docs-facing page-index tree and return its serialized payload.",
-    tool_struct = "WendaoDocsGetPageIndexOutlineTool"
-)]
 pub fn wendao_docs_get_page_index_outline(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetPageIndexOutlineArgs,

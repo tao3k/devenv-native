@@ -67,7 +67,7 @@ adapters, but not every parser family under `src/parsers/` should stay
 Wendao-owned forever.
 
 When a parser family becomes reusable across packages such as `xiuxian-qianji`
-or future `xiuxian-qianhuan` document flows, the long-term extraction target is
+or future document-flow crates, the long-term extraction target is
 an independent parser crate, tentatively `xiuxian-wendao-parsers`, rather than
 another consumer-local helper tree.
 

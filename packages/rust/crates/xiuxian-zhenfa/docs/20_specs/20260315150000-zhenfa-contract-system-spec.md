@@ -18,7 +18,7 @@ metadata:
 
 ## 1. Overview
 
-The **Zhenfa (阵法) Contract System** provides a rigid, physical governance layer for AI Agents. It prevents LLM hallucination by enforcing structured XML communication protocols between agents and the system.
+The **Zhenfa (阵法) Contract System** provides a rigid, physical governance layer for AI Agents. It prevents agent-output drift by enforcing structured XML communication protocols between agents and the system.
 
 ## 2. Key Capabilities
 

@@ -1,7 +1,7 @@
-//! Context Assembler - Parallel I/O + Templating + Token Counting
+//! Context Assembler - Parallel I/O + Templating + Token Estimation
 //!
 //! This module provides the core context hydration logic for skills.
-//! It combines parallel file reading, template rendering, and token counting
+//! It combines parallel file reading, template rendering, and token estimation
 //! into a single efficient operation.
 
 use std::borrow::Borrow;
@@ -12,7 +12,6 @@ use serde_json::Value;
 use tera::{Context, Tera};
 
 use crate::error::{IoError, Result};
-use xiuxian_tokenizer::count_tokens;
 
 #[cfg(feature = "assembler")]
 type SkillReferenceRead = (PathBuf, std::io::Result<String>);
@@ -31,7 +30,7 @@ pub struct AssemblyResult {
 /// Context assembler for skill protocols.
 ///
 /// Combines parallel I/O (rayon), template rendering (tera),
-/// and token counting (xiuxian-tokenizer) for efficient context hydration.
+/// and lightweight token estimation for efficient context hydration.
 #[derive(Debug, Clone, Default)]
 pub struct ContextAssembler;
 
@@ -48,7 +47,7 @@ impl ContextAssembler {
     /// 1. Reads the main skill file and all references in parallel
     /// 2. Renders the main template with the provided variables
     /// 3. Assembles the final content with proper formatting
-    /// 4. Counts tokens using xiuxian-tokenizer
+    /// 4. Estimates tokens for context metadata
     ///
     /// # Arguments
     ///
@@ -90,6 +89,11 @@ fn assemble_skill_impl(
         token_count,
         missing_refs,
     })
+}
+
+#[cfg(feature = "assembler")]
+fn count_tokens(content: &str) -> usize {
+    content.split_whitespace().count()
 }
 
 #[cfg(feature = "assembler")]

@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Xiuxian-Qianhuan Injection + Memory Self-Evolution + Reflection (Rust Architecture Draft)"
+title: "Rust Context Injection + Memory Self-Evolution + Reflection (Architecture Draft)"
 category: "plans"
 tags:
   - plan
@@ -8,14 +8,14 @@ tags:
 saliency_base: 7.2
 decay_rate: 0.03
 metadata:
-  title: "Xiuxian-Qianhuan Injection + Memory Self-Evolution + Reflection (Rust Architecture Draft)"
+  title: "Rust Context Injection + Memory Self-Evolution + Reflection (Architecture Draft)"
 ---
 
-# Xiuxian-Qianhuan Injection + Memory Self-Evolution + Reflection (Rust Architecture Draft)
+# Rust Context Injection + Memory Self-Evolution + Reflection (Architecture Draft)
 
 > Status: Draft (Architecture only, no implementation changes in this document)
 > Date: 2026-02-20
-> Scope: Define a Rust-first architecture that unifies Xiuxian-Qianhuan typed injection, MemRL-style memory evolution, and reflection feedback under one runtime contract.
+> Scope: Define a Rust-first architecture that unifies typed Rust context injection, MemRL-style memory evolution, and reflection feedback under one runtime contract.
 
 ## 1. Goals
 
@@ -30,7 +30,7 @@ metadata:
 
 ## Naming
 
-- System codename: `Xiuxian-Qianhuan`
+- System codename: `Rust Context Injection`
 - Scope: the runtime prompt/knowledge injection system capable of role transformation and mixed-domain composition.
 - Technical contracts remain explicit and stable:
   - `PromptContextBlock`
@@ -54,7 +54,7 @@ metadata:
   - max chars/tokens,
   - ordering and dedupe mode.
 
-2. `Xiuxian-Qianhuan Injection Engine` (assembly layer)
+2. `Rust Context Injection Engine` (assembly layer)
 
 - Builds typed prompt context from multiple sources.
 - Applies deterministic ordering and budget trimming.

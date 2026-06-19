@@ -1,7 +1,5 @@
 //! Lightweight code language identifiers for Studio provider boundaries.
 
-use std::path::Path;
-
 /// Normalized source language identifier.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub(crate) struct CodeLanguageId(String);
@@ -35,24 +33,6 @@ pub(crate) fn all_code_language_ids() -> [&'static str; 8] {
         "go",
         "java",
     ]
-}
-
-pub(crate) fn code_language_id_from_path(path: &Path) -> Option<&'static str> {
-    match path.extension().and_then(std::ffi::OsStr::to_str) {
-        Some(ext) if ext.eq_ignore_ascii_case("rs") => Some("rust"),
-        Some(ext) if ext.eq_ignore_ascii_case("py") => Some("python"),
-        Some(ext) if ext.eq_ignore_ascii_case("ts") || ext.eq_ignore_ascii_case("tsx") => {
-            Some("typescript")
-        }
-        Some(ext) if ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("jsx") => {
-            Some("javascript")
-        }
-        Some(ext) if ext.eq_ignore_ascii_case("jl") => Some("julia"),
-        Some(ext) if ext.eq_ignore_ascii_case("mo") => Some("modelica"),
-        Some(ext) if ext.eq_ignore_ascii_case("go") => Some("go"),
-        Some(ext) if ext.eq_ignore_ascii_case("java") => Some("java"),
-        _ => None,
-    }
 }
 
 fn normalize_language_id(value: &str) -> Option<&'static str> {

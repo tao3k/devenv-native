@@ -15,7 +15,7 @@ const HTTP_BODY_PREVIEW_LIMIT: usize = 512;
 pub struct ZhenfaClientSuccess {
     /// Echoed request id.
     pub id: JsonRpcId,
-    /// LLM-facing payload string.
+    /// Caller-facing payload string.
     pub result: String,
     /// Optional execution metrics from the gateway.
     pub metrics: Option<Value>,

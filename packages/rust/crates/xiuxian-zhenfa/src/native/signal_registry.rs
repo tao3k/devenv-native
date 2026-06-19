@@ -196,7 +196,7 @@ pub struct ObservationSignalInput {
 /// # Lifecycle Safety
 ///
 /// The registry should be wrapped in `Arc<SignalRegistry>` and shared between
-/// `ZhenfaOrchestrator` and all `Sentinel` instances to ensure proper lifecycle
+/// active pipelines and all `Sentinel` instances to ensure proper lifecycle
 /// alignment. The registry will remain active as long as at least one `Arc`
 /// reference exists.
 ///

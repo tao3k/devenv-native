@@ -8,7 +8,7 @@ use super::{
 };
 
 #[tokio::test]
-async fn async_image_job_forwards_route_metadata_and_writes_manifest() -> Result<(), String> {
+async fn async_image_job_forwards_hosted_profile() -> Result<(), String> {
     let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
     let source = temp.path().join("scan.png");
     fs::write(source.as_path(), b"image bytes").map_err(|error| error.to_string())?;
@@ -49,35 +49,6 @@ async fn async_image_job_forwards_route_metadata_and_writes_manifest() -> Result
     assert_eq!(
         observed.profile.as_deref(),
         Some(DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE)
-    );
-    assert_eq!(observed.route_modality.as_deref(), Some("image"));
-    assert_eq!(
-        observed.route_selected_provider.as_deref(),
-        Some("openrouter")
-    );
-    assert_eq!(
-        observed.route_selected_model.as_deref(),
-        Some("qwen/qwen3-vl-8b-instruct")
-    );
-    assert_eq!(
-        observed.route_selected_backend_profile.as_deref(),
-        Some(DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE)
-    );
-
-    let manifest = output.join("_document_extract_model_route_manifest.json");
-    assert!(
-        manifest.exists(),
-        "async image job should mirror the model route manifest into output"
-    );
-    let manifest_value = serde_json::from_slice::<serde_json::Value>(
-        fs::read(manifest.as_path())
-            .map_err(|error| error.to_string())?
-            .as_slice(),
-    )
-    .map_err(|error| error.to_string())?;
-    assert_eq!(
-        manifest_value["routeSelectedBackendProfile"],
-        DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
     );
 
     flight_server_handle.abort();

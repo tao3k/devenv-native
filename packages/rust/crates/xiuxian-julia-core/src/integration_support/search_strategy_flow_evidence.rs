@@ -10,14 +10,13 @@ pub(crate) fn search_strategy_flow_evidence_edge_kinds(path: &str) -> Vec<String
 }
 
 fn language_provider_for_path(path: &str) -> &'static str {
-    if path.ends_with(".jl") {
-        "asp:julia"
-    } else if path.ends_with(".ts") || path.ends_with(".tsx") {
-        "asp:typescript"
-    } else if path.ends_with(".py") {
-        "asp:python"
-    } else {
-        "asp:rust"
+    match path.rsplit_once('.').map(|(_, extension)| extension) {
+        Some("jl") => "asp:julia",
+        Some("md" | "markdown") => "asp:markdown",
+        Some("py") => "asp:python",
+        Some("toml") => "asp:toml",
+        Some("ts" | "tsx") => "asp:typescript",
+        Some("rs") | _ => "asp:rust",
     }
 }
 

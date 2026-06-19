@@ -175,62 +175,13 @@ OpenAI-compatible vision endpoint and return ordinary Markdown resource rows.
 Attachment-owned image audit and tile facts remain materialization inputs, not
 a separate public Flight schema.
 
-## Model Routing Metadata
+## Model Routing Boundary
 
-Studio consumes the Wendao route contract from
-[`xiuxian-llm`](../xiuxian-llm/docs/01_core/101_xiuxian_llm_core_boundary.md)
-when forwarding model-backed work to analyzer Flight routes. Studio may attach
-Gateway-selected provider/model/backend profile metadata to Arrow Flight
-requests, but model/provider policy belongs to the routing plane and the shared
-`xiuxian-llm` contract. Analyzer workers execute the selected backend profile;
-they do not decide routing policy locally.
+Studio no longer owns a public model-route admission endpoint. Chat, model selection, and provider policy have moved to the Marlin agent runtime and its language/provider services. Studio must not expose the retired chat model-route REST endpoint or keep local chat-routing smoke tests.
 
-Audio document extraction is the first concrete admission path. Local developer
-runs default to Gateway-owned `deterministic` routing and still emit a concrete
-model decision through the shared `xiuxian-llm` attachment route contract. When
-`WENDAO_MODEL_ROUTING_MODE=vllm-sr` is active, Studio builds a route intent from
-source hash, duration, shard count, plan strategy, and backend profile, calls
-the vLLM-SR OpenAI-compatible route probe, and forwards selected route metadata
-on the unchanged `/analysis/audio-shards` Flight contract. The audio cache
-manifest includes the selected provider/model/backend profile so warm transcript
-artifacts cannot cross incompatible route decisions.
+Document extraction remains a transport boundary. Studio may pass explicit analyzer backend configuration on the existing Flight routes when the caller has already selected a concrete backend profile, but it does not decide model/provider policy locally. Analyzer workers execute the selected profile and return ordinary document extraction rows; cache identity and resource-order validation remain Studio responsibilities.
 
-Studio now resolves model-routing defaults from the source-owned
-`xiuxian-llm` system defaults and overlays the root `wendao.toml`
-`[model_routing]` table before falling back to runtime environment inputs for
-unconfigured fields. That keeps the configured chat, audio transcript, and
-image VLM models in the Gateway configuration layer instead of process
-entrypoint defaults. The Rust LLM runtime profile is owned by `xiuxian-llm`
-`src/resource`, uses `litellm` by default, and treats direct DeepSeek as the
-default chat provider while keeping OpenRouter as a named alternative.
-
-Standalone image extraction uses the same model-routing contract when the
-profile resolves to `hosted-vlm-image-extract-v1`. In deterministic mode, Studio
-still emits a concrete vision-capable model decision before sync cache reuse.
-In vLLM-SR mode, Studio admits the image route through the sidecar before sync
-cache reuse. Both modes forward selected provider/model/backend metadata on the
-unchanged `/analysis/document-extract` Flight route and write a route manifest
-beside the resource cache so image artifacts cannot cross incompatible route
-decisions.
-
-The managed vLLM-SR process validates its config before serving only when
-vLLM-SR mode is active. Docker and Kubernetes settings are deployment concerns;
-the pure local process-compose experience stays deterministic and Docker-free
-unless the operator explicitly enables vLLM-SR mode. If vLLM-SR mode is active
-and Docker is missing, resolves to Podman, or the Docker daemon is unreachable,
-Gateway admission remains blocked with an explicit infrastructure error.
-
-After Gateway is healthy, operators can run
-`python scripts/runtime/smoke_wendao_chat_model_route.py` from the repository
-root to verify that `/api/model-route/chat` returns a Gateway-owned chat
-decision with a non-empty selected provider, model, backend profile, and route
-identifier. Deployment smokes can pass `--expected-routing-mode vllm-sr` after
-the routing sidecar is enabled.
-
-Full document extraction artifact directories are still mirrored by the hybrid
-route because resource-path rewriting depends on directory context. Moving that
-directory mirror behind the L2 byte-cache contract requires a separate manifest
-or archive encoding slice; it must not bypass resource-order or precision gates.
+Full document extraction artifact directories are still mirrored by the hybrid route because resource-path rewriting depends on directory context. Moving that directory mirror behind the L2 byte-cache contract requires a separate manifest or archive encoding slice; it must not bypass resource-order or precision gates.
 
 ## SearchStrategyFlow Flight Materialization
 

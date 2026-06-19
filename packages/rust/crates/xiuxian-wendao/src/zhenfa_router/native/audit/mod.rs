@@ -2,7 +2,7 @@
 //!
 //! Implements Synapse-Audit (2025) principles for context quality gating.
 //! This module is intentionally self-contained to avoid circular dependencies
-//! with xiuxian-qianhuan.
+//! with downstream workflow annotation crates.
 //!
 //! ## Module Structure
 //!

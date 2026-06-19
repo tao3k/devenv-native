@@ -28,19 +28,9 @@ mod py;
 mod resources;
 mod testing;
 mod xiuxian_config;
-mod zhenfa_tool;
 
 #[cfg(test)]
 crate_testing_source_gate!();
-
-/// Attribute macro for defining native zhenfa tools.
-#[proc_macro_attribute]
-pub fn zhenfa_tool(
-    attr: proc_macro::TokenStream,
-    item: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    zhenfa_tool::expand(attr, item)
-}
 
 /// Attribute macro for loading cascading config into a struct.
 #[proc_macro_attribute]

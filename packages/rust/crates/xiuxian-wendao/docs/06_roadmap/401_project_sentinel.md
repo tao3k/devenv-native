@@ -14,12 +14,12 @@ Project Sentinel has transitioned from a vision to a functional governance kerne
 ### Completed Features
 
 - **Landed**: Native Rust Auditor (`wendao audit`).
-- **Landed**: Non-invasive Code Observation via `xiuxian-ast`.
+- **Landed**: Non-invasive Code Observation via external language providers.
 - **Landed**: Global ID Registry & Dead-link detection.
 - **Landed**: Fuzzy Pattern Suggestion (v2.9).
   - If an `:OBSERVE:` pattern fails validation, the auditor searches for renamed or moved symbols.
   - Pattern skeleton extraction for structural similarity scoring
-  - `xiuxian-ast` for source code scanning
+- external language providers for source code scanning
   - Confidence threshold filtering (0.65 by default, configurable)
   - Generates replacement drawer content for batch application
 - **Landed**: Integration tests pass, all functionality works correctly.

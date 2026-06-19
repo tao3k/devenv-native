@@ -31,4 +31,4 @@ Under the Zhenfa architecture, the `xiuxian-daochang` tool registry becomes incr
 
 ## Hot-Reloading
 
-This paradigm naturally supports hot-reloading. For instance, sending a `POST /v1/qianhuan/reload` to the Zhenfa gateway instantly triggers the `ManifestationManager` to refresh its templates across the entire network, without restarting the Agent's conversational state.
+This paradigm naturally supports hot-reloading. For instance, sending a domain-specific reload request to the Zhenfa gateway can refresh context templates across the network without restarting the agent's conversational state.

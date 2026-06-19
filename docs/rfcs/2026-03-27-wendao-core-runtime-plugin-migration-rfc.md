@@ -1317,8 +1317,8 @@ consumer seams.
 The current consumer reality is now explicitly inventoried:
 
 1. live monolith-era `xiuxian-wendao` direct dependencies still exist in
-   `xiuxian-qianji`, `xiuxian-zhixing`, and `xiuxian-daochang`, with an
-   optional monolith dependency still present in `xiuxian-qianhuan`
+   `xiuxian-qianji`, `xiuxian-zhixing`, and `xiuxian-daochang`; the former
+   prompt/persona package is no longer part of the active consumer set
 2. `xiuxian-wendao-modelica` is already on the extracted package line for
    production code through `xiuxian-wendao-core`, but it still retains a
    monolith dev-dependency for integration tests
@@ -1329,7 +1329,6 @@ The current consumer reality is now explicitly inventoried:
    `xiuxian-wendao-julia`, and `xiuxian-wendao-modelica`
 4. the heaviest remaining monolith consumers are concentrated in:
    - `xiuxian-qianji`
-   - `xiuxian-qianhuan`
    - `xiuxian-daochang`
    - `xiuxian-zhixing`
 5. the most bounded first cutover candidate is the resource/runtime family:
@@ -1351,16 +1350,14 @@ The first `Stage B` bundle should focus on the resource/runtime family because:
 
 The first bounded `Stage B` source-consumer slice is now landed:
 
-1. `xiuxian-qianhuan`, `xiuxian-qianji`, and `xiuxian-daochang` source
-   consumers no longer import the resource/runtime family from the monolith crate
-   root
+1. `xiuxian-qianji` and `xiuxian-daochang` source consumers no longer import
+   the resource/runtime family from the monolith crate root
 2. those touched consumers now use the owner module paths:
    - `xiuxian_wendao::skill_runtime::*`
    - `xiuxian_wendao::enhancer::WendaoResourceRegistry`
 3. the follow-up test-consumer slice is also now landed for the same family
 4. root-qualified imports for this family are now cleared across the touched
-   `src/` and `tests/` scope for `xiuxian-qianhuan`, `xiuxian-qianji`, and
-   `xiuxian-daochang`
+   `src/` and `tests/` scope for `xiuxian-qianji` and `xiuxian-daochang`
 5. the same family is now also cleared for Wendao's own internal unit-test
    consumer surface
 6. the next bounded ingress/spider consumer slice is now also landed across
@@ -1527,18 +1524,15 @@ extract_markdown_config_blocks}`
 55. `Stage B` remains open, and the next move should still be another small
     bounded consumer family that stays off a broad `LinkGraphIndex` cut
 56. the next bounded `Stage B` slice is now also landed on the
-    `WendaoSearchTool` family across sibling test consumers
+    `wendao_search` family across sibling test consumers
 57. the touched consumers now use the owner seam instead of crate-root
     imports:
-    - `xiuxian_wendao::zhenfa_router::WendaoSearchTool`
+    - `xiuxian_wendao::zhenfa_router::wendao_search`
 58. the touched files are:
-    - `xiuxian-qianhuan/tests/test_zhenfa_native_tools.rs`
     - `xiuxian-daochang/tests/scenario_adversarial_evolution.rs`
 59. bounded verification for this family is clean on the positive consumer
     path:
-    - `xiuxian-qianhuan --test test_zhenfa_native_tools --features zhenfa-router --no-run`
-      passes
-    - sibling-consumer grep for crate-root `WendaoSearchTool` imports is
+    - sibling-consumer grep for crate-root `wendao_search` imports is
       clean
 60. the affected-package
     `xiuxian-daochang --test scenario_adversarial_evolution --no-run`
@@ -1568,12 +1562,9 @@ extract_markdown_config_blocks}`
 68. the touched tests now use the owner seam instead of the crate-root import:
     - `xiuxian_wendao::link_graph::LinkGraphIndex`
 69. the touched files are:
-    - `xiuxian-qianhuan/tests/test_zhenfa_native_tools.rs`
     - `xiuxian-daochang/tests/scenario_adversarial_evolution.rs`
 70. bounded verification for this test-only leaf is clean on the positive
     consumer path:
-    - `xiuxian-qianhuan --test test_zhenfa_native_tools --features zhenfa-router --no-run`
-      passes
     - grep for crate-root `LinkGraphIndex` imports in the touched files is
       clean
 71. the affected-package
@@ -1587,7 +1578,7 @@ extract_markdown_config_blocks}`
 73. the next bounded `Stage B` slice is now also landed on a residual
     `xiuxian-qianji` integration-test `LinkGraphIndex` leaf
 74. the touched files now use the owner seam instead of the crate-root import:
-    - `xiuxian-qianji/tests/integration/test_qianji_qianhuan_binding.rs`
+    - `xiuxian-qianji/tests/integration/test_qianji_annotation_binding.rs`
     - `xiuxian-qianji/tests/integration/test_agenda_validation_pipeline.rs`
     - `xiuxian-qianji/tests/integration/test_qianji_trinity_integration.rs`
     - `xiuxian_wendao::link_graph::LinkGraphIndex`

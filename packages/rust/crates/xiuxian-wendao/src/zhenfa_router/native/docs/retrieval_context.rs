@@ -1,6 +1,6 @@
 //! `zhenfa_router::native::docs::retrieval_context` owns Wendao native docs retrieval context behavior.
 
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use super::shared::{optional_non_empty_argument, require_non_empty_argument, serialize_payload};
 use crate::analyzers::{DocsRetrievalContextOptions, DocsRetrievalContextToolArgs};
@@ -18,11 +18,6 @@ pub type WendaoDocsGetRetrievalContextArgs = DocsRetrievalContextToolArgs;
 /// service is missing from the native context, or the underlying docs lookup
 /// fails.
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.docs.get_retrieval_context",
-    description = "Open one docs-facing retrieval-context payload and return its serialized result.",
-    tool_struct = "WendaoDocsGetRetrievalContextTool"
-)]
 pub fn wendao_docs_get_retrieval_context(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetRetrievalContextArgs,

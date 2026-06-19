@@ -7,7 +7,7 @@ use xiuxian_wendao_core::{
     artifacts::PluginArtifactSelector,
     ids::{ArtifactId, PluginId},
 };
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::runtime_config::{
     render_link_graph_plugin_artifact_toml_for_selector,
@@ -76,11 +76,6 @@ fn build_plugin_artifact_selector(
 /// serialized into the requested format.
 #[allow(missing_docs)]
 #[allow(clippy::needless_pass_by_value)]
-#[zhenfa_tool(
-    name = "wendao.plugin_artifact",
-    description = "Export one resolved plugin artifact selected by plugin_id and artifact_id as TOML or structured JSON.",
-    tool_struct = "WendaoPluginArtifactTool"
-)]
 pub fn wendao_plugin_artifact(
     _ctx: &ZhenfaContext,
     args: WendaoPluginArtifactArgs,

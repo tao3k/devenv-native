@@ -30,17 +30,17 @@ fn builds_repo_search_candidate_with_flight_source_edges() {
     assert!(
         candidate
             .edge_kinds
-            .contains(&"native-parser-override".to_owned())
+            .contains(&"parser-priority:language-provider".to_owned())
     );
     assert!(
         candidate
             .edge_kinds
-            .contains(&"effective-parser:markdown-lang-parser".to_owned())
+            .contains(&"effective-parser:asp:markdown".to_owned())
     );
 }
 
 #[test]
-fn repo_search_candidates_use_parser_overrides_before_generic_ast() {
+fn repo_search_candidates_use_language_provider_edges() {
     let rust_hit = SearchStrategyFlowRepoSearchHit {
         relative_path: "src/lib.rs",
         title: Some("Rust Route"),
@@ -74,27 +74,27 @@ fn repo_search_candidates_use_parser_overrides_before_generic_ast() {
     assert!(
         rust_candidate
             .edge_kinds
-            .contains(&"effective-parser:rust-lang-parser".to_owned())
+            .contains(&"effective-parser:asp:rust".to_owned())
     );
     assert!(
         rust_candidate
             .edge_kinds
-            .contains(&"baseline-parser:xiuxian-ast:rust".to_owned())
+            .contains(&"provider-boundary:agent-semantic-protocols/languages".to_owned())
     );
     assert!(
         julia_candidate
             .edge_kinds
-            .contains(&"effective-parser:julia-lang-parser".to_owned())
+            .contains(&"effective-parser:asp:julia".to_owned())
     );
     assert!(
         typescript_candidate
             .edge_kinds
-            .contains(&"effective-parser:xiuxian-ast:typescript".to_owned())
+            .contains(&"effective-parser:asp:typescript".to_owned())
     );
     assert!(
         typescript_candidate
             .edge_kinds
-            .contains(&"baseline-parser:xiuxian-ast:typescript".to_owned())
+            .contains(&"provider-boundary:agent-semantic-protocols/languages".to_owned())
     );
 }
 
@@ -105,39 +105,36 @@ fn repo_search_candidates_cover_flight_index_source_and_config_families() {
             "packages/rust/crates/xiuxian-wendao/src/link_graph/index/ppr/mod.rs",
             "Rust PPR Search Strategy",
             &[
-                "parser-priority:local-override",
-                "native-parser-override",
-                "effective-parser:rust-lang-parser",
-                "baseline-parser:xiuxian-ast:rust",
+                "parser-priority:language-provider",
+                "effective-parser:asp:rust",
+                "provider-boundary:agent-semantic-protocols/languages",
             ][..],
         ),
         (
             "packages/python/xiuxian-wendao-analyzer/src/xiuxian_wendao_analyzer/worker.py",
             "Python Analyzer Worker",
             &[
-                "parser-priority:general-baseline",
-                "general-ast-baseline",
-                "effective-parser:xiuxian-ast:python",
-                "baseline-parser:xiuxian-ast:python",
+                "parser-priority:language-provider",
+                "effective-parser:asp:python",
+                "provider-boundary:agent-semantic-protocols/languages",
             ][..],
         ),
         (
             ".data/WendaoGraph.jl/src/reasoning/search_strategy_flow/frontier.jl",
             "Julia Frontier Strategy",
             &[
-                "parser-priority:local-override",
-                "plugin-parser-override",
-                "effective-parser:julia-lang-parser",
+                "parser-priority:language-provider",
+                "effective-parser:asp:julia",
+                "provider-boundary:agent-semantic-protocols/languages",
             ][..],
         ),
         (
             "wendao.toml",
             "Wendao Repository Configuration",
             &[
-                "parser-priority:general-baseline",
-                "general-ast-baseline",
-                "effective-parser:xiuxian-ast:toml",
-                "baseline-parser:xiuxian-ast:toml",
+                "parser-priority:language-provider",
+                "effective-parser:asp:toml",
+                "provider-boundary:agent-semantic-protocols/languages",
             ][..],
         ),
     ] {

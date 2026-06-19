@@ -3,21 +3,12 @@ use std::path::Path;
 use crate::studio::router::handlers::analysis::document_extract::provider::audio::{
     audio_worker_budget_with_lookup, document_extract_audio_config, parse_ffprobe_duration_ms,
 };
-use xiuxian_io::model_routing::wendao_model_routing_config_from_toml_str;
-use xiuxian_io::model_routing::{DEFAULT_WENDAO_VLLM_SR_BASE_URL, WendaoModelRoutingMode};
 
 #[test]
 fn audio_config_defaults_are_model_neutral() -> Result<(), String> {
     let config = document_extract_audio_config(&|_| None)?;
 
     assert_eq!(config.backend_profile, "hosted-audio-transcript-v1");
-    assert_eq!(config.route_provider.as_deref(), Some("openrouter"));
-    assert_eq!(config.route_model, "qwen/qwen3-asr-flash-2026-02-10");
-    assert_eq!(
-        config.model_routing_mode,
-        WendaoModelRoutingMode::Deterministic
-    );
-    assert_eq!(config.vllm_sr_base_url, DEFAULT_WENDAO_VLLM_SR_BASE_URL);
     assert_eq!(config.chunk_duration_ms, 30_000);
     assert_eq!(config.recovery_split_duration_ms, 30_000);
     assert_eq!(config.base_worker_budget, None);
@@ -30,64 +21,6 @@ fn audio_config_defaults_are_model_neutral() -> Result<(), String> {
     assert_eq!(config.speech_max_window_ms, None);
     assert_eq!(config.speech_boundary_snap_tolerance_ms, 0);
     assert_eq!(config.speech_limit_chunks, 10_000);
-    Ok(())
-}
-
-#[test]
-fn audio_config_parses_model_routing_controls() -> Result<(), String> {
-    let config = document_extract_audio_config(&|key| match key {
-        "WENDAO_MODEL_ROUTING_MODE" => Some("deterministic".to_owned()),
-        "WENDAO_VLLM_SR_BASE_URL" => Some("http://127.0.0.1:8899/".to_owned()),
-        "WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER" => Some("openrouter".to_owned()),
-        "WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL" => Some("qwen/qwen3-asr-flash-2026-02-10".to_owned()),
-        _ => None,
-    })?;
-
-    assert_eq!(
-        config.model_routing_mode,
-        WendaoModelRoutingMode::Deterministic
-    );
-    assert_eq!(config.vllm_sr_base_url, "http://127.0.0.1:8899");
-    assert_eq!(config.route_provider.as_deref(), Some("openrouter"));
-    assert_eq!(config.route_model, "qwen/qwen3-asr-flash-2026-02-10");
-
-    assert!(
-        document_extract_audio_config(&|key| {
-            (key == "WENDAO_MODEL_ROUTING_MODE").then(|| "fallback".to_owned())
-        })
-        .is_err()
-    );
-    Ok(())
-}
-
-#[test]
-fn audio_config_prefers_wendao_toml_model_routing_over_env_defaults() -> Result<(), String> {
-    let model_routing = wendao_model_routing_config_from_toml_str(
-        r#"
-        [model_routing]
-        mode = "vllm-sr"
-        vllm_sr_base_url = "http://127.0.0.1:8899"
-        default_provider = "openrouter"
-
-        [model_routing.audio_transcript]
-        model = "qwen/qwen3-asr-flash-2026-02-10"
-        backend_profile = "hosted-audio-transcript-v1"
-        "#,
-    )?;
-    let config = crate::studio::router::handlers::analysis::document_extract::provider::audio::document_extract_audio_config_with_model_routing(
-        Some(&model_routing),
-        &|key| match key {
-            "WENDAO_MODEL_ROUTING_MODE" => Some("deterministic".to_owned()),
-            "WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL" => Some("env-audio-model".to_owned()),
-            _ => None,
-        },
-    )?;
-
-    assert_eq!(config.model_routing_mode, WendaoModelRoutingMode::VllmSr);
-    assert_eq!(config.vllm_sr_base_url, "http://127.0.0.1:8899");
-    assert_eq!(config.route_provider.as_deref(), Some("openrouter"));
-    assert_eq!(config.route_model, "qwen/qwen3-asr-flash-2026-02-10");
-    assert_eq!(config.backend_profile, "hosted-audio-transcript-v1");
     Ok(())
 }
 

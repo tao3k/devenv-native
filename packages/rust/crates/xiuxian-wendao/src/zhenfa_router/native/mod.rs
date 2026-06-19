@@ -33,29 +33,24 @@ pub mod sentinel;
 #[path = "xml_lite.rs"]
 mod xml_lite;
 
-pub use agentic_nav::WendaoAgenticNavTool;
+pub use agentic_nav::{WendaoAgenticNavArgs, wendao_agentic_nav};
 pub use audit::{audit_search_payload, evaluate_alignment};
 pub use context::WendaoContextExt;
 pub(crate) use context::resolve_docs_tool_runtime;
 pub use deployment::{
-    WendaoPluginArtifactArgs, WendaoPluginArtifactOutputFormat, WendaoPluginArtifactTool,
-    export_plugin_artifact, render_plugin_artifact, render_plugin_artifact_json,
-    render_plugin_artifact_toml, wendao_plugin_artifact,
+    WendaoPluginArtifactArgs, WendaoPluginArtifactOutputFormat, export_plugin_artifact,
+    render_plugin_artifact, render_plugin_artifact_json, render_plugin_artifact_toml,
+    wendao_plugin_artifact,
 };
 pub use docs::{
-    WendaoDocsGetDocumentArgs, WendaoDocsGetDocumentNodeArgs, WendaoDocsGetDocumentNodeTool,
-    WendaoDocsGetDocumentSegmentArgs, WendaoDocsGetDocumentSegmentTool, WendaoDocsGetDocumentTool,
-    WendaoDocsGetNavigationArgs, WendaoDocsGetNavigationTool, WendaoDocsGetPageIndexArgs,
-    WendaoDocsGetPageIndexOutlineArgs, WendaoDocsGetPageIndexOutlineTool,
-    WendaoDocsGetPageIndexTool, WendaoDocsGetPageIndexTreeArgs, WendaoDocsGetPageIndexTreeTool,
-    WendaoDocsGetRetrievalContextArgs, WendaoDocsGetRetrievalContextTool,
-    WendaoDocsGetTocDocumentsArgs, WendaoDocsGetTocDocumentsTool, WendaoDocsSearchArgs,
-    WendaoDocsSearchPageIndexArgs, WendaoDocsSearchPageIndexTool, WendaoDocsSearchTool,
-    register_wendao_docs_native_tools, wendao_docs_get_document, wendao_docs_get_document_node,
-    wendao_docs_get_document_segment, wendao_docs_get_navigation, wendao_docs_get_page_index,
-    wendao_docs_get_page_index_outline, wendao_docs_get_page_index_tree,
-    wendao_docs_get_retrieval_context, wendao_docs_get_toc_documents, wendao_docs_search,
-    wendao_docs_search_page_index,
+    WendaoDocsGetDocumentArgs, WendaoDocsGetDocumentNodeArgs, WendaoDocsGetDocumentSegmentArgs,
+    WendaoDocsGetNavigationArgs, WendaoDocsGetPageIndexArgs, WendaoDocsGetPageIndexOutlineArgs,
+    WendaoDocsGetPageIndexTreeArgs, WendaoDocsGetRetrievalContextArgs,
+    WendaoDocsGetTocDocumentsArgs, WendaoDocsSearchArgs, WendaoDocsSearchPageIndexArgs,
+    wendao_docs_get_document, wendao_docs_get_document_node, wendao_docs_get_document_segment,
+    wendao_docs_get_navigation, wendao_docs_get_page_index, wendao_docs_get_page_index_outline,
+    wendao_docs_get_page_index_tree, wendao_docs_get_retrieval_context,
+    wendao_docs_get_toc_documents, wendao_docs_search, wendao_docs_search_page_index,
 };
 pub use forwarder::{
     AffectedDocInfo, ForwardNotification, ForwardNotifier, ForwarderConfig, SuggestedAction,
@@ -64,10 +59,9 @@ pub use remediation::{
     RemediationAction, RemediationConfig, RemediationContextExt, RemediationResult,
     RemediationWorker,
 };
-pub use search::{WendaoSearchArgs, WendaoSearchTool, render_xml_lite_hits, wendao_search};
-pub use semantic_check::WendaoSemanticCheckTool;
-pub use semantic_edit::{WendaoSemanticEditArgs, WendaoSemanticEditTool, wendao_semantic_edit};
-pub use semantic_read::{WendaoSemanticReadArgs, WendaoSemanticReadTool, wendao_semantic_read};
+pub use search::{WendaoSearchArgs, render_xml_lite_hits, wendao_search};
+pub use semantic_edit::{WendaoSemanticEditArgs, wendao_semantic_edit};
+pub use semantic_read::{WendaoSemanticReadArgs, wendao_semantic_read};
 pub use sentinel::{
     AffectedDoc, DriftConfidence, ObservationBus, ObservationRef, ObservationSignal,
     SemanticDriftSignal, propagate_source_change, signals_to_status_batch,

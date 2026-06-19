@@ -82,8 +82,7 @@ The current beta exports:
     extraction profile on the primary document resource schema
 32. `wendao-image-ocr-jsonl` and `wendao-docling-document-jsonl` as
     queue-keyed source-contract evidence adapters
-33. route-decision metadata consumption for Gateway-selected audio, image,
-    OCR/VLM, and hosted backend execution
+33. explicit hosted backend configuration through document/audio profile headers and environment-backed OCR/VLM worker settings
 34. summary helpers over the same rows, table, query, and repo-search runs
 
 Docling is optional through the `documents` extra. That extra includes
@@ -451,16 +450,7 @@ remain table-shaped failures so the Rust hybrid provider can fall back to full
 Docling when coverage is incomplete.
 
 Standalone image attachments can use the same primary document route with the
-`hosted-vlm-image-extract-v1` profile. The analyzer sends the image to the
-Gateway-selected OpenAI-compatible hosted VLM endpoint, normalizes the response
-into one Markdown `document` resource row, writes the usual `_resources.arrow`
-and `_structure.arrow` sidecars, and returns table-shaped error rows for
-missing selected model/provider metadata in Gateway-routed requests, malformed
-responses, request failures, unsupported image formats, or empty recognized
-text. Rust Gateway remains responsible for source classification, default
-profile selection, and provider/model routing; Python only performs model
-invocation and resource-row normalization.
-
+Standalone image attachments can use the same primary document route with the `hosted-vlm-image-extract-v1` profile. The analyzer resolves the configured OpenAI-compatible hosted VLM endpoint from its OCR/VLM environment, normalizes the response into one Markdown `document` resource row, writes the usual `_resources.arrow` and `_structure.arrow` sidecars, and returns table-shaped error rows for missing endpoint configuration, malformed responses, request failures, unsupported image formats, or empty recognized text. Rust Gateway remains responsible for source classification, default profile selection, cache identity, and resource-order validation; Python only performs model invocation and resource-row normalization.
 For source-contract image evidence tasks that are not PDF page shards, the
 package also exposes `wendao-image-ocr-jsonl`. It reads a Rust-written
 `tasks.tsv`, sends only `image_ocr_evidence` rows to the configured

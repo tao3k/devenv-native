@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use xiuxian_io::model_routing::WendaoModelRoutingTomlConfig;
 use xiuxian_wendao_server::transport::{
     DOCUMENT_EXTRACT_FULL_PROFILE, DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
     DocumentExtractFlightRequest, DocumentExtractFlightRouteProvider,
@@ -103,9 +102,7 @@ impl StudioDocumentExtractFlightRouteProvider {
         self.registry()?.status(job_id)
     }
 
-    pub(super) fn model_routing_config(
-        &self,
-    ) -> Result<Option<WendaoModelRoutingTomlConfig>, String> {
+    pub(super) fn model_routing_config(&self) -> Result<Option<()>, String> {
         (*self.model_routing_config).clone()
     }
 

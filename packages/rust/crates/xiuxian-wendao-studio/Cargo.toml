@@ -24,7 +24,6 @@ zhenfa-router = [
   "xiuxian-zhenfa/gateway",
 ]
 contracts = [
-  "dep:schemars",
   "dep:serde",
   "dep:serde_json",
   "dep:specta",
@@ -73,8 +72,6 @@ local-runtime = [
   "dep:globset",
   "dep:log",
   "dep:notify",
-  "dep:notify-debouncer-full",
-  "dep:reqwest",
   "dep:serde_yaml",
   "dep:sha2",
   "dep:tempfile",
@@ -242,11 +239,8 @@ futures = { workspace = true, optional = true }
 globset = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 notify = { workspace = true, optional = true }
-notify-debouncer-full = { workspace = true, optional = true }
 num-traits = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
-schemars = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }

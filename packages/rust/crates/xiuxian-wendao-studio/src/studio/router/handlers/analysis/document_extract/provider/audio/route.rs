@@ -49,13 +49,6 @@ const AUDIO_MATERIALIZATION_REPORT_SCHEMA: &str = "xiuxian_wendao.audio_material
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_NAME: &str = "_audio_transcript_admission.json";
 const AUDIO_TRANSCRIPT_ADMISSION_REPORT_SCHEMA: &str =
     "xiuxian_wendao.audio_transcript_admission_report.v1";
-const AUDIO_ROUTE_TASK_KIND: &str = "attachment-extract";
-const AUDIO_ROUTE_MODALITY: &str = "audio";
-const AUDIO_ROUTE_SOURCE_KIND: &str = "attachment";
-const AUDIO_ROUTE_PRECISION_TIER: &str = "high";
-const AUDIO_ROUTE_PRIVACY_TIER: &str = "private";
-const AUDIO_ROUTE_EVIDENCE_PROFILE: &str = "audio-transcript";
-const AUDIO_ROUTE_MIN_LATENCY_BUDGET_MS: u64 = 60_000;
 
 struct AudioRecoveryWorkflowDispatch<'a> {
     request: &'a DocumentExtractFlightRequest,
@@ -65,8 +58,6 @@ struct AudioRecoveryWorkflowDispatch<'a> {
     recovery_speech_window_input: Option<&'a AudioSpeechWindowPlannerInput>,
     base_worker_budget: Option<usize>,
     recovery_worker_budget: Option<usize>,
-    route_intent: Option<&'a WendaoRouteIntent>,
-    model_decision: Option<&'a WendaoModelDecision>,
 }
 
 impl StudioDocumentExtractFlightRouteProvider {
@@ -129,14 +120,8 @@ impl StudioDocumentExtractFlightRouteProvider {
         )?;
         let plan = base_speech_window_plan_from_config(&full_coverage_plan, &config)?
             .unwrap_or(full_coverage_plan);
-        let model_route = audio_model_route_decision_for_document_extract();
-        let cache_manifest = audio_cache_manifest(
-            request,
-            &config,
-            source_hash.as_str(),
-            duration_ms,
-            model_route.as_ref(),
-        )?;
+        let cache_manifest =
+            audio_cache_manifest(request, &config, source_hash.as_str(), duration_ms)?;
         if source.exists()
             && !request.force
             && audio_cache_manifest_matches(output.as_path(), &cache_manifest)
@@ -174,8 +159,6 @@ impl StudioDocumentExtractFlightRouteProvider {
                     recovery_speech_window_input: recovery_speech_window_input.as_ref(),
                     base_worker_budget: scheduled_base_worker_budget,
                     recovery_worker_budget: scheduled_recovery_worker_budget,
-                    route_intent: model_route.as_ref().map(|(intent, _)| intent),
-                    model_decision: model_route.as_ref().map(|(_, decision)| decision),
                 },
             )
             .await?;
@@ -249,12 +232,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                     base_worker_budget: dispatch.base_worker_budget,
                     recovery_worker_budget: dispatch.recovery_worker_budget,
                 },
-                audio_shard_request_options_for_document_extract(
-                    dispatch.request,
-                    dispatch.config,
-                    dispatch.route_intent,
-                    dispatch.model_decision,
-                ),
+                audio_shard_request_options_for_document_extract(dispatch.request, dispatch.config),
             )
             .await
         {
@@ -313,10 +291,7 @@ pub(crate) fn audio_recovery_selection_options_for_plan(
 fn audio_shard_request_options_for_document_extract(
     request: &DocumentExtractFlightRequest,
     config: &AudioDocumentExtractConfig,
-    route_intent: Option<&()>,
-    model_decision: Option<&()>,
 ) -> AudioShardFlightRequestOptions {
-    let _ = (route_intent, model_decision);
     AudioShardFlightRequestOptions {
         audio_worker: request.audio_worker.clone(),
         hosted_provider: request.audio_hosted_provider.clone(),
@@ -329,10 +304,6 @@ fn audio_shard_request_options_for_document_extract(
         transcript_admission_dir: config.transcript_admission_dir.clone(),
         ..AudioShardFlightRequestOptions::default()
     }
-}
-
-fn audio_model_route_decision_for_document_extract() -> Option<()> {
-    None
 }
 
 fn normalized_source_hash(source_hash: &str) -> Result<String, String> {
@@ -353,14 +324,12 @@ fn audio_cache_manifest(
     config: &AudioDocumentExtractConfig,
     source_hash: &str,
     duration_ms: u64,
-    model_route: Option<&()>,
 ) -> Result<serde_json::Value, String> {
     let speech_segments_jsonl = config
         .speech_segments_jsonl_path
         .as_ref()
         .map(|path| path.to_string_lossy().to_string());
     let speech_segments_sha256 = configured_speech_segments_sha256_from_config(config)?;
-    let _ = model_route;
     Ok(serde_json::json!({
         "schema": AUDIO_CACHE_MANIFEST_SCHEMA,
         "sourceSha256": source_hash,
@@ -620,9 +589,6 @@ fn document_extract_audio_output_dir(source: &Path, output_dir: &str) -> PathBuf
     }
 }
 
-#[cfg(test)]
-#[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/route_model_routing.rs"]
-mod model_routing_tests;
 #[cfg(test)]
 #[path = "../../../../../../../../tests/unit/gateway/studio/router/handlers/analysis/document_extract/provider/audio/route_materialization_report.rs"]
 mod tests;

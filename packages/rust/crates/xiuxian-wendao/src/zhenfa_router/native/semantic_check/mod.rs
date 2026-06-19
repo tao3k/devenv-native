@@ -25,7 +25,7 @@ pub mod test_api;
 #[path = "types/mod.rs"]
 mod types;
 
-pub use core::{WendaoSemanticCheckTool, run_audit_core, wendao_semantic_check};
+pub use core::{run_audit_core, wendao_semantic_check};
 pub use episteme::{EpistemeLoadReport, EpistemePolicyQueryReport};
 pub use types::{
     CheckType, FileAuditReport, FuzzySuggestionData, HashReference, IssueLocation, NodeStatus,

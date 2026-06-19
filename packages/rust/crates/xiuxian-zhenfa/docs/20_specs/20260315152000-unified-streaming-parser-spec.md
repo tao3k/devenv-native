@@ -19,7 +19,7 @@ metadata:
 
 ## 1. Overview & Goal
 
-The **Unified Streaming Parser** is a high-performance cognitive gateway designed to parse, validate, and display real-time output from multiple LLM CLIs (Claude Code, Gemini CLI, Codex).
+The **Unified Streaming Parser** is a high-performance cognitive gateway designed to parse, validate, and display real-time output from multiple agent CLIs (Claude Code, Gemini CLI, Codex).
 
 **Primary Goal**: To achieve **Industrial-Grade Reliability** through zero-copy memory patterns and real-time cognitive monitoring with sub-10ms latency.
 

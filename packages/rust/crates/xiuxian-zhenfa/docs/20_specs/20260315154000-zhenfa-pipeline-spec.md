@@ -22,7 +22,7 @@ The **ZhenfaPipeline** is the primary high-level interface for the **xiuxian-zhe
 
 ## 2. Orchestration Logic
 
-The pipeline manages the state transition of a single LLM stream:
+The pipeline manages the state transition of a single agent stream:
 
 1. **Transmutation**: Maps raw CLI chunks to `ZhenfaStreamingEvent` (Zero-copy).
 2. **Validation**: Incremental XSD checking via the `LogicGate`.
@@ -57,4 +57,4 @@ impl ZhenfaPipeline {
 
 - Parent MOC: [[20260315151000-zhenfa-matrix-moc]]
 - Core Component: [[20260315152000-unified-streaming-parser-spec]]
-- Consumer: [[20260315142000-streaming-llm-executor-spec]]
+- Consumer: Qianji runtime nodes

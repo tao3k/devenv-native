@@ -19,12 +19,9 @@ futures = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "time"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_yaml = { workspace = true }
 blake3 = { workspace = true }
-chrono = { workspace = true, features = ["clock"] }
 inventory = { workspace = true }
 tonic = { workspace = true }
-xiuxian-memory-engine = { path = "../xiuxian-memory-engine" }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
 xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"] }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"] }
@@ -41,6 +38,7 @@ insta = { workspace = true }
 serial_test = { workspace = true }
 async-trait = { workspace = true }
 tokio-stream = { workspace = true }
+serde_yaml = { workspace = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
 

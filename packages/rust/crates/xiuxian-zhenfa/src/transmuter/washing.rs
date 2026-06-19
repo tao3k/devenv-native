@@ -34,9 +34,9 @@ pub enum ZhenfaTransmuterError {
 }
 
 impl ZhenfaTransmuterError {
-    /// Returns one LLM-safe semantic summary of the error.
+    /// Returns one caller-safe semantic summary of the error.
     #[must_use]
-    pub fn llm_safe_message(&self) -> &'static str {
+    pub fn caller_safe_message(&self) -> &'static str {
         match self {
             Self::NullByteDetected => {
                 "content contains unsupported control characters; clean the payload and retry"
@@ -78,10 +78,10 @@ impl ZhenfaTransmuter {
         validate_structure(content)
     }
 
-    /// Normalize payload for LLM consumption.
+    /// Normalize payload for caller consumption.
     #[must_use]
-    pub fn refine_for_llm(content: &str) -> String {
-        refine_for_llm(content)
+    pub fn refine_for_caller(content: &str) -> String {
+        refine_for_caller(content)
     }
 
     /// Validate XML-lite structure and return the refined payload.
@@ -90,7 +90,7 @@ impl ZhenfaTransmuter {
     ///
     /// Returns [`ZhenfaTransmuterError`] when the payload is malformed.
     pub fn validate_and_refine(content: &str) -> Result<String, ZhenfaTransmuterError> {
-        let refined = refine_for_llm(content);
+        let refined = refine_for_caller(content);
         validate_structure(&refined)?;
         Ok(refined)
     }
@@ -110,7 +110,7 @@ impl ZhenfaTransmuter {
             resolver(canonical_uri).ok_or_else(|| ZhenfaResolveAndWashError::ResourceNotFound {
                 uri: canonical_uri.to_string(),
             })?;
-        let refined = refine_for_llm(raw_content.as_str());
+        let refined = refine_for_caller(raw_content.as_str());
         if should_validate_xml_lite(canonical_uri) {
             validate_structure(refined.as_str())?;
         }
@@ -155,9 +155,9 @@ pub fn check_semantic_integrity(content: &str) -> bool {
     true
 }
 
-/// Normalize payload for LLM consumption.
+/// Normalize payload for caller consumption.
 #[must_use]
-pub fn refine_for_llm(content: &str) -> String {
+pub fn refine_for_caller(content: &str) -> String {
     let normalized_line_endings = content.replace("\r\n", "\n").replace('\r', "\n");
     let sanitized = normalized_line_endings.replace('\0', "");
 

@@ -17,8 +17,6 @@ pub(crate) mod document_extract_result;
 pub(crate) mod episteme;
 #[path = "graph/mod.rs"]
 pub(crate) mod graph;
-#[path = "model_route.rs"]
-pub(crate) mod model_route;
 #[path = "repo/mod.rs"]
 pub(crate) mod repo;
 #[path = "vfs.rs"]

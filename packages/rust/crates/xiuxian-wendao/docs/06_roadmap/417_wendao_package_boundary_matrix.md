@@ -129,8 +129,8 @@ The main mismatches today are:
    when they only need a narrower `core` or `runtime` surface
 
 One bounded follow-up is now closed: `WendaoResourceUri` moved into
-`xiuxian-wendao-core`, and URI-only consumers in `xiuxian-qianji` and
-`xiuxian-qianhuan` now import that shared contract from `core` directly.
+`xiuxian-wendao-core`, and URI-only consumers in `xiuxian-qianji` now import
+that shared contract from `core` directly.
 Another bounded follow-up is now closed: `KnowledgeEntry` moved into
 `xiuxian-wendao-core`, `xiuxian-qianji` record-only contract-feedback
 consumers now import that shared payload from `core` directly, and

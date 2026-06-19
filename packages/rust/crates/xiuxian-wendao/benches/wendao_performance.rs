@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[cfg(feature = "duckdb")]
 use chrono::{TimeZone, Utc};
-use criterion::{BatchSize, Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, Throughput, black_box, criterion_main};
 #[cfg(feature = "duckdb")]
 use serde_json::json;
 use tempfile::{TempDir, tempdir};
@@ -521,14 +521,16 @@ fn build_event_lake_records(count: usize) -> Vec<WendaoEventRecord> {
         .collect()
 }
 
-criterion_group!(
-    benches,
-    bench_related_ppr,
-    bench_incremental_repo_code_documents,
-    bench_repo_bootstrap_statuses,
-    bench_repo_content_parquet_mutation,
-    bench_repo_content_query,
-    bench_narration_fusion,
-    bench_event_lake_append_chain
-);
+fn benches() {
+    let mut criterion = Criterion::default().configure_from_args();
+    bench_related_ppr(&mut criterion);
+    bench_incremental_repo_code_documents(&mut criterion);
+    bench_repo_bootstrap_statuses(&mut criterion);
+    bench_repo_content_parquet_mutation(&mut criterion);
+    bench_repo_content_query(&mut criterion);
+    bench_narration_fusion(&mut criterion);
+    bench_event_lake_append_chain(&mut criterion);
+    criterion.final_summary();
+}
+
 criterion_main!(benches);

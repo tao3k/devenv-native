@@ -23,7 +23,6 @@ zhenfa-router = [
   "dep:notify",
   "dep:notify-debouncer-full",
   "dep:reqwest",
-  "dep:tower",
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/gateway",
   "search-runtime",
@@ -56,7 +55,6 @@ search-runtime = [
   "dep:datafusion",
   "dep:parquet",
   "dep:tonic",
-  "dep:tonic-web",
 ]
 studio = [
   "search-runtime",
@@ -130,13 +128,11 @@ walkdir = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 
-xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
 xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
-xiuxian-wendao-client = { path = "../xiuxian-wendao-client", default-features = false }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
@@ -165,7 +161,6 @@ sha2 = { workspace = true }
 
 # Fast regex for entity reference extraction (10-100x faster than Python)
 regex = { workspace = true }
-globset = { workspace = true }
 comrak = { workspace = true }
 include_dir = { workspace = true }
 async-trait = { workspace = true }
@@ -182,17 +177,14 @@ arrow-flight = { workspace = true, features = ["flight-sql"], optional = true }
 datafusion = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
-tonic-web = { workspace = true, optional = true }
 
 # Graph algorithms
 petgraph = { workspace = true }
 
 # Logging
 log = { workspace = true }
-clap = { workspace = true }
 redis = { workspace = true, features = ["tokio-comp"] }
 axum = { workspace = true, optional = true }
-tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 url = { workspace = true }
 

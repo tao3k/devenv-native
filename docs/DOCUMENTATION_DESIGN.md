@@ -26,14 +26,14 @@ This specification governs all Markdown, JSON, YAML, and associated asset files 
 
 Documentation is organized into a **Layered Namespace** structure, where the filesystem path prefix defines the file's responsibility:
 
-| Path Level       | Semantic Name       | Responsibility                                                                                            | Audience     |
-| :--------------- | :------------------ | :-------------------------------------------------------------------------------------------------------- | :----------- |
-| `00_vision/`     | **Vision Layer**    | High-level philosophy, system constitution, long-term strategy, and the Trinity Manifesto.                | Human        |
-| `01_core/`       | **Core Layer**      | Mathematical models, algorithmic specifications (Wendao/Memory/Qianhuan/Omega), and technical blueprints. | LLM/Dev      |
-| `02_dev/`        | **Dev Layer**       | Coding standards, workflow protocols, traceability policies, and developer handbooks.                     | Developer    |
-| `03_features/`   | **Feature Layer**   | **[SSOT]** Single Source of Truth. Contains only 100% implemented and verified feature details.           | LLM/Audit    |
-| `04_chronicles/` | **Chronicle Layer** | Historical milestones, backlogs, and archived legacy plans.                                               | Human        |
-| `99_llm/`        | **Machine Layer**   | LLM-optimized bootstrap indices, schema mappings, and system state snapshots.                             | **LLM Only** |
+| Path Level       | Semantic Name       | Responsibility                                                                                                     | Audience     |
+| :--------------- | :------------------ | :----------------------------------------------------------------------------------------------------------------- | :----------- |
+| `00_vision/`     | **Vision Layer**    | High-level philosophy, system constitution, long-term strategy, and the Trinity Manifesto.                         | Human        |
+| `01_core/`       | **Core Layer**      | Mathematical models, algorithmic specifications (Wendao/Memory/Omega/context injection), and technical blueprints. | LLM/Dev      |
+| `02_dev/`        | **Dev Layer**       | Coding standards, workflow protocols, traceability policies, and developer handbooks.                              | Developer    |
+| `03_features/`   | **Feature Layer**   | **[SSOT]** Single Source of Truth. Contains only 100% implemented and verified feature details.                    | LLM/Audit    |
+| `04_chronicles/` | **Chronicle Layer** | Historical milestones, backlogs, and archived legacy plans.                                                        | Human        |
+| `99_llm/`        | **Machine Layer**   | LLM-optimized bootstrap indices, schema mappings, and system state snapshots.                                      | **LLM Only** |
 
 ## 4. Content Requirements
 
@@ -54,7 +54,7 @@ Each layer must adhere to specific content standards:
 
 - **Parsing**: `comrak` (Rust) for AST extraction.
 - **Indexing**: `xiuxian-wendao` for digitizing the directory into a Mixed Directed Graph.
-- **Validation**: `xiuxian-qianhuan` for verifying XML tag integrity during context injection.
+- **Validation**: local Rust context-injection checks for XML tag integrity during context assembly.
 
 ## 7. Review Process
 

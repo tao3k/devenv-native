@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 pub(super) use serde_json::json;
-pub(super) use xiuxian_zhenfa::{ZhenfaContext, ZhenfaRegistry, ZhenfaTool};
+pub(super) use xiuxian_zhenfa::ZhenfaContext;
 
 use crate::analyzers::DocsDocumentSegmentResult;
 pub(super) use crate::analyzers::DocsToolService;
@@ -14,10 +14,13 @@ use crate::analyzers::{
 };
 use crate::analyzers::{DocsToolRuntime, DocsToolRuntimeHandle};
 pub(super) use crate::zhenfa_router::native::{
-    WendaoContextExt, WendaoDocsGetDocumentNodeTool, WendaoDocsGetDocumentSegmentTool,
-    WendaoDocsGetDocumentTool, WendaoDocsGetPageIndexOutlineTool, WendaoDocsGetPageIndexTool,
-    WendaoDocsGetTocDocumentsTool, WendaoDocsSearchPageIndexTool, WendaoDocsSearchTool,
-    register_wendao_docs_native_tools, resolve_docs_tool_runtime,
+    WendaoContextExt, WendaoDocsGetDocumentArgs, WendaoDocsGetDocumentNodeArgs,
+    WendaoDocsGetDocumentSegmentArgs, WendaoDocsGetPageIndexArgs,
+    WendaoDocsGetPageIndexOutlineArgs, WendaoDocsGetTocDocumentsArgs, WendaoDocsSearchArgs,
+    WendaoDocsSearchPageIndexArgs, resolve_docs_tool_runtime, wendao_docs_get_document,
+    wendao_docs_get_document_node, wendao_docs_get_document_segment, wendao_docs_get_page_index,
+    wendao_docs_get_page_index_outline, wendao_docs_get_toc_documents, wendao_docs_search,
+    wendao_docs_search_page_index,
 };
 
 pub(super) type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -258,12 +261,6 @@ impl DocsToolRuntime for FakeDocsToolRuntime {
     ) -> Result<DocsRetrievalContextResult, RepoIntelligenceError> {
         panic!("get_retrieval_context_with_options is not used in this test")
     }
-}
-
-pub(super) fn current_thread_runtime() -> Result<tokio::runtime::Runtime, std::io::Error> {
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
 }
 
 pub(super) fn docs_context_with_fake_runtime() -> ZhenfaContext {

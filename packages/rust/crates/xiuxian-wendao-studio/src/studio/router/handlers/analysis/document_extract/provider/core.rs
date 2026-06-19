@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex as StdMutex, OnceLock, Weak};
 
 use tokio::sync::{Mutex, Semaphore};
 use tonic::transport::Channel;
-use xiuxian_io::model_routing::WendaoModelRoutingTomlConfig;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
@@ -26,7 +25,7 @@ pub(super) const DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV: &str =
 pub(crate) struct StudioDocumentExtractFlightRouteProvider {
     pub(super) runtime: Arc<DocumentExtractProviderRuntime>,
     pub(super) configured_default_endpoint: Option<String>,
-    pub(super) model_routing_config: Arc<Result<Option<WendaoModelRoutingTomlConfig>, String>>,
+    pub(super) model_routing_config: Arc<Result<Option<()>, String>>,
 }
 
 pub(super) struct DocumentExtractProviderRuntime {

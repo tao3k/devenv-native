@@ -44,23 +44,29 @@ if [[ -z ${PYLIB_PATH} || ! -f ${PYLIB_PATH} ]]; then
   exit 1
 fi
 
-TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}"
-
 if [[ $# -eq 0 ]]; then
   set -- --no-fail-fast
 fi
 
-echo "Running xiuxian-core-rs tests with CARGO_TARGET_DIR=${TARGET_DIR}"
+if [[ -n ${CARGO_TARGET_DIR:-} ]]; then
+  echo "Running xiuxian-core-rs tests with CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
+else
+  echo "Running xiuxian-core-rs tests with Cargo's default target directory"
+fi
 echo "Resolved Python: ${PYTHON_BIN}"
 echo "Resolved libpython: ${PYLIB_PATH}"
 
 case "$(uname -s)" in
 Darwin)
+  PYLIB_DIR="$(dirname "${PYLIB_PATH}")"
+  PYLIB_NAME="$(basename "${PYLIB_PATH}")"
+  PYLIB_NAME="${PYLIB_NAME#lib}"
+  PYLIB_NAME="${PYLIB_NAME%.dylib}"
   DYLD_INSERT_LIBRARIES="${PYLIB_PATH}" \
-    CARGO_TARGET_DIR="${TARGET_DIR}" \
+    RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-L native=${PYLIB_DIR} -l dylib=${PYLIB_NAME}" \
     run_cargo test -p xiuxian-core-rs "$@"
   ;;
 *)
-  CARGO_TARGET_DIR="${TARGET_DIR}" run_cargo test -p xiuxian-core-rs "$@"
+  run_cargo test -p xiuxian-core-rs "$@"
   ;;
 esac

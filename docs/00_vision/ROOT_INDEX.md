@@ -16,7 +16,7 @@ This repository follows the **Filesystem-Based Documentation Hierarchy (DFS-2026
 
 - **Wendao**: [Graph Enhancement](../01_core/wendao/graph-enhancement.md), [PPR Algorithm](../01_core/wendao/ppr-algorithm.md).
 - **Memory**: [MemRL Evolution](../01_core/memory/memrl-evolution.md).
-- **Qianhuan**: [Orchestration Spec](../01_core/qianhuan/orchestration-spec.md).
+- **Context Injection**: [Rust Context Injection + Memory Self-Evolution + Reflection](../01_core/memory/injection-evolution.md).
 - **Qianji**: [Specification](../01_core/qianji/SPEC.md).
 - **Omega**: [Strategic Governance](../01_core/omega/trinity-control.md).
 
@@ -28,7 +28,7 @@ This repository follows the **Filesystem-Based Documentation Hierarchy (DFS-2026
 
 ## [03] Features (The Verified Truth)
 
-- [Qianhuan Audit](../03_features/qianhuan-audit-closure.md): Evidence of implementation.
+- Context injection evidence is tracked in the active package documentation and memory-engine notes.
 
 ## [04] Chronicles (History)
 

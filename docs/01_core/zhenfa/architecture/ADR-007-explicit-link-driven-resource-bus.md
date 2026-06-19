@@ -76,7 +76,7 @@ pub static RESOURCES: include_dir::Dir<'_> =
 
 ### 3.2 Holographic Mounting Protocol
 
-The `ZhenfaOrchestrator` provides a unified **`SkillRuntimeResolver`** that acts as a mount manager. Physical filesystem calls are prohibited for embedded resources.
+The Zhenfa runtime boundary provides a unified **`SkillRuntimeResolver`** that acts as a mount manager. Physical filesystem calls are prohibited for embedded resources.
 
 ### 3.3 Zero-Copy Access & String Interning
 

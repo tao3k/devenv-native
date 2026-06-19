@@ -85,7 +85,7 @@ When the user next asks to "Schedule tasks", the **Phase 2 (Reranking)** of memo
 
 ## 5. Implementation Plan
 
-1.  **Update `xiuxian-memory-engine`**: Ensure the Rust `QTable` can be updated via the `ZhenfaOrchestrator` hooks.
+1.  **Update `xiuxian-memory-engine`**: Ensure the Rust `QTable` can be updated via the runtime signal hooks.
 2.  **Extend `ZhenfaContext`**: Implement the signal emission bus.
 3.  **Refactor `LlmAugmentedAuditMechanism`**: Add the reward emission logic.
 4.  **Verify Evolution**: Run a "Bootcamp" test where an agent is criticized multiple times and observe if its retrieval bias shifts towards higher-quality plans.

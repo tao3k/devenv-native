@@ -9,7 +9,6 @@ mod hybrid;
 mod jobs;
 #[cfg(feature = "document-extract-legacy-office")]
 mod legacy_office;
-mod model_route;
 mod native_org;
 mod route;
 mod runtime;
@@ -96,12 +95,6 @@ use hybrid::{
 };
 #[cfg(test)]
 use jobs::document_extract_batches_are_cacheable;
-#[cfg(test)]
-use model_route::{
-    DocumentExtractRouteSourceIdentity, ImageDocumentExtractRouteConfig,
-    image_document_extract_model_route_for_source_identity,
-    image_document_extract_model_route_with_config,
-};
 #[cfg(test)]
 use route::{
     gateway_document_extract_mode_for_source, gateway_document_extract_profile_for_source,

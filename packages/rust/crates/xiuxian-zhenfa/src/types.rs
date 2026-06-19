@@ -65,34 +65,5 @@ macro_rules! zhenfa_string_newtype {
 
 zhenfa_string_newtype!(ZhenfaSessionId, "Runtime session identifier.");
 zhenfa_string_newtype!(ZhenfaTraceId, "Runtime trace or correlation identifier.");
-zhenfa_string_newtype!(ZhenfaToolId, "Native Zhenfa tool identifier.");
 zhenfa_string_newtype!(ZhenfaSignalType, "External or notification signal type.");
 zhenfa_string_newtype!(ZhenfaXmlLiteTagName, "XML-Lite tag name.");
-
-/// Borrowed native tool identifier accepted by public registry and dispatch APIs.
-pub type ZhenfaToolIdRef<'a> = &'a str;
-
-/// Dispatch elapsed milliseconds.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ZhenfaElapsedMillis(u128);
-
-impl ZhenfaElapsedMillis {
-    /// Create an elapsed-milliseconds value.
-    #[must_use]
-    pub const fn new(value: u128) -> Self {
-        Self(value)
-    }
-
-    /// Return the raw millisecond count.
-    #[must_use]
-    pub const fn as_u128(self) -> u128 {
-        self.0
-    }
-}
-
-impl From<u128> for ZhenfaElapsedMillis {
-    fn from(value: u128) -> Self {
-        Self::new(value)
-    }
-}

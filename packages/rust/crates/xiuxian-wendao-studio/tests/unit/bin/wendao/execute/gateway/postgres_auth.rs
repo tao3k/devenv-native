@@ -6,9 +6,7 @@ use super::{
     GATEWAY_API_TOKEN_POSTGRES_AUTO_MIGRATE_ENV, GATEWAY_API_TOKEN_POSTGRES_SCHEMA_SQL,
     GatewayPostgresApiTokenRepository, gateway_postgres_auto_migrate_with_lookup,
 };
-use crate::bin_support::wendao::execute::gateway::security::{
-    GatewayApiTokenAuthority, GatewayApiTokenRecord, GatewayApiTokenRepository,
-};
+use crate::bin_support::wendao::execute::gateway::security::GatewayApiTokenRecord;
 
 #[test]
 fn gateway_postgres_api_token_schema_declares_control_plane_table() {

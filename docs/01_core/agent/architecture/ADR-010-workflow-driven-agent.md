@@ -78,5 +78,5 @@ The `xiuxian-qianji` executor will be upgraded with a **Protocol Resolution Feat
 ## 5. Implementation Plan
 
 1.  **Refactor `Qianji`**: Implement the `$` protocol resolver.
-2.  **Strip `xiuxian-daochang`**: Delete `bootstrap/qianhuan.rs` manual loaders.
+2.  **Strip `xiuxian-daochang`**: Delete manual context-injection bootstrap loaders.
 3.  **Relink `Zhixing`**: Ensure `agenda_flow.toml` uses the new `$` mapping syntax.

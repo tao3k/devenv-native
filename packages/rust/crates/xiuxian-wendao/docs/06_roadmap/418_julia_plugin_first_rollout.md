@@ -1055,9 +1055,7 @@ This slice proves the runtime/host ownership split more explicitly:
    under a transport-owned feature name instead of a Julia-plugin name
 2. the bounded runtime sources no longer use `feature = "julia"` for generic
    transport cfg gates or README verification commands
-3. the searched Cargo/runtime scope no longer contains runtime feature
-   references to `julia`; the only remaining matches are the intentional
-   `xiuxian-ast` language feature edges in host/plugin Cargo manifests
+3. the searched Cargo/runtime scope no longer contains runtime feature references to `julia`; language feature edges now belong to the external language-provider boundary instead of Wendao-local AST crates
 4. `direnv exec . cargo test -p xiuxian-wendao-runtime --features transport`
    passes with `183 passed`
 5. `direnv exec . cargo check -p xiuxian-wendao --no-default-features --features zhenfa-router`

@@ -220,7 +220,7 @@ Plugins should return normalized records and relations, not mutate Wendao storag
   - `repo doc-coverage` is now also exposed through the studio gateway at `GET /api/repo/doc-coverage?repo=<id>&module=<qualified-name>`, returning normalized doc rows plus covered and uncovered symbol counts from the existing Repo Intelligence service path
   - the common core now also exposes registry-aware library entry points for `repo.overview`, `module.search`, `symbol.search`, `example.search`, and `doc.coverage`, so external crates can reuse the same configured query surface with custom plugin registries
   - `xiuxian-wendao` bootstraps the built-in `julia` plugin automatically for this slice
-  - Julia syntax extraction now lives in `xiuxian-ast` behind its `julia` dependency feature, and the built-in Julia analyzer now registers through `xiuxian-wendao::analyzers::languages::julia` while the query/runtime orchestration lives under `xiuxian-wendao::analyzers::service`
+- Julia syntax extraction now uses the external language-provider parser-summary path, and the built-in Julia analyzer registers through `xiuxian-wendao::analyzers::languages::julia` while the query/runtime orchestration lives under `xiuxian-wendao::analyzers::service`
   - the Julia AST layer now extracts conservative symbol docstrings and literal `include("...")` edges, and the Wendao Julia bridge now walks the root-file include graph before normalizing `DocRecord` inventory plus explicit `RelationKind::Documents` edges
   - the analyzer implementation is now split across `analyzers/` feature folders with interface-only `mod.rs` boundaries instead of keeping the old `repo_intelligence/` path as the live implementation root
   - `wendao repo overview --repo <id>` returns a real `RepoOverviewResult` through the existing `--output json|pretty` surface
@@ -254,7 +254,7 @@ Plugins should return normalized records and relations, not mutate Wendao storag
   - `cargo test -p xiuxian-wendao --test repo_relations`
   - `cargo test -p xiuxian-wendao --test repo_intelligence_registry`
   - `cargo test -p xiuxian-wendao-modelica`
-  - `cargo test -p xiuxian-ast --features julia --lib`
+- `cargo test -p xiuxian-wendao --lib`
 - Tier-3 verification is now green for the current Repo Intelligence and external Modelica slice:
   - `cargo clippy -p xiuxian-wendao -p xiuxian-wendao-modelica --all-targets --all-features -- -D warnings`
   - `cargo nextest run -p xiuxian-wendao -p xiuxian-wendao-modelica --no-fail-fast`

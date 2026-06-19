@@ -17,7 +17,7 @@ When tasked with modifying or reasoning about this codebase, refer to these "Gro
 
 - **Topological Logic:** `docs/core/wendao/ppr-algorithm.md`
 - **Memory Evolution:** `docs/core/memory/memrl-evolution.md`
-- **Context Injection:** `docs/core/qianhuan/orchestration-spec.md`
+- **Context Injection:** `docs/01_core/memory/injection-evolution.md`
 - **Governance:** `docs/core/omega/trinity-control.md`
 
 ### 1.2 System Schemas (The "What")
@@ -28,7 +28,7 @@ All structural contracts are defined in Rust owner crates and exposed via Python
 
 ## 2. Context Injection Protocol (XML Shadow DOM)
 
-AI Agents must adhere to the XML isolation protocol defined in `docs/core/qianhuan/orchestration-spec.md`.
+AI agents must adhere to the XML isolation protocol defined in `docs/01_core/memory/injection-evolution.md`.
 
 - **L0:** `<genesis_rules>`
 - **L1:** `<persona_steering>`

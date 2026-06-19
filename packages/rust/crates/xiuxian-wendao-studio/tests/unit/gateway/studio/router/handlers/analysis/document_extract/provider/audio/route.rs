@@ -8,7 +8,10 @@ use xiuxian_wendao_attachments::audio::{
     AudioShardPlan, AudioShardResult, AudioShardWorkerProfile, build_audio_shard_inputs,
     build_audio_shard_result_batch, materialize_audio_shards,
 };
-use xiuxian_wendao_server::transport::{DocumentExtractFlightRequest, DocumentExtractMode};
+use xiuxian_wendao_server::transport::{
+    DocumentExtractFlightRequest, DocumentExtractMode, DocumentExtractSourcePath,
+    DocumentExtractWaitBudgetMs,
+};
 
 use crate::studio::document_extract_audio_client::{
     AudioShardFlightResponse, AudioShardRecoveryPlanRequest,
@@ -32,7 +35,6 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
     let output_dir = temp.path().join("out");
     let (ffmpeg_path, ffprobe_path) = audio_route_fake_tools(&temp)?;
     let config = document_extract_audio_config(&|key| match key {
-        "WENDAO_MODEL_ROUTING_MODE" => Some("deterministic".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS" => Some("30000".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS" => Some("15000".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFMPEG" => Some(ffmpeg_path.to_string_lossy().to_string()),
@@ -109,13 +111,13 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
     let response = provider
         .audio_shards_document_extract_batch_with_config(
             &DocumentExtractFlightRequest {
-                source_path: source_path.to_string_lossy().to_string(),
+                source_path: DocumentExtractSourcePath::new(source_path.to_string_lossy()),
                 output_dir: output_dir.to_string_lossy().to_string(),
                 force: false,
                 error_row: false,
                 profile: "default".to_owned(),
                 mode: DocumentExtractMode::AudioShards,
-                wait_ms: 0,
+                wait_ms: DocumentExtractWaitBudgetMs::from_millis(0),
                 audio_worker: None,
                 audio_hosted_provider: None,
                 audio_hosted_base_url: None,
@@ -144,13 +146,13 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
     let cached_response = provider
         .audio_shards_document_extract_batch_with_config(
             &DocumentExtractFlightRequest {
-                source_path: source_path.to_string_lossy().to_string(),
+                source_path: DocumentExtractSourcePath::new(source_path.to_string_lossy()),
                 output_dir: output_dir.to_string_lossy().to_string(),
                 force: false,
                 error_row: false,
                 profile: "default".to_owned(),
                 mode: DocumentExtractMode::AudioShards,
-                wait_ms: 0,
+                wait_ms: DocumentExtractWaitBudgetMs::from_millis(0),
                 audio_worker: None,
                 audio_hosted_provider: None,
                 audio_hosted_base_url: None,
@@ -174,13 +176,13 @@ async fn audio_shards_document_extract_batch_roundtrips_fake_flight() -> Result<
     let changed_response = provider
         .audio_shards_document_extract_batch_with_config(
             &DocumentExtractFlightRequest {
-                source_path: source_path.to_string_lossy().to_string(),
+                source_path: DocumentExtractSourcePath::new(source_path.to_string_lossy()),
                 output_dir: output_dir.to_string_lossy().to_string(),
                 force: false,
                 error_row: false,
                 profile: "default".to_owned(),
                 mode: DocumentExtractMode::AudioShards,
-                wait_ms: 0,
+                wait_ms: DocumentExtractWaitBudgetMs::from_millis(0),
                 audio_worker: None,
                 audio_hosted_provider: None,
                 audio_hosted_base_url: None,
@@ -263,13 +265,13 @@ async fn audio_shards_document_extract_batch_rebuilds_from_transcript_admission_
             endpoint,
         );
     let request = DocumentExtractFlightRequest {
-        source_path: source_path.to_string_lossy().to_string(),
+        source_path: DocumentExtractSourcePath::new(source_path.to_string_lossy()),
         output_dir: output_dir.to_string_lossy().to_string(),
         force: false,
         error_row: false,
         profile: "default".to_owned(),
         mode: DocumentExtractMode::AudioShards,
-        wait_ms: 0,
+        wait_ms: DocumentExtractWaitBudgetMs::from_millis(0),
         audio_worker: None,
         audio_hosted_provider: None,
         audio_hosted_base_url: None,
@@ -343,7 +345,6 @@ fn audio_route_config(
     String,
 >{
     document_extract_audio_config(&|key| match key {
-        "WENDAO_MODEL_ROUTING_MODE" => Some("deterministic".to_owned()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS" => Some(chunk_ms.to_string()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_SPLIT_MS" => Some(recovery_split_ms.to_string()),
         "WENDAO_DOCUMENT_EXTRACT_AUDIO_FFMPEG" => Some(ffmpeg_path.to_string_lossy().to_string()),

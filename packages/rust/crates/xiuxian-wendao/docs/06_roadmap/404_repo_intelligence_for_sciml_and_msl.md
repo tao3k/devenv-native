@@ -81,7 +81,7 @@ This note maps the proposed system directly onto the current Wendao architecture
   - owns the common Repo Intelligence core
   - owns the plugin authoring interface
   - owns the Julia analyzer bridge and normalization flow
-- `xiuxian-ast`
+- external language-provider protocol
   - owns Julia syntax parsing primitives used by Repo Intelligence
 - `xiuxian-wendao-modelica`
   - is an external Rust extension crate
@@ -94,10 +94,8 @@ xiuxian-wendao
   - analyzers common core
   - analyzers plugin interface
   - analyzers julia bridge/orchestration
-
-xiuxian-ast
+external language-provider protocol
   - julia syntax parser and source-summary extraction
-
 xiuxian-wendao-modelica
   - external Modelica/MSL extension crate
 ```
@@ -204,15 +202,13 @@ The first interface should stay narrow:
 
 ### Native Julia Support
 
-Julia repository intelligence is a Wendao-native path, but the syntax parser itself should stay in `xiuxian-ast`.
+Julia repository intelligence is a Wendao-native path, but the syntax parser itself should stay in `external language-provider protocol`.
 
-The Julia path should therefore split responsibilities:
+Julia repository intelligence is a Wendao-native path, but syntax parsing should stay behind the external language-provider boundary.
 
-- `xiuxian-ast`
+- `external language-provider protocol`
   - parses Julia source files
-  - extracts root modules, literal include edges, exports, imports, conservative symbol summaries, and source docstring attachments
-- `xiuxian-wendao::analyzers::languages::julia` plus `xiuxian-wendao::analyzers::service`
-  - register the built-in Julia analyzer
+- external language-provider protocol - parses Julia source files - extracts root modules, literal include edges, exports, imports, conservative symbol summaries, and source docstring attachments
   - load repository metadata
   - resolve local git checkout metadata
   - consume managed checkouts prepared by the common core when only `url/ref` is configured
@@ -229,11 +225,11 @@ The Julia bridge should focus on:
 - documentation asset discovery and linking
 - conservative method and signature extraction
 
-Julia support should be described as a Wendao-native analyzer flow backed by `xiuxian-ast`, not as a standalone external plugin crate.
+Julia support should be described as a Wendao-native analyzer flow backed by `external language-provider protocol`, not as a standalone external plugin crate.
 
 ### External Modelica Support
 
-Modelica support should live in an external crate:
+Julia support should be described as a Wendao-native analyzer flow backed by external language-provider parser summaries, not as a standalone external plugin crate.
 
 - crate name: `xiuxian-wendao-modelica`
 - role: external Rust extension crate for Modelica and MSL analysis

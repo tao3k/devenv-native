@@ -17,11 +17,6 @@ use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use xiuxian_io::model_routing::{
-    WENDAO_ROUTE_ID_HEADER, WENDAO_ROUTE_MODALITY_HEADER, WENDAO_ROUTE_PRECISION_TIER_HEADER,
-    WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER, WENDAO_ROUTE_SELECTED_MODEL_HEADER,
-    WENDAO_ROUTE_SELECTED_PROVIDER_HEADER, WENDAO_ROUTE_TASK_KIND_HEADER,
-};
 use xiuxian_wendao_attachments::audio::{
     AudioShardInput, AudioShardManifestItem, AudioShardMaterializationSource,
     AudioShardMaterializedItem, AudioShardPlan, AudioSourceIdentity, AudioSpeechSegment,
@@ -52,13 +47,6 @@ pub(crate) struct ObservedAudioShardRequest {
     pub(crate) hosted_base_url_header: Option<String>,
     pub(crate) hosted_endpoint_header: Option<String>,
     pub(crate) hosted_model_header: Option<String>,
-    pub(crate) route_id_header: Option<String>,
-    pub(crate) route_task_kind_header: Option<String>,
-    pub(crate) route_modality_header: Option<String>,
-    pub(crate) route_selected_provider_header: Option<String>,
-    pub(crate) route_selected_model_header: Option<String>,
-    pub(crate) route_selected_backend_profile_header: Option<String>,
-    pub(crate) route_precision_tier_header: Option<String>,
     pub(crate) windows: Vec<ObservedAudioShardWindow>,
 }
 
@@ -154,17 +142,6 @@ impl FlightService for AudioShardTestFlightService {
         let hosted_base_url_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER);
         let hosted_endpoint_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER);
         let hosted_model_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_MODEL_HEADER);
-        let route_id_header = metadata_value(&metadata, WENDAO_ROUTE_ID_HEADER);
-        let route_task_kind_header = metadata_value(&metadata, WENDAO_ROUTE_TASK_KIND_HEADER);
-        let route_modality_header = metadata_value(&metadata, WENDAO_ROUTE_MODALITY_HEADER);
-        let route_selected_provider_header =
-            metadata_value(&metadata, WENDAO_ROUTE_SELECTED_PROVIDER_HEADER);
-        let route_selected_model_header =
-            metadata_value(&metadata, WENDAO_ROUTE_SELECTED_MODEL_HEADER);
-        let route_selected_backend_profile_header =
-            metadata_value(&metadata, WENDAO_ROUTE_SELECTED_BACKEND_PROFILE_HEADER);
-        let route_precision_tier_header =
-            metadata_value(&metadata, WENDAO_ROUTE_PRECISION_TIER_HEADER);
         let (descriptor_path, batches) = collect_request(request.into_inner()).await?;
         let batch = batches
             .first()
@@ -203,13 +180,6 @@ impl FlightService for AudioShardTestFlightService {
             hosted_base_url_header,
             hosted_endpoint_header,
             hosted_model_header,
-            route_id_header,
-            route_task_kind_header,
-            route_modality_header,
-            route_selected_provider_header,
-            route_selected_model_header,
-            route_selected_backend_profile_header,
-            route_precision_tier_header,
             windows,
         };
         *self

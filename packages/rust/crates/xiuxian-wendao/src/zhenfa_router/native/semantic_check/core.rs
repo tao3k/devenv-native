@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::{LinkGraphIndex, PageIndexNode, RegistryIndex};
 use crate::parsers::docs_governance::is_package_local_crate_doc;
@@ -25,14 +25,8 @@ use super::types::{CheckType, SemanticCheckResult, SemanticIssue, WendaoSemantic
 ///
 /// Returns `ZhenfaError` when the link graph index cannot be loaded or when the
 /// underlying audit core cannot complete.
-#[allow(clippy::needless_pass_by_value)] // The tool macro keeps owned args for tool invocation wiring.
+#[allow(clippy::needless_pass_by_value)]
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.semantic_check",
-    description = "Perform semantic consistency check on the knowledge base (dead links, deprecated refs, contract violations).",
-    tool_struct = "WendaoSemanticCheckTool",
-    mutation_scope = "wendao.semantic_check"
-)]
 pub fn wendao_semantic_check(
     ctx: &ZhenfaContext,
     args: WendaoSemanticCheckArgs,

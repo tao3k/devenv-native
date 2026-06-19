@@ -149,7 +149,7 @@ endpoint = "http://127.0.0.1:50051/"
 }
 
 #[test]
-fn load_model_routing_config_from_wendao_toml_reads_route_models() -> TestResult {
+fn load_model_routing_config_from_wendao_toml_returns_none_after_marlin_migration() -> TestResult {
     let temp = tempfile::tempdir()?;
     fs::write(
         studio_wendao_toml_path(temp.path()),
@@ -171,31 +171,12 @@ backend_profile = "hosted-vlm-image-extract-v1"
 "#,
     )?;
 
-    let Some(config) = load_model_routing_config_from_wendao_toml(temp.path())? else {
-        panic!("model routing config should load");
-    };
-    assert!(matches!(
-        config.mode,
-        Some(xiuxian_io::model_routing::WendaoModelRoutingMode::Deterministic)
-    ));
-    assert_eq!(config.default_provider.as_deref(), Some("openrouter"));
-    assert_eq!(
-        config.chat.model.as_deref(),
-        Some("deepseek/deepseek-v4-pro")
-    );
-    assert_eq!(
-        config.audio_transcript.model.as_deref(),
-        Some("qwen/qwen3-asr-flash-2026-02-10")
-    );
-    assert_eq!(
-        config.image_extract.backend_profile.as_deref(),
-        Some("hosted-vlm-image-extract-v1")
-    );
+    assert!(load_model_routing_config_from_wendao_toml(temp.path())?.is_none());
     Ok(())
 }
 
 #[test]
-fn studio_state_caches_model_routing_config_at_boot() -> TestResult {
+fn studio_state_exposes_no_model_routing_config_after_marlin_migration() -> TestResult {
     let temp = tempfile::tempdir()?;
     fs::write(
         studio_wendao_toml_path(temp.path()),
@@ -209,20 +190,7 @@ model = "deepseek-chat"
         temp.path().to_path_buf(),
         SearchPlaneService::new(temp.path().join("search-plane")),
     );
-    fs::write(
-        studio_wendao_toml_path(temp.path()),
-        r#"[model_routing.chat]
-model = "changed-after-boot"
-"#,
-    )?;
-
-    let cached = state
-        .model_routing_config()?
-        .ok_or_else(|| std::io::Error::other("cached model routing config should exist"))?;
-    assert_eq!(cached.chat.model.as_deref(), Some("deepseek-chat"));
-    let reloaded = load_model_routing_config_from_wendao_toml(temp.path())?
-        .ok_or_else(|| std::io::Error::other("reloaded model routing config should exist"))?;
-    assert_eq!(reloaded.chat.model.as_deref(), Some("changed-after-boot"));
+    assert!(state.model_routing_config()?.is_none());
     Ok(())
 }
 

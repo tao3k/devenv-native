@@ -35,7 +35,7 @@ In our "Dual-Link" system, Synapse-Audit acts as the **Dynamic Link Validator**.
 ## 2. Engineering Requirements for Implementation
 
 1. **Precision Slicer**: We must slice code into smaller "Functional Passages" (Passage Nodes in Wendao).
-2. **Persona Multi-Inject**: Qianhuan must support parallel injection of the Prospector/Skeptic/Calibrator trinity.
+2. **Persona Multi-Inject**: Rust context injection must support parallel injection of the Prospector/Skeptic/Calibrator trinity.
 3. **Omega Step-Gate**: Omega must not release the final report until the `Drift < 0.05` criterion is met.
 
 ---

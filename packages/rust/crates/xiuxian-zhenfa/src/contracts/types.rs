@@ -144,7 +144,7 @@ pub struct JsonRpcResponse {
     pub jsonrpc: String,
     /// Request identifier.
     pub id: JsonRpcId,
-    /// Success payload (LLM-facing stripped string).
+    /// Success payload (caller-facing stripped string).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
     /// Error payload.

@@ -36,7 +36,7 @@ shape.
 
 This crate must stay independent from workflow implementations. It does not
 depend on `xiuxian-qianji`, `xiuxian-qianji-bpmn-engine`, `xiuxian-wendao`,
-`xiuxian-llm`, or `xiuxian-qianhuan`.
+or provider-specific LLM/prompt-persona runtimes.
 It must not own BPMN `PendingHostWork`, Flowhub scenario semantics, checkpoint
 source paths, server routes, or CLI request parsing. Workflow-specific facts
 must be translated into this crate's workflow-neutral activity, ledger, queue,

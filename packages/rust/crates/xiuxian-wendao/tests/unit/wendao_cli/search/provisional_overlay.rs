@@ -54,7 +54,7 @@ fn test_wendao_promoted_overlay_resolves_mixed_alias_forms()
         .arg("--evidence")
         .arg("mixed-alias-forms")
         .arg("--agent-id")
-        .arg("qianhuan-architect")
+        .arg("wendao-agentic-architect")
         .output()?;
     assert!(
         log_output.status.success(),

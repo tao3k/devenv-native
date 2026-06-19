@@ -28,22 +28,20 @@ Unify LinkGraph-related plan documents into one execution entrypoint so implemen
 This consolidation plan governs execution across:
 
 - `[[LinkGraph PPR Algorithm Spec|docs/01_core/wendao/ppr-algorithm.md]]`
-- `[[Wendao Qianhuan-Architect Spec|docs/01_core/qianhuan/orchestration-spec.md]]`
-- `[[Integrated Architecture Audit Checklist (2026)|docs/03_features/qianhuan-audit-closure.md]]`
+- `[[Rust Context Injection + Memory Self-Evolution + Reflection|docs/01_core/memory/injection-evolution.md]]`
 
 ## 2. Canonical Document Set
 
-| Role                                            | Document                                      | Ownership                                          |
-| ----------------------------------------------- | --------------------------------------------- | -------------------------------------------------- |
-| Retrieval algorithm source of truth             | `docs/01_core/wendao/ppr-algorithm.md`        | `xiuxian-wendao` LinkGraph core (`src/link_graph`) |
-| Agentic proposal and promotion policy           | `docs/01_core/qianhuan/orchestration-spec.md` | Qianhuan-Architect extension on top of LinkGraph   |
-| Research calibration and architecture rationale | `docs/03_features/qianhuan-audit-closure.md`  | Program-level architecture audit                   |
+| Role                                  | Document                                     | Ownership                                          |
+| ------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
+| Retrieval algorithm source of truth   | `docs/01_core/wendao/ppr-algorithm.md`       | `xiuxian-wendao` LinkGraph core (`src/link_graph`) |
+| Agentic proposal and promotion policy | `docs/01_core/memory/injection-evolution.md` | Rust context injection and memory evolution policy |
 
 Conflict policy:
 
 1. Retrieval behavior conflict -> resolve in `ppr-algorithm.md`.
-2. Agentic lifecycle conflict -> resolve in `orchestration-spec.md`.
-3. Citation or terminology mismatch -> resolve in `qianhuan-audit-closure.md`, then propagate.
+2. Agentic lifecycle conflict -> resolve in `injection-evolution.md`.
+3. Citation or terminology mismatch -> resolve in the active package documentation, then propagate.
 
 ## 3. Unified Execution Backlog (Wendao)
 
@@ -153,7 +151,7 @@ Conflict policy:
 
 - Implement a Rust-native Markdown AST traversal using the existing `comrak` crate (currently used in `xiuxian-wendao`) to extract Org-Mode style HTML properties (`<!-- id: "...", type: "..." -->`) and fenced code blocks (`jinja2`) bound to specific heading nodes.
 - Store extracted blocks (Personas, Templates, Skill Manuals) into the `xiuxian-wendao` memory index using the extracted `id` as the $O(1)$ primary key.
-- Provide a zero-export read interface so downstream engines (`xiuxian-qianhuan`) can pull configuration directly from the graph memory.
+- Provide a zero-export read interface so downstream context engines can pull configuration directly from the graph memory.
 - **Deep Dive**: See [[docs/01_core/wendao/architecture/id-resolution-mechanism.md|ID Resolution Mechanism]] for the $O(1)$ technical implementation details.
 - Evidence: `packages/rust/crates/xiuxian-wendao/src/enhancer/markdown_config.rs` implemented and verified via `cargo nextest`.
 
@@ -161,12 +159,12 @@ Conflict policy:
 
 - Instead of `xiuxian-wendao` building its own isolated HTTP server, it will integrate with the centralized `xiuxian-zhenfa` (阵法) service.
 - **Router Registration:** Wendao will expose a standard trait (e.g., `ZhenfaRouter`) that `xiuxian-zhenfa` mounts onto its high-performance `axum` backend.
-- **Decoupling Qianhuan:** The zero-export interface (from W6) will be served over this central HTTP Matrix, allowing `xiuxian-daochang` and `xiuxian-qianhuan` to request Persona profiles, Jinja2 templates, and Skill Manuals via standard REST/JSON contracts instead of direct memory linking.
+- **Decoupling Context Injection:** The zero-export interface (from W6) will be served over this central HTTP Matrix, allowing runtime consumers to request persona profiles, templates, and Skill Manuals via standard REST/JSON contracts instead of direct memory linking.
 - Evidence: `packages/rust/crates/xiuxian-zhenfa` core networking layer and contracts bootstrapped.
 
 - Instead of `xiuxian-wendao` building its own isolated HTTP server, it will integrate with the centralized `xiuxian-zhenfa` (阵法) service.
 - **Router Registration:** Wendao will expose a standard trait (e.g., `ZhenfaRouter`) that `xiuxian-zhenfa` mounts onto its high-performance `axum` backend.
-- **Decoupling Qianhuan:** The zero-export interface (from W6) will be served over this central HTTP Matrix, allowing `xiuxian-daochang` and `xiuxian-qianhuan` to request Persona profiles, Jinja2 templates, and Skill Manuals via standard REST/JSON contracts instead of direct memory linking.
+- **Decoupling Context Injection:** The zero-export interface (from W6) will be served over this central HTTP Matrix, allowing runtime consumers to request persona profiles, templates, and Skill Manuals via standard REST/JSON contracts instead of direct memory linking.
 
 ## 4. Change Control Rules
 
