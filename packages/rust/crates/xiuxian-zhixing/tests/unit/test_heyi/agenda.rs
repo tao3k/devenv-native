@@ -140,7 +140,7 @@ fn test_render_reminder_notice_markdown_uses_live_signal_fields() -> TestResult 
     );
     assert_eq!(payload["task_id_mdv2"], json!("task:render-from-id"));
     assert_eq!(
-        payload["qianhuan"]["state_context"],
+        payload["manifestation"]["state_context"],
         json!("SUCCESS_STREAK")
     );
     assert!(

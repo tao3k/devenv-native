@@ -102,7 +102,7 @@ You are the Grand Auditor of the workshop evolution cycle. Your responsibility i
 
 &lt;narrative_context&gt;
 
-&lt;entry&gt;Node execution failed: Qianhuan annotation failed: Context insufficient: CCS=0.5. Missing: traceability, architectural consistency. Conflict: 4h Zero-Day Patch vs 6h Mandatory HR Training within an 8h physical window.&lt;&#x2F;entry&gt;
+&lt;entry&gt;Node execution failed: annotation failed: Context insufficient: CCS=0.5. Missing: traceability, architectural consistency. Conflict: 4h Zero-Day Patch vs 6h Mandatory HR Training within an 8h physical window.&lt;&#x2F;entry&gt;
 
 &lt;entry&gt;temporal-deadlock, physical-constraint-violation, absolute-priority-collision&lt;&#x2F;entry&gt;
 

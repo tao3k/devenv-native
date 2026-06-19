@@ -4,7 +4,7 @@ use serde_json::{Map, Value, json};
 const DEFAULT_ZHIXING_DOMAIN: &str = "zhixing.agenda";
 
 impl ZhixingHeyi {
-    pub(super) fn render_with_qianhuan_context(
+    pub(super) fn render_with_manifestation_context(
         &self,
         template_name: &str,
         payload: Value,
@@ -29,7 +29,7 @@ impl ZhixingHeyi {
         });
 
         root.insert(
-            "qianhuan".to_string(),
+            "manifestation".to_string(),
             json!({
                 "state_context": state_context,
                 "injected_context": self.manifestation.inject_context(state_context),
@@ -43,7 +43,7 @@ impl ZhixingHeyi {
             .render_template(template_name, Value::Object(root))
             .map_err(|error| {
                 crate::Error::Internal(format!(
-                    "Failed to render template `{template_name}` with qianhuan context: {error}"
+                    "Failed to render template `{template_name}` with manifestation context: {error}"
                 ))
             })
     }

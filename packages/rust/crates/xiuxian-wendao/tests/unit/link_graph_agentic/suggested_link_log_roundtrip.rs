@@ -18,7 +18,7 @@ fn test_suggested_link_log_roundtrip() -> Result<(), Box<dyn std::error::Error>>
             relation: "implements".to_string(),
             confidence: 0.83,
             evidence: "bridge signal from architecture section".to_string(),
-            agent_id: "qianhuan-architect".to_string(),
+            agent_id: "wendao-agentic-architect".to_string(),
             created_at_unix: Some(1_700_000_000.0),
         },
         TEST_VALKEY_URL,

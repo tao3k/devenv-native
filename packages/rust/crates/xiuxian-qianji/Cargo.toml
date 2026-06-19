@@ -34,7 +34,6 @@ valkey = [
 advisory-prompt-pack-cache = [
   "qianji-full",
   "xiuxian-db-store/artifact-cache",
-  "xiuxian-qianhuan/artifact-cache",
 ]
 qianji-full = [
   "duckdb",
@@ -51,10 +50,10 @@ qianji-full = [
   "dep:regex",
   "dep:reqwest",
   "dep:serde_yaml",
+  "dep:tera",
   "dep:tokio-util",
   "dep:walkdir",
   "dep:xiuxian-logging",
-  "dep:xiuxian-qianhuan",
   "dep:xiuxian-window",
   "dep:xiuxian-zhenfa",
 ]
@@ -102,12 +101,12 @@ merman-core = { workspace = true, optional = true }
 quick-xml = { workspace = true, features = ["serialize"], optional = true }
 reqwest = { workspace = true, optional = true }
 jsonschema = { workspace = true, optional = true }
+tera = { workspace = true, optional = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
-xiuxian-qianhuan = { path = "../xiuxian-qianhuan", optional = true }
 xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false }
 xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
 xiuxian-macros = { path = "../xiuxian-macros" }

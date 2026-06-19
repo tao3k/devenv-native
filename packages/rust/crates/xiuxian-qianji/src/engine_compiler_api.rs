@@ -2,9 +2,8 @@
 
 use crate::engine::QianjiEngine;
 use crate::error::QianjiError;
+#[cfg(feature = "wendao-integration")]
 use std::sync::Arc;
-use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
-use xiuxian_qianhuan::persona::PersonaRegistry;
 #[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::LinkGraphIndex;
 
@@ -14,37 +13,21 @@ use super::compiler::compile_manifest;
 pub struct QianjiCompiler {
     #[cfg(feature = "wendao-integration")]
     pub(super) index: Arc<LinkGraphIndex>,
-    pub(super) orchestrator: Arc<ThousandFacesOrchestrator>,
-    pub(super) registry: Arc<PersonaRegistry>,
 }
 
 impl QianjiCompiler {
-    /// Creates a new compiler with provided trinity dependencies.
+    /// Creates a new compiler with provided Wendao dependencies.
     #[cfg(feature = "wendao-integration")]
     #[must_use]
-    pub fn new(
-        index: Arc<LinkGraphIndex>,
-        orchestrator: Arc<ThousandFacesOrchestrator>,
-        registry: Arc<PersonaRegistry>,
-    ) -> Self {
-        Self {
-            index,
-            orchestrator,
-            registry,
-        }
+    pub fn new(index: Arc<LinkGraphIndex>) -> Self {
+        Self { index }
     }
 
     /// Creates a new compiler for Qianji-only manifests.
     #[cfg(not(feature = "wendao-integration"))]
     #[must_use]
-    pub fn new(
-        orchestrator: Arc<ThousandFacesOrchestrator>,
-        registry: Arc<PersonaRegistry>,
-    ) -> Self {
-        Self {
-            orchestrator,
-            registry,
-        }
+    pub const fn new() -> Self {
+        Self {}
     }
 
     /// Compiles a TOML manifest into a ready-to-run `QianjiEngine`.

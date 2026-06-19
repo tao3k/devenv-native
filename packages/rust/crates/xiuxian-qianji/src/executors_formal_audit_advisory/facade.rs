@@ -1,15 +1,12 @@
 //! Facade surface for `xiuxian-qianji`.
 
-use std::sync::Arc;
-
 use crate::contract_feedback::{AdvisoryAuditExecutor, AdvisoryAuditRequest, RoleAuditFinding};
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(feature = "advisory-prompt-pack-cache")]
 use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
-use xiuxian_qianhuan::{
-    InjectionPolicy, InjectionSnapshot, PersonaRegistry, RoleMixProfile, ThousandFacesOrchestrator,
-};
+
+use super::prompt_context::{InjectionPolicy, InjectionSnapshot, PersonaRegistry, RoleMixProfile};
 
 const DEFAULT_ROLE_ID: &str = "strict_teacher";
 
@@ -40,9 +37,9 @@ impl QianjiAdvisoryPromptPackArtifactReport {
 pub struct QianjiAdvisoryRolePlan {
     /// Stable role identifier requested by the contract runner.
     pub role_id: String,
-    /// Friendly persona name resolved from the `Qianhuan` registry.
+    /// Friendly persona name resolved from the Qianji advisory registry.
     pub persona_name: String,
-    /// Typed `Qianhuan` injection snapshot prepared for this role.
+    /// Typed injection snapshot prepared for this role.
     pub snapshot: InjectionSnapshot,
     /// Fully rendered system prompt snapshot prepared for later live execution.
     pub rendered_prompt: String,
@@ -64,7 +61,7 @@ pub struct QianjiAdvisoryExecutionPlan {
     pub roles: Vec<QianjiAdvisoryRolePlan>,
 }
 
-/// Qianji-side advisory executor scaffold backed by `Qianhuan` persona resolution.
+/// Qianji-side advisory executor scaffold backed by local persona resolution.
 ///
 /// This executor does not perform live LLM critique yet. Instead, it converts a
 /// Qianji `AdvisoryAuditRequest` into:
@@ -75,10 +72,8 @@ pub struct QianjiAdvisoryExecutionPlan {
 /// The resulting bridge is immediately useful for testing and knowledge export while keeping the
 /// future live `formal_audit + Zhenfa` critique lane compatible with the same request shape.
 pub struct QianjiAdvisoryAuditExecutor {
-    /// Orchestrator used to render per-role advisory prompt snapshots.
-    pub orchestrator: Arc<ThousandFacesOrchestrator>,
     /// Persona registry used to resolve requested advisory roles.
-    pub registry: Arc<PersonaRegistry>,
+    pub(super) registry: PersonaRegistry,
     /// Injection policy used to assemble typed advisory snapshots.
     pub injection_policy: InjectionPolicy,
     /// Fallback role used when the request does not specify any roles.
@@ -88,13 +83,9 @@ pub struct QianjiAdvisoryAuditExecutor {
 impl QianjiAdvisoryAuditExecutor {
     /// Create a new advisory executor bridge with default snapshot policy.
     #[must_use]
-    pub fn new(
-        orchestrator: Arc<ThousandFacesOrchestrator>,
-        registry: Arc<PersonaRegistry>,
-    ) -> Self {
+    pub fn new() -> Self {
         Self {
-            orchestrator,
-            registry,
+            registry: PersonaRegistry::with_builtins(),
             injection_policy: InjectionPolicy::default(),
             default_role_id: DEFAULT_ROLE_ID.to_string(),
         }
@@ -116,7 +107,7 @@ impl QianjiAdvisoryAuditExecutor {
 
     /// Build a typed multi-role advisory execution plan.
     ///
-    /// This preview surface prepares the resolved role mix and per-role `Qianhuan`
+    /// This preview surface prepares the resolved role mix and per-role annotation
     /// snapshots without executing the live critique lane.
     ///
     /// # Errors
@@ -146,6 +137,12 @@ impl QianjiAdvisoryAuditExecutor {
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         self.build_plan_internal_with_prompt_context_pack_cache(request, Some(cache))
             .await
+    }
+}
+
+impl Default for QianjiAdvisoryAuditExecutor {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

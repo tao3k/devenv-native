@@ -160,7 +160,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "semantic://personas/Steward.md"
 "#;
 
@@ -254,7 +254,7 @@ id = "Teacher"
 task_type = "formal_audit"
 weight = 1.0
 params = { retry_targets = ["Steward"] }
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "strict_teacher"
 template_target = "critique_agenda.j2"
 [nodes.llm]

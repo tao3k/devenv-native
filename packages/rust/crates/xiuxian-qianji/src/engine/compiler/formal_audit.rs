@@ -16,7 +16,7 @@ pub(super) fn retry_targets(node_def: &NodeDefinition) -> Vec<String> {
 }
 
 pub(super) fn uses_llm_controller(node_def: &NodeDefinition) -> bool {
-    node_def.qianhuan.is_some() && node_def.llm.is_some()
+    node_def.annotation.is_some() && node_def.llm.is_some()
 }
 
 pub(super) fn ensure_native_retry_budget_not_configured(
@@ -24,7 +24,7 @@ pub(super) fn ensure_native_retry_budget_not_configured(
 ) -> Result<(), QianjiError> {
     if node_def.params.get("max_retries").is_some() {
         return Err(QianjiError::Topology(
-            "formal_audit.max_retries requires `[nodes.qianhuan] + [nodes.llm]`; native formal_audit only supports retry_targets.".to_string(),
+            "formal_audit.max_retries requires `[nodes.annotation] + [nodes.llm]`; native formal_audit only supports retry_targets.".to_string(),
         ));
     }
     Ok(())

@@ -15,4 +15,4 @@ pub use constants::ATTR_TIMER_RECIPIENT;
 pub use constants::{ATTR_JOURNAL_CARRYOVER, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED};
 pub use reminder_queue::{ReminderQueueSettings, ReminderQueueStore, ReminderQueueTask};
 pub use reminders::ReminderSignal;
-pub use types::{ZhixingHeyi, ZhixingHeyiInit};
+pub use types::{ManifestationInterface, PersonaProfile, ZhixingHeyi, ZhixingHeyiInit};

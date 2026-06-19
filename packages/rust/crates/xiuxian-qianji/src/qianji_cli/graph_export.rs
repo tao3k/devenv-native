@@ -1,9 +1,9 @@
 use std::fs;
+#[cfg(feature = "wendao-integration")]
 use std::sync::Arc;
 
 use crate::QianjiCompiler;
 use crate::layout::{QgsTheme, QianjiLayoutEngine, generate_bpmn_xml};
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 #[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
@@ -14,16 +14,14 @@ pub(crate) fn handle_graph_export(
     println!("Generating Qianji Graph from: {manifest_path}");
 
     let manifest_toml = fs::read_to_string(manifest_path)?;
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Visualizer".into(), None));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
 
     #[cfg(feature = "wendao-integration")]
     let compiler = {
         let index = Arc::new(LinkGraphIndex::build(std::env::temp_dir().as_path())?);
-        QianjiCompiler::new(index, orchestrator, registry)
+        QianjiCompiler::new(index)
     };
     #[cfg(not(feature = "wendao-integration"))]
-    let compiler = QianjiCompiler::new(orchestrator, registry);
+    let compiler = QianjiCompiler::new();
 
     let engine = compiler.compile(&manifest_toml)?;
     let layout_engine = QianjiLayoutEngine::new(QgsTheme::default());

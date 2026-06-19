@@ -5,7 +5,6 @@
 use std::sync::Arc;
 
 use serde_json::json;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_qianji::{
     MEMORY_PROMOTION_PIPELINE_TOML, QianjiApp, QianjiManifest, QianjiPipelineDependencies,
 };
@@ -42,9 +41,9 @@ fn memory_promotion_manifest_contains_required_nodes_and_binding() {
         .find(|node| node.id == "Promotion_Annotator")
         .unwrap_or_else(|| panic!("Promotion_Annotator node should exist"));
     let binding = annotator
-        .qianhuan
+        .annotation
         .as_ref()
-        .unwrap_or_else(|| panic!("Promotion_Annotator should declare qianhuan binding"));
+        .unwrap_or_else(|| panic!("Promotion_Annotator should declare annotation binding"));
     assert_eq!(binding.persona_id.as_deref(), Some("artisan-engineer"));
     assert_eq!(
         binding.template_target.as_deref(),
@@ -60,13 +59,7 @@ async fn memory_promotion_pipeline_executes_and_returns_branch_decision() {
         LinkGraphIndex::build(temp_dir.path())
             .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
     );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-
-    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry);
+    let dependencies = QianjiPipelineDependencies::new(index);
     let scheduler = QianjiApp::create_memory_promotion_pipeline(dependencies)
         .unwrap_or_else(|error| panic!("memory promotion pipeline should compile: {error}"));
     let result = scheduler

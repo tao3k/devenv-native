@@ -36,7 +36,7 @@ fn test_wendao_agentic_run_emits_discovery_quality_signals()
     fs::write(
         &config_path,
         format!(
-            "link_graph:\n  cache:\n    valkey_url: \"redis://127.0.0.1:6379/0\"\n    key_prefix: \"{prefix}\"\n  agentic:\n    suggested_link:\n      max_entries: 64\n      ttl_seconds: null\n    expansion:\n      max_workers: 1\n      max_candidates: 3\n      max_pairs_per_worker: 2\n      time_budget_ms: 1000.0\n    execution:\n      worker_time_budget_ms: 1000.0\n      persist_suggestions_default: true\n      persist_retry_attempts: 2\n      idempotency_scan_limit: 64\n      relation: \"related_to\"\n      agent_id: \"qianhuan-architect\"\n      evidence_prefix: \"agentic expansion bridge candidate\"\n"
+            "link_graph:\n  cache:\n    valkey_url: \"redis://127.0.0.1:6379/0\"\n    key_prefix: \"{prefix}\"\n  agentic:\n    suggested_link:\n      max_entries: 64\n      ttl_seconds: null\n    expansion:\n      max_workers: 1\n      max_candidates: 3\n      max_pairs_per_worker: 2\n      time_budget_ms: 1000.0\n    execution:\n      worker_time_budget_ms: 1000.0\n      persist_suggestions_default: true\n      persist_retry_attempts: 2\n      idempotency_scan_limit: 64\n      relation: \"related_to\"\n      agent_id: \"wendao-agentic-architect\"\n      evidence_prefix: \"agentic expansion bridge candidate\"\n"
         ),
     )?;
 
@@ -121,7 +121,7 @@ fn test_wendao_agentic_run_emits_discovery_quality_signals()
             "unexpected self-loop proposal row={row}"
         );
         assert_eq!(relation, "related_to");
-        assert_eq!(agent_id, "qianhuan-architect");
+        assert_eq!(agent_id, "wendao-agentic-architect");
         assert!((0.0..=1.0).contains(&confidence));
         assert!(
             evidence.contains("agentic expansion bridge candidate"),

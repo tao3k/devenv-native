@@ -4,12 +4,12 @@ pub(super) use std::error::Error;
 pub(super) use std::fs;
 pub(super) use std::sync::Arc;
 pub(super) use tempfile::{TempDir, tempdir};
-pub(super) use xiuxian_qianhuan::ManifestationInterface;
 pub(super) use xiuxian_wendao::entity::{Entity, EntityType};
 pub(super) use xiuxian_wendao::graph::KnowledgeGraph;
 pub(super) use xiuxian_zhixing::storage::MarkdownStorage;
 pub(super) use xiuxian_zhixing::{
-    ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED, ReminderSignal, ZhixingHeyi, ZhixingHeyiInit,
+    ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED, ManifestationInterface, ReminderSignal, ZhixingHeyi,
+    ZhixingHeyiInit,
 };
 
 pub(super) type TestResult = std::result::Result<(), Box<dyn Error>>;

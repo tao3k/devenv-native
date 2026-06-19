@@ -1,11 +1,11 @@
 use std::fs;
 use std::io;
+#[cfg(feature = "wendao-integration")]
 use std::sync::Arc;
 
 use crate::manifest_requires_llm;
 use crate::runtime_config::resolve_qianji_runtime_checkpoint_config;
 use crate::{QianjiCompiler, QianjiScheduler};
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 #[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
@@ -55,12 +55,6 @@ pub(crate) async fn run_manifest_execution(
         checkpoint_runtime.valkey_url
     );
 
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety Rules".to_string(),
-        None,
-    ));
-    let registry = PersonaRegistry::with_builtins();
-
     #[cfg(feature = "wendao-integration")]
     let compiler = {
         let index = Arc::new(match LinkGraphIndex::build(std::path::Path::new(repo_path)) {
@@ -73,10 +67,10 @@ pub(crate) async fn run_manifest_execution(
                 })?
             }
         });
-        QianjiCompiler::new(index, orchestrator, Arc::new(registry))
+        QianjiCompiler::new(index)
     };
     #[cfg(not(feature = "wendao-integration"))]
-    let compiler = QianjiCompiler::new(orchestrator, Arc::new(registry));
+    let compiler = QianjiCompiler::new();
 
     let engine = compiler.compile(&manifest_toml)?;
     let scheduler = QianjiScheduler::new(engine);

@@ -36,7 +36,7 @@ pub struct LinkGraphSuggestedLinkRequest {
     pub confidence: f64,
     /// Human-readable bridge/evidence summary.
     pub evidence: String,
-    /// Producer id (for example `qianhuan-architect`).
+    /// Producer id (for example `wendao-agentic-architect`).
     pub agent_id: String,
     /// Optional deterministic timestamp override for tests.
     #[serde(default)]
@@ -63,7 +63,7 @@ pub struct LinkGraphSuggestedLink {
     pub confidence: f64,
     /// Human-readable bridge/evidence summary.
     pub evidence: String,
-    /// Producer id (for example `qianhuan-architect`).
+    /// Producer id (for example `wendao-agentic-architect`).
     pub agent_id: String,
     /// Proposal creation timestamp (unix seconds).
     pub created_at_unix: f64,

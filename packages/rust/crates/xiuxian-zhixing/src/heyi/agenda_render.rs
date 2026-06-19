@@ -124,6 +124,6 @@ impl ZhixingHeyi {
             "requires_review": max_carryover >= 3,
         });
 
-        self.render_with_qianhuan_context("daily_agenda.md", template_data, "SUCCESS_STREAK")
+        self.render_with_manifestation_context("daily_agenda.md", template_data, "SUCCESS_STREAK")
     }
 }

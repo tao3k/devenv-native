@@ -36,7 +36,7 @@ fn test_suggested_link_decide_promoted_with_audit() -> Result<(), Box<dyn std::e
             relation: "implements".to_string(),
             confidence: 0.9,
             evidence: "cross-reference".to_string(),
-            agent_id: "qianhuan-architect".to_string(),
+            agent_id: "wendao-agentic-architect".to_string(),
             created_at_unix: Some(1_700_000_100.0),
         },
         TEST_VALKEY_URL,

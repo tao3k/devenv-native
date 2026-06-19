@@ -19,11 +19,7 @@ pub(super) fn build(
         task_type::TaskType::Knowledge => Some(Ok(Arc::new(KnowledgeSeeker {
             index: compiler.index.clone(),
         }))),
-        task_type::TaskType::Annotation => Some(Ok(stateful_mechanisms::annotation(
-            &compiler.orchestrator,
-            &compiler.registry,
-            node_def,
-        ))),
+        task_type::TaskType::Annotation => Some(Ok(stateful_mechanisms::annotation(node_def))),
         _ => None,
     }
 }

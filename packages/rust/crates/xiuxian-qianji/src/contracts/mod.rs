@@ -34,10 +34,9 @@ pub use api::{
     FlowhubModuleMetadata, FlowhubRootManifest, FlowhubRootMetadata, FlowhubScenarioManifest,
     FlowhubScenarioPlanning, FlowhubScenarioTemplate, FlowhubStructureContract,
     FlowhubTemplateComposition, FlowhubValidationKind, FlowhubValidationRule,
-    FlowhubValidationScope, NodeDefinition, NodeLlmBinding, NodeQianhuanBinding,
-    NodeQianhuanExecutionMode, NodeStatus, NodeTaskType, QianjiManifest, QianjiMechanism,
-    QianjiOutput, TemplateLinkRef, TemplateLinkSpec, TemplateUseSpec, WorkdirCheck,
-    WorkdirManifest, WorkdirPlan,
+    FlowhubValidationScope, NodeAnnotationBinding, NodeAnnotationExecutionMode, NodeDefinition,
+    NodeLlmBinding, NodeStatus, NodeTaskType, QianjiManifest, QianjiMechanism, QianjiOutput,
+    TemplateLinkRef, TemplateLinkSpec, TemplateUseSpec, WorkdirCheck, WorkdirManifest, WorkdirPlan,
 };
 #[cfg(feature = "wendao-integration")]
 pub use api::{

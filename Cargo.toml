@@ -24,11 +24,9 @@ members = [
   "packages/rust/crates/xiuxian-memory-engine",
   "packages/rust/crates/xiuxian-logging",
   "packages/rust/crates/xiuxian-security",
-  "packages/rust/crates/xiuxian-tokenizer",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
   "packages/rust/crates/xiuxian-db-store",
-  "packages/rust/crates/xiuxian-qianhuan",
   "packages/rust/crates/xiuxian-qianji-bpmn-engine",
   "packages/rust/crates/xiuxian-julia-core",
   "packages/rust/crates/xiuxian-julia-runtime",
@@ -84,7 +82,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "1c9f7378c4dfb5ffe05281f0207561d603659df7" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "c5805db55e0a0ebeb70d78e11705bf7bb117bb37" }
 pulldown-cmark = "0.12"
 quick-xml = "0.39.2"
 petgraph = "0.7"
@@ -116,14 +114,12 @@ pyo3 = { version = "0.27.2", features = ["extension-module"] }
 pyo3-build-config = "0.27.2"
 pyo3-asyncio = { version = "0.27", features = ["tokio"] }
 
-# Safe I/O & Tokenization
-tiktoken-rs = "0.9.1"
+# Safe I/O
 memchr = "2.7.6"
 tempfile = "3.24"
 sha2 = "0.10"
 hex = "0.4"
 base64 = "0.22"
-tokenizers = "0.22.2"
 
 # JSON Schema generation for Schema Singularity (SSOT)
 schemars = "1.2.0"
@@ -176,7 +172,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "7ea58b53da8ec18b07fb89dc7517ae81c9757030" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "1e2c1d1ba34500bc72ac8d7ecccd7e6f62a8f7f8" }
 
 # Release profile optimizations for better performance
 [profile.release]

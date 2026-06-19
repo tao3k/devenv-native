@@ -1,14 +1,11 @@
 //! Focused coverage for the formal-audit advisory executor bridge.
 
 use std::path::PathBuf;
-use std::sync::Arc;
-
 #[path = "support/workspace.rs"]
 mod workspace;
 use serde_json::json;
 #[cfg(feature = "advisory-prompt-pack-cache")]
 use xiuxian_db_store::artifact_cache::ContentAddressedFilesystemBlobCache;
-use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::contract_feedback::{
     AdvisoryAuditExecutor, AdvisoryAuditRequest, ArtifactKind, CollectedArtifact,
     CollectedArtifacts, CollectionContext, ContractFinding, EvidenceKind, FindingConfidence,
@@ -79,12 +76,7 @@ fn advisory_request() -> AdvisoryAuditRequest {
 #[tokio::test]
 async fn advisory_executor_reports_prompt_context_pack_artifact_hits()
 -> Result<(), Box<dyn std::error::Error>> {
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety Rules".to_string(),
-        None,
-    ));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-    let executor = QianjiAdvisoryAuditExecutor::new(orchestrator, registry);
+    let executor = QianjiAdvisoryAuditExecutor::new();
     let cache_root = tempfile::tempdir()?;
     let cache = ContentAddressedFilesystemBlobCache::new(cache_root.path());
     let request = advisory_request();
@@ -144,12 +136,7 @@ fn must_ok<T, E: std::fmt::Display>(result: Result<T, E>, context: &str) -> T {
 
 #[tokio::test]
 async fn advisory_executor_builds_role_mix_and_snapshots() {
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety Rules".to_string(),
-        None,
-    ));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-    let executor = QianjiAdvisoryAuditExecutor::new(orchestrator, registry);
+    let executor = QianjiAdvisoryAuditExecutor::new();
 
     let plan = must_ok(
         executor.build_plan(&advisory_request()).await,
@@ -175,12 +162,7 @@ async fn advisory_executor_builds_role_mix_and_snapshots() {
 
 #[tokio::test]
 async fn advisory_executor_exports_role_findings_with_trace_and_snapshot_metadata() {
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety Rules".to_string(),
-        None,
-    ));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-    let executor = QianjiAdvisoryAuditExecutor::new(orchestrator, registry);
+    let executor = QianjiAdvisoryAuditExecutor::new();
 
     let findings = must_ok(
         AdvisoryAuditExecutor::run(&executor, advisory_request()).await,

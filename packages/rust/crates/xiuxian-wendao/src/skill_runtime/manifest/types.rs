@@ -119,9 +119,9 @@ pub struct SkillManifest {
     pub annotations: ToolAnnotations,
     /// Absolute path to the source manifest file.
     pub source_path: std::path::PathBuf,
-    /// Optional background context for `Qianhuan` rendering.
+    /// Optional background context for rendering.
     #[serde(default)]
-    pub qianhuan_background: Option<String>,
+    pub context_background: Option<String>,
     /// Optional serialized flow definition.
     #[serde(default)]
     pub flow_definition: Option<String>,
@@ -256,9 +256,9 @@ pub(super) struct SkillManifestToml {
     #[serde(default)]
     pub(super) workflow: Option<serde_json::Value>,
     #[serde(default)]
-    pub(super) qianhuan: Option<serde_json::Value>,
+    pub(super) context: Option<serde_json::Value>,
     #[serde(default)]
-    pub(super) qianhuan_background: Option<serde_json::Value>,
+    pub(super) context_background: Option<serde_json::Value>,
     #[serde(default)]
     pub(super) background: Option<serde_json::Value>,
     #[serde(default)]

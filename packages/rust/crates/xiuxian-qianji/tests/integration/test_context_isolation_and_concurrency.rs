@@ -2,18 +2,13 @@
 
 use async_trait::async_trait;
 use serde_json::json;
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::time::sleep;
-use xiuxian_qianhuan::{
-    orchestrator::ThousandFacesOrchestrator,
-    persona::{PersonaProfile, PersonaRegistry},
-};
 use xiuxian_qianji::executors::ContextAnnotator;
 use xiuxian_qianji::{
-    FlowInstruction, NodeQianhuanExecutionMode, QianjiEngine, QianjiMechanism, QianjiOutput,
+    FlowInstruction, NodeAnnotationExecutionMode, QianjiEngine, QianjiMechanism, QianjiOutput,
     QianjiScheduler,
 };
 
@@ -92,16 +87,12 @@ impl QianjiMechanism for AggregationValidator {
 }
 
 fn annotator(
-    orchestrator: Arc<ThousandFacesOrchestrator>,
-    registry: Arc<PersonaRegistry>,
     output_key: &str,
-    mode: NodeQianhuanExecutionMode,
+    mode: NodeAnnotationExecutionMode,
     input_keys: Vec<String>,
     history_key: &str,
 ) -> ContextAnnotator {
     ContextAnnotator {
-        orchestrator,
-        registry,
         persona_id: "test_critic".to_string(),
         template_target: Some("audit_template.j2".to_string()),
         execution_mode: mode,
@@ -111,36 +102,12 @@ fn annotator(
     }
 }
 
-fn test_registry() -> Arc<PersonaRegistry> {
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "test_critic".to_string(),
-        name: "Test Critic".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read. 2. Analyze. 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: HashMap::new(),
-    });
-    Arc::new(registry)
-}
-
 #[tokio::test]
 async fn isolated_mode_quarantines_history_and_non_whitelisted_fields() {
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let registry = test_registry();
-
     let mut engine = QianjiEngine::new();
     let node = Arc::new(annotator(
-        orchestrator,
-        registry,
         "isolated_snapshot_xml",
-        NodeQianhuanExecutionMode::Isolated,
+        NodeAnnotationExecutionMode::Isolated,
         vec!["allowed_payload".to_string()],
         "shared_history",
     ));
@@ -166,20 +133,12 @@ async fn isolated_mode_quarantines_history_and_non_whitelisted_fields() {
 
 #[tokio::test]
 async fn appended_mode_persists_and_reuses_history_between_nodes() {
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let registry = test_registry();
-
     let mut engine = QianjiEngine::new();
     let draft_idx = engine.add_mechanism(
         "DraftAnnotator",
         Arc::new(annotator(
-            orchestrator.clone(),
-            registry.clone(),
             "draft_snapshot_xml",
-            NodeQianhuanExecutionMode::Appended,
+            NodeAnnotationExecutionMode::Appended,
             vec!["raw_facts".to_string()],
             "shared_history",
         )),
@@ -187,10 +146,8 @@ async fn appended_mode_persists_and_reuses_history_between_nodes() {
     let review_idx = engine.add_mechanism(
         "ReviewAnnotator",
         Arc::new(annotator(
-            orchestrator,
-            registry,
             "review_snapshot_xml",
-            NodeQianhuanExecutionMode::Appended,
+            NodeAnnotationExecutionMode::Appended,
             vec!["draft_snapshot_xml".to_string()],
             "shared_history",
         )),
@@ -220,20 +177,13 @@ async fn appended_mode_persists_and_reuses_history_between_nodes() {
 
 #[tokio::test]
 async fn concurrent_critics_run_in_parallel_and_join_at_aggregator() {
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let registry = test_registry();
     let inflight = Arc::new(AtomicUsize::new(0));
     let max_parallel = Arc::new(AtomicUsize::new(0));
 
     let security = ProbedAnnotator {
         inner: Arc::new(annotator(
-            orchestrator.clone(),
-            registry.clone(),
             "security_critic_xml",
-            NodeQianhuanExecutionMode::Isolated,
+            NodeAnnotationExecutionMode::Isolated,
             vec!["raw_facts".to_string()],
             "unused_history",
         )),
@@ -243,10 +193,8 @@ async fn concurrent_critics_run_in_parallel_and_join_at_aggregator() {
     };
     let performance = ProbedAnnotator {
         inner: Arc::new(annotator(
-            orchestrator,
-            registry,
             "performance_critic_xml",
-            NodeQianhuanExecutionMode::Isolated,
+            NodeAnnotationExecutionMode::Isolated,
             vec!["raw_facts".to_string()],
             "unused_history",
         )),

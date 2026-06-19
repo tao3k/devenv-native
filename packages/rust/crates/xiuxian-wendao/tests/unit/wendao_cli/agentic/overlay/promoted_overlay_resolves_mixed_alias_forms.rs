@@ -35,7 +35,7 @@ fn test_wendao_promoted_overlay_resolves_mixed_alias_forms()
             "--evidence",
             "mixed-alias-forms",
             "--agent-id",
-            "qianhuan-architect",
+            "wendao-agentic-architect",
         ],
         "wendao agentic log failed",
     )?;

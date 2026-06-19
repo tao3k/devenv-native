@@ -1,11 +1,11 @@
-use crate::contracts::{NodeDefinition, NodeQianhuanExecutionMode};
+use crate::contracts::{NodeAnnotationExecutionMode, NodeDefinition};
 use crate::engine::NodeExecutionAffinity;
 use std::collections::HashSet;
 
 pub(super) struct AnnotationMechanismConfig {
     pub(super) persona_id: String,
     pub(super) template_target: Option<String>,
-    pub(super) execution_mode: NodeQianhuanExecutionMode,
+    pub(super) execution_mode: NodeAnnotationExecutionMode,
     pub(super) input_keys: Vec<String>,
     pub(super) history_key: String,
     pub(super) output_key: String,
@@ -38,7 +38,7 @@ pub(super) fn node_execution_affinity(node_def: &NodeDefinition) -> NodeExecutio
 fn persona_id(node_def: &NodeDefinition) -> String {
     non_empty(
         node_def
-            .qianhuan
+            .annotation
             .as_ref()
             .and_then(|binding| binding.persona_id.as_deref()),
     )
@@ -51,18 +51,18 @@ fn persona_id(node_def: &NodeDefinition) -> String {
 fn template_target(node_def: &NodeDefinition) -> Option<String> {
     non_empty(
         node_def
-            .qianhuan
+            .annotation
             .as_ref()
             .and_then(|binding| binding.template_target.as_deref()),
     )
     .map(|value| resolve_semantic_placeholder(&value))
 }
 
-fn execution_mode(node_def: &NodeDefinition) -> NodeQianhuanExecutionMode {
+fn execution_mode(node_def: &NodeDefinition) -> NodeAnnotationExecutionMode {
     node_def
-        .qianhuan
+        .annotation
         .as_ref()
-        .map_or(NodeQianhuanExecutionMode::Isolated, |binding| {
+        .map_or(NodeAnnotationExecutionMode::Isolated, |binding| {
             binding.execution_mode.clone()
         })
 }
@@ -70,17 +70,17 @@ fn execution_mode(node_def: &NodeDefinition) -> NodeQianhuanExecutionMode {
 fn history_key(node_def: &NodeDefinition) -> String {
     non_empty(
         node_def
-            .qianhuan
+            .annotation
             .as_ref()
             .and_then(|binding| binding.history_key.as_deref()),
     )
-    .unwrap_or_else(|| "qianhuan_history".to_string())
+    .unwrap_or_else(|| "annotation_history".to_string())
 }
 
 fn output_key(node_def: &NodeDefinition) -> String {
     non_empty(
         node_def
-            .qianhuan
+            .annotation
             .as_ref()
             .and_then(|binding| binding.output_key.as_deref()),
     )
@@ -90,7 +90,7 @@ fn output_key(node_def: &NodeDefinition) -> String {
 fn input_keys(node_def: &NodeDefinition) -> Vec<String> {
     let mut seen = HashSet::new();
     let mut keys = node_def
-        .qianhuan
+        .annotation
         .as_ref()
         .map(|binding| {
             binding
@@ -117,7 +117,7 @@ fn node_param_string(node_def: &NodeDefinition, key: &str) -> Option<String> {
 fn derive_role_class_from_persona(node_def: &NodeDefinition) -> Option<String> {
     let persona_id = non_empty(
         node_def
-            .qianhuan
+            .annotation
             .as_ref()
             .and_then(|binding| binding.persona_id.as_deref()),
     )?;

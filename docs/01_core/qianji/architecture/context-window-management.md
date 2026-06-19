@@ -26,7 +26,7 @@ To solve this, Qianji enforces strict **Memory Boundaries** through distinct exe
 **Use Case:** Validation, Auditing, Critique (e.g., `Agenda Steward` vs `Strict Teacher`).
 
 - **Mechanism:** Each node evaluation spins up a **brand-new, ephemeral HTTP request**.
-- **Data Flow (Strict Quarantine):** The Qianhuan engine generates a completely distinct `InjectionSnapshot` for each node based on its unique `persona_id`. The underlying persona instructions and node-specific thought processes are strictly quarantined.
+- **Data Flow (Strict Quarantine):** The annotation engine generates a completely distinct `InjectionSnapshot` for each node based on its unique `persona_id`. The underlying persona instructions and node-specific thought processes are strictly quarantined.
 - **Contextual Grounding (The `xiuxian-window` Bridge):** To prevent the isolated agent from becoming "amnesiac" to the user's ongoing conversation, Qianji injects the _read-only, sanitized recent chat history_ (provided by `xiuxian-window`) into the `<working_history>` block of the node's `InjectionSnapshot`. This allows the agent to understand the user's immediate intent without being contaminated by another agent's hidden CoT.
 - **Node Handoff:** Only the _structured XML output_ (e.g., `<agenda_draft>`) of Node A is passed as an _input variable_ to Node B's J2 template.
 - **Research Alignment:** This guarantees the "Strict Teacher" never sees the "Agenda Steward's" internal Chain-of-Thought (CoT), completely eliminating real-time social influence and preventing Sycophancy, while remaining contextually aware of the user's request.
@@ -45,7 +45,7 @@ While Isolated Windows (Scenario A) provide maximum Persona purity, they incur a
 To balance purity and economics, Qianji supports an **Economic Debate Mode (Role-Mix Profile)**:
 
 - **Mechanism:** A single Qianji node invokes the LLM _once_.
-- **Data Flow:** Qianhuan dynamically generates a `RoleMixProfile` (as defined in `injection-evolution.md`) that explicitly partitions a _single_ system prompt into multiple persona blocks using strict XML isolation.
+- **Data Flow:** The annotation engine dynamically generates a `RoleMixProfile` (as defined in `injection-evolution.md`) that explicitly partitions a _single_ system prompt into multiple persona blocks using strict XML isolation.
 - **XML-Enforced Debate Protocol:** To prevent the LLM from merging the personas, the output format is rigidly locked into an XML conversation structure. The LLM must "talk to itself" using explicit `<turn>` tags mapped to specific roles.
 
 ### Economic Mode Prompt Structure Example:

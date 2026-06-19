@@ -3,12 +3,11 @@
 use serde_json::json;
 use std::sync::Arc;
 use tempfile::tempdir;
-use xiuxian_qianhuan::ManifestationInterface;
 use xiuxian_wendao::entity::{Entity, EntityType};
 use xiuxian_wendao::graph::KnowledgeGraph;
 use xiuxian_zhixing::ATTR_JOURNAL_CARRYOVER;
 use xiuxian_zhixing::storage::MarkdownStorage;
-use xiuxian_zhixing::{ZhixingHeyi, ZhixingHeyiInit};
+use xiuxian_zhixing::{ManifestationInterface, ZhixingHeyi, ZhixingHeyiInit};
 
 struct EchoManifestation;
 

@@ -26,8 +26,8 @@ pub use config::ZhixingConfig;
 pub use error::{Error, Result};
 pub use heyi::{
     ATTR_JOURNAL_CARRYOVER, ATTR_TIMER_RECIPIENT, ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED,
-    ReminderQueueSettings, ReminderQueueStore, ReminderQueueTask, ReminderSignal, ZhixingHeyi,
-    ZhixingHeyiInit,
+    ManifestationInterface, PersonaProfile, ReminderQueueSettings, ReminderQueueStore,
+    ReminderQueueTask, ReminderSignal, ZhixingHeyi, ZhixingHeyiInit,
 };
 pub use interface::{SecureAction, ZhixingLlmInterface};
 pub use journal::JournalEntry;

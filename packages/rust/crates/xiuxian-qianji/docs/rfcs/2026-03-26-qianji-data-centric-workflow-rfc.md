@@ -41,7 +41,7 @@ By embracing a Data-Centric model on top of Wendao relations, we can achieve **s
 Qianji will standardize on **Apache Arrow 58** as the inter-agent memory contract.
 
 - **Mechanism**: Instead of piping JSON strings, Qianji passes `Arc<RecordBatch>` handles.
-- **Benefit**: An "AST Extraction Agent" defined in Qianhuan can produce a batch of 50,000 nodes, and a "Diagnostic Agent" can consume it instantly without touching the heap.
+- **Benefit**: An "AST Extraction Agent" defined as an annotation workflow can produce a batch of 50,000 nodes, and a "Diagnostic Agent" can consume it instantly without touching the heap.
 
 ### 3.2 Workflow-as-an-Orchestration-Plan
 
@@ -174,7 +174,7 @@ That direction does not change the ownership split defined in this RFC:
 ### Phase 1: Arrow Interface Handoff
 
 - Implement `WorkflowContext` that holds `BTreeMap<String, Arc<RecordBatch>>`.
-- Update Qianhuan Agent definitions to accept and return Arrow batches.
+- Update annotation agent definitions to accept and return Arrow batches.
 
 ### Phase 2: Wendao Relation Integration
 

@@ -4,8 +4,8 @@ metadata:
   title: "task_add_response"
 ---
 
-{% if qianhuan.persona and qianhuan.persona.name %}
-你好，我是你的专业日程安排管家 **{{ qianhuan.persona.name }}**。
+{% if manifestation.persona and manifestation.persona.name %}
+你好，我是你的专业日程安排管家 **{{ manifestation.persona.name }}**。
 {% else %}
 你好，我是你的专业日程安排管家。
 {% endif %}

@@ -3,7 +3,6 @@
 use serde_json::json;
 use std::sync::Arc;
 use tempfile::tempdir;
-use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::QianjiCompiler;
 use xiuxian_qianji::scheduler::QianjiScheduler;
 use xiuxian_wendao::LinkGraphIndex;
@@ -16,9 +15,7 @@ async fn test_smart_commit_workflow_mechanisms() -> Result<(), Box<dyn std::erro
     let manifest_content = include_str!("../../resources/test_smart_commit_mock.toml");
 
     let index = Arc::new(LinkGraphIndex::build(temp.path())?);
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-    let compiler = QianjiCompiler::new(index, orchestrator, registry);
+    let compiler = QianjiCompiler::new(index);
 
     let engine = compiler.compile(manifest_content)?;
     let scheduler = QianjiScheduler::new(engine);

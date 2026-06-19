@@ -19,7 +19,10 @@ metadata:
 > **Authority**: CyberXiuXian Artisan Workshop
 > **Protocol**: wendao://
 
-This document tracks the specialized workflow scenarios where `xiuxian-zhixing` (domain logic) integrates with `xiuxian-qianji` (workflow engine) and `xiuxian-qianhuan` (persona engine) to form proactive, multi-agent debates via the **Wendao Semantic Bus**.
+This document tracks the specialized workflow scenarios where `xiuxian-zhixing`
+(domain logic) integrates with `xiuxian-qianji` (workflow engine) and local
+annotation/persona context to form proactive, multi-agent debates via the
+**Wendao Semantic Bus**.
 
 ## 1. The Adversarial Agenda Validation Loop (Synapse-Audit)
 
@@ -68,7 +71,7 @@ The "Adversarial Agenda" scenario has been successfully optimized and validated 
 - [x] **Artifacts created in repository**: Personas (`agenda_steward`, `strict_teacher`) and templates are fully operational.
 - [x] **Workflow compiles via `QianjiCompiler`**: The `agenda_flow.toml` correctly generates an LLM-Augmented audit node with `max_retries` safety limits.
 - [x] **Parallel Pipeline (ADR-006)**: Agenda validation now runs in parallel with message history retrieval and memory recall, reducing total turn latency by ~50%.
-- [x] **Native Loop Performance**: Sub-millisecond internal dispatching achieved via `ZhenfaOrchestrator`.
+- [x] **Native Loop Performance**: Sub-millisecond internal execution achieved via direct runtime dispatch.
 - [x] **XML-Lite Contract Success**: LLMs successfully parse `<hit>` tags from `wendao` and `<score>` tags from the "Strict Teacher" node without formatting hallucinations.
 - [x] **MemRL Evolution (ADR-005)**: The "Strict Teacher's" score is now automatically injected as a reward signal into the episodic memory system, allowing the agent to learn from procrastination patterns.
 - [x] **Live Interaction**: Telegram/Discord bots support instant interruption via the `InterruptController`.

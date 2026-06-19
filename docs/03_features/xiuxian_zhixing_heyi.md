@@ -30,7 +30,7 @@ The naming origin is Xiuxian (修仙) and Zhixing-Heyi (知行合一), which in 
 ### 1.1 Namespace Alignment (Current)
 
 - `xiuxian-zhixing`: domain runtime for agenda/journal/blockers/reminders and Wendao bridge.
-- `xiuxian-qianhuan`: manifestation/template assembly used by host bootstrap.
+- Zhixing manifestation trait: template assembly boundary used by host bootstrap.
 - `xiuxian-qianji`: workflow runtime namespace used by agent workflow execution paths.
 - `xiuxian-daochang`: host runtime namespace for native tool registration and notification transport.
 - Engineering role mapping:
@@ -41,7 +41,7 @@ The naming origin is Xiuxian (修仙) and Zhixing-Heyi (知行合一), which in 
 
 - Theory baseline: `docs/99_llm/xiuxian_zhixing_theory.md`
 - Host orchestration and injection context: `docs/01_core/omega/trinity-control.md`
-- Qianhuan manifestation spec: `docs/01_core/qianhuan/orchestration-spec.md`
+- Manifestation spec: `docs/01_core/memory/injection-evolution.md`
 - Qianji workflow runtime spec: `docs/01_core/qianji/SPEC.md`
 - Wendao execution track: `docs/01_core/wendao/roadmap.md`
 - Test and runbook references: `docs/testing/rust-agent-loop-memory-testing.md`
@@ -89,7 +89,7 @@ Host bootstrap resolves Zhixing runtime settings from `xiuxian.toml` (system + u
 
 - `[wendao.zhixing].notebook_path`: notebook storage root.
 - `[wendao.zhixing].time_zone`: IANA timezone used by scheduling and rendering.
-- `[wendao.zhixing].template_paths`: template directories for Qianhuan manifestation loading.
+- `[wendao.zhixing].template_paths`: template directories for manifestation loading.
 - `[wendao.zhixing.reminder_queue]`: optional due-queue backend settings.
 
 Example:

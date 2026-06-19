@@ -107,7 +107,7 @@ pub use crate::contract_feedback::{
 };
 #[cfg(feature = "qianji-full")]
 pub use crate::contracts::{
-    FlowInstruction, FlowhubGraphTopology, NodeQianhuanExecutionMode, NodeStatus, QianjiManifest,
+    FlowInstruction, FlowhubGraphTopology, NodeAnnotationExecutionMode, NodeStatus, QianjiManifest,
     QianjiMechanism, QianjiOutput,
 };
 #[cfg(feature = "wendao-integration")]
@@ -133,7 +133,7 @@ pub use crate::flowhub::{
     show_flowhub_anchored_scenario, show_flowhub_graph, show_flowhub_scenario,
 };
 #[cfg(feature = "qianji-full")]
-pub use crate::manifest::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
+pub use crate::manifest::{manifest_declares_annotation_bindings, manifest_requires_llm};
 #[cfg(feature = "qianji-full")]
 pub use crate::qianji_cli::{QianjiCliError, run_qianji_cli};
 #[cfg(feature = "qianji-full")]

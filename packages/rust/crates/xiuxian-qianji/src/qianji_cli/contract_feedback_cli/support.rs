@@ -1,10 +1,8 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use crate::executors::QianjiAdvisoryAuditExecutor;
 use crate::sovereign::KnowledgeStorageContractFeedbackSink;
 use xiuxian_config_core::resolve_data_home;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 
 use super::types::RestDocsCliCommand;
 use crate::qianji_cli::input::resolve_path_against_root;
@@ -14,8 +12,7 @@ pub(crate) fn normalize_prj_data_home(_workspace_root: &Path, resolved: PathBuf)
 }
 
 pub(super) fn build_scaffold_advisory_executor() -> QianjiAdvisoryAuditExecutor {
-    let (orchestrator, registry) = build_contract_feedback_role_runtime();
-    QianjiAdvisoryAuditExecutor::new(orchestrator, registry)
+    QianjiAdvisoryAuditExecutor::new()
 }
 
 pub(super) fn build_contract_feedback_sink(
@@ -45,17 +42,6 @@ pub(super) fn build_contract_feedback_session_id(openapi_path: &Path) -> String 
         }
     }
     format!("contract-feedback:rest-docs:{normalized}")
-}
-
-fn build_contract_feedback_role_runtime() -> (Arc<ThousandFacesOrchestrator>, Arc<PersonaRegistry>)
-{
-    (
-        Arc::new(ThousandFacesOrchestrator::new(
-            "Contract Feedback".to_string(),
-            None,
-        )),
-        Arc::new(PersonaRegistry::with_builtins()),
-    )
 }
 
 fn default_contract_feedback_storage_path(workspace_root: &Path) -> PathBuf {

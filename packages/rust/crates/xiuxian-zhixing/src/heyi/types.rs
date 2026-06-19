@@ -7,16 +7,44 @@ use chrono_tz::Tz;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Arc;
-use xiuxian_qianhuan::{ManifestationInterface, PersonaProfile};
 use xiuxian_wendao::graph::KnowledgeGraph;
 use xiuxian_wendao::skill_runtime::zhixing::{ZhixingIndexSummary, ZhixingWendaoIndexer};
 use xiuxian_wendao::sync::IncrementalSyncPolicy;
+
+/// Minimal template manifestation interface required by Zhixing.
+pub trait ManifestationInterface: Send + Sync {
+    /// Render one named template with JSON data.
+    ///
+    /// # Errors
+    /// Returns an error when the backing renderer cannot resolve or render the template.
+    fn render_template(
+        &self,
+        template_name: &str,
+        data: serde_json::Value,
+    ) -> anyhow::Result<String>;
+
+    /// Inject state context into a render payload.
+    fn inject_context(&self, state_context: &str) -> String;
+}
+
+/// Active persona data used for Zhixing response shaping.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PersonaProfile {
+    /// Unique persona identifier.
+    pub id: String,
+    /// Friendly display name.
+    pub name: String,
+    /// Voice and tone guidance.
+    pub voice_tone: String,
+    /// Style anchors carried into template context.
+    pub style_anchors: Vec<String>,
+}
 
 /// Named input for creating a [`ZhixingHeyi`] orchestrator.
 pub struct ZhixingHeyiInit {
     /// Reference to the Knowledge Graph managed by Wendao.
     pub graph: Arc<KnowledgeGraph>,
-    /// Reference to the Manifestation layer managed by Qianhuan.
+    /// Reference to the Manifestation layer.
     pub manifestation: Arc<dyn ManifestationInterface>,
     /// Reference to the markdown file storage engine.
     pub storage: Arc<MarkdownStorage>,
@@ -30,7 +58,7 @@ pub struct ZhixingHeyiInit {
 pub struct ZhixingHeyi {
     /// Reference to the Knowledge Graph managed by Wendao.
     pub graph: Arc<KnowledgeGraph>,
-    /// Reference to the Manifestation layer managed by Qianhuan.
+    /// Reference to the Manifestation layer.
     pub manifestation: Arc<dyn ManifestationInterface>,
     /// Reference to the markdown file storage engine.
     pub storage: Arc<MarkdownStorage>,

@@ -27,10 +27,10 @@ mod test_layout_bpmn;
 mod test_memory_promotion_pipeline;
 #[path = "integration/test_probabilistic_routing.rs"]
 mod test_probabilistic_routing;
+#[path = "integration/test_qianji_annotation_binding.rs"]
+mod test_qianji_annotation_binding;
 #[path = "integration/test_qianji_precision_research.rs"]
 mod test_qianji_precision_research;
-#[path = "integration/test_qianji_qianhuan_binding.rs"]
-mod test_qianji_qianhuan_binding;
 #[path = "integration/test_qianji_trinity_integration.rs"]
 mod test_qianji_trinity_integration;
 #[path = "integration/test_qianji_yaml_orchestration.rs"]

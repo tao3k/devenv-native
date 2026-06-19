@@ -1,4 +1,4 @@
-//! Advisory-audit bridge from Qianji contract feedback into `Qianhuan`.
+//! Advisory-audit bridge from Qianji contract feedback into local prompt context plans.
 
 #[path = "evidence.rs"]
 mod evidence;
@@ -6,6 +6,8 @@ mod evidence;
 mod facade;
 #[path = "planning.rs"]
 mod planning;
+#[path = "prompt_context.rs"]
+mod prompt_context;
 
 #[cfg(feature = "advisory-prompt-pack-cache")]
 pub use facade::QianjiAdvisoryPromptPackArtifactReport;

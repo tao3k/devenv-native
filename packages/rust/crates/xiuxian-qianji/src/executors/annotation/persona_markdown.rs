@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
-use xiuxian_qianhuan::persona::PersonaProfile;
+
+use super::context::PersonaProfile;
 
 pub(super) fn persona_profile_from_markdown(uri: &str, markdown: &str) -> PersonaProfile {
     let frontmatter = parse_persona_frontmatter(markdown);

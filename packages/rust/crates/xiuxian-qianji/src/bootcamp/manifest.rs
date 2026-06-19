@@ -64,7 +64,7 @@ pub(super) fn parsed_manifest_requires_llm(manifest: &QianjiManifest) -> bool {
             return true;
         }
         node.task_type.trim().eq_ignore_ascii_case("formal_audit")
-            && node.qianhuan.is_some()
+            && node.annotation.is_some()
             && node.llm.is_some()
     })
 }

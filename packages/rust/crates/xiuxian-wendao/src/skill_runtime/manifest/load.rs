@@ -33,7 +33,7 @@ struct SkillManifestIdentifiers {
 struct SkillManifestPayload {
     description: String,
     metadata: SkillMetadata,
-    qianhuan_background: Option<String>,
+    context_background: Option<String>,
     flow_definition: Option<String>,
     workflow_type: SkillWorkflowType,
 }
@@ -101,13 +101,13 @@ fn resolve_skill_manifest_payload(parsed: &SkillManifestToml) -> SkillManifestPa
         .clone()
         .or_else(|| extract_field_str(contract_raw, "description"))
         .unwrap_or_default();
-    let qianhuan_background = extract_skill_background(parsed);
+    let context_background = extract_skill_background(parsed);
     let flow_definition = extract_skill_flow(parsed, workflow_raw);
 
     SkillManifestPayload {
         description,
         metadata: extract_contract_metadata(contract_raw),
-        qianhuan_background,
+        context_background,
         flow_definition,
         workflow_type: SkillWorkflowType::from_raw(
             extract_field_str(workflow_raw, "type").as_deref(),
@@ -143,7 +143,7 @@ fn build_skill_manifest(
         description: payload.description,
         binding_id: identifiers.binding_id,
         source_path,
-        qianhuan_background: payload.qianhuan_background,
+        context_background: payload.context_background,
         flow_definition: payload.flow_definition,
         workflow_type: payload.workflow_type,
         metadata: payload.metadata,
@@ -152,12 +152,12 @@ fn build_skill_manifest(
 }
 
 fn extract_skill_background(parsed: &SkillManifestToml) -> Option<String> {
-    let qianhuan_raw = parsed
-        .qianhuan_background
+    let context_raw = parsed
+        .context_background
         .as_ref()
-        .or(parsed.qianhuan.as_ref())
+        .or(parsed.context.as_ref())
         .or(parsed.background.as_ref());
-    extract_field_str(qianhuan_raw, "background").or_else(|| extract_field_str(qianhuan_raw, "uri"))
+    extract_field_str(context_raw, "background").or_else(|| extract_field_str(context_raw, "uri"))
 }
 
 fn extract_skill_flow(

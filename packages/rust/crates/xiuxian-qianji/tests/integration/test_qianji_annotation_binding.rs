@@ -1,21 +1,16 @@
-//! Qianhuan binding contract and runtime tests for Qianji nodes.
+//! Annotation binding contract and runtime tests for Qianji nodes.
 
 #![cfg(feature = "wendao-integration")]
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde_json::json;
-use xiuxian_qianhuan::{
-    orchestrator::ThousandFacesOrchestrator,
-    persona::{PersonaProfile, PersonaRegistry},
-};
 use xiuxian_qianji::{QianjiCompiler, QianjiManifest, QianjiScheduler};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 use xiuxian_wendao_runtime::artifacts::zhixing::embedded_resource_text_from_wendao_uri;
 
 #[test]
-fn qianji_manifest_parses_node_level_qianhuan_binding() {
+fn qianji_manifest_parses_node_level_annotation_binding() {
     let manifest_toml = r#"
 name = "Binding_Interface_Contract"
 
@@ -24,7 +19,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "student_proposer"
 template_target = "draft_reflection.md"
 execution_mode = "appended"
@@ -34,11 +29,11 @@ output_key = "agenda_draft_xml"
 "#;
 
     let manifest: QianjiManifest = toml::from_str(manifest_toml)
-        .unwrap_or_else(|error| panic!("manifest should parse qianhuan binding: {error}"));
+        .unwrap_or_else(|error| panic!("manifest should parse annotation binding: {error}"));
     let binding = manifest.nodes[0]
-        .qianhuan
+        .annotation
         .as_ref()
-        .unwrap_or_else(|| panic!("qianhuan binding should be present"));
+        .unwrap_or_else(|| panic!("annotation binding should be present"));
 
     assert_eq!(binding.persona_id.as_deref(), Some("student_proposer"));
     assert_eq!(
@@ -58,7 +53,7 @@ output_key = "agenda_draft_xml"
 }
 
 #[tokio::test]
-async fn annotation_node_uses_qianhuan_binding_fields() {
+async fn annotation_node_uses_binding_fields() {
     let manifest_toml = r#"
 name = "Binding_Runtime_Test"
 
@@ -67,7 +62,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "binding_tester"
 template_target = "critique_report.md"
 "#;
@@ -78,25 +73,7 @@ template_target = "critique_report.md"
         LinkGraphIndex::build(tmp.path())
             .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
     );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "binding_tester".to_string(),
-        name: "Binding Tester".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read -> 2. Validate -> 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: HashMap::new(),
-    });
-
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
+    let compiler = QianjiCompiler::new(index);
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));
@@ -126,7 +103,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "binding_tester"
 template_target = "critique_report.md"
 execution_mode = "appended"
@@ -141,25 +118,7 @@ output_key = "critic_snapshot_xml"
         LinkGraphIndex::build(tmp.path())
             .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
     );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "binding_tester".to_string(),
-        name: "Binding Tester".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read -> 2. Validate -> 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: HashMap::new(),
-    });
-
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
+    let compiler = QianjiCompiler::new(index);
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));
@@ -209,7 +168,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "binding_tester"
 input_keys = ["$wendao://skills/agenda-management/references/agenda_flow.toml"]
 "#;
@@ -220,25 +179,7 @@ input_keys = ["$wendao://skills/agenda-management/references/agenda_flow.toml"]
         LinkGraphIndex::build(tmp.path())
             .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
     );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "binding_tester".to_string(),
-        name: "Binding Tester".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read -> 2. Validate -> 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: HashMap::new(),
-    });
-
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
+    let compiler = QianjiCompiler::new(index);
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));
@@ -266,7 +207,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$persona_selector"
 template_target = "$template_selector"
 input_keys = ["$raw_facts_selector"]
@@ -278,25 +219,7 @@ input_keys = ["$raw_facts_selector"]
         LinkGraphIndex::build(tmp.path())
             .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
     );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "binding_tester".to_string(),
-        name: "Binding Tester".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read -> 2. Validate -> 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: HashMap::new(),
-    });
-
-    let compiler = QianjiCompiler::new(index, orchestrator, Arc::new(registry));
+    let compiler = QianjiCompiler::new(index);
     let engine = compiler
         .compile(manifest_toml)
         .unwrap_or_else(|error| panic!("manifest should compile: {error}"));

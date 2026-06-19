@@ -30,7 +30,7 @@ fn promote_logged_suggestion(config_path: &Path) -> TestResult {
             "--evidence",
             "promoted-link-test",
             "--agent-id",
-            "qianhuan-architect",
+            "wendao-agentic-architect",
         ],
         "wendao agentic log failed",
     )?;

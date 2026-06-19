@@ -5,7 +5,6 @@ use include_dir::Dir;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
 /// Runtime report returned by the Qianji laboratory API.
@@ -48,14 +47,8 @@ pub struct BootcampRunOptions {
     pub session_id: Option<String>,
     /// Optional `Valkey` URL used with `session_id`.
     pub redis_url: Option<String>,
-    /// Genesis rules for default orchestrator construction.
-    pub genesis_rules: String,
     /// Optional prebuilt `LinkGraph` index.
     pub index: Option<Arc<LinkGraphIndex>>,
-    /// Optional prebuilt `Qianhuan` orchestrator.
-    pub orchestrator: Option<Arc<ThousandFacesOrchestrator>>,
-    /// Optional prebuilt persona registry.
-    pub persona_registry: Option<Arc<PersonaRegistry>>,
     /// Optional manager for distributed consensus voting.
     pub consensus_manager: Option<Arc<crate::consensus::ConsensusManager>>,
 }
@@ -68,10 +61,7 @@ impl BootcampRunOptions {
             repo_path: None,
             session_id: None,
             redis_url: None,
-            genesis_rules: "Safety Rules".to_string(),
             index: None,
-            orchestrator: None,
-            persona_registry: None,
             consensus_manager: None,
         }
     }

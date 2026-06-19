@@ -1,4 +1,4 @@
-pub use super::bindings::{NodeLlmBinding, NodeQianhuanBinding, NodeQianhuanExecutionMode};
+pub use super::bindings::{NodeAnnotationBinding, NodeAnnotationExecutionMode, NodeLlmBinding};
 pub use super::execution::{FlowInstruction, NodeStatus, QianjiOutput};
 pub use super::flowhub_contract::FlowhubStructureContract;
 pub use super::flowhub_grammar::{TemplateLinkRef, TemplateLinkSpec, TemplateUseSpec};

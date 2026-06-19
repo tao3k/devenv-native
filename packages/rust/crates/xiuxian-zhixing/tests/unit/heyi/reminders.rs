@@ -1,3 +1,4 @@
+use crate::ManifestationInterface;
 use crate::storage::MarkdownStorage;
 use crate::{
     ATTR_TIMER_REMINDED, ATTR_TIMER_SCHEDULED, ReminderSignal, ZhixingHeyiInit, heyi::ZhixingHeyi,
@@ -6,9 +7,50 @@ use chrono::{Duration, Utc};
 use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
-use xiuxian_qianhuan::ManifestationManager;
 use xiuxian_wendao::entity::{Entity, EntityType};
 use xiuxian_wendao::graph::KnowledgeGraph;
+
+struct EmbeddedManifestation {
+    templates: std::collections::HashMap<String, String>,
+}
+
+impl EmbeddedManifestation {
+    fn new(embedded_templates: &[(&str, &str)]) -> Self {
+        Self {
+            templates: embedded_templates
+                .iter()
+                .map(|(name, source)| ((*name).to_string(), (*source).to_string()))
+                .collect(),
+        }
+    }
+}
+
+impl ManifestationInterface for EmbeddedManifestation {
+    fn render_template(
+        &self,
+        template_name: &str,
+        data: serde_json::Value,
+    ) -> anyhow::Result<String> {
+        let mut rendered = self
+            .templates
+            .get(template_name)
+            .cloned()
+            .ok_or_else(|| anyhow::anyhow!("template `{template_name}` is not registered"))?;
+        if let Some(map) = data.as_object() {
+            for (key, value) in map {
+                let replacement = value
+                    .as_str()
+                    .map_or_else(|| value.to_string(), ToString::to_string);
+                rendered = rendered.replace(format!("{{{{ {key} }}}}").as_str(), &replacement);
+            }
+        }
+        Ok(rendered)
+    }
+
+    fn inject_context(&self, state_context: &str) -> String {
+        state_context.to_string()
+    }
+}
 
 fn build_test_heyi(
     embedded_templates: &[(&str, &str)],
@@ -18,10 +60,7 @@ fn build_test_heyi(
         std::env::temp_dir().join(format!("xiuxian-zhixing-reminders-{}", Uuid::new_v4()));
     std::fs::create_dir_all(&storage_root)?;
     let storage = Arc::new(MarkdownStorage::new(storage_root));
-    let manifestation = Arc::new(ManifestationManager::new_with_embedded_templates(
-        &[],
-        embedded_templates,
-    )?);
+    let manifestation = Arc::new(EmbeddedManifestation::new(embedded_templates));
     Ok(ZhixingHeyi::new(ZhixingHeyiInit {
         graph,
         manifestation,

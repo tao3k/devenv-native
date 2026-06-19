@@ -38,7 +38,7 @@ fn test_wendao_promoted_overlay_is_isolated_by_key_prefix() -> Result<(), Box<dy
             "--evidence",
             "prefix-a-only",
             "--agent-id",
-            "qianhuan-architect",
+            "wendao-agentic-architect",
         ],
         "wendao agentic log failed",
     )?;

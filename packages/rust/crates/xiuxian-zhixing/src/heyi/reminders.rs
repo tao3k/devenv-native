@@ -173,7 +173,11 @@ impl ZhixingHeyi {
             "task_id_mdv2": escape_markdown_v2_code(&signal.task_id),
         });
 
-        self.render_with_qianhuan_context("reminder_notice.md", payload, REMINDER_STATE_CONTEXT)
+        self.render_with_manifestation_context(
+            "reminder_notice.md",
+            payload,
+            REMINDER_STATE_CONTEXT,
+        )
     }
 
     /// Checks for tasks that need immediate reminders in local time.

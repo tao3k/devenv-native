@@ -28,7 +28,6 @@ include_dir = { workspace = true }
 
 # Local crates
 xiuxian-wendao = { path = "../xiuxian-wendao" }
-xiuxian-qianhuan = { path = "../xiuxian-qianhuan" }
 
 # Logging
 log = { workspace = true }

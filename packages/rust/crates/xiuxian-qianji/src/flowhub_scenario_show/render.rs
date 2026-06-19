@@ -1,5 +1,5 @@
+use crate::template_catalog::EmbeddedTemplateCatalog;
 use serde_json::json;
-use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
 
 use super::model::{
     FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview,
@@ -18,25 +18,24 @@ const SCENARIO_LINKS_TEMPLATE_NAME: &str = "flowhub_scenario_links.md.j2";
 const SCENARIO_LINKS_TEMPLATE_SOURCE: &str =
     include_str!("../../resources/templates/control_plane/flowhub_scenario_links.md.j2");
 
-static SCENARIO_TEMPLATE_CATALOG: EmbeddedManifestationTemplateCatalog =
-    EmbeddedManifestationTemplateCatalog::new(
-        "Flowhub scenario show template renderer",
-        &[
-            (
-                SCENARIO_FLOWCHART_SECTION_TEMPLATE_NAME,
-                SCENARIO_FLOWCHART_SECTION_TEMPLATE_SOURCE,
-            ),
-            (
-                SCENARIO_SURFACE_SECTION_TEMPLATE_NAME,
-                SCENARIO_SURFACE_SECTION_TEMPLATE_SOURCE,
-            ),
-            (
-                SCENARIO_HIDDEN_ALIASES_TEMPLATE_NAME,
-                SCENARIO_HIDDEN_ALIASES_TEMPLATE_SOURCE,
-            ),
-            (SCENARIO_LINKS_TEMPLATE_NAME, SCENARIO_LINKS_TEMPLATE_SOURCE),
-        ],
-    );
+static SCENARIO_TEMPLATE_CATALOG: EmbeddedTemplateCatalog = EmbeddedTemplateCatalog::new(
+    "Flowhub scenario show template renderer",
+    &[
+        (
+            SCENARIO_FLOWCHART_SECTION_TEMPLATE_NAME,
+            SCENARIO_FLOWCHART_SECTION_TEMPLATE_SOURCE,
+        ),
+        (
+            SCENARIO_SURFACE_SECTION_TEMPLATE_NAME,
+            SCENARIO_SURFACE_SECTION_TEMPLATE_SOURCE,
+        ),
+        (
+            SCENARIO_HIDDEN_ALIASES_TEMPLATE_NAME,
+            SCENARIO_HIDDEN_ALIASES_TEMPLATE_SOURCE,
+        ),
+        (SCENARIO_LINKS_TEMPLATE_NAME, SCENARIO_LINKS_TEMPLATE_SOURCE),
+    ],
+);
 
 pub(crate) fn render_scenario_flowchart_section_lines(show: &FlowhubScenarioShow) -> Vec<String> {
     render_embedded_scenario_block(
@@ -47,7 +46,7 @@ pub(crate) fn render_scenario_flowchart_section_lines(show: &FlowhubScenarioShow
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub scenario flowchart preview through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub scenario flowchart preview through Qianji template catalog; falling back to inline format: {error}"
         );
         vec![
             "Status: preview".to_string(),
@@ -72,7 +71,7 @@ pub(crate) fn render_scenario_surface_section_lines(
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub scenario surface preview through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub scenario surface preview through Qianji template catalog; falling back to inline format: {error}"
         );
         vec![
             format!("Module: {}", surface.module_ref),
@@ -97,7 +96,7 @@ pub(crate) fn render_scenario_hidden_aliases_section_lines(
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub scenario hidden aliases through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub scenario hidden aliases through Qianji template catalog; falling back to inline format: {error}"
         );
         hidden_aliases
             .iter()
@@ -119,7 +118,7 @@ pub(crate) fn render_scenario_links_section_lines(links: &[String]) -> Vec<Strin
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub scenario links through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub scenario links through Qianji template catalog; falling back to inline format: {error}"
         );
         links.iter().map(|link| format!("- {link}")).collect()
     })

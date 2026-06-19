@@ -12,13 +12,12 @@ use crate::{QianjiApp, QianjiManifestPipelineRequest, QianjiPipelineDependencies
 use serde_json::Value;
 use std::sync::Arc;
 use std::time::Instant;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 
 /// Runs one workflow manifest resolved from a canonical `wendao://` URI.
 ///
 /// This is the high-level "laboratory" entrypoint:
 /// 1. resolve manifest URI from embedded Wendao resources,
-/// 2. hydrate compiler dependencies (index/orchestrator/registry),
+/// 2. hydrate compiler dependencies,
 /// 3. compile and execute through `QianjiScheduler`,
 /// 4. return execution metadata plus final context.
 ///
@@ -132,10 +131,7 @@ async fn run_workflow_from_manifest_payload(
         repo_path,
         session_id,
         redis_url,
-        genesis_rules,
         index,
-        orchestrator,
-        persona_registry,
         consensus_manager,
     } = options;
 
@@ -153,11 +149,8 @@ async fn run_workflow_from_manifest_payload(
         }
         None => Arc::new(build_placeholder_link_graph_index()?),
     };
-    let orchestrator = orchestrator
-        .unwrap_or_else(|| Arc::new(ThousandFacesOrchestrator::new(genesis_rules, None)));
-    let registry = persona_registry.unwrap_or_else(|| Arc::new(PersonaRegistry::with_builtins()));
-    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry)
-        .with_consensus_manager(consensus_manager);
+    let dependencies =
+        QianjiPipelineDependencies::new(index).with_consensus_manager(consensus_manager);
     let scheduler = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
         dependencies,

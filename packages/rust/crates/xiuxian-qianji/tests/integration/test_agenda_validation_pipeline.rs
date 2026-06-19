@@ -6,12 +6,11 @@ use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_qianji::safety::logic::Invariant;
 use xiuxian_qianji::{
     FlowInstruction, QianjiApp, QianjiEngine, QianjiManifest, QianjiManifestPipelineRequest,
     QianjiMechanism, QianjiOutput, QianjiPipelineDependencies, QianjiScheduler,
-    manifest_declares_qianhuan_bindings, manifest_requires_llm,
+    manifest_declares_annotation_bindings, manifest_requires_llm,
 };
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 use xiuxian_wendao_runtime::artifacts::zhixing::embedded_resource_text_from_wendao_uri;
@@ -42,12 +41,12 @@ fn node_by_id<'a>(
         .unwrap_or_else(|| panic!("{node_id} node should exist"))
 }
 
-fn qianhuan_binding(
+fn annotation_binding(
     node: &xiuxian_qianji::contracts::NodeDefinition,
-) -> &xiuxian_qianji::contracts::NodeQianhuanBinding {
-    node.qianhuan
+) -> &xiuxian_qianji::contracts::NodeAnnotationBinding {
+    node.annotation
         .as_ref()
-        .unwrap_or_else(|| panic!("{} should declare qianhuan binding", node.id))
+        .unwrap_or_else(|| panic!("{} should declare annotation binding", node.id))
 }
 
 #[test]
@@ -56,7 +55,7 @@ fn agenda_validation_manifest_contains_required_nodes_and_bindings() {
     let manifest = parse_agenda_validation_manifest();
 
     let student = node_by_id(&manifest, "Student_Ambition");
-    let student_binding = qianhuan_binding(student);
+    let student_binding = annotation_binding(student);
     assert_eq!(
         student_binding.persona_id.as_deref(),
         Some("$wendao://skills/agenda-management/references/student.md")
@@ -68,7 +67,7 @@ fn agenda_validation_manifest_contains_required_nodes_and_bindings() {
     );
 
     let steward = node_by_id(&manifest, "Steward_Logistics");
-    let steward_binding = qianhuan_binding(steward);
+    let steward_binding = annotation_binding(steward);
     assert_eq!(
         steward_binding.persona_id.as_deref(),
         Some("$wendao://skills/agenda-management/references/steward.md")
@@ -79,7 +78,7 @@ fn agenda_validation_manifest_contains_required_nodes_and_bindings() {
     );
 
     let professor = node_by_id(&manifest, "Professor_Audit");
-    let professor_binding = qianhuan_binding(professor);
+    let professor_binding = annotation_binding(professor);
     assert_eq!(
         professor_binding.persona_id.as_deref(),
         Some(
@@ -127,7 +126,7 @@ fn agenda_validation_manifest_contains_required_nodes_and_bindings() {
     );
 
     let reflection = node_by_id(&manifest, "Final_Reflection");
-    let reflection_binding = qianhuan_binding(reflection);
+    let reflection_binding = annotation_binding(reflection);
     assert_eq!(
         reflection_binding.template_target.as_deref(),
         Some("$wendao://skills/agenda-management/references/final_agenda.j2")
@@ -138,8 +137,8 @@ fn agenda_validation_manifest_contains_required_nodes_and_bindings() {
     );
 
     assert!(
-        manifest_declares_qianhuan_bindings(manifest_toml).unwrap_or_else(|error| panic!(
-            "manifest should parse for qianhuan binding inspection: {error}"
+        manifest_declares_annotation_bindings(manifest_toml).unwrap_or_else(|error| panic!(
+            "manifest should parse for annotation binding inspection: {error}"
         ))
     );
     assert!(
@@ -157,14 +156,9 @@ fn agenda_validation_pipeline_rejects_retired_local_llm_execution() {
         LinkGraphIndex::build(temp_dir.path())
             .unwrap_or_else(|error| panic!("index should build on temp dir: {error}")),
     );
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules".to_string(),
-        None,
-    ));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
     let manifest_toml = agenda_validation_manifest_toml();
 
-    let dependencies = QianjiPipelineDependencies::new(index, orchestrator, registry);
+    let dependencies = QianjiPipelineDependencies::new(index);
     let error = QianjiApp::create_pipeline_from_manifest(QianjiManifestPipelineRequest {
         manifest_toml,
         dependencies,

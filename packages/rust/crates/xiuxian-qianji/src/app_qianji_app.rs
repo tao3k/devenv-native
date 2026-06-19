@@ -6,7 +6,6 @@ use crate::consensus::ConsensusManager;
 use crate::error::QianjiError;
 use crate::scheduler::QianjiScheduler;
 use std::sync::Arc;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
 /// Shared dependencies required to build a `Qianji` scheduler pipeline.
@@ -14,10 +13,6 @@ use xiuxian_wendao::link_graph::LinkGraphIndex;
 pub struct QianjiPipelineDependencies {
     /// Search index used by Wendao-backed pipeline mechanisms.
     pub index: Arc<LinkGraphIndex>,
-    /// Persona orchestrator used by Qianhuan-backed pipeline mechanisms.
-    pub orchestrator: Arc<ThousandFacesOrchestrator>,
-    /// Persona registry used for agent resolution.
-    pub registry: Arc<PersonaRegistry>,
     /// Optional consensus manager for distributed calibration.
     pub consensus_manager: Option<Arc<ConsensusManager>>,
 }
@@ -25,15 +20,9 @@ pub struct QianjiPipelineDependencies {
 impl QianjiPipelineDependencies {
     /// Create dependencies without optional LLM or consensus services.
     #[must_use]
-    pub fn new(
-        index: Arc<LinkGraphIndex>,
-        orchestrator: Arc<ThousandFacesOrchestrator>,
-        registry: Arc<PersonaRegistry>,
-    ) -> Self {
+    pub fn new(index: Arc<LinkGraphIndex>) -> Self {
         Self {
             index,
-            orchestrator,
-            registry,
             consensus_manager: None,
         }
     }
@@ -77,15 +66,13 @@ impl QianjiApp {
         build::compile_scheduler(
             manifest_toml,
             dependencies.index,
-            dependencies.orchestrator,
-            dependencies.registry,
             dependencies.consensus_manager,
         )
     }
 
     /// Creates a standard high-precision research scheduler.
     ///
-    /// This pipeline integrates Wendao knowledge search, Qianhuan persona
+    /// This pipeline integrates Wendao knowledge search, local context
     /// annotation, and Synapse-Audit adversarial calibration.
     ///
     /// # Errors

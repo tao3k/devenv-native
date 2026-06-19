@@ -52,7 +52,7 @@ fn run_agentic_log_default(config_path: &Path) -> Result<Value, Box<dyn std::err
             "--evidence",
             "bridge found",
             "--agent-id",
-            "qianhuan-architect",
+            "wendao-agentic-architect",
             "--created-at-unix",
             "1700000300",
         ],

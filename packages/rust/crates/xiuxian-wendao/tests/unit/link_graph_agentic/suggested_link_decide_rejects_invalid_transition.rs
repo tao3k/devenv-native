@@ -20,7 +20,7 @@ fn test_suggested_link_decide_rejects_invalid_transition() -> Result<(), Box<dyn
             relation: "related_to".to_string(),
             confidence: 0.42,
             evidence: "bridge".to_string(),
-            agent_id: "qianhuan-architect".to_string(),
+            agent_id: "wendao-agentic-architect".to_string(),
             created_at_unix: Some(1_700_000_200.0),
         },
         TEST_VALKEY_URL,

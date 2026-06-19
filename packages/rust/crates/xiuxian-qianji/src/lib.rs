@@ -73,6 +73,8 @@ pub mod sovereign;
 pub mod swarm;
 /// Real-time swarm telemetry contracts and Valkey emitter.
 pub mod telemetry;
+#[cfg(feature = "qianji-full")]
+mod template_catalog;
 /// Bounded work-surface parsing, validation, and CLI support helpers.
 #[cfg(feature = "qianji-full")]
 pub mod workdir;
@@ -91,7 +93,7 @@ pub use api::{
     FlowhubModuleKind, FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow,
     FlowhubScenarioCaseSummary, FlowhubScenarioCheckReport, FlowhubScenarioDiagnostic,
     FlowhubScenarioHiddenAlias, FlowhubScenarioShow, FlowhubScenarioSurfacePreview, FlowhubShow,
-    GlobalSwarmRegistry, MaterializedWorkdir, NodeQianhuanExecutionMode, NodeStatus,
+    GlobalSwarmRegistry, MaterializedWorkdir, NodeAnnotationExecutionMode, NodeStatus,
     QianjiCliError, QianjiCompiler, QianjiEngine, QianjiManifest, QianjiMechanism, QianjiOutput,
     QianjiSafetyGuard, QianjiScheduler, QianjiStateSnapshot, RemoteNodeRequest, RemoteNodeResponse,
     RemotePossessionBus, RemotePossessionBusError, ResolvedFlowhubModule, RoleAvailabilityRegistry,
@@ -101,7 +103,7 @@ pub use api::{
     WorkdirVisibleSurfaceKind, advance_workdir_step, check_flowhub, check_flowhub_scenario,
     check_workdir, classify_flowhub_dir, load_flowhub_module_manifest,
     load_flowhub_scenario_manifest, load_workdir_manifest, looks_like_flowhub_scenario_dir,
-    looks_like_workdir_dir, manifest_declares_qianhuan_bindings, manifest_requires_llm,
+    looks_like_workdir_dir, manifest_declares_annotation_bindings, manifest_requires_llm,
     map_execution_error_to_response, materialize_flowhub_anchored_scenario,
     materialize_flowhub_anchored_scenario_at_node, materialize_flowhub_scenario_workdir,
     parse_flowhub_module_manifest, parse_flowhub_scenario_manifest, parse_workdir_manifest,

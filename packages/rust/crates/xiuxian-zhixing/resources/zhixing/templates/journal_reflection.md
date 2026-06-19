@@ -6,11 +6,11 @@ metadata:
 
 # Journal Captured
 
-{% if qianhuan.persona and qianhuan.persona.name %}
+{% if manifestation.persona and manifestation.persona.name %}
 
-> Steward: **{{ qianhuan.persona.name }}**
+> Steward: **{{ manifestation.persona.name }}**
 > {% endif %}
-> {{ qianhuan.injected_context }}
+> {{ manifestation.injected_context }}
 
 - Manifested Task: **{{ task_title }}**
 - Task ID: `{{ task_id }}`

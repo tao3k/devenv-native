@@ -1,29 +1,20 @@
 //! Integration tests for `xiuxian_qianji::executors::annotation`.
 
-use std::sync::Arc;
-
 use serde_json::json;
-use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
-use xiuxian_qianhuan::persona::{PersonaProfile, PersonaRegistry};
-use xiuxian_qianji::contracts::{NodeQianhuanExecutionMode, QianjiMechanism};
+use xiuxian_qianji::contracts::{NodeAnnotationExecutionMode, QianjiMechanism};
 use xiuxian_qianji::executors::ContextAnnotator;
 
 #[cfg(feature = "wendao-integration")]
 #[tokio::test]
 async fn context_annotator_can_load_persona_via_wendao_uri() {
     let annotator = ContextAnnotator {
-        orchestrator: Arc::new(ThousandFacesOrchestrator::new(
-            "keep plans executable".to_string(),
-            None,
-        )),
-        registry: Arc::new(PersonaRegistry::new()),
         persona_id: "$wendao://skills/agenda-management/references/steward.md".to_string(),
         template_target: Some(
             "$wendao://skills/agenda-management/references/draft_agenda.j2".to_string(),
         ),
-        execution_mode: NodeQianhuanExecutionMode::Isolated,
+        execution_mode: NodeAnnotationExecutionMode::Isolated,
         input_keys: vec!["raw_facts".to_string()],
-        history_key: "qianhuan_history".to_string(),
+        history_key: "annotation_history".to_string(),
         output_key: "annotated_prompt".to_string(),
     };
 
@@ -60,30 +51,12 @@ async fn context_annotator_can_load_persona_via_wendao_uri() {
 
 #[tokio::test]
 async fn context_annotator_compacts_nested_prompt_snapshots_in_input_blocks() {
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "binding_tester".to_string(),
-        name: "Binding Tester".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read -> 2. Validate -> 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: std::collections::HashMap::new(),
-    });
-
     let annotator = ContextAnnotator {
-        orchestrator: Arc::new(ThousandFacesOrchestrator::new(
-            "keep plans executable".to_string(),
-            None,
-        )),
-        registry: Arc::new(registry),
         persona_id: "binding_tester".to_string(),
         template_target: None,
-        execution_mode: NodeQianhuanExecutionMode::Isolated,
+        execution_mode: NodeAnnotationExecutionMode::Isolated,
         input_keys: vec!["draft_reflection_xml".to_string()],
-        history_key: "qianhuan_history".to_string(),
+        history_key: "annotation_history".to_string(),
         output_key: "annotated_prompt".to_string(),
     };
 
@@ -123,34 +96,16 @@ async fn context_annotator_compacts_nested_prompt_snapshots_in_input_blocks() {
 
 #[tokio::test]
 async fn context_annotator_deduplicates_normalized_blocks_across_input_keys() {
-    let mut registry = PersonaRegistry::with_builtins();
-    registry.register(PersonaProfile {
-        id: "binding_tester".to_string(),
-        name: "Binding Tester".to_string(),
-        background: None,
-        voice_tone: "Precise".to_string(),
-        guidelines: Vec::new(),
-        style_anchors: Vec::new(),
-        cot_template: "1. Read -> 2. Validate -> 3. Return.".to_string(),
-        forbidden_words: Vec::new(),
-        metadata: std::collections::HashMap::new(),
-    });
-
     let annotator = ContextAnnotator {
-        orchestrator: Arc::new(ThousandFacesOrchestrator::new(
-            "keep plans executable".to_string(),
-            None,
-        )),
-        registry: Arc::new(registry),
         persona_id: "binding_tester".to_string(),
         template_target: None,
-        execution_mode: NodeQianhuanExecutionMode::Isolated,
+        execution_mode: NodeAnnotationExecutionMode::Isolated,
         input_keys: vec![
             "first_snapshot".to_string(),
             "second_snapshot".to_string(),
             "plain_duplicate".to_string(),
         ],
-        history_key: "qianhuan_history".to_string(),
+        history_key: "annotation_history".to_string(),
         output_key: "annotated_prompt".to_string(),
     };
 

@@ -46,7 +46,7 @@ fn extend_scenario_case_summary_lines(
             Ok(rendered) => lines.extend(rendered.lines().map(ToOwned::to_owned)),
             Err(error) => {
                 log::warn!(
-                    "failed to render Flowhub scenario-case markdown through qianhuan; falling back to inline format: {error}"
+                    "failed to render Flowhub scenario-case markdown through the Qianji template catalog; falling back to inline format: {error}"
                 );
                 lines.push(format!("Graph name: {}", summary.merimind_graph_name));
                 lines.push(format!("Path: ./{module_ref}/{}", summary.file_name));

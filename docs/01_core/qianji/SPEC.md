@@ -41,7 +41,7 @@ The **Qianji** engine is derived from the synthesis of four foundational researc
   - **Logic Enclosure:** Graph construction, node dependency resolution, and probabilistic weights are defined in TOML and compiled by the Rust `QianjiCompiler`.
 - **Probabilistic Routing:** Every edge has a weight $W = f(\text{Omega_Confidence})$. The path is not binary but probability-weighted (MDP-based).
 - **Adversarial 回路:** Implements the **Synapse-Audit** skeptic-prospector-calibrator loop as a native graph pattern.
-- **State Machine:** Implements a strict state machine for each node: `Idle -> Queued -> Transmuting (Qianhuan) -> Executing -> Calibrating -> Finalized`.
+- **State Machine:** Implements a strict state machine for each node: `Idle -> Queued -> Annotating -> Executing -> Calibrating -> Finalized`.
 
 ---
 
@@ -55,7 +55,7 @@ The `xiuxian-qianji` crate no longer exposes an in-crate PyO3 module surface.
 - **Rust (The Brain):**
   - Parses `qianji.toml` via `toml` (serde).
   - Compiles the `petgraph` execution DAG.
-  - Manages parallel `tokio` execution of Knowledge (Wendao) and Annotation (Qianhuan) nodes.
+- Manages parallel `tokio` execution of Knowledge (Wendao) and Annotation nodes.
   - Performs LTL Safety Audits to prevent deadlocks and infinite loops.
 - **Host Integrations (The Glue):**
   - Launch the native Qianji runtime through the CLI or higher-level host
@@ -97,15 +97,19 @@ Current implementation path:
 - `QianjiApp::create_memory_promotion_pipeline(...)`
 - Native terminal task type: `task_type = "wendao_ingester"` (with best-effort persistence controls)
 
-## 6. The Qianji-Qianhuan Interface: Multi-Persona Adversarial Loops
+## 6. Qianji Annotation Interface: Multi-Persona Adversarial Loops
 
-To achieve extreme precision in reasoning (especially during reflection and memory promotion), Qianji establishes a native interface with the **Qianhuan (千幻)** dynamic orchestration engine.
+To achieve extreme precision in reasoning (especially during reflection and
+memory promotion), Qianji owns a local annotation interface for deterministic
+persona-aligned context snapshots.
 
 ### 6.1 Node-Level Persona & Template Binding
 
-Instead of a single persona governing the entire workflow, the Qianji TOML manifest allows each Node to independently bind Qianhuan runtime controls through a dedicated TOML table.
+Instead of a single persona governing the entire workflow, the Qianji TOML
+manifest allows each node to independently bind annotation controls through a
+dedicated TOML table.
 
-See [[docs/01_core/qianji/architecture/qianhuan-node-binding-interface.md|Qianhuan Node Binding Interface]] for the exact TOML schema (`[nodes.qianhuan]`) and the Rust execution contract that drives node-level persona injection.
+See [[docs/01_core/qianji/architecture/annotation-node-binding-interface.md|Annotation Node Binding Interface]] for the exact TOML schema (`[nodes.annotation]`) and the Rust execution contract that drives node-level persona injection.
 
 This creates an elegant "Role-Play Graph":
 
@@ -130,7 +134,7 @@ When deciding whether to permanently etch a short-term workaround into Wendao:
 2. **[Node: Critic]**: Injects the `Strict Architecture Auditor` persona. It attacks the summary: "Is this a hack? Does it break Dependency Inversion?"
 3. **[Edge: Probabilistic Feedback]**: Only workarounds that survive the Auditor's critique are allowed to pass to the `Wendao_Ingester` node.
 
-By embedding Qianhuan's template and persona injection directly into the Qianji Node's execution state machine (`Transmuting` phase), we achieve highly structured, self-correcting cognitive loops that can be plugged into _any_ part of the `xiuxian-artisan-workshop` system as an adversarial sub-graph.
+By embedding template and persona annotation directly into the Qianji node execution state machine (`Annotating` phase), we achieve highly structured, self-correcting cognitive loops that can be plugged into _any_ part of the `xiuxian-artisan-workshop` system as an adversarial sub-graph.
 
 ### 6.3 Context Window Management
 
@@ -140,7 +144,7 @@ See [[docs/01_core/qianji/architecture/context-window-management.md|Context Wind
 
 | Capability                                                          | Status               | Evidence                                                                                                                                                                                                         |
 | :------------------------------------------------------------------ | :------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node-level Qianhuan binding in TOML                                 | ✅ Implemented       | `packages/rust/crates/xiuxian-qianji/src/contracts/mod.rs`                                                                                                                                                       |
+| Node-level annotation binding in TOML                               | ✅ Implemented       | `packages/rust/crates/xiuxian-qianji/src/contracts/mod.rs`                                                                                                                                                       |
 | Isolated vs appended execution mode                                 | ✅ Implemented       | `packages/rust/crates/xiuxian-qianji/src/contracts/mod.rs`, `packages/rust/crates/xiuxian-qianji/src/executors/annotation.rs`                                                                                    |
 | Structured handoff via whitelisted keys                             | ✅ Implemented       | `packages/rust/crates/xiuxian-qianji/src/executors/annotation.rs`, `packages/rust/crates/xiuxian-qianji/src/engine/compiler.rs`                                                                                  |
 | Concurrent critics + terminal gather                                | ✅ Implemented       | `packages/rust/crates/xiuxian-qianji/src/scheduler/core.rs`, `packages/rust/crates/xiuxian-qianji/src/scheduler/state.rs`, `packages/rust/crates/xiuxian-qianji/tests/test_context_isolation_and_concurrency.rs` |
@@ -194,7 +198,7 @@ Built-in workflow convention:
 2.  **Phase B (Done):** TOML Manifest Compiler.
 3.  **Phase C (Done):** Adversarial Loop & Probabilistic Routing.
 4.  **Phase D (Done):** Integration Testing on native Rust runtime (Python orchestration shadow path retired).
-5.  **Phase E (Done):** Formalized Qianji-Qianhuan Node Binding Interface in TOML (`[nodes.qianhuan]`).
+5.  **Phase E (Done):** Formalized the Qianji annotation node binding interface in TOML (`[nodes.annotation]`).
 6.  **Phase F (Done):** Implemented **LLM Client Multi-Tenancy (via `xiuxian-llm`)** with node-scoped LLM bindings in TOML (`[nodes.llm]`, legacy alias `[nodes.llm_config]`). Node-level model/provider selection is supported, and nodes without explicit model settings seamlessly fall back to the global unified runtime model (`llm_model_fallback`) resolved from `xiuxian.toml`.
 
 ---

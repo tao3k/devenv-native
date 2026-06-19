@@ -32,7 +32,7 @@ This prevents us from building truly autonomous, LLM-driven adversarial loops wh
 
 We will implement **Mechanism Fusion** in the `QianjiCompiler`. We will upgrade the `FormalAuditMechanism` to optionally operate as an **LLM-Driven Flow Controller**.
 
-If a `formal_audit` node definition contains `[nodes.qianhuan]` and `[nodes.llm]` bindings, the compiler will construct an **LLM-Augmented Audit Mechanism**.
+If a `formal_audit` node definition contains `[nodes.annotation]` and `[nodes.llm]` bindings, the compiler will construct an **LLM-Augmented Audit Mechanism**.
 
 ### The Execution Lifecycle of the LLM-Augmented Audit:
 
@@ -98,13 +98,13 @@ impl QianjiMechanism for LlmAugmentedAuditMechanism {
 
 ### 3.2 Modifying `QianjiCompiler`
 
-In `packages/rust/crates/xiuxian-qianji/src/engine/compiler.rs`, the `build_formal_audit_mechanism` function will inspect the `NodeDefinition`. If `node_def.qianhuan` or `node_def.llm` is present, it will instantiate `LlmAugmentedAuditMechanism`. Otherwise, it falls back to the legacy logical `FormalAuditMechanism`.
+In `packages/rust/crates/xiuxian-qianji/src/engine/compiler.rs`, the `build_formal_audit_mechanism` function will inspect the `NodeDefinition`. If `node_def.annotation` or `node_def.llm` is present, it will instantiate `LlmAugmentedAuditMechanism`. Otherwise, it falls back to the legacy logical `FormalAuditMechanism`.
 
 ## 4. Addressing the Data Gap (Historical Reality)
 
 To make the "Strict Teacher" effective, it needs real data. Currently, `critique_agenda.j2` expects `{{ wendao_search_results }}`.
 
-To bridge this, we must ensure that the `agenda_flow.toml` workflow explicitly includes a **Wendao Retrieval Node** _before_ the Strict Teacher node, using the newly built `ZhenfaTool` infrastructure (via an `action` or `knowledge` node in Qianji) to query the user's past carryover metrics and inject them into the context.
+To bridge this, we must ensure that the `agenda_flow.toml` workflow explicitly includes a **Wendao Retrieval Node** _before_ the Strict Teacher node, using the direct Wendao search boundary (via an `action` or `knowledge` node in Qianji) to query the user's past carryover metrics and inject them into the context.
 
 ## 5. Implementation Plan
 

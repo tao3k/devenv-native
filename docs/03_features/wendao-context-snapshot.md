@@ -41,7 +41,6 @@ The engine provides a direct `rollback(snap_id)` interface, physically implement
 
 - [[docs/03_features/wendao-agentic-retrieval.md|Agentic Retrieval]]
 - [[docs/03_features/wendao-living-brain.md|Living Brain]]
-- [[docs/03_features/qianhuan-audit-closure.md|Qianhuan Audit Loop]]
 
 ---
 

@@ -119,9 +119,11 @@ keys before later evidence attachment or gate evaluation.
 - **Probabilistic MDP Routing:** Decisions are not binary. Edges carry weights influenced by **Omega's Confidence**, allowing the system to explore multiple paths based on probability.
 - **Adversarial Loops:** Natively supports the **Synapse-Audit** pattern, where nodes actively challenge and verify each other’s evidence links.
 
-### 2.3 The Mirror Face (Qianhuan Integration)
+### 2.3 The Mirror Face (Local Annotation)
 
-Qianji is a **High-Performance Annotator**. In the milliseconds before a node executes, it calls upon `xiuxian-qianhuan` to transmute raw data into persona-aligned context, ensuring the Agent always wears the correct "Face" for the task.
+Qianji is a **High-Performance Annotator**. In the milliseconds before a node
+executes, it assembles persona-aligned context locally from manifest bindings,
+LinkGraph evidence, and workflow state.
 
 The formal-audit advisory bridge can opt into `advisory-prompt-pack-cache`.
 When that feature is enabled, callers may supply a
@@ -133,12 +135,12 @@ When that feature is enabled, callers may supply a
 bundle before running live advisory feedback; concrete feedback routes then
 propagate the injected cache to the live advisory executor without constructing
 route-local cache backends. Qianji still owns only the workflow/advisory plan
-boundary; Qianhuan owns prompt-context pack identity and serialization; db-store
+boundary; Qianji-local annotation owns prompt-context pack identity and serialization; db-store
 owns the artifact cache backend. Plans and live findings report per-role
 prompt-context pack cache hits and byte counts without changing the default
-advisory planning path. When the cache is enabled, Qianji calls Qianhuan's
-owned fetch-through helper for prompt-context packs; db-store and Foyer perform
-the same-key miss coalescing, while Qianji remains a cache consumer and never
+advisory planning path. When the cache is enabled, Qianji builds the
+prompt-context pack identity and bytes locally; db-store and Foyer perform the
+same-key miss coalescing, while Qianji remains a cache consumer and never
 constructs a concrete cache backend.
 
 ---
@@ -827,10 +829,10 @@ stale semantic-node names now fail validation explicitly, and
 explicit `Graph name: <merimind_graph_name>` and `Path: ./plan/<file>.mmd`
 fields in the markdown preview surface. The
 control-plane markdown renderer path is now also deduplicated through one
-shared embedded `qianhuan` template catalog exported by
-`xiuxian-qianhuan`, so `show`, `check`, Flowhub-root/module blocks, and
-Flowhub-scenario preview blocks no longer each own a separate local
-`OnceLock` plus embedded-template bootstrap path inside `xiuxian-qianji`.
+Qianji-local embedded template catalog, so `show`, `check`,
+Flowhub-root/module blocks, and Flowhub-scenario preview blocks no longer each
+own a separate local `OnceLock` plus embedded-template bootstrap path inside
+`xiuxian-qianji`.
 Those control-plane templates now also live as checked-in `.md.j2` files
 under `resources/templates/control_plane/`, so the Rust side only keeps
 payload assembly plus `include_str!` bindings rather than large inline
