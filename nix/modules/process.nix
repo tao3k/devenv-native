@@ -158,31 +158,5 @@ in
         };
       };
     };
-
-    wendaosearch-solver-demo = {
-      exec = processEntrypoint "wendaosearch-solver-demo";
-      process-compose = {
-        readiness_probe = {
-          exec.command = processHealthcheck "wendaosearch-solver-demo";
-          initial_delay_seconds = 5;
-          period_seconds = 2;
-          timeout_seconds = 3;
-          failure_threshold = 90;
-        };
-      };
-    };
-
-    wendaocodeparser-parser-summary = {
-      exec = processEntrypoint "wendaocodeparser-parser-summary";
-      process-compose = {
-        readiness_probe = {
-          exec.command = processHealthcheck "wendaocodeparser-parser-summary";
-          initial_delay_seconds = 5;
-          period_seconds = 2;
-          timeout_seconds = 3;
-          failure_threshold = 90;
-        };
-      };
-    };
   };
 }

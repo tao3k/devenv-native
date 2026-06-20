@@ -17,8 +17,7 @@ ENTRYPOINT_PROCESSES = (
     "wendao-frontend",
     "wendao-gateway",
     "wendao-sentinel",
-    "wendaocodeparser-parser-summary",
-    "wendaosearch-solver-demo",
+    "wendao-semantic-refresh",
 )
 
 HEALTHCHECK_PROCESSES = (
@@ -30,8 +29,7 @@ HEALTHCHECK_PROCESSES = (
     "wendao-frontend",
     "wendao-gateway",
     "wendao-sentinel",
-    "wendaocodeparser-parser-summary",
-    "wendaosearch-solver-demo",
+    "wendao-semantic-refresh",
 )
 
 
@@ -54,6 +52,7 @@ def test_process_nix_delegates_startup_to_process_entrypoints() -> None:
         "VALKEY_",
         "wendao.toml",
         "WendaoSearch.jl",
+        "WendaoCodeParser.jl",
     ):
         assert forbidden not in process_nix
 
@@ -142,12 +141,12 @@ def test_wendao_gateway_entrypoint_sets_attachment_route_defaults() -> None:
     entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(encoding="utf-8")
     audio_provider_export = (
         'export WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER="'
-        '${WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER:-'
+        "${WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER:-"
         '${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"'
     )
     image_provider_export = (
         'export WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER="'
-        '${WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER:-'
+        "${WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER:-"
         '${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"'
     )
 
@@ -173,17 +172,17 @@ def test_wendao_gateway_entrypoint_uses_auto_build_mode() -> None:
 
 
 def test_process_healthchecks_have_short_internal_retries() -> None:
-    gateway_healthcheck = (PROJECT_ROOT / "scripts/runtime/wendao-gateway-healthcheck.sh").read_text(
-        encoding="utf-8"
-    )
+    gateway_healthcheck = (
+        PROJECT_ROOT / "scripts/runtime/wendao-gateway-healthcheck.sh"
+    ).read_text(encoding="utf-8")
     analyzer_healthcheck = (
         PROJECT_ROOT / "scripts/runtime/wendao-analyzer-healthcheck.sh"
     ).read_text(encoding="utf-8")
 
     assert 'TIMEOUT_SECS="${WENDAO_GATEWAY_HEALTH_TIMEOUT_SECS:-0.5}"' in gateway_healthcheck
     assert 'ATTEMPTS="${WENDAO_GATEWAY_HEALTH_ATTEMPTS:-3}"' in gateway_healthcheck
-    assert "--attempts \"$ATTEMPTS\"" in gateway_healthcheck
-    assert "--retry-delay-secs \"$RETRY_DELAY_SECS\"" in gateway_healthcheck
+    assert '--attempts "$ATTEMPTS"' in gateway_healthcheck
+    assert '--retry-delay-secs "$RETRY_DELAY_SECS"' in gateway_healthcheck
     assert 'TIMEOUT_SECS="${WENDAO_ANALYZER_HEALTH_TIMEOUT_SECS:-0.5}"' in analyzer_healthcheck
     assert 'ATTEMPTS="${WENDAO_ANALYZER_HEALTH_ATTEMPTS:-3}"' in analyzer_healthcheck
     assert "after {attempts} attempt(s)" in analyzer_healthcheck
@@ -225,12 +224,11 @@ def test_wendao_gateway_entrypoint_builds_full_attachment_surface() -> None:
     assert '--features "$SENTINEL_FEATURES"' in sentinel_entrypoint
 
 
-def test_process_nix_exposes_code_parser_summary_service() -> None:
+def test_process_nix_does_not_expose_retired_julia_search_processes() -> None:
     process_nix = PROCESS_NIX.read_text(encoding="utf-8")
 
-    assert "wendaocodeparser-parser-summary = {" in process_nix
-    assert 'exec = processEntrypoint "wendaocodeparser-parser-summary";' in process_nix
-    assert 'exec.command = processHealthcheck "wendaocodeparser-parser-summary";' in process_nix
+    assert "wendaocodeparser-parser-summary = {" not in process_nix
+    assert "wendaosearch-solver-demo = {" not in process_nix
     assert "wendaosearch-parser-summary = {" not in process_nix
 
 
@@ -274,7 +272,10 @@ def test_vllm_sr_entrypoint_uses_required_mode_gate() -> None:
     assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"' in entrypoint
     assert "unsupported WENDAO_MODEL_ROUTING_MODE" in entrypoint
     assert 'SERVE_ARGS=(serve --config "$CONFIG_PATH"' in entrypoint
-    assert 'CONFIG_PATH="${WENDAO_VLLM_SR_CONFIG_PATH:-$PROJECT_CONFIG_ROOT/vllm-sr/config.yaml}"' in entrypoint
+    assert (
+        'CONFIG_PATH="${WENDAO_VLLM_SR_CONFIG_PATH:-$PROJECT_CONFIG_ROOT/vllm-sr/config.yaml}"'
+        in entrypoint
+    )
     assert "Wendao model routing mode is deterministic" in entrypoint
     assert 'MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"' in healthcheck
     assert "socket.create_connection" in healthcheck
@@ -284,28 +285,21 @@ def test_wendao_gateway_entrypoint_defaults_to_local_gateway_routing() -> None:
     entrypoint = (PROCESS_ROOT / "wendao-gateway" / "entrypoint.sh").read_text(encoding="utf-8")
 
     assert 'WENDAO_MODEL_ROUTING_MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"' in entrypoint
-    assert 'WENDAO_CHAT_ROUTE_MODEL="${WENDAO_CHAT_ROUTE_MODEL:-${WENDAO_VLLM_SR_DEFAULT_MODEL:-deepseek/deepseek-v4-pro}}"' in entrypoint
-    assert 'WENDAO_CHAT_ROUTE_PROVIDER="${WENDAO_CHAT_ROUTE_PROVIDER:-${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"' in entrypoint
-
-
-def test_code_parser_summary_entrypoint_targets_wendaocodeparser_runtime() -> None:
-    entrypoint = (PROCESS_ROOT / "wendaocodeparser-parser-summary" / "entrypoint.sh").read_text(
-        encoding="utf-8"
+    assert (
+        'WENDAO_CHAT_ROUTE_MODEL="${WENDAO_CHAT_ROUTE_MODEL:-${WENDAO_VLLM_SR_DEFAULT_MODEL:-deepseek/deepseek-v4-pro}}"'
+        in entrypoint
     )
-    wendaosearch_entrypoint = (PROCESS_ROOT / "wendaosearch" / "entrypoint.sh").read_text(
-        encoding="utf-8"
+    assert (
+        'WENDAO_CHAT_ROUTE_PROVIDER="${WENDAO_CHAT_ROUTE_PROVIDER:-${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"'
+        in entrypoint
     )
 
-    assert "WENDAO_CODE_PARSER_PACKAGE_DIR" in entrypoint
-    assert "WendaoCodeParser.jl" in entrypoint
-    assert "run_service.jl" in entrypoint
-    assert "WENDAOSEARCH_JULIA_PROJECT" in entrypoint
-    assert "WENDAO_SEARCH_USE_ACTIVE_PROJECT" in entrypoint
-    assert "run_parser_summary_service.jl" not in entrypoint
-    assert "WendaoSearch.jl/config/live/parser_summary.toml" not in entrypoint
-    assert 'JULIA_PROJECT="${WENDAOSEARCH_JULIA_PROJECT:-$PACKAGE_DIR}"' in (
-        wendaosearch_entrypoint
-    )
-    assert 'SCRIPT_PATH="$(process_abs_path "$PACKAGE_DIR/scripts" "$SCRIPT_NAME")"' in (
-        wendaosearch_entrypoint
-    )
+
+def test_retired_julia_search_process_entrypoints_are_removed() -> None:
+    for process_name in (
+        "wendaocodeparser-parser-summary",
+        "wendaosearch-solver-demo",
+        "wendaosearch",
+    ):
+        assert not (PROCESS_ROOT / process_name / "entrypoint.sh").exists()
+        assert not (PROCESS_ROOT / process_name / "healthcheck.sh").exists()

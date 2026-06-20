@@ -18,7 +18,6 @@ This directory contains utility scripts for the `xiuxian-artisan-workshop` proje
 | `benchmark_wendao_related.py`                 | Benchmark wendao related latency and PPR diagnostics                                                     |
 | `gate_wendao_ppr.sh`                          | Unified WG2/WG3 gate: retrieval matrix quality + related PPR latency/diagnostics                         |
 | `fetch_previous_skills_benchmark_artifact.py` | Fetch a member file from the latest matching successful GitHub Actions artifact into a local output path |
-| `channel/memory_ci_finalize.py`               | Shared artifact finalizer for legacy channel memory CI artifacts                                         |
 
 ### Bot channel launchers
 
