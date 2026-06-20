@@ -549,6 +549,24 @@ where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
+    if batch_size == 1 {
+        let batch_poll_index = poll_index;
+        let batch_poll_now_ms = batch_now_ms;
+        let batch_poll_settled_at_ms = batch_settled_at_ms;
+        return worker_loop_iteration(
+            ledger,
+            hot_state,
+            request,
+            task_queue,
+            &worker_refs[(batch_poll_index % worker_count) as usize],
+            batch_poll_index,
+            batch_poll_now_ms,
+            batch_poll_settled_at_ms,
+        )
+        .await
+        .map(|iteration| vec![iteration]);
+    }
+
     let mut futures = Vec::with_capacity(batch_size as usize);
     let mut now_ms = batch_now_ms;
     let mut settled_at_ms = batch_settled_at_ms;
