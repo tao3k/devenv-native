@@ -319,13 +319,13 @@ where
     let executor_registry = ActivityExecutorRegistry::fixture_only();
     let executor_contract = executor_registry
         .validate_task(request.executor, Some(&claimed_task.activity_task.task))?;
+    validate_openai_compatible_request(request)?;
     if !executor_registry.can_execute(request.executor) {
         return Err(invalid_input(format!(
             "activity executor `{}` passed admission but provider execution is not enabled in this slice",
             executor_contract.executor_label()
         )));
     }
-    validate_openai_compatible_request(request)?;
     let start = xiuxian_qianji_control::record_worker_activity_started_idempotent(
         ledger,
         xiuxian_qianji_control::WorkerActivityStartRecord::new(
