@@ -1,6 +1,8 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use std::sync::OnceLock;
+use std::time::Duration;
 
 /// Stable SQL query metadata mirrored from the Wendao REST surface.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -62,7 +64,7 @@ pub(crate) async fn query_sql_endpoint(
     endpoint: &str,
     query: &str,
 ) -> Result<SqlQueryPayload, String> {
-    let response = Client::new()
+    let response = http_client()
         .post(endpoint)
         .json(&RestQueryRequest::Sql {
             query: query.to_string(),
@@ -90,4 +92,21 @@ pub(crate) async fn query_sql_endpoint(
             "Wendao query endpoint returned a GraphQL payload for a SQL request: {graphql_payload}"
         )),
     }
+}
+
+fn http_client() -> &'static Client {
+    static CLIENT: OnceLock<Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        Client::builder()
+            .connect_timeout(Duration::from_secs(5))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .pool_max_idle_per_host(32)
+            .brotli(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true)
+            .timeout(Duration::from_secs(60))
+            .build()
+            .unwrap_or_else(|_| Client::new())
+    })
 }

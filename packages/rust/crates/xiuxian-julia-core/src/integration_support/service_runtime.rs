@@ -369,13 +369,14 @@ fn service_ready_max_wait_millis(attempts: usize) -> u64 {
         WENDAOSEARCH_SERVICE_READY_RETRY_DELAY_MILLIS,
     );
     let attempts_based_millis = (attempts as u128)
-        .saturating_mul(delay_millis as u128)
+        .saturating_mul(u128::from(delay_millis))
         .min(u128::from(u64::MAX / 2));
+    let attempts_based_millis = u64::try_from(attempts_based_millis).unwrap_or(u64::MAX);
     parse_positive_u64_env(
         WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS_ENV,
         WENDAOSEARCH_SERVICE_READY_MAX_WAIT_MILLIS,
     )
-    .min(attempts_based_millis as u64)
+    .min(attempts_based_millis)
 }
 
 fn service_ready_retry_delay_millis() -> u64 {

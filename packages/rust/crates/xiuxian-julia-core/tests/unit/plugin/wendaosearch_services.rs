@@ -134,10 +134,10 @@ pub(crate) async fn wait_for_service_ready_with_attempts(
 ) -> Result<(), String> {
     if let Some((host, port)) = parse_base_url_host_port(base_url) {
         for attempt in 0..attempts {
-            if service_tcp_ready(&host, port).await {
-                if let Ok(true) = probe_wendaosearch_service(&host, port).await {
-                    return Ok(());
-                }
+            if service_tcp_ready(&host, port).await
+                && let Ok(true) = probe_wendaosearch_service(&host, port)
+            {
+                return Ok(());
             }
             if attempt + 1 == attempts {
                 break;
@@ -182,7 +182,7 @@ async fn service_tcp_ready(host: &str, port: u16) -> bool {
     TcpStream::connect(format!("{host}:{port}")).await.is_ok()
 }
 
-async fn probe_wendaosearch_service(host: &str, port: u16) -> Result<bool, String> {
+fn probe_wendaosearch_service(host: &str, port: u16) -> Result<bool, String> {
     if !wendaosearch_probe_script_available() {
         return Ok(true);
     }
@@ -374,9 +374,7 @@ async fn service_is_ready(base_url: &str) -> bool {
         if !service_tcp_ready(&host, port).await {
             return false;
         }
-        return probe_wendaosearch_service(&host, port)
-            .await
-            .unwrap_or(false);
+        return probe_wendaosearch_service(&host, port).unwrap_or(false);
     }
 
     let socket_addr = base_url

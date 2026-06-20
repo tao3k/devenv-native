@@ -13,18 +13,47 @@ pub struct ProjectDirs {
     runtime_dir: PathBuf,
 }
 
+/// Named inputs for resolving project-local directories.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectDirsConfig {
+    /// Project root used to resolve relative `PRJ_*` values.
+    pub project_root: PathBuf,
+    /// Optional `PRJ_CONFIG_HOME` value.
+    pub config_home: Option<String>,
+    /// Optional `PRJ_DATA_HOME` value.
+    pub data_home: Option<String>,
+    /// Optional `PRJ_CACHE_HOME` value.
+    pub cache_home: Option<String>,
+    /// Optional `PRJ_RUNTIME_DIR` value.
+    pub runtime_dir: Option<String>,
+}
+
+impl ProjectDirsConfig {
+    /// Build a config using only the project root and default homes.
+    #[must_use]
+    pub fn new(project_root: impl Into<PathBuf>) -> Self {
+        Self {
+            project_root: project_root.into(),
+            config_home: None,
+            data_home: None,
+            cache_home: None,
+            runtime_dir: None,
+        }
+    }
+}
+
 impl ProjectDirs {
     /// Resolve project directories from the current process environment.
     #[must_use]
     pub fn from_env() -> Self {
         let project_root = resolve_project_root_or_cwd();
-        Self::from_values(
+        Self::from_values(ProjectDirsConfig {
             project_root,
-            std::env::var("PRJ_CONFIG_HOME").ok().as_deref(),
-            std::env::var("PRJ_DATA_HOME").ok().as_deref(),
-            std::env::var("PRJ_CACHE_HOME").ok().as_deref(),
-            std::env::var("PRJ_RUNTIME_DIR").ok().as_deref(),
-        )
+            config_home: std::env::var("PRJ_CONFIG_HOME").ok(),
+            data_home: std::env::var("PRJ_DATA_HOME").ok(),
+            cache_home: std::env::var("PRJ_CACHE_HOME").ok(),
+            runtime_dir: std::env::var("PRJ_RUNTIME_DIR").ok(),
+        })
     }
 
     /// Build project directories from explicit values.
@@ -32,21 +61,25 @@ impl ProjectDirs {
     /// Blank values are treated as absent. Relative values are resolved against
     /// `project_root`, matching the `PRJ_*` environment contract.
     #[must_use]
-    pub fn from_values(
-        project_root: PathBuf,
-        config_home: Option<&str>,
-        data_home: Option<&str>,
-        cache_home: Option<&str>,
-        runtime_dir: Option<&str>,
-    ) -> Self {
-        let config_home = resolve_home_from_value(Some(&project_root), config_home, ".config")
-            .unwrap_or_else(|| project_root.join(".config"));
-        let data_home = resolve_home_from_value(Some(&project_root), data_home, ".data")
+    pub fn from_values(config: ProjectDirsConfig) -> Self {
+        let ProjectDirsConfig {
+            project_root,
+            config_home,
+            data_home,
+            cache_home,
+            runtime_dir,
+        } = config;
+        let config_home =
+            resolve_home_from_value(Some(&project_root), config_home.as_deref(), ".config")
+                .unwrap_or_else(|| project_root.join(".config"));
+        let data_home = resolve_home_from_value(Some(&project_root), data_home.as_deref(), ".data")
             .unwrap_or_else(|| project_root.join(".data"));
-        let cache_home = resolve_home_from_value(Some(&project_root), cache_home, ".cache")
-            .unwrap_or_else(|| project_root.join(".cache"));
-        let runtime_dir = resolve_home_from_value(Some(&project_root), runtime_dir, ".run")
-            .unwrap_or_else(|| project_root.join(".run"));
+        let cache_home =
+            resolve_home_from_value(Some(&project_root), cache_home.as_deref(), ".cache")
+                .unwrap_or_else(|| project_root.join(".cache"));
+        let runtime_dir =
+            resolve_home_from_value(Some(&project_root), runtime_dir.as_deref(), ".run")
+                .unwrap_or_else(|| project_root.join(".run"));
 
         Self {
             project_root,

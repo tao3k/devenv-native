@@ -289,8 +289,7 @@ fn fetch_julia_plugin_capability_manifest_rows_blocking_for_repository(
     })
     .map_err(|error| RepoIntelligenceError::AnalysisFailed {
         message: format!(
-            "failed to fetch Julia capability-manifest rows for repo `{}`: {error}",
-            repository_for_error
+            "failed to fetch Julia capability-manifest rows for repo `{repository_for_error}`: {error}"
         ),
     })?;
     Ok(result)

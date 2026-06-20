@@ -16,7 +16,7 @@ fn language_provider_for_path(path: &str) -> &'static str {
         Some("py") => "asp:python",
         Some("toml") => "asp:toml",
         Some("ts" | "tsx") => "asp:typescript",
-        Some("rs") | _ => "asp:rust",
+        _ => "asp:rust",
     }
 }
 

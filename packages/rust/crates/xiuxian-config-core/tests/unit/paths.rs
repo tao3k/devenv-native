@@ -3,8 +3,9 @@
 use std::path::Path;
 
 use xiuxian_config_core::{
-    ProjectDirs, resolve_cache_home_from_value, resolve_home_from_value, resolve_path_from_value,
-    resolve_project_root_or_cwd_from_value, resolve_runtime_dir_from_value,
+    ProjectDirs, ProjectDirsConfig, resolve_cache_home_from_value, resolve_home_from_value,
+    resolve_path_from_value, resolve_project_root_or_cwd_from_value,
+    resolve_runtime_dir_from_value,
 };
 
 #[test]
@@ -114,13 +115,9 @@ fn resolve_project_root_or_cwd_from_value_falls_back_to_dot_without_cwd() {
 
 #[test]
 fn project_dirs_from_values_preserves_prj_defaults() {
-    let dirs = ProjectDirs::from_values(
+    let dirs = ProjectDirs::from_values(ProjectDirsConfig::new(
         Path::new("/repo/project").to_path_buf(),
-        None,
-        None,
-        None,
-        None,
-    );
+    ));
 
     assert_eq!(dirs.project_root_path(), Path::new("/repo/project"));
     assert_eq!(dirs.config_home_path(), Path::new("/repo/project/.config"));
@@ -131,13 +128,13 @@ fn project_dirs_from_values_preserves_prj_defaults() {
 
 #[test]
 fn project_dirs_from_values_resolves_relative_prj_values() {
-    let dirs = ProjectDirs::from_values(
-        Path::new("/repo/project").to_path_buf(),
-        Some(".cfg"),
-        Some(".state/data"),
-        Some(".state/cache"),
-        Some(".state/run"),
-    );
+    let dirs = ProjectDirs::from_values(ProjectDirsConfig {
+        project_root: Path::new("/repo/project").to_path_buf(),
+        config_home: Some(".cfg".to_owned()),
+        data_home: Some(".state/data".to_owned()),
+        cache_home: Some(".state/cache".to_owned()),
+        runtime_dir: Some(".state/run".to_owned()),
+    });
 
     assert_eq!(dirs.config_home_path(), Path::new("/repo/project/.cfg"));
     assert_eq!(
@@ -156,13 +153,13 @@ fn project_dirs_from_values_resolves_relative_prj_values() {
 
 #[test]
 fn project_dirs_from_values_preserves_absolute_prj_values() {
-    let dirs = ProjectDirs::from_values(
-        Path::new("/repo/project").to_path_buf(),
-        Some("/tmp/config"),
-        Some("/tmp/data"),
-        Some("/tmp/cache"),
-        Some("/tmp/run"),
-    );
+    let dirs = ProjectDirs::from_values(ProjectDirsConfig {
+        project_root: Path::new("/repo/project").to_path_buf(),
+        config_home: Some("/tmp/config".to_owned()),
+        data_home: Some("/tmp/data".to_owned()),
+        cache_home: Some("/tmp/cache".to_owned()),
+        runtime_dir: Some("/tmp/run".to_owned()),
+    });
 
     assert_eq!(dirs.config_home_path(), Path::new("/tmp/config"));
     assert_eq!(dirs.data_home_path(), Path::new("/tmp/data"));

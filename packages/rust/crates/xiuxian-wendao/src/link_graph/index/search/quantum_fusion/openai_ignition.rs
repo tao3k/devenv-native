@@ -7,6 +7,8 @@ use crate::analyzers::RepoIntelligenceError;
 use crate::link_graph::models::{QuantumAnchorHit, QuantumSemanticSearchRequest};
 #[cfg(feature = "julia")]
 use arrow::record_batch::RecordBatch;
+use std::sync::OnceLock;
+use std::time::Duration;
 use thiserror::Error;
 use xiuxian_db_store::{SearchOptions, VectorStore, VectorStoreError};
 #[cfg(feature = "julia")]
@@ -47,7 +49,7 @@ impl OpenAiCompatibleSemanticIgnition {
             table_name: table_name.into(),
             search_options: SearchOptions::default(),
             backend_name: "openai-compatible+lance-vector-store".to_string(),
-            embedding_client: reqwest::Client::new(),
+            embedding_client: shared_embedding_client().clone(),
             embedding_base_url: embedding_base_url.into(),
             embedding_model: None,
         }
@@ -211,6 +213,24 @@ impl OpenAiCompatibleSemanticIgnition {
         .await
         .map_err(|error| format!("failed to build plugin rerank request batch: {error}"))
     }
+}
+
+fn shared_embedding_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(5))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .pool_max_idle_per_host(32)
+            .brotli(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true)
+            .timeout(Duration::from_secs(60))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new())
+    })
 }
 
 /// Error returned when OpenAI-compatible semantic ignition cannot produce

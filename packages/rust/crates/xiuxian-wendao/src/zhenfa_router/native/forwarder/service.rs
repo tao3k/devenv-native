@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use tokio::sync::{RwLock, mpsc};
@@ -202,8 +203,7 @@ impl ForwardNotifier {
             return Ok(());
         };
 
-        let client = reqwest::Client::new();
-        let response = client
+        let response = webhook_client()
             .post(url)
             .json(notification)
             .timeout(Duration::from_secs(10))
@@ -239,6 +239,24 @@ impl ForwardNotifier {
     pub fn can_auto_fix(&self, drift: &SemanticDriftSignal) -> bool {
         self.config.auto_fix_enabled && drift.confidence >= self.config.auto_fix_min_confidence
     }
+}
+
+fn webhook_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(5))
+            .pool_idle_timeout(Duration::from_secs(120))
+            .pool_max_idle_per_host(64)
+            .brotli(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true)
+            .timeout(Duration::from_secs(10))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new())
+    })
 }
 
 impl Clone for ForwardNotifier {

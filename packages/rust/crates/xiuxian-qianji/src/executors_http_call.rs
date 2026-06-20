@@ -1,6 +1,8 @@
 //! Executors http call surface for `xiuxian-qianji`.
 
 use std::collections::BTreeMap;
+use std::sync::OnceLock;
+use std::time::Duration;
 
 use crate::contracts::{FlowInstruction, QianjiMechanism, QianjiOutput};
 use crate::scheduler_preflight::resolve_semantic_content;
@@ -22,6 +24,24 @@ pub struct HttpCallMechanism {
     pub query: BTreeMap<String, Value>,
     /// Context key used to merge the response payload.
     pub output_key: String,
+}
+
+fn shared_http_client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+    CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(5))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .pool_max_idle_per_host(32)
+            .brotli(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true)
+            .timeout(Duration::from_secs(60))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new())
+    })
 }
 
 #[async_trait]
@@ -46,7 +66,7 @@ impl QianjiMechanism for HttpCallMechanism {
             .parse::<reqwest::Method>()
             .map_err(|error| format!("invalid HTTP method `{method}`: {error}"))?;
 
-        let response = reqwest::Client::new()
+        let response = shared_http_client()
             .request(method.clone(), url.clone())
             .send()
             .await
