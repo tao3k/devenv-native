@@ -1,19 +1,20 @@
-{ lib
-, stdenv
-, python3Packages
-, rustPlatform
-, maturin
-, pkg-config
-, openssl
-, libiconv
-, python3
-, protobuf
-, runCommand
-, fetchzip
-, workspaceRoot
-, cargoDeps
-, version
-, ...
+{
+  lib,
+  stdenv,
+  python3Packages,
+  rustPlatform,
+  maturin,
+  pkg-config,
+  openssl,
+  libiconv,
+  python3,
+  protobuf,
+  runCommand,
+  fetchzip,
+  workspaceRoot,
+  cargoDeps,
+  version,
+  ...
 }:
 
 let
@@ -84,74 +85,31 @@ python3Packages.buildPythonPackage {
 
   preConfigure = ''
     mkdir -p .cargo
-    cargo_lock_git_rev() {
+    append_git_sources() {
       repo_url="$1"
-      rev="$(
-        sed -n "s#^source = \"git+''${repo_url//./\\.}?rev=\\([^#\"]*\\).*#\\1#p" ${workspaceRoot}/Cargo.lock | head -n1
+      revs="$(
+        sed -n "s#^source = \"git+''${repo_url//./\\.}?rev=\\([^#\"]*\\).*#\\1#p" ${workspaceRoot}/Cargo.lock | sort -u
       )"
-      if [ -z "$rev" ]; then
-        echo "failed to resolve git rev for $repo_url from Cargo.lock" >&2
-        exit 1
-      fi
-      printf "%s" "$rev"
-    }
-    cargo_lock_git_rev_or_default() {
-      repo_url="$1"
-      fallback_rev="$2"
-      rev="$(
-        sed -n "s#^source = \"git+''${repo_url//./\\.}?rev=\\([^#\"]*\\).*#\\1#p" ${workspaceRoot}/Cargo.lock | head -n1
-      )"
-      if [ -n "$rev" ]; then
-        printf "%s" "$rev"
-      else
-        printf "%s" "$fallback_rev"
-      fi
-    }
-
-    export LOPDF_REV="$(cargo_lock_git_rev "https://github.com/J-F-Liu/lopdf")"
-    export ORGIZE_REV="$(cargo_lock_git_rev "https://github.com/tao3k/orgize")"
-    export PDF_INSPECTOR_REV="$(cargo_lock_git_rev_or_default "https://github.com/firecrawl/pdf-inspector" "63b55731337c18baf23319b73cc9780bb23ac61b")"
-    export RUST_LANG_PROJECT_HARNESS_REV="$(cargo_lock_git_rev "https://github.com/tao3k/rust-lang-project-harness")"
-    export LANCE_REV="$(cargo_lock_git_rev "https://github.com/lancedb/lance.git")"
-    export LITELLM_RS_REV="$(cargo_lock_git_rev "https://github.com/majiayu000/litellm-rs")"
-    export LITCHI_REV="$(cargo_lock_git_rev "https://github.com/DevExzh/litchi.git")"
-
-    cat > .cargo/git-sources.toml <<EOF
-    [source."git+https://github.com/majiayu000/litellm-rs?rev=''${LITELLM_RS_REV}"]
-    git = "https://github.com/majiayu000/litellm-rs"
-    rev = "''${LITELLM_RS_REV}"
+      for rev in $revs; do
+        [ -n "$rev" ] || continue
+        cat >> .cargo/git-sources.toml <<EOF
+    [source."git+''${repo_url}?rev=''${rev}"]
+    git = "''${repo_url}"
+    rev = "''${rev}"
     replace-with = "vendored-sources"
 
-    [source."git+https://github.com/DevExzh/litchi.git?rev=''${LITCHI_REV}"]
-    git = "https://github.com/DevExzh/litchi.git"
-    rev = "''${LITCHI_REV}"
-    replace-with = "vendored-sources"
-
-    [source."git+https://github.com/J-F-Liu/lopdf?rev=''${LOPDF_REV}"]
-    git = "https://github.com/J-F-Liu/lopdf"
-    rev = "''${LOPDF_REV}"
-    replace-with = "vendored-sources"
-
-    [source."git+https://github.com/tao3k/orgize?rev=''${ORGIZE_REV}"]
-    git = "https://github.com/tao3k/orgize"
-    rev = "''${ORGIZE_REV}"
-    replace-with = "vendored-sources"
-
-    [source."git+https://github.com/firecrawl/pdf-inspector?rev=''${PDF_INSPECTOR_REV}"]
-    git = "https://github.com/firecrawl/pdf-inspector"
-    rev = "''${PDF_INSPECTOR_REV}"
-    replace-with = "vendored-sources"
-
-    [source."git+https://github.com/tao3k/rust-lang-project-harness?rev=''${RUST_LANG_PROJECT_HARNESS_REV}"]
-    git = "https://github.com/tao3k/rust-lang-project-harness"
-    rev = "''${RUST_LANG_PROJECT_HARNESS_REV}"
-    replace-with = "vendored-sources"
-
-    [source."git+https://github.com/lancedb/lance.git?rev=''${LANCE_REV}"]
-    git = "https://github.com/lancedb/lance.git"
-    rev = "''${LANCE_REV}"
-    replace-with = "vendored-sources"
     EOF
+      done
+    }
+
+    : > .cargo/git-sources.toml
+    append_git_sources "https://github.com/majiayu000/litellm-rs"
+    append_git_sources "https://github.com/DevExzh/litchi.git"
+    append_git_sources "https://github.com/J-F-Liu/lopdf"
+    append_git_sources "https://github.com/tao3k/orgize"
+    append_git_sources "https://github.com/firecrawl/pdf-inspector"
+    append_git_sources "https://github.com/tao3k/rust-lang-project-harness"
+    append_git_sources "https://github.com/lancedb/lance.git"
 
     cat > .cargo/config.toml <<EOF
     [source.crates-io]

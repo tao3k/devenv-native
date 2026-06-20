@@ -51,6 +51,10 @@
         hash = "sha256-Cp93QTsTrTkXizWYoZtFz88R3lX7+MmYN4E9JYBsyps=";
       };
       lanceVendorFixup = import ../../lib/lance-vendor-fixup.nix { inherit lanceSrc; };
+      restoreWorkspaceCargoLock = ''
+        echo "restoring workspace Cargo.lock for vendored git source replacement"
+        cp -f ${workspaceRoot}/Cargo.lock Cargo.lock
+      '';
       commonProjectDrvConfig = {
         mkDerivation = {
           nativeBuildInputs = [
@@ -61,6 +65,8 @@
             pkgs.openssl
             pkgs.cacert
           ];
+          postConfigure = restoreWorkspaceCargoLock;
+          preBuild = restoreWorkspaceCargoLock;
         };
         env = commonProjectEnv;
       };
@@ -68,7 +74,7 @@
         mkDerivation =
           let
             runCargoDepsFixup = ''
-              cp -f ${workspaceRoot}/Cargo.lock Cargo.lock
+              ${restoreWorkspaceCargoLock}
               ${lanceVendorFixup}
               echo "patching Lance cargo vendor manifests"
               fix_lance_vendor_dir "''${cargoVendorDir:-$TMPDIR/nix-vendor}"
