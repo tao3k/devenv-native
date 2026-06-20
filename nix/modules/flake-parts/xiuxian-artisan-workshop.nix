@@ -67,15 +67,16 @@
       commonProjectDepsDrvConfig = lib.recursiveUpdate commonProjectDrvConfig {
         mkDerivation =
           let
-            runLanceVendorFixup = ''
+            runCargoDepsFixup = ''
+              cp -f ${workspaceRoot}/Cargo.lock Cargo.lock
               ${lanceVendorFixup}
               echo "patching Lance cargo vendor manifests"
               fix_lance_vendor_dir "''${cargoVendorDir:-$TMPDIR/nix-vendor}"
             '';
           in
           {
-            postConfigure = runLanceVendorFixup;
-            preBuild = runLanceVendorFixup;
+            postConfigure = runCargoDepsFixup;
+            preBuild = runCargoDepsFixup;
           };
       };
     in
