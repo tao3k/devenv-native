@@ -4,6 +4,8 @@
 //! that connect UI/API requests to Wendao domain services. Low-level Flight and
 //! gRPC transport contracts are provided by `xiuxian-wendao-server`.
 
+#![recursion_limit = "256"]
+
 #[cfg(all(test, feature = "document-extract-audio-shards"))]
 #[path = "test_support/unit/mod.rs"]
 pub(crate) mod test_support_unit;

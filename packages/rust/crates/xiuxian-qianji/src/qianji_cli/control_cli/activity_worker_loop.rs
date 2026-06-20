@@ -456,19 +456,25 @@ where
     let mut next_settled_at_ms = request.settled_at_ms;
     let mut poll_index = 0;
 
+    let context = WorkerLoopContext {
+        ledger,
+        hot_state,
+        request: &request,
+        task_queue: task_queue.as_ref(),
+    };
+
     while poll_index < request.poll_limit {
         let batch_size = worker_count.min(request.poll_limit - poll_index);
         let batch_iterations = worker_loop_batch_iterations(
-            ledger,
-            hot_state,
-            &request,
-            task_queue.as_ref(),
-            &worker_refs,
-            worker_count,
-            poll_index,
-            batch_size,
-            next_now_ms,
-            next_settled_at_ms,
+            &context,
+            WorkerLoopBatchPlan {
+                worker_refs: &worker_refs,
+                worker_count,
+                poll_index,
+                batch_size,
+                now_ms: next_now_ms,
+                settled_at_ms: next_settled_at_ms,
+            },
         )
         .await?;
         let next_batch_now = next_now_ms
@@ -533,65 +539,80 @@ where
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-async fn worker_loop_batch_iterations<L, H>(
-    ledger: &L,
-    hot_state: &H,
-    request: &ActivityWorkerLoopStoreRequest<'_>,
-    task_queue: Option<&xiuxian_qianji_control::TaskQueue>,
-    worker_refs: &[xiuxian_qianji_control::WorkerRef],
+struct WorkerLoopContext<'a, 'request, L: ?Sized, H: ?Sized> {
+    ledger: &'a L,
+    hot_state: &'a H,
+    request: &'a ActivityWorkerLoopStoreRequest<'request>,
+    task_queue: Option<&'a xiuxian_qianji_control::TaskQueue>,
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+struct WorkerLoopBatchPlan<'a> {
+    worker_refs: &'a [xiuxian_qianji_control::WorkerRef],
     worker_count: u32,
     poll_index: u32,
     batch_size: u32,
-    batch_now_ms: u64,
-    batch_settled_at_ms: u64,
+    now_ms: u64,
+    settled_at_ms: u64,
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+struct WorkerLoopIterationPlan {
+    poll_index: u32,
+    now_ms: u64,
+    settled_at_ms: u64,
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+async fn worker_loop_batch_iterations<L, H>(
+    context: &WorkerLoopContext<'_, '_, L, H>,
+    plan: WorkerLoopBatchPlan<'_>,
 ) -> io::Result<Vec<ActivityWorkerLoopIteration>>
 where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
-    if batch_size == 1 {
-        let batch_poll_index = poll_index;
-        let batch_poll_now_ms = batch_now_ms;
-        let batch_poll_settled_at_ms = batch_settled_at_ms;
+    if plan.batch_size == 1 {
+        let batch_poll_index = plan.poll_index;
         return worker_loop_iteration(
-            ledger,
-            hot_state,
-            request,
-            task_queue,
-            &worker_refs[(batch_poll_index % worker_count) as usize],
-            batch_poll_index,
-            batch_poll_now_ms,
-            batch_poll_settled_at_ms,
+            context,
+            &plan.worker_refs[(batch_poll_index % plan.worker_count) as usize],
+            WorkerLoopIterationPlan {
+                poll_index: batch_poll_index,
+                now_ms: plan.now_ms,
+                settled_at_ms: plan.settled_at_ms,
+            },
         )
         .await
         .map(|iteration| vec![iteration]);
     }
 
-    let mut futures = Vec::with_capacity(batch_size as usize);
-    let mut now_ms = batch_now_ms;
-    let mut settled_at_ms = batch_settled_at_ms;
-    for offset in 0..batch_size {
-        let batch_poll_index = poll_index.saturating_add(offset);
-        let worker_ref = &worker_refs[(batch_poll_index % worker_count) as usize];
+    let mut futures = Vec::with_capacity(plan.batch_size as usize);
+    let mut now_ms = plan.now_ms;
+    let mut settled_at_ms = plan.settled_at_ms;
+    for offset in 0..plan.batch_size {
+        let batch_poll_index = plan.poll_index.saturating_add(offset);
+        let worker_ref = &plan.worker_refs[(batch_poll_index % plan.worker_count) as usize];
         let batch_poll_now_ms = now_ms;
-        now_ms = now_ms.checked_add(request.now_step_ms).ok_or_else(|| {
-            invalid_input("`control activity-worker-loop` `now_ms` overflowed u64")
-        })?;
+        now_ms = now_ms
+            .checked_add(context.request.now_step_ms)
+            .ok_or_else(|| {
+                invalid_input("`control activity-worker-loop` `now_ms` overflowed u64")
+            })?;
         let batch_poll_settled_at_ms = settled_at_ms;
         settled_at_ms = settled_at_ms
-            .checked_add(request.settled_step_ms)
+            .checked_add(context.request.settled_step_ms)
             .ok_or_else(|| {
                 invalid_input("`control activity-worker-loop` `settled_at_ms` overflowed u64")
             })?;
         futures.push(worker_loop_iteration(
-            ledger,
-            hot_state,
-            request,
-            task_queue,
+            context,
             worker_ref,
-            batch_poll_index,
-            batch_poll_now_ms,
-            batch_poll_settled_at_ms,
+            WorkerLoopIterationPlan {
+                poll_index: batch_poll_index,
+                now_ms: batch_poll_now_ms,
+                settled_at_ms: batch_poll_settled_at_ms,
+            },
         ));
     }
     join_all(futures).await.into_iter().collect()
@@ -599,31 +620,27 @@ where
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 async fn worker_loop_iteration<L, H>(
-    ledger: &L,
-    hot_state: &H,
-    request: &ActivityWorkerLoopStoreRequest<'_>,
-    task_queue: Option<&xiuxian_qianji_control::TaskQueue>,
+    context: &WorkerLoopContext<'_, '_, L, H>,
     worker_ref: &xiuxian_qianji_control::WorkerRef,
-    poll_index: u32,
-    now_ms: u64,
-    settled_at_ms: u64,
+    plan: WorkerLoopIterationPlan,
 ) -> io::Result<ActivityWorkerLoopIteration>
 where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
+    let request = context.request;
     let output = worker_once_output_with_claim_scope_with_worker_ref(
-        ledger,
-        hot_state,
+        context.ledger,
+        context.hot_state,
         &ActivityWorkerOnceStoreRequest {
             worker_id: request.worker_id,
             task_queue: request.task_queue,
-            now_ms,
+            now_ms: plan.now_ms,
             lease_ttl_ms: request.lease_ttl_ms,
             heartbeat_ttl_ms: request.heartbeat_ttl_ms,
             executor: request.executor,
             outcome: request.outcome,
-            settled_at_ms,
+            settled_at_ms: plan.settled_at_ms,
             output_ref_json: None,
             output_hash: request.output_hash,
             output_artifact_path: None,
@@ -641,14 +658,14 @@ where
             json: true,
         },
         worker_ref,
-        task_queue,
+        context.task_queue,
         None,
     )
     .await?;
     Ok(ActivityWorkerLoopIteration {
-        poll_index,
-        now_ms,
-        settled_at_ms,
+        poll_index: plan.poll_index,
+        now_ms: plan.now_ms,
+        settled_at_ms: plan.settled_at_ms,
         output,
     })
 }

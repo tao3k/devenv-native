@@ -17,7 +17,7 @@ pub(crate) const GATEWAY_API_TOKEN_POSTGRES_DSN_ENV: &str =
 pub(crate) const GATEWAY_API_TOKEN_POSTGRES_AUTO_MIGRATE_ENV: &str =
     "XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_AUTO_MIGRATE";
 
-pub(crate) const GATEWAY_API_TOKEN_POSTGRES_SCHEMA_SQL: &str = r#"
+pub(crate) const GATEWAY_API_TOKEN_POSTGRES_SCHEMA_SQL: &str = r"
 CREATE TABLE IF NOT EXISTS wendao_gateway_api_tokens (
     token_prefix TEXT PRIMARY KEY,
     verifier_hash TEXT NOT NULL,
@@ -30,15 +30,15 @@ CREATE TABLE IF NOT EXISTS wendao_gateway_api_tokens (
 
 CREATE INDEX IF NOT EXISTS wendao_gateway_api_tokens_status_idx
     ON wendao_gateway_api_tokens (status);
-"#;
+";
 
-const SELECT_API_TOKEN_SQL: &str = r#"
+const SELECT_API_TOKEN_SQL: &str = r"
 SELECT token_prefix, verifier_hash, scopes, status, expires_at_unix_seconds
 FROM wendao_gateway_api_tokens
 WHERE token_prefix = $1
-"#;
+";
 
-const UPSERT_API_TOKEN_SQL: &str = r#"
+const UPSERT_API_TOKEN_SQL: &str = r"
 INSERT INTO wendao_gateway_api_tokens (
     token_prefix,
     verifier_hash,
@@ -52,7 +52,7 @@ ON CONFLICT (token_prefix) DO UPDATE SET
     status = EXCLUDED.status,
     expires_at_unix_seconds = EXCLUDED.expires_at_unix_seconds,
     updated_at = now()
-"#;
+";
 
 #[derive(Clone)]
 pub(crate) struct GatewayPostgresApiTokenRepository {

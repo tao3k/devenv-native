@@ -8,22 +8,31 @@ use rust_lang_project_harness::{
     RustProjectHarnessWorkspaceEvidenceGraphReceipt, RustProjectHarnessWorkspacePolicy,
 };
 
-pub use rust_lang_project_harness::{
-    RustOwnerResponsibility, RustVerificationPhase, RustVerificationProfileHint,
-    RustVerificationRequirement, RustVerificationTaskContract, RustVerificationTaskKind,
-};
+/// Types intentionally exposed for member `build.rs` policy hints.
+pub mod prelude {
+    pub use rust_lang_project_harness::{
+        RustOwnerResponsibility, RustVerificationPhase, RustVerificationProfileHint,
+        RustVerificationRequirement, RustVerificationTaskContract, RustVerificationTaskKind,
+    };
+}
 
 /// Human-readable label used in workspace evidence graph receipts.
 pub const XIUXIAN_WORKSPACE_LABEL: &str = "xiuxian-artisan-workshop";
 
 /// The rust harness git revision pinned by the xiuxian workspace policy.
-pub const XIUXIAN_RUST_HARNESS_REV: &str = "f90dc81be0e9cdac6de4ec9378d57d78eaf6b1eb";
+pub const XIUXIAN_RUST_HARNESS_REV: &str = "149c6f9ef535c04cf47814fb86b436fd70f95c45";
 
 /// The rust harness crate version expected at [`XIUXIAN_RUST_HARNESS_REV`].
 pub const XIUXIAN_RUST_HARNESS_VERSION: &str = "0.1.2";
 
-/// Shared build-gate explanation for currently advisory cargo-check findings.
-pub const XIUXIAN_BUILD_GATE_ADVICE_ALLOW_EXPLANATION: &str = "The workspace rs-harness gate is active; existing advisory findings remain visible through rs-harness check while workspace-owned cleanup continues.";
+/// Shared build-gate explanation for advisory cargo-check findings.
+pub const XIUXIAN_BUILD_GATE_ADVICE_ALLOW_EXPLANATION: &str = concat!(
+    "scope=xiuxian workspace build.rs gates; ",
+    "owner=xiuxian-rust-workspace-harness; ",
+    "finding_category=advisory project-policy migrations; ",
+    "why_safe_now=warnings/errors remain blocking and advisory findings stay visible in harness output; ",
+    "cleanup_trigger=promote assert_member_harness_build_gate_from_env to the strict downstream policy gate after transitive rust-harness rev drift is removed"
+);
 
 /// Build the shared harness config used by xiuxian member build gates.
 #[must_use]
@@ -58,17 +67,6 @@ pub fn xiuxian_member_policy(crate_label: impl Into<String>) -> RustProjectHarne
     xiuxian_workspace_policy().member_crate(crate_label)
 }
 
-/// Assert the legacy-compatible member build gate from `CARGO_MANIFEST_DIR`.
-///
-/// # Panics
-///
-/// Panics when the rust project harness cargo-check gate fails for the member
-/// crate being built.
-#[track_caller]
-pub fn assert_member_build_gate_from_env() -> RustHarnessReport {
-    assert_member_harness_build_gate_from_env()
-}
-
 /// Assert the legacy-compatible member harness build gate from `CARGO_MANIFEST_DIR`.
 ///
 /// # Panics
@@ -76,25 +74,12 @@ pub fn assert_member_build_gate_from_env() -> RustHarnessReport {
 /// Panics when the rust project harness cargo-check gate fails for the member
 /// crate being built.
 #[track_caller]
+#[expect(
+    clippy::must_use_candidate,
+    reason = "build scripts may rely on the panic side effect without reading the report"
+)]
 pub fn assert_member_harness_build_gate_from_env() -> RustHarnessReport {
     assert_member_harness_build_gate_from_env_with_configure(|config| config)
-}
-
-/// Assert the member build gate with crate-local config extensions.
-///
-/// Use this when a member crate needs verification profile hints while still
-/// inheriting the workspace-owned baseline policy.
-///
-/// # Panics
-///
-/// Panics when the rust project harness cargo-check gate fails for the member
-/// crate being built.
-#[track_caller]
-pub fn assert_member_build_gate_from_env_with_configure<F>(configure: F) -> RustHarnessReport
-where
-    F: FnOnce(RustHarnessConfig) -> RustHarnessConfig,
-{
-    assert_member_harness_build_gate_from_env_with_configure(configure)
 }
 
 /// Assert the member harness build gate with crate-local config extensions.
@@ -118,23 +103,6 @@ where
     rust_lang_project_harness::assert_rust_project_harness_cargo_check_clean_from_env_with_config(
         &config,
     )
-}
-
-/// Assert the stricter downstream policy gate from `CARGO_MANIFEST_DIR`.
-///
-/// This includes semantic verification coverage and dependency-baseline checks.
-/// It is intentionally exposed as an opt-in entrypoint while the workspace
-/// migrates package gates from the legacy-compatible cargo-check gate.
-///
-/// # Panics
-///
-/// Panics when `CARGO_MANIFEST_DIR` is missing, when the cargo-check policy
-/// gate fails, when semantic verification coverage is incomplete, or when the
-/// dependency baseline does not match the workspace lockfile.
-#[track_caller]
-pub fn assert_member_downstream_policy_from_env() -> RustHarnessReport {
-    let policy = xiuxian_member_policy(cargo_package_name_from_env());
-    rust_lang_project_harness::assert_rust_project_harness_downstream_policy_from_env(&policy)
 }
 
 /// Build a workspace evidence graph receipt for selected member crates.
@@ -182,13 +150,6 @@ pub fn render_xiuxian_workspace_evidence_graph_receipt_json(
         receipt,
     )
     .map_err(|error| error.to_string())
-}
-
-fn cargo_package_name_from_env() -> String {
-    match std::env::var("CARGO_PKG_NAME") {
-        Ok(crate_label) if !crate_label.is_empty() => crate_label,
-        Ok(_) | Err(_) => String::from("unknown-cargo-package"),
-    }
 }
 
 #[cfg(test)]
