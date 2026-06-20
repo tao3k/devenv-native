@@ -9,12 +9,16 @@ use super::{
 };
 use crate::julia_plugin_test_support::common::{
     assert_sorted_json_snapshot, ensure_linked_modelica_parser_summary_service, repo_root,
+    skip_linked_modelica_parser_summary_service_if_unavailable,
 };
 use crate::modelica_plugin::parser_summary::fetch_modelica_parser_file_summary_blocking_for_repository;
 
 #[test]
 fn parse_symbol_declarations_supports_secondary_keywords() -> Result<(), Box<dyn std::error::Error>>
 {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let repository = RegisteredRepository {
         id: "modelica-parsing".to_string(),
@@ -61,6 +65,9 @@ end SecondaryKeywords;
 #[test]
 fn parse_imports_preserves_modelica_package_import_attributes()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let repository = RegisteredRepository {
         id: "modelica-imports".to_string(),

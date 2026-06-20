@@ -1,6 +1,9 @@
 #[test]
 #[serial_test::serial(modelica_live)]
 fn analyze_file_emits_modelica_module_and_symbols() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     let plugin = ModelicaRepoIntelligencePlugin;
@@ -117,6 +120,9 @@ fn analyze_file_supports_modelica_standard_library_leaf_via_nested_root_context(
         return Ok(());
     }
 
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let repository_root = repo_root().join(
         ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary",
@@ -157,6 +163,9 @@ fn analyze_file_supports_modelica_standard_library_leaf_via_nested_root_context(
 #[test]
 #[serial_test::serial(modelica_live)]
 fn analyze_file_uses_repository_module_context_for_safe_leaf_files() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     fs::write(

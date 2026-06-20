@@ -7,7 +7,10 @@ use super::{
     shared_julia_parser_summary_runtime_identity_for_tests,
     validate_julia_parser_summary_preflight_for_repository,
 };
-use crate::julia_plugin_test_support::common::ensure_linked_julia_parser_summary_service;
+use crate::julia_plugin_test_support::common::{
+    ensure_linked_julia_parser_summary_service,
+    skip_linked_julia_parser_summary_service_if_unavailable,
+};
 
 const JULIA_LARGE_FILE_SUMMARY_TARGET_BYTES: usize = 32 * 1024;
 const JULIA_LARGE_SPARSE_FILE_SUMMARY_TARGET_BYTES: usize = 32 * 1024;
@@ -72,6 +75,9 @@ fn blocking_fetch_uses_shared_julia_parser_summary_runtime() {
 #[tokio::test]
 async fn fetch_parser_summaries_against_linked_real_wendaosearch_service()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_julia_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
     let source = r#"module Demo
@@ -149,6 +155,9 @@ end
 #[tokio::test]
 async fn fetch_large_parser_file_summary_against_linked_real_service()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_julia_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
     let source = synthetic_large_julia_module(JULIA_LARGE_FILE_SUMMARY_TARGET_BYTES);
@@ -174,6 +183,9 @@ async fn fetch_large_parser_file_summary_against_linked_real_service()
 #[tokio::test]
 async fn fetch_large_sparse_parser_file_summary_against_linked_real_service()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_julia_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
     let source = synthetic_large_sparse_julia_module(JULIA_LARGE_SPARSE_FILE_SUMMARY_TARGET_BYTES);
@@ -199,6 +211,9 @@ async fn fetch_large_sparse_parser_file_summary_against_linked_real_service()
 #[tokio::test]
 async fn fetch_parser_file_summaries_concurrently_against_linked_real_service()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_julia_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
     let source = synthetic_large_julia_module(JULIA_CONCURRENT_FILE_SUMMARY_TARGET_BYTES);

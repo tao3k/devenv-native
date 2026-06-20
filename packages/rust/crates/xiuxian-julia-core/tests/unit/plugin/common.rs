@@ -12,7 +12,8 @@ use serde_json::Value;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
 use crate::integration_support::{
-    JuliaServiceGuard, probe_wendaosearch_modelica_parser_summary_route_for_tests,
+    JuliaServiceGuard, local_parser_summary_package_available,
+    probe_wendaosearch_modelica_parser_summary_route_for_tests,
     spawn_wendaosearch_julia_parser_summary_service,
     spawn_wendaosearch_modelica_parser_summary_service,
 };
@@ -45,6 +46,7 @@ static LINKED_MODELICA_PARSER_SUMMARY_SERVICE: OnceLock<
 > = OnceLock::new();
 
 const SHARED_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL: &str = "http://127.0.0.1:41081";
+const LINKED_PARSER_SUMMARY_SPAWN_ENV: &str = "WENDAO_LINKED_PARSER_SUMMARY_TESTS";
 
 pub(crate) trait ResultTestExt<T, E> {
     fn or_panic(self, context: &str) -> T;
@@ -260,6 +262,52 @@ pub(crate) fn ensure_linked_julia_parser_summary_service() -> Result<(), Box<dyn
         .as_ref()
         .map(|_| ())
         .map_err(|message| Box::new(IoError::other(message.clone())) as Box<dyn std::error::Error>)
+}
+
+pub(crate) fn skip_linked_julia_parser_summary_service_if_unavailable() -> bool {
+    if linked_julia_parser_summary_service_available() {
+        return false;
+    }
+    eprintln!(
+        "skipping linked Julia parser-summary service test; start the shared parser-summary service or set WENDAO_LINKED_PARSER_SUMMARY_TESTS=1 with WENDAO_CODE_PARSER_PACKAGE_DIR/WENDAOSEARCH_PACKAGE_DIR"
+    );
+    true
+}
+
+pub(crate) fn skip_linked_modelica_parser_summary_service_if_unavailable() -> bool {
+    if linked_modelica_parser_summary_service_available() {
+        return false;
+    }
+    eprintln!(
+        "skipping linked Modelica parser-summary service test; start the shared parser-summary service or set WENDAO_LINKED_PARSER_SUMMARY_TESTS=1 with WENDAO_CODE_PARSER_PACKAGE_DIR/WENDAOSEARCH_PACKAGE_DIR"
+    );
+    true
+}
+
+fn linked_julia_parser_summary_service_available() -> bool {
+    shared_parser_summary_socket_available()
+        && probe_wendaosearch_julia_parser_summary_route_for_tests(
+            SHARED_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL,
+        )
+        .is_ok()
+        || linked_parser_summary_spawn_enabled() && local_parser_summary_package_available()
+}
+
+fn linked_modelica_parser_summary_service_available() -> bool {
+    shared_parser_summary_socket_available()
+        && probe_wendaosearch_modelica_parser_summary_route_for_tests(
+            SHARED_WENDAOSEARCH_PARSER_SUMMARY_BASE_URL,
+        )
+        .is_ok()
+        || linked_parser_summary_spawn_enabled() && local_parser_summary_package_available()
+}
+
+fn shared_parser_summary_socket_available() -> bool {
+    TcpStream::connect("127.0.0.1:41081").is_ok()
+}
+
+fn linked_parser_summary_spawn_enabled() -> bool {
+    std::env::var(LINKED_PARSER_SUMMARY_SPAWN_ENV).is_ok_and(|value| value == "1")
 }
 
 pub(crate) fn ensure_linked_modelica_parser_summary_service()

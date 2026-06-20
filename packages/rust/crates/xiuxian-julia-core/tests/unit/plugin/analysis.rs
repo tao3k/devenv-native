@@ -13,6 +13,7 @@ use super::{
 };
 use crate::julia_plugin_test_support::common::{
     assert_sorted_json_snapshot, ensure_linked_modelica_parser_summary_service,
+    skip_linked_modelica_parser_summary_service_if_unavailable,
 };
 
 include!("analysis/repository_analysis.rs");

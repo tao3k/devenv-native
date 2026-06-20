@@ -40,6 +40,8 @@ pub(crate) use search_strategy_flow_flight::{
     search_strategy_flow_frontier_response_schema, search_strategy_flow_response_bundle_schema,
 };
 pub use service_runtime::JuliaServiceGuard;
+#[cfg(test)]
+pub(crate) use service_runtime::local_parser_summary_package_available;
 pub(crate) use service_runtime::{
     repo_root, reserve_service_port, wait_for_service_ready_with_attempts,
     wendaosearch_julia_project, wendaosearch_script,

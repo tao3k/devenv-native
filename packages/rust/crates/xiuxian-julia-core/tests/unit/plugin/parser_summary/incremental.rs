@@ -6,7 +6,10 @@ use super::{
     julia_parser_file_summary_semantic_fingerprint,
     julia_parser_summary_allows_safe_incremental_file_for_repository,
 };
-use crate::julia_plugin_test_support::common::ensure_linked_julia_parser_summary_service;
+use crate::julia_plugin_test_support::common::{
+    ensure_linked_julia_parser_summary_service,
+    skip_linked_julia_parser_summary_service_if_unavailable,
+};
 use crate::plugin::parser_summary::types::{
     JuliaParserDocAttachment, JuliaParserDocTargetKind, JuliaParserFileSummary, JuliaParserImport,
     JuliaParserSymbol, JuliaParserSymbolKind,
@@ -23,6 +26,9 @@ fn parser_summary_repository() -> RegisteredRepository {
 #[tokio::test]
 async fn safe_incremental_live_service_distinguishes_leaf_and_root_files()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_julia_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_julia_parser_summary_service()?;
     let repository = parser_summary_repository();
     let leaf_repository = repository.clone();

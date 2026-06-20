@@ -1,5 +1,8 @@
 #[test]
 fn load_modelica_repository_context_prefers_source_hint_for_nested_root_package() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     write_modelica_file(
@@ -29,6 +32,9 @@ fn load_modelica_repository_context_prefers_source_hint_for_nested_root_package(
 
 #[test]
 fn analyze_repository_preserves_import_backed_package_attributes() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     write_modelica_file(

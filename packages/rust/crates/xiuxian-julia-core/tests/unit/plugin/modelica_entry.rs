@@ -12,6 +12,7 @@ use xiuxian_wendao_core::repo_intelligence::{
 use super::ModelicaRepoIntelligencePlugin;
 use crate::julia_plugin_test_support::common::{
     ensure_linked_modelica_parser_summary_service, repo_root,
+    skip_linked_modelica_parser_summary_service_if_unavailable,
 };
 
 include!("modelica_entry/live_analysis.rs");

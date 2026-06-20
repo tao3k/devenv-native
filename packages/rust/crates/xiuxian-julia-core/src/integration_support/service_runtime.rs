@@ -110,6 +110,52 @@ pub(crate) fn wendaosearch_package_dir() -> PathBuf {
         })
 }
 
+#[cfg(test)]
+pub(crate) fn local_parser_summary_package_available() -> bool {
+    local_package_artifacts_available(
+        "WENDAO_CODE_PARSER_PACKAGE_DIR",
+        ".data/WendaoCodeParser.jl",
+        &["scripts/run_service.jl", "config/live/parser_summary.toml"],
+    ) || local_package_artifacts_available(
+        "WENDAOSEARCH_PACKAGE_DIR",
+        ".data/WendaoSearch.jl",
+        &[
+            "scripts/run_parser_summary_service.jl",
+            "config/live/parser_summary.toml",
+        ],
+    )
+}
+
+#[cfg(test)]
+fn local_package_artifacts_available(
+    env_name: &str,
+    workspace_path: &str,
+    required_paths: &[&str],
+) -> bool {
+    env::var_os(env_name)
+        .and_then(configured_existing_path)
+        .is_some_and(|package_dir| package_artifacts_available(&package_dir, required_paths))
+        || package_artifacts_available(&repo_root().join(workspace_path), required_paths)
+}
+
+#[cfg(test)]
+fn configured_existing_path(configured: impl Into<PathBuf>) -> Option<PathBuf> {
+    let candidate = configured.into();
+    let candidate = if candidate.is_absolute() {
+        candidate
+    } else {
+        repo_root().join(candidate)
+    };
+    candidate.canonicalize().ok()
+}
+
+#[cfg(test)]
+fn package_artifacts_available(package_dir: &Path, required_paths: &[&str]) -> bool {
+    required_paths
+        .iter()
+        .all(|relative_path| package_dir.join(relative_path).is_file())
+}
+
 pub(crate) fn wendaosearch_julia_project() -> PathBuf {
     let Some(configured) = env::var_os("WENDAOSEARCH_JULIA_PROJECT") else {
         return wendaosearch_package_dir();
@@ -325,7 +371,10 @@ pub(crate) fn expected_wendaosearch_modelica_transport_contract()
         schema_version: MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string(),
         file_summary_route_name: "modelica_file_summary".to_string(),
         file_summary_path: MODELICA_FILE_SUMMARY_ROUTE.to_string(),
-        readiness_route_names: vec!["modelica_file_summary".to_string()],
+        readiness_route_names: vec![
+            "modelica_file_summary".to_string(),
+            "modelica_ast_query".to_string(),
+        ],
     }
 }
 

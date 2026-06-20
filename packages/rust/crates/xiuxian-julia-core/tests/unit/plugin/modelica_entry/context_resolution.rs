@@ -1,6 +1,9 @@
 #[test]
 #[serial_test::serial(modelica_live)]
 fn analyze_file_uses_repository_import_context_for_safe_leaf_files() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     fs::write(
@@ -33,6 +36,9 @@ fn analyze_file_uses_repository_import_context_for_safe_leaf_files() -> TestResu
 
 #[test]
 fn analyze_file_uses_repository_root_package_context_for_package_files() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     let contents = "within ;\npackage DemoLib\n  import Modelica.Math;\n  annotation(Documentation(info = \"doc\"));\nend DemoLib;\n";
@@ -88,6 +94,9 @@ fn analyze_file_uses_repository_root_package_context_for_package_files() -> Test
 
 #[test]
 fn analyze_file_uses_repository_context_for_safe_nested_package_files() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     fs::write(
@@ -141,6 +150,9 @@ fn analyze_file_uses_repository_context_for_safe_nested_package_files() -> TestR
 #[test]
 #[serial_test::serial(modelica_live)]
 fn analyze_file_preserves_nested_package_declarations_via_parser_summary_fallback() -> TestResult {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = TempDir::new()?;
     fs::write(

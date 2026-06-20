@@ -10,6 +10,7 @@ use super::{
 };
 use crate::julia_plugin_test_support::common::{
     ensure_linked_modelica_parser_summary_service, repo_root,
+    skip_linked_modelica_parser_summary_service_if_unavailable,
 };
 
 fn parser_summary_repository() -> RegisteredRepository {
@@ -52,6 +53,9 @@ fn blocking_fetch_timeout_follows_transport_timeout_without_hidden_cap() {
 #[serial_test::serial(modelica_live)]
 fn blocking_fetch_reuses_shared_runtime_and_returns_summary_from_linked_service()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let repository = parser_summary_repository();
     let runtime_before = shared_modelica_parser_summary_runtime_identity_for_tests()?;
@@ -103,6 +107,9 @@ end GainHolder;
 #[serial_test::serial(modelica_large_live)]
 fn blocking_fetch_supports_large_modelica_standard_library_package_from_linked_service()
 -> Result<(), Box<dyn std::error::Error>> {
+    if skip_linked_modelica_parser_summary_service_if_unavailable() {
+        return Ok(());
+    }
     ensure_linked_modelica_parser_summary_service()?;
     let source_path = repo_root().join(
         ".data/xiuxian-wendao/repo-intelligence/repos/github.com/modelica/ModelicaStandardLibrary/Modelica/Mechanics/MultiBody/package.mo",

@@ -10,13 +10,23 @@ fn wendaosearch_parser_summary_contract_matches_rust_transport_constants() {
 
     assert_eq!(contract.contract_version, 1);
     assert_eq!(
-        contract.script_path(),
-        wendaocodeparser_script("run_service.jl")
+        contract.service.script,
+        ".data/WendaoCodeParser.jl/scripts/run_service.jl"
     );
     assert_eq!(
-        contract.config_path(),
-        wendaocodeparser_config("parser_summary.toml")
+        contract.service.config,
+        ".data/WendaoCodeParser.jl/config/live/parser_summary.toml"
     );
+    if super::local_parser_summary_package_available() {
+        assert_eq!(
+            contract.script_path(),
+            wendaocodeparser_script("run_service.jl")
+        );
+        assert_eq!(
+            contract.config_path(),
+            wendaocodeparser_config("parser_summary.toml")
+        );
+    }
     assert_eq!(contract.base_url(), "http://127.0.0.1:41081");
     assert_eq!(
         contract.service.default_code_parser_route_names,
@@ -24,6 +34,7 @@ fn wendaosearch_parser_summary_contract_matches_rust_transport_constants() {
             "julia_file_summary".to_string(),
             "julia_root_summary".to_string(),
             "modelica_file_summary".to_string(),
+            "modelica_ast_query".to_string(),
         ]
     );
 

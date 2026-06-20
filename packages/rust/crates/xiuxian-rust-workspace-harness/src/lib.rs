@@ -286,6 +286,19 @@ pub fn xiuxian_member_policy_with_config(
     xiuxian_workspace_policy_with_config(config).member_crate(crate_label)
 }
 
+fn xiuxian_member_build_gate_policy_from_env_with_configure<F>(
+    configure: F,
+) -> RustProjectHarnessDownstreamPolicy
+where
+    F: FnOnce(RustHarnessConfig) -> RustHarnessConfig,
+{
+    let config = xiuxian_workspace_harness_config();
+    let config = configure(config);
+    let crate_label =
+        std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "unknown-xiuxian-member".to_owned());
+    xiuxian_member_build_gate_policy_with_config(crate_label, config)
+}
+
 fn xiuxian_member_build_gate_policy_with_config(
     crate_label: impl Into<String>,
     config: RustHarnessConfig,
@@ -325,11 +338,7 @@ pub fn assert_member_harness_build_gate_from_env_with_configure<F>(
 where
     F: FnOnce(RustHarnessConfig) -> RustHarnessConfig,
 {
-    let config = xiuxian_workspace_harness_config();
-    let config = configure(config);
-    let crate_label =
-        std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "unknown-xiuxian-member".to_owned());
-    let policy = xiuxian_member_build_gate_policy_with_config(crate_label, config);
+    let policy = xiuxian_member_build_gate_policy_from_env_with_configure(configure);
     rust_lang_project_harness::assert_rust_project_harness_downstream_policy_from_env(&policy)
 }
 
