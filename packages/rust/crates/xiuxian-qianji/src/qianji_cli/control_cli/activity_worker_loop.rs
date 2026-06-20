@@ -8,7 +8,8 @@ use super::activity_args::ActivitySettleOutcomeArg;
 use super::activity_executor::ActivityExecutorKindArg;
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 use super::activity_worker_once::{
-    ActivityWorkerOnceOutput, ActivityWorkerOnceStoreRequest, worker_once_output_with_hot_state,
+    ActivityWorkerOnceOutput, ActivityWorkerOnceStoreRequest, parse_task_queue, parse_worker_ref,
+    worker_once_output_with_claim_scope_with_worker_ref,
 };
 use super::types::{ControlCliCommand, ControlCliOutput};
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
@@ -449,6 +450,10 @@ where
     let mut heartbeats = 0;
     let mut stopped_reason = ActivityWorkerLoopStopReason::PollLimit;
     let worker_count = request.worker_count.max(1);
+    let task_queue = parse_task_queue(request.task_queue)?;
+    let worker_refs = worker_refs_for_poll(request.worker_id, worker_count)?;
+    let mut next_now_ms = request.now_ms;
+    let mut next_settled_at_ms = request.settled_at_ms;
     let mut poll_index = 0;
 
     while poll_index < request.poll_limit {
@@ -457,11 +462,32 @@ where
             ledger,
             hot_state,
             &request,
+            task_queue.as_ref(),
+            &worker_refs,
             worker_count,
             poll_index,
             batch_size,
+            next_now_ms,
+            next_settled_at_ms,
         )
         .await?;
+        let next_batch_now = next_now_ms
+            .checked_add(request.now_step_ms.saturating_mul(u64::from(batch_size)))
+            .ok_or_else(|| {
+                invalid_input("`control activity-worker-loop` `now_ms` overflowed u64")
+            })?;
+        let next_batch_settled_at = next_settled_at_ms
+            .checked_add(
+                request
+                    .settled_step_ms
+                    .saturating_mul(u64::from(batch_size)),
+            )
+            .ok_or_else(|| {
+                invalid_input("`control activity-worker-loop` `settled_at_ms` overflowed u64")
+            })?;
+        next_now_ms = next_batch_now;
+        next_settled_at_ms = next_batch_settled_at;
+
         for iteration in batch_iterations {
             let output = &iteration.output;
             if output.claimed.is_some() {
@@ -511,24 +537,43 @@ async fn worker_loop_batch_iterations<L, H>(
     ledger: &L,
     hot_state: &H,
     request: &ActivityWorkerLoopStoreRequest<'_>,
+    task_queue: Option<&xiuxian_qianji_control::TaskQueue>,
+    worker_refs: &[xiuxian_qianji_control::WorkerRef],
     worker_count: u32,
     poll_index: u32,
     batch_size: u32,
+    batch_now_ms: u64,
+    batch_settled_at_ms: u64,
 ) -> io::Result<Vec<ActivityWorkerLoopIteration>>
 where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
     let mut futures = Vec::with_capacity(batch_size as usize);
+    let mut now_ms = batch_now_ms;
+    let mut settled_at_ms = batch_settled_at_ms;
     for offset in 0..batch_size {
         let batch_poll_index = poll_index.saturating_add(offset);
-        let worker_id = worker_id_for_poll(request.worker_id, worker_count, batch_poll_index);
+        let worker_ref = &worker_refs[(batch_poll_index % worker_count) as usize];
+        let batch_poll_now_ms = now_ms;
+        now_ms = now_ms.checked_add(request.now_step_ms).ok_or_else(|| {
+            invalid_input("`control activity-worker-loop` `now_ms` overflowed u64")
+        })?;
+        let batch_poll_settled_at_ms = settled_at_ms;
+        settled_at_ms = settled_at_ms
+            .checked_add(request.settled_step_ms)
+            .ok_or_else(|| {
+                invalid_input("`control activity-worker-loop` `settled_at_ms` overflowed u64")
+            })?;
         futures.push(worker_loop_iteration(
             ledger,
             hot_state,
             request,
+            task_queue,
+            worker_ref,
             batch_poll_index,
-            worker_id,
+            batch_poll_now_ms,
+            batch_poll_settled_at_ms,
         ));
     }
     join_all(futures).await.into_iter().collect()
@@ -539,20 +584,21 @@ async fn worker_loop_iteration<L, H>(
     ledger: &L,
     hot_state: &H,
     request: &ActivityWorkerLoopStoreRequest<'_>,
+    task_queue: Option<&xiuxian_qianji_control::TaskQueue>,
+    worker_ref: &xiuxian_qianji_control::WorkerRef,
     poll_index: u32,
-    worker_id: Cow<'_, str>,
+    now_ms: u64,
+    settled_at_ms: u64,
 ) -> io::Result<ActivityWorkerLoopIteration>
 where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
-    let now_ms = stepped_ms(request.now_ms, request.now_step_ms, poll_index)?;
-    let settled_at_ms = stepped_ms(request.settled_at_ms, request.settled_step_ms, poll_index)?;
-    let output = worker_once_output_with_hot_state(
+    let output = worker_once_output_with_claim_scope_with_worker_ref(
         ledger,
         hot_state,
         &ActivityWorkerOnceStoreRequest {
-            worker_id: worker_id.as_ref(),
+            worker_id: request.worker_id,
             task_queue: request.task_queue,
             now_ms,
             lease_ttl_ms: request.lease_ttl_ms,
@@ -576,6 +622,9 @@ where
             metadata: request.metadata,
             json: true,
         },
+        worker_ref,
+        task_queue,
+        None,
     )
     .await?;
     Ok(ActivityWorkerLoopIteration {
@@ -633,12 +682,20 @@ fn render_activity_worker_loop_text(output: &ActivityWorkerLoopOutput) -> String
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-fn worker_id_for_poll(worker_id: &str, worker_count: u32, poll_index: u32) -> Cow<'_, str> {
-    if worker_count <= 1 {
-        Cow::Borrowed(worker_id)
-    } else {
-        Cow::Owned(format!("{worker_id}-{}", (poll_index % worker_count) + 1))
-    }
+fn worker_refs_for_poll(
+    worker_id: &str,
+    worker_count: u32,
+) -> io::Result<Vec<xiuxian_qianji_control::WorkerRef>> {
+    (0..worker_count)
+        .map(|index| {
+            let worker_id = if worker_count <= 1 {
+                Cow::Borrowed(worker_id)
+            } else {
+                Cow::Owned(format!("{worker_id}-{}", index + 1))
+            };
+            parse_worker_ref(worker_id.as_ref())
+        })
+        .collect()
 }
 
 fn parse_outcome(value: &str) -> io::Result<ActivitySettleOutcomeArg> {
@@ -829,16 +886,6 @@ fn positive_u64(field: &'static str, value: u64) -> io::Result<u64> {
         )));
     }
     Ok(value)
-}
-
-#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-fn stepped_ms(base_ms: u64, step_ms: u64, index: u32) -> io::Result<u64> {
-    let offset = step_ms.checked_mul(u64::from(index)).ok_or_else(|| {
-        invalid_input("`control activity-worker-loop` timestamp step overflowed u64")
-    })?;
-    base_ms.checked_add(offset).ok_or_else(|| {
-        invalid_input("`control activity-worker-loop` timestamp value overflowed u64")
-    })
 }
 
 #[cfg(all(feature = "duckdb", feature = "valkey"))]

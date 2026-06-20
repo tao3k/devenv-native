@@ -284,6 +284,83 @@ fn run_scoped_claim_request(
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) fn parse_worker_ref(worker_id: &str) -> io::Result<xiuxian_qianji_control::WorkerRef> {
+    use xiuxian_qianji_control::{WorkerId, WorkerRef};
+
+    let worker_id = WorkerId::new(worker_id).map_err(|error| control_error(&error))?;
+    Ok(WorkerRef {
+        worker_id,
+        capabilities: Vec::new(),
+        metadata: serde_json::Value::Null,
+    })
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) fn parse_task_queue(
+    task_queue: Option<&str>,
+) -> io::Result<Option<xiuxian_qianji_control::TaskQueue>> {
+    task_queue
+        .map(xiuxian_qianji_control::TaskQueue::new)
+        .transpose()
+        .map_err(|error| control_error(&error))
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
+pub(crate) async fn worker_once_output_with_claim_scope_with_worker_ref<L, H>(
+    ledger: &L,
+    hot_state: &H,
+    request: &ActivityWorkerOnceStoreRequest<'_>,
+    worker: &xiuxian_qianji_control::WorkerRef,
+    task_queue: Option<&xiuxian_qianji_control::TaskQueue>,
+    run_id: Option<&xiuxian_qianji_control::RunId>,
+) -> io::Result<ActivityWorkerOnceOutput>
+where
+    L: xiuxian_qianji_control::ControlLedger + ?Sized,
+    H: xiuxian_qianji_control::HotStateStore + ?Sized,
+{
+    let claimed = match run_id {
+        Some(run_id) => {
+            hot_state
+                .claim_activity_task_for_run(run_scoped_claim_request(
+                    worker.clone(),
+                    run_id,
+                    task_queue,
+                    request.now_ms,
+                    request.lease_ttl_ms,
+                ))
+                .await
+        }
+        None => {
+            hot_state
+                .claim_activity_task(
+                    worker.clone(),
+                    task_queue,
+                    request.now_ms,
+                    request.lease_ttl_ms,
+                )
+                .await
+        }
+    }
+    .map_err(|error| control_error(&error))?;
+    let Some(claimed_task) = claimed.clone() else {
+        return Ok(empty_worker_once_output(
+            worker.worker_id.clone(),
+            task_queue.cloned(),
+            request,
+        ));
+    };
+    execute_claimed_worker_once(
+        ledger,
+        hot_state,
+        request,
+        worker.worker_id.clone(),
+        task_queue.cloned(),
+        claimed_task,
+    )
+    .await
+}
+
+#[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
 fn empty_worker_once_output(
     worker_id: xiuxian_qianji_control::WorkerId,
     task_queue: Option<xiuxian_qianji_control::TaskQueue>,
