@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -211,7 +212,7 @@ impl ActivityWorkerLoopArgs {
                 })?,
             )?,
             empty_limit: positive_u32("empty-limit", self.empty_limit.unwrap_or(1))?,
-            worker_count: positive_u32("worker-count", self.worker_count.unwrap_or(1))?,
+            worker_count: self.worker_count.unwrap_or(1).max(1),
             executor,
             outcome,
             settled_at_ms: self.settled_at_ms.ok_or_else(|| {
@@ -440,7 +441,7 @@ where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
-    let mut iterations = Vec::new();
+    let mut iterations = Vec::with_capacity(request.poll_limit as usize);
     let mut processed = 0;
     let mut empty_polls = 0;
     let mut empty_streak = 0;
@@ -518,18 +519,18 @@ where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
     H: xiuxian_qianji_control::HotStateStore + ?Sized,
 {
-    let batch_poll_indices: Vec<u32> = (poll_index..poll_index + batch_size).collect();
-    let batch_worker_ids: Vec<String> = batch_poll_indices
-        .iter()
-        .map(|batch_poll_index| {
-            worker_id_for_poll(request.worker_id, worker_count, *batch_poll_index)
-        })
-        .collect();
-    let futures = batch_poll_indices.iter().zip(batch_worker_ids.iter()).map(
-        |(batch_poll_index, worker_id)| {
-            worker_loop_iteration(ledger, hot_state, request, *batch_poll_index, worker_id)
-        },
-    );
+    let mut futures = Vec::with_capacity(batch_size as usize);
+    for offset in 0..batch_size {
+        let batch_poll_index = poll_index.saturating_add(offset);
+        let worker_id = worker_id_for_poll(request.worker_id, worker_count, batch_poll_index);
+        futures.push(worker_loop_iteration(
+            ledger,
+            hot_state,
+            request,
+            batch_poll_index,
+            worker_id,
+        ));
+    }
     join_all(futures).await.into_iter().collect()
 }
 
@@ -539,7 +540,7 @@ async fn worker_loop_iteration<L, H>(
     hot_state: &H,
     request: &ActivityWorkerLoopStoreRequest<'_>,
     poll_index: u32,
-    worker_id: &str,
+    worker_id: Cow<'_, str>,
 ) -> io::Result<ActivityWorkerLoopIteration>
 where
     L: xiuxian_qianji_control::ControlLedger + ?Sized,
@@ -551,7 +552,7 @@ where
         ledger,
         hot_state,
         &ActivityWorkerOnceStoreRequest {
-            worker_id,
+            worker_id: worker_id.as_ref(),
             task_queue: request.task_queue,
             now_ms,
             lease_ttl_ms: request.lease_ttl_ms,
@@ -632,11 +633,11 @@ fn render_activity_worker_loop_text(output: &ActivityWorkerLoopOutput) -> String
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-fn worker_id_for_poll(worker_id: &str, worker_count: u32, poll_index: u32) -> String {
+fn worker_id_for_poll(worker_id: &str, worker_count: u32, poll_index: u32) -> Cow<'_, str> {
     if worker_count <= 1 {
-        worker_id.to_string()
+        Cow::Borrowed(worker_id)
     } else {
-        format!("{worker_id}-{}", (poll_index % worker_count) + 1)
+        Cow::Owned(format!("{worker_id}-{}", (poll_index % worker_count) + 1))
     }
 }
 

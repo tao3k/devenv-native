@@ -334,3 +334,60 @@ async fn worker_loop_with_hot_state_records_heartbeat_for_claimed_task() -> Resu
     assert_eq!(heartbeat_count, 1);
     Ok(())
 }
+
+#[tokio::test]
+async fn worker_loop_with_hot_state_normalizes_zero_worker_count_to_one() -> Result<(), String> {
+    let temp_dir =
+        TempDir::new().map_err(|error| format!("should create temporary directory: {error}"))?;
+    let _temp_dir = temp_dir;
+    let ledger = InMemoryControlLedger::new();
+    let run_id = append_control_run_with_scheduled_activity_queue(&ledger);
+    let hot_state = InMemoryHotStateStore::new();
+    enqueue_worker_task(&ledger, &hot_state, &run_id, "activity-run-scheduled").await?;
+
+    let output = must_ok(
+        worker_loop_with_hot_state(
+            &ledger,
+            &hot_state,
+            ActivityWorkerLoopStoreRequest {
+                worker_id: "worker-loop",
+                task_queue: None,
+                now_ms: 8_000,
+                now_step_ms: 1,
+                lease_ttl_ms: 500,
+                heartbeat_ttl_ms: None,
+                poll_limit: 1,
+                empty_limit: 1,
+                worker_count: 0,
+                executor: ActivityExecutorKindArg::Fixture,
+                outcome: ActivitySettleOutcomeArg::Complete,
+                settled_at_ms: 9_000,
+                settled_step_ms: 1,
+                output_hash: Some("sha256:activity-output"),
+                output_artifact_dir: None,
+                output_artifact_kind: None,
+                openai_compatible_base_url: None,
+                openai_compatible_api_key: None,
+                openai_compatible_timeout_ms: None,
+                error_code: None,
+                message: None,
+                retryable: None,
+                metadata: None,
+                json: true,
+            },
+        )
+        .await,
+        "activity worker loop should render",
+    );
+    let json: serde_json::Value = must_ok(
+        serde_json::from_str(&output.rendered),
+        "activity worker loop output should be valid json",
+    );
+    assert_eq!(json["worker_count"], 1);
+    assert!(json["iterations"][0]["output"]["claimed"].is_object());
+    assert_eq!(
+        json["iterations"][0]["output"]["claimed"]["activity_task"]["task"]["activity_id"],
+        "activity-run-scheduled"
+    );
+    Ok(())
+}

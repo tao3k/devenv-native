@@ -244,3 +244,71 @@ fn parse_control_activity_worker_loop_rejects_zero_poll_limit() {
         "unexpected error: {error}"
     );
 }
+
+#[test]
+fn parse_control_activity_worker_loop_normalizes_zero_worker_count_to_one() {
+    let command = must_some(
+        must_ok(
+            parse_control_command(&to_args(&[
+                "qianji",
+                "control",
+                "activity-worker-loop",
+                "--ledger",
+                "control.duckdb",
+                "--valkey-url",
+                "redis://127.0.0.1:6379",
+                "--worker-id",
+                "worker-loop",
+                "--now-ms",
+                "12345",
+                "--lease-ttl-ms",
+                "500",
+                "--poll-limit",
+                "1",
+                "--executor",
+                "fixture",
+                "--outcome",
+                "complete",
+                "--settled-at-ms",
+                "23456",
+                "--worker-count",
+                "0",
+            ])),
+            "control activity-worker-loop complete parse should succeed",
+        ),
+        "control command should be detected",
+    );
+
+    assert_eq!(
+        command,
+        ControlCliCommand::ActivityWorkerLoop {
+            ledger_path: PathBuf::from("control.duckdb"),
+            valkey_url: "redis://127.0.0.1:6379".to_string(),
+            namespace: None,
+            worker_id: "worker-loop".to_string(),
+            task_queue: None,
+            now_ms: 12_345,
+            now_step_ms: 1,
+            lease_ttl_ms: 500,
+            heartbeat_ttl_ms: None,
+            poll_limit: 1,
+            empty_limit: 1,
+            worker_count: 1,
+            executor: ActivityExecutorKindArg::Fixture,
+            outcome: ActivitySettleOutcomeArg::Complete,
+            settled_at_ms: 23_456,
+            settled_step_ms: 1,
+            output_hash: None,
+            output_artifact_dir: None,
+            output_artifact_kind: None,
+            openai_compatible_base_url: None,
+            openai_compatible_api_key: None,
+            openai_compatible_timeout_ms: None,
+            error_code: None,
+            message: None,
+            retryable: None,
+            metadata: None,
+            json: false,
+        },
+    );
+}
