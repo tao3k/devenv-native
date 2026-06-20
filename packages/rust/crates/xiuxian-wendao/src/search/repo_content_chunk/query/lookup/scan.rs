@@ -100,7 +100,7 @@ pub(crate) fn collect_candidates(
             path: path.value(row).to_string(),
             language: (!language.is_null(row) && !language.value(row).trim().is_empty())
                 .then(|| language.value(row).to_string()),
-            line_number: usize::try_from(line_number.value(row)).unwrap_or(usize::MAX),
+            line_number: decode_usize_column("line_number", line_number.value(row))?,
             line_text: String::new(),
             score: if exact_match { 0.73 } else { 0.72 },
             exact_match,
@@ -143,7 +143,7 @@ pub(crate) fn hydrate_candidate_line_texts(
     for row in 0..batch.num_rows() {
         let candidate_key = (
             path.value(row).to_string(),
-            usize::try_from(line_number.value(row)).unwrap_or(usize::MAX),
+            decode_usize_column("line_number", line_number.value(row))?,
         );
         if let Some(index) = candidates_by_key.remove(&candidate_key) {
             candidates[index].line_text = if line_text.is_null(row) {
@@ -155,4 +155,12 @@ pub(crate) fn hydrate_candidate_line_texts(
     }
 
     Ok(())
+}
+
+fn decode_usize_column(column: &str, value: u64) -> Result<usize, RepoContentChunkSearchError> {
+    usize::try_from(value).map_err(|_| {
+        RepoContentChunkSearchError::Decode(format!(
+            "repo content chunk `{column}` value `{value}` does not fit usize"
+        ))
+    })
 }

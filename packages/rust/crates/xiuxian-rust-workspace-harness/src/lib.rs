@@ -1,11 +1,8 @@
 //! Workspace-owned Rust harness policy for xiuxian member crates.
 
-use std::path::{Path, PathBuf};
-
 use rust_lang_project_harness::{
     RustHarnessConfig, RustHarnessReport, RustProjectHarnessDependencyBaseline,
-    RustProjectHarnessDownstreamPolicy, RustProjectHarnessWorkspaceEvidenceGraphMemberInput,
-    RustProjectHarnessWorkspaceEvidenceGraphReceipt, RustProjectHarnessWorkspacePolicy,
+    RustProjectHarnessDownstreamPolicy, RustProjectHarnessWorkspacePolicy,
 };
 
 /// Types intentionally exposed for member `build.rs` policy hints.
@@ -20,7 +17,7 @@ pub mod prelude {
 pub const XIUXIAN_WORKSPACE_LABEL: &str = "xiuxian-artisan-workshop";
 
 /// The rust harness git revision pinned by the xiuxian workspace policy.
-pub const XIUXIAN_RUST_HARNESS_REV: &str = "149c6f9ef535c04cf47814fb86b436fd70f95c45";
+pub const XIUXIAN_RUST_HARNESS_REV: &str = "6dea4b1afc46bec0b4b480b9ab99b9d471d045ee";
 
 /// The rust harness crate version expected at [`XIUXIAN_RUST_HARNESS_REV`].
 pub const XIUXIAN_RUST_HARNESS_VERSION: &str = "0.1.2";
@@ -105,53 +102,6 @@ where
     )
 }
 
-/// Build a workspace evidence graph receipt for selected member crates.
-///
-/// # Errors
-///
-/// Returns an error when rust harness verification planning fails for any
-/// supplied member crate root.
-pub fn xiuxian_workspace_evidence_graph_receipt<I, S, P>(
-    workspace_root: &Path,
-    members: I,
-) -> Result<RustProjectHarnessWorkspaceEvidenceGraphReceipt, String>
-where
-    I: IntoIterator<Item = (S, P)>,
-    S: Into<String>,
-    P: Into<PathBuf>,
-{
-    let policy = xiuxian_workspace_policy();
-    let member_inputs = members.into_iter().map(|(crate_label, project_root)| {
-        let crate_label = crate_label.into();
-        let member_policy = policy.member_crate(crate_label.clone());
-        RustProjectHarnessWorkspaceEvidenceGraphMemberInput::new(
-            crate_label,
-            project_root,
-            member_policy,
-        )
-    });
-
-    rust_lang_project_harness::rust_project_harness_workspace_evidence_graph_receipt(
-        workspace_root,
-        XIUXIAN_WORKSPACE_LABEL,
-        member_inputs,
-    )
-}
-
-/// Render a workspace evidence graph receipt as compact JSON.
-///
-/// # Errors
-///
-/// Returns an error when the rust harness receipt cannot be serialized.
-pub fn render_xiuxian_workspace_evidence_graph_receipt_json(
-    receipt: &RustProjectHarnessWorkspaceEvidenceGraphReceipt,
-) -> Result<String, String> {
-    rust_lang_project_harness::render_rust_project_harness_workspace_evidence_graph_receipt_json(
-        receipt,
-    )
-    .map_err(|error| error.to_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -171,63 +121,6 @@ mod tests {
         assert_eq!(
             packages[0].source_contains(),
             format!("rev={XIUXIAN_RUST_HARNESS_REV}")
-        );
-    }
-
-    #[test]
-    fn workspace_evidence_graph_projects_member_policy_loop() {
-        let workspace_root = workspace_root_for_tests();
-        let receipt = match xiuxian_workspace_evidence_graph_receipt(
-            &workspace_root,
-            [
-                (
-                    "xiuxian-config-core",
-                    workspace_root.join("packages/rust/crates/xiuxian-config-core"),
-                ),
-                (
-                    "xiuxian-polyglot-orchestrator",
-                    workspace_root.join("packages/rust/crates/xiuxian-polyglot-orchestrator"),
-                ),
-            ],
-        ) {
-            Ok(receipt) => receipt,
-            Err(error) => panic!("workspace evidence graph receipt failed: {error}"),
-        };
-
-        assert_eq!(
-            receipt.schema_id,
-            rust_lang_project_harness::RUST_PROJECT_HARNESS_WORKSPACE_EVIDENCE_GRAPH_RECEIPT_SCHEMA_ID
-        );
-        assert_eq!(receipt.workspace_label, XIUXIAN_WORKSPACE_LABEL);
-        assert_eq!(receipt.summary.member_crate_count, 2);
-        assert_eq!(receipt.summary.dependency_baseline_package_count, 2);
-        assert!(!receipt.nodes.is_empty());
-        assert!(!receipt.edges.is_empty());
-        assert!(
-            receipt
-                .trust_loop_steps
-                .iter()
-                .any(|step| step.key == "workspace_policy")
-        );
-
-        let rendered = match render_xiuxian_workspace_evidence_graph_receipt_json(&receipt) {
-            Ok(rendered) => rendered,
-            Err(error) => panic!("workspace evidence graph json render failed: {error}"),
-        };
-        assert!(rendered.contains(XIUXIAN_WORKSPACE_LABEL));
-        assert!(rendered.contains(XIUXIAN_RUST_HARNESS_REV));
-    }
-
-    fn workspace_root_for_tests() -> PathBuf {
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        for candidate in manifest_dir.ancestors() {
-            if candidate.join("Cargo.lock").is_file() && candidate.join("Cargo.toml").is_file() {
-                return candidate.to_path_buf();
-            }
-        }
-        panic!(
-            "could not find workspace root from {}",
-            manifest_dir.display()
         );
     }
 }

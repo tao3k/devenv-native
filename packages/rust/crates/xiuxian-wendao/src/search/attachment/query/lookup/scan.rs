@@ -96,6 +96,7 @@ fn collect_candidates(
         };
         let score = candidate_score(query.normalized_query, query.query_tokens, &fields);
         if score <= 0.0 {
+            telemetry.observe_rejected_candidate();
             continue;
         }
 

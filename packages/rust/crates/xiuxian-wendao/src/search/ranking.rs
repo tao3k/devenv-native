@@ -74,6 +74,10 @@ impl StreamingRerankTelemetry {
         self.matched_rows = self.matched_rows.saturating_add(1);
     }
 
+    pub(crate) fn observe_rejected_candidate(&mut self) {
+        self.dropped_candidate_count = self.dropped_candidate_count.saturating_add(1);
+    }
+
     pub(crate) fn observe_working_set(&mut self, row_count: usize) {
         self.peak_working_set_rows = self
             .peak_working_set_rows

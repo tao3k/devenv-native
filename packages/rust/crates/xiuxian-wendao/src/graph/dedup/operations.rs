@@ -156,10 +156,14 @@ impl KnowledgeGraph {
         }
 
         best.map_or_else(
-            || entity_ids.first().cloned().unwrap_or_default(),
+            || first_entity_id_or_empty_name(entity_ids),
             |(_, name)| name,
         )
     }
+}
+
+fn first_entity_id_or_empty_name(entity_ids: &[String]) -> String {
+    entity_ids.first().cloned().unwrap_or_else(String::new)
 }
 
 // ---------------------------------------------------------------------------

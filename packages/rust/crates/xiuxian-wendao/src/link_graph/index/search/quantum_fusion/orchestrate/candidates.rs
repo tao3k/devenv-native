@@ -135,7 +135,9 @@ impl LinkGraphIndex {
             let Some(seed_doc_id) = self.quantum_anchor_doc_id(anchor_id) else {
                 continue;
             };
-            let semantic_path = self.extract_lineage(anchor_id).unwrap_or_default();
+            let semantic_path = self
+                .extract_lineage(anchor_id)
+                .unwrap_or_else(|| vec![anchor_id.to_string()]);
 
             let effective_related_limit = quantum_related_limit_for_doc(
                 seed_doc_id.as_str(),

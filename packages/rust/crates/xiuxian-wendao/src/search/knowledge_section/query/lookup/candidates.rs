@@ -43,6 +43,7 @@ pub(crate) fn collect_candidates(
             search_text_folded.value(row),
         );
         if score <= 0.0 {
+            telemetry.observe_rejected_candidate();
             continue;
         }
 

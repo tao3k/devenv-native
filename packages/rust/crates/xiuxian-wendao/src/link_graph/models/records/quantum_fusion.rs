@@ -129,7 +129,9 @@ impl QuantumSemanticSearchRequest<'_> {
         budget: Option<&LinkGraphRetrievalBudget>,
         semantic_policy: Option<LinkGraphSemanticSearchPolicy>,
     ) -> QuantumSemanticSearchRequest<'a> {
-        let semantic_policy = semantic_policy.unwrap_or_default().normalized();
+        let semantic_policy = semantic_policy
+            .unwrap_or_else(LinkGraphSemanticSearchPolicy::default)
+            .normalized();
         QuantumSemanticSearchRequest {
             query_text,
             query_vector,

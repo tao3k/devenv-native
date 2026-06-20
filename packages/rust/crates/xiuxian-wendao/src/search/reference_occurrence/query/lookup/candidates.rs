@@ -34,6 +34,7 @@ pub(super) fn collect_candidates(
     for row in 0..batch.num_rows() {
         let score = score_reference_hit(line_text.value(row), query);
         if score <= 0.0 {
+            telemetry.observe_rejected_candidate();
             continue;
         }
 
@@ -42,8 +43,8 @@ pub(super) fn collect_candidates(
             id: id.value(row).to_string(),
             score,
             path: path.value(row).to_string(),
-            line: usize::try_from(line.value(row)).unwrap_or(usize::MAX),
-            column: usize::try_from(column.value(row)).unwrap_or(usize::MAX),
+            line: decode_usize_column("line", line.value(row))?,
+            column: decode_usize_column("column", column.value(row))?,
         });
         telemetry.observe_working_set(candidates.len());
         if candidates.len() > window.threshold {
@@ -54,6 +55,14 @@ pub(super) fn collect_candidates(
     }
 
     Ok(())
+}
+
+fn decode_usize_column(column: &str, value: u64) -> Result<usize, ReferenceOccurrenceSearchError> {
+    usize::try_from(value).map_err(|_| {
+        ReferenceOccurrenceSearchError::Decode(format!(
+            "reference occurrence `{column}` value `{value}` does not fit usize"
+        ))
+    })
 }
 
 pub(super) fn compare_candidates(

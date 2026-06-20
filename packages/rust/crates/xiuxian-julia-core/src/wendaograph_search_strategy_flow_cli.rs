@@ -20,6 +20,7 @@ use serde_json::json;
 const USAGE: &str = "usage: wendaograph_search_strategy_flow --intent <text> [--search-root <path>] [--flight-base-url <url> [--flight-repo <repo>]] [--strategy-flow-service-base-url <url>] [--query-understanding-arrow-ipc <path>] [--branch-judgements-arrow-ipc <path>] [--persistent-warm-samples <count>] [--serve-stdio]";
 const STDIO_SESSION_RESPONSE_KIND: &str =
     "xiuxian_wendao.wendaograph.search_strategy_flow.persistent_stdio_response.v1";
+const ABSENT_OPTIONAL_ARROW_IPC_PATH: &str = "";
 
 /// Runs the `wendaograph_search_strategy_flow` command with process arguments.
 ///
@@ -209,6 +210,20 @@ impl StdioSessionRequest {
             .as_deref()
             .unwrap_or_default()
     }
+
+    fn into_side_table_request(self) -> SearchStrategyFlowSideTableRequest {
+        SearchStrategyFlowSideTableRequest::new(
+            self.intent,
+            optional_arrow_ipc_path_for_host(self.query_understanding_arrow_ipc_path),
+            optional_arrow_ipc_path_for_host(self.branch_judgements_arrow_ipc_path),
+            optional_arrow_ipc_path_for_host(self.ontology_registry_arrow_ipc_path),
+        )
+    }
+}
+
+fn optional_arrow_ipc_path_for_host(path: Option<String>) -> String {
+    path.filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| ABSENT_OPTIONAL_ARROW_IPC_PATH.to_string())
 }
 
 #[cfg(test)]
@@ -295,16 +310,7 @@ async fn submit_stdio_session_batch(
         .collect::<Vec<_>>();
     let side_table_requests = requests
         .into_iter()
-        .map(|request| {
-            SearchStrategyFlowSideTableRequest::new(
-                request.intent,
-                request
-                    .query_understanding_arrow_ipc_path
-                    .unwrap_or_default(),
-                request.branch_judgements_arrow_ipc_path.unwrap_or_default(),
-                request.ontology_registry_arrow_ipc_path.unwrap_or_default(),
-            )
-        })
+        .map(StdioSessionRequest::into_side_table_request)
         .collect::<Vec<_>>();
     let result = if let Some(config) = config {
         host.submit_batch_with_flight_materialization_and_side_tables(side_table_requests, config)

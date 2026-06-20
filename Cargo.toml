@@ -171,7 +171,7 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "149c6f9ef535c04cf47814fb86b436fd70f95c45" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "6dea4b1afc46bec0b4b480b9ab99b9d471d045ee" }
 xiuxian-rust-workspace-harness = { path = "packages/rust/crates/xiuxian-rust-workspace-harness" }
 
 # Release profile optimizations for better performance
