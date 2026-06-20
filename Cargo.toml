@@ -82,7 +82,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "c5805db55e0a0ebeb70d78e11705bf7bb117bb37" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "5f7ab1586586ec313e988a9421809ecd03e68d7e" }
 pulldown-cmark = "0.12"
 quick-xml = { version = "0.39.2", features = ["serialize"] }
 petgraph = "0.7"
@@ -310,8 +310,6 @@ codegen-units = 1
 inherits = "release"
 debug = "line-tables-only"
 strip = "none"
-
-
 
 [workspace.lints.rust]
 unsafe_code = "deny" # Default deny unsafe unless explicitly allowed

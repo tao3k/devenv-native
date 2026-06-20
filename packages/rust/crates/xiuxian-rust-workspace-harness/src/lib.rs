@@ -303,8 +303,7 @@ fn xiuxian_member_build_gate_policy_with_config(
     crate_label: impl Into<String>,
     config: RustHarnessConfig,
 ) -> RustProjectHarnessDownstreamPolicy {
-    RustProjectHarnessWorkspacePolicy::new(XIUXIAN_WORKSPACE_LABEL, config)
-        .member_crate(crate_label)
+    xiuxian_workspace_policy_with_config(config).member_crate(crate_label)
 }
 
 /// Assert the legacy-compatible member harness build gate from `CARGO_MANIFEST_DIR`.
@@ -350,6 +349,26 @@ mod tests {
     fn workspace_policy_carries_harness_rev_baseline() {
         let policy = xiuxian_workspace_policy();
         let member_policy = policy.member_crate("xiuxian-config-core");
+        let packages = match member_policy.dependency_baseline() {
+            Some(dependency_baseline) => dependency_baseline.packages(),
+            None => panic!("expected rust harness dependency baseline"),
+        };
+
+        assert_eq!(packages.len(), 1);
+        assert_eq!(packages[0].name(), "rust-lang-project-harness");
+        assert_eq!(packages[0].version(), XIUXIAN_RUST_HARNESS_VERSION);
+        assert_eq!(
+            packages[0].source_contains(),
+            format!("rev={XIUXIAN_RUST_HARNESS_REV}")
+        );
+    }
+
+    #[test]
+    fn build_gate_policy_carries_harness_rev_baseline() {
+        let member_policy = xiuxian_member_build_gate_policy_with_config(
+            "xiuxian-event",
+            xiuxian_workspace_harness_config(),
+        );
         let packages = match member_policy.dependency_baseline() {
             Some(dependency_baseline) => dependency_baseline.packages(),
             None => panic!("expected rust harness dependency baseline"),
