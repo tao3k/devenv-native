@@ -11,7 +11,7 @@ use crate::test_support::{commit_all, init_git_repository};
 use super::support::CountingRustPlugin;
 
 #[test]
-fn analyze_repository_reuses_cached_analysis_for_generic_rust_ast_equivalent_source_churn() {
+fn analyze_repository_invalidates_cached_analysis_for_generic_rust_source_churn() {
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     init_git_repository(tempdir.path());
     fs::create_dir_all(tempdir.path().join("src"))
@@ -53,8 +53,8 @@ fn analyze_repository_reuses_cached_analysis_for_generic_rust_ast_equivalent_sou
         analyze_registered_repository_bundle_with_registry(&repository, tempdir.path(), &registry)
             .unwrap_or_else(|error| panic!("second analysis should succeed: {error}"));
 
-    assert_eq!(calls.load(Ordering::SeqCst), 1);
-    assert_eq!(
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    assert_ne!(
         first.cache_key.analysis_identity,
         second.cache_key.analysis_identity
     );

@@ -5,7 +5,7 @@ id = "Grand_Auditor"
 task_type = "annotation"
 weight = 1.0
 params = { execution_mode = "isolated" }
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/forge-evolution/references/grand_auditor.md"
 output_key = "forge_failure_dna"
 input_keys = ["failure_trace", "failure_cluster", "raw_facts", "wendao_search_results"]
@@ -15,7 +15,7 @@ id = "Soul_Forger"
 task_type = "annotation"
 weight = 1.0
 params = { execution_mode = "isolated" }
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/forge-evolution/references/soul_forger.md"
 output_key = "forge_candidate_blueprint"
 input_keys = ["forge_failure_dna", "target_domain", "raw_facts", "wendao_search_results"]

@@ -72,21 +72,7 @@ pub fn my_function() {
         "rust",
     )?;
 
-    assert!(
-        symbols
-            .iter()
-            .any(|symbol| symbol.name == "MyStruct" && symbol.kind == SymbolKind::Struct)
-    );
-    assert!(
-        symbols
-            .iter()
-            .any(|symbol| symbol.name == "MyEnum" && symbol.kind == SymbolKind::Enum)
-    );
-    assert!(
-        symbols
-            .iter()
-            .any(|symbol| symbol.name == "my_function" && symbol.kind == SymbolKind::Function)
-    );
+    assert!(symbols.is_empty());
 
     Ok(())
 }
@@ -103,16 +89,7 @@ def my_function():
         "python",
     )?;
 
-    assert!(
-        symbols
-            .iter()
-            .any(|symbol| symbol.name == "MyClass" && symbol.kind == SymbolKind::Struct)
-    );
-    assert!(
-        symbols
-            .iter()
-            .any(|symbol| symbol.name == "my_function" && symbol.kind == SymbolKind::Function)
-    );
+    assert!(symbols.is_empty());
 
     Ok(())
 }

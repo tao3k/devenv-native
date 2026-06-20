@@ -7,7 +7,7 @@ task_type = "annotation"
 weight = 1.0
 [nodes.params]
 execution_mode = "isolated"
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/agenda-management/references/student.md"
 output_key = "student_proposal"
 
@@ -17,7 +17,7 @@ task_type = "annotation"
 weight = 1.0
 [nodes.params]
 execution_mode = "appended"
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/agenda-management/references/steward.md"
 output_key = "steward_feedback"
 
@@ -31,7 +31,7 @@ max_retries = 10
 retry_targets = ["Professor_Audit"]
 output_key = "professor_conclusion"
 score_key = "governance_score"
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/agenda-management/references/teacher.md#[Heading:Architecture, Paragraph:3]"
 output_key = "professor_annotated_prompt"
 input_keys = ["student_proposal", "steward_feedback", "wendao_search_results"]
@@ -43,7 +43,7 @@ task_type = "annotation"
 weight = 1.0
 [nodes.params]
 execution_mode = "appended"
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/agenda-management/references/autonomous/collision_specialist.md"
 output_key = "mediator_proposal"
 input_keys = ["student_proposal", "steward_feedback", "professor_conclusion"]
@@ -54,7 +54,7 @@ task_type = "annotation"
 weight = 1.0
 [nodes.params]
 execution_mode = "appended"
-[nodes.qianhuan]
+[nodes.annotation]
 template_target = "$wendao://skills/agenda-management/references/final_agenda.j2"
 output_key = "final_synaptic_report"
 input_keys = ["student_proposal", "steward_feedback", "professor_conclusion", "mediator_proposal", "wendao_search_results"]

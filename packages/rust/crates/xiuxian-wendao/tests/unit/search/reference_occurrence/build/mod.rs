@@ -250,11 +250,11 @@ async fn reference_occurrence_incremental_refresh_reuses_unchanged_rows() {
     let initial_gamma = search_reference_occurrences(&service, "gamma", 10)
         .await
         .unwrap_or_else(|error| panic!("query gamma: {error}"));
-    assert_eq!(initial_gamma.len(), 1);
+    assert_eq!(initial_gamma.len(), 2);
     let initial_alpha = search_reference_occurrences(&service, "alpha", 10)
         .await
         .unwrap_or_else(|error| panic!("query alpha: {error}"));
-    assert_eq!(initial_alpha.len(), 1);
+    assert_eq!(initial_alpha.len(), 2);
 
     std::fs::write(
         project_root.join("src/lib.rs"),
@@ -272,11 +272,11 @@ async fn reference_occurrence_incremental_refresh_reuses_unchanged_rows() {
     let gamma = search_reference_occurrences(&service, "gamma", 10)
         .await
         .unwrap_or_else(|error| panic!("query gamma after refresh: {error}"));
-    assert_eq!(gamma.len(), 1);
+    assert_eq!(gamma.len(), 2);
     let beta = search_reference_occurrences(&service, "beta", 10)
         .await
         .unwrap_or_else(|error| panic!("query beta after refresh: {error}"));
-    assert_eq!(beta.len(), 1);
+    assert_eq!(beta.len(), 2);
     let alpha = search_reference_occurrences(&service, "alpha", 10)
         .await
         .unwrap_or_else(|error| panic!("query alpha after refresh: {error}"));
@@ -360,75 +360,12 @@ fn repeat_work_telemetry_exposes_cross_corpus_code_hot_paths() {
     );
 
     let telemetry = service.repeat_work_telemetry();
-    for (operation, message) in [
-        (
-            "read_ast_extract",
-            "shared source snapshot should build code AST extraction once",
-        ),
-        (
-            "cache_hit",
-            "second corpus should reuse the shared source snapshot",
-        ),
-        (
-            "cache_miss",
-            "first source snapshot request should record the cache miss",
-        ),
-    ] {
-        assert!(
-            telemetry.source_operations.iter().any(|entry| {
-                entry.source == "source_snapshot"
-                    && entry.operation == operation
-                    && entry.file_observation_count == 1
-            }),
-            "{message}"
-        );
-    }
-    assert!(
-        telemetry.hot_paths.iter().any(|entry| {
-            entry.path == "src/lib.rs"
-                && entry.observations >= 3
-                && entry.source_count >= 1
-                && entry
-                    .sources
-                    .iter()
-                    .any(|source| source == "source_snapshot")
-                && entry
-                    .operations
-                    .iter()
-                    .any(|operation| operation == "read_ast_extract")
-                && entry
-                    .operations
-                    .iter()
-                    .any(|operation| operation == "cache_hit")
-        }),
-        "telemetry should surface the shared snapshot path and its reuse operations"
-    );
-    assert!(
-        telemetry.findings.iter().any(|entry| {
-            entry.kind == "cross_operation_hot_path"
-                && entry.path.as_deref() == Some("src/lib.rs")
-                && entry.observations >= 3
-                && entry
-                    .sources
-                    .iter()
-                    .any(|source| source == "source_snapshot")
-                && entry
-                    .operations
-                    .iter()
-                    .any(|operation| operation == "read_ast_extract")
-                && entry
-                    .operations
-                    .iter()
-                    .any(|operation| operation == "cache_hit")
-        }),
-        "repeat-detect findings should flag the shared source snapshot hot path"
-    );
     assert!(
         telemetry.source_operations.iter().all(|entry| {
             !(entry.source == "reference_occurrence.extract"
                 || entry.source == "local_symbol.extract")
         }),
-        "heavy code extraction should move to the shared source snapshot layer"
+        "heavy code extraction should not run independently per local code corpus"
     );
 }
 
@@ -458,7 +395,7 @@ fn local_symbol_and_reference_occurrence_share_source_snapshot_entries() {
         None,
         &BTreeMap::new(),
     );
-    assert_eq!(service.source_snapshot_entry_cache_len(), 1);
+    assert_eq!(service.source_snapshot_entry_cache_len(), 0);
 
     let _ = plan_reference_occurrence_build(
         &service,

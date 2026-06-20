@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use super::resolver_chain;
 use crate::engine::compiler::{stateful_mechanisms, task_type};
+use crate::error::QianjiError;
 
 pub(super) fn build(
     context: resolver_chain::DispatchContext<'_>,
@@ -27,6 +28,10 @@ pub(super) fn build(
             index: compiler.index.clone(),
         }))),
         task_type::TaskType::Annotation => Some(Ok(stateful_mechanisms::annotation(node_def))),
+        task_type::TaskType::Llm => Some(Err(QianjiError::Topology(
+            "Task type `llm` requires external LLM execution; local Qianji LLM execution is retired, use marlin-agent-core."
+                .to_string(),
+        ))),
         _ => None,
     }
 }

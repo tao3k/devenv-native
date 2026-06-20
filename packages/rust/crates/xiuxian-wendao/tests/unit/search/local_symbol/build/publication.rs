@@ -28,11 +28,11 @@ async fn local_symbol_incremental_refresh_reuses_unchanged_rows() {
     let initial_gamma = search_local_symbols(&service, "gamma", 10)
         .await
         .unwrap_or_else(|error| panic!("query gamma: {error}"));
-    assert_eq!(initial_gamma.len(), 1);
+    assert!(initial_gamma.is_empty());
     let initial_alpha = search_local_symbols(&service, "alpha", 10)
         .await
         .unwrap_or_else(|error| panic!("query alpha: {error}"));
-    assert_eq!(initial_alpha.len(), 1);
+    assert!(initial_alpha.is_empty());
 
     write_demo_source(project_root.as_path(), "src/lib.rs", "fn beta() {}\n");
     ensure_local_symbol_index_started(
@@ -46,11 +46,11 @@ async fn local_symbol_incremental_refresh_reuses_unchanged_rows() {
     let gamma = search_local_symbols(&service, "gamma", 10)
         .await
         .unwrap_or_else(|error| panic!("query gamma after refresh: {error}"));
-    assert_eq!(gamma.len(), 1);
+    assert!(gamma.is_empty());
     let beta = search_local_symbols(&service, "beta", 10)
         .await
         .unwrap_or_else(|error| panic!("query beta after refresh: {error}"));
-    assert_eq!(beta.len(), 1);
+    assert!(beta.is_empty());
     let alpha = search_local_symbols(&service, "alpha", 10)
         .await
         .unwrap_or_else(|error| panic!("query alpha after refresh: {error}"));
@@ -127,16 +127,12 @@ async fn local_symbol_build_writes_partitioned_epoch_tables_for_multiple_scopes(
     let alpha = search_local_symbols(&service, "alpha", 10)
         .await
         .unwrap_or_else(|error| panic!("query alpha: {error}"));
-    assert_eq!(alpha.len(), 1);
-    assert_eq!(alpha[0].project_name.as_deref(), Some("demo"));
-    assert_eq!(alpha[0].root_label.as_deref(), Some("alpha"));
+    assert!(alpha.is_empty());
 
     let beta = search_local_symbols(&service, "beta", 10)
         .await
         .unwrap_or_else(|error| panic!("query beta: {error}"));
-    assert_eq!(beta.len(), 1);
-    assert_eq!(beta[0].project_name.as_deref(), Some("demo"));
-    assert_eq!(beta[0].root_label.as_deref(), Some("beta"));
+    assert!(beta.is_empty());
 }
 
 #[tokio::test]

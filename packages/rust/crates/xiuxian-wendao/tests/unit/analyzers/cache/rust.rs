@@ -9,8 +9,7 @@ use crate::analyzers::{RegisteredRepository, RepositoryPluginConfig, RepositoryR
 use crate::analyzers::cache::build_repository_analysis_cache_key;
 
 #[test]
-fn build_repository_analysis_cache_key_reuses_generic_rust_identity_for_ast_equivalent_source_churn()
- {
+fn build_repository_analysis_cache_key_invalidates_generic_rust_identity_for_source_churn() {
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::create_dir_all(tempdir.path().join("src"))
         .unwrap_or_else(|error| panic!("create src: {error}"));
@@ -60,7 +59,7 @@ fn build_repository_analysis_cache_key_reuses_generic_rust_identity_for_ast_equi
         }),
     );
 
-    assert_eq!(first_key.analysis_identity, second_key.analysis_identity);
+    assert_ne!(first_key.analysis_identity, second_key.analysis_identity);
 }
 
 #[test]
@@ -118,7 +117,8 @@ fn build_repository_analysis_cache_key_invalidates_on_generic_rust_signature_cha
 }
 
 #[test]
-fn build_repository_analysis_cache_key_reuses_generic_rust_identity_without_repo_plugin_config() {
+fn build_repository_analysis_cache_key_invalidates_generic_rust_identity_for_source_churn_without_repo_plugin_config()
+ {
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     fs::create_dir_all(tempdir.path().join("src"))
         .unwrap_or_else(|error| panic!("create src: {error}"));
@@ -168,7 +168,7 @@ fn build_repository_analysis_cache_key_reuses_generic_rust_identity_without_repo
         }),
     );
 
-    assert_eq!(first_key.analysis_identity, second_key.analysis_identity);
+    assert_ne!(first_key.analysis_identity, second_key.analysis_identity);
 }
 
 #[test]

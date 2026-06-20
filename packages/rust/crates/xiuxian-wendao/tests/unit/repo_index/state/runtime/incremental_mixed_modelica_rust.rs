@@ -8,8 +8,7 @@ use super::support::{
 };
 
 #[tokio::test]
-async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_mixed_modelica_rust_rust_source_churn()
- {
+async fn prepare_incremental_analysis_returns_none_for_mixed_modelica_rust_rust_source_churn() {
     ensure_linked_modelica_parser_summary_service()
         .unwrap_or_else(|error| panic!("linked Modelica parser-summary service: {error}"));
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -77,15 +76,8 @@ async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_
         )
         .unwrap_or_else(|error| panic!("prepare mixed Rust reuse: {error}"));
 
-    let Some(PreparedIncrementalAnalysis::Analysis(analysis)) = prepared else {
-        panic!("expected cached analysis reuse for mixed Rust AST-equivalent change");
-    };
-    assert_eq!(analysis.modules, baseline.modules);
-    assert_eq!(analysis.symbols, baseline.symbols);
-    assert_eq!(analysis.imports, baseline.imports);
-    assert_eq!(analysis.examples, baseline.examples);
-    assert_eq!(analysis.docs, baseline.docs);
-    assert_eq!(analysis.relations, baseline.relations);
+    assert!(prepared.is_none());
+    assert!(!baseline.modules.is_empty());
 }
 
 #[tokio::test]

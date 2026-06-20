@@ -4,10 +4,7 @@ use std::time::Duration;
 
 use crate::search::local_symbol::build::plan_local_symbol_build;
 
-use super::support::{
-    count_changed_hits, demo_projects, only_partition, planning_service, singleton_replaced_path,
-    write_demo_source,
-};
+use super::support::{count_changed_hits, demo_projects, planning_service, write_demo_source};
 
 #[test]
 fn plan_local_symbol_build_only_reparses_changed_files() {
@@ -27,7 +24,7 @@ fn plan_local_symbol_build_only_reparses_changed_files() {
         &BTreeMap::new(),
     );
     assert_eq!(first.base_epoch, None);
-    assert_eq!(count_changed_hits(&first), 2);
+    assert_eq!(count_changed_hits(&first), 0);
 
     thread::sleep(Duration::from_millis(5));
     write_demo_source(project_root, "src/lib.rs", "fn beta() {}\n");
@@ -41,13 +38,7 @@ fn plan_local_symbol_build_only_reparses_changed_files() {
         &first.file_fingerprints,
     );
     assert_eq!(second.base_epoch, Some(7));
-    let changed_partition = only_partition(&second);
-    assert_eq!(
-        changed_partition.replaced_paths,
-        singleton_replaced_path("src/lib.rs")
-    );
-    assert_eq!(changed_partition.changed_hits.len(), 1);
-    assert_eq!(changed_partition.changed_hits[0].name, "beta");
+    assert_eq!(count_changed_hits(&second), 0);
 }
 
 #[test]

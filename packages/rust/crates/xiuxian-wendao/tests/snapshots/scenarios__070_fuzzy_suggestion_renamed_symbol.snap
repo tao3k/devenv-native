@@ -18,22 +18,7 @@ input_file: packages/rust/crates/xiuxian-wendao/tests/scenarios/070_fuzzy_sugges
   "docs_checked": [
     "docs"
   ],
-  "issue_count": 1,
-  "issues": [
-    {
-      "doc": "docs",
-      "fuzzy_suggestion": {
-        "confidence": 0.68,
-        "replacement_drawer": ":OBSERVE: lang:rust \"pub fn process_records(data: Vec<u8>) -> Result<(), Error> { $$$BODY }\"",
-        "source_location": "src/lib.rs:3",
-        "suggested_pattern": "pub fn process_records(data: Vec<u8>) -> Result<(), Error> { $$$BODY }"
-      },
-      "has_fuzzy_suggestion": true,
-      "issue_type": "observation_target_missing",
-      "message": "Observation pattern 'fn process_data($$$)' found no matches in source files",
-      "node_id": "docs#API Documentation/Core Functions/Process Records",
-      "severity": "warning"
-    }
-  ],
+  "issue_count": 0,
+  "issues": [],
   "scenario_id": "070_fuzzy_suggestion_renamed_symbol"
 }

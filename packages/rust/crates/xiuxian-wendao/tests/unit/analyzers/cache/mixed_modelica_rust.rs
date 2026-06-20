@@ -14,7 +14,7 @@ use crate::analyzers::cache::build_repository_analysis_cache_key;
 
 #[test]
 #[serial(mixed_modelica_rust_live)]
-fn build_repository_analysis_cache_key_reuses_mixed_modelica_rust_identity_for_rust_ast_equivalent_source_churn()
+fn build_repository_analysis_cache_key_invalidates_mixed_modelica_rust_identity_for_rust_source_churn()
 -> Result<(), Box<dyn std::error::Error>> {
     ensure_linked_modelica_parser_summary_service()?;
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -79,7 +79,7 @@ fn build_repository_analysis_cache_key_reuses_mixed_modelica_rust_identity_for_r
         }),
     );
 
-    assert_eq!(first_key.analysis_identity, second_key.analysis_identity);
+    assert_ne!(first_key.analysis_identity, second_key.analysis_identity);
     Ok(())
 }
 

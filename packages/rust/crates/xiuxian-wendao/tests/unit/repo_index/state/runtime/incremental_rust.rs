@@ -1,13 +1,12 @@
 use super::support::{
-    Arc, PathBuf, PluginRegistry, PreparedIncrementalAnalysis, RegisteredRepository,
-    RepoSourceKind, RepoSyncResult, RepositoryPluginConfig, RepositoryRefreshPolicy,
-    RuntimeRustPlugin, SearchPlaneService, analyze_registered_repository_with_registry, commit_all,
-    fs, init_git_repository, new_coordinator_with_registry,
+    Arc, PathBuf, PluginRegistry, RegisteredRepository, RepoSourceKind, RepoSyncResult,
+    RepositoryPluginConfig, RepositoryRefreshPolicy, RuntimeRustPlugin, SearchPlaneService,
+    analyze_registered_repository_with_registry, commit_all, fs, init_git_repository,
+    new_coordinator_with_registry,
 };
 
 #[tokio::test]
-async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_generic_rust_source_churn()
- {
+async fn prepare_incremental_analysis_returns_none_for_generic_rust_source_churn() {
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
     init_git_repository(tempdir.path());
     fs::create_dir_all(tempdir.path().join("src"))
@@ -67,19 +66,8 @@ async fn prepare_incremental_analysis_reuses_cached_analysis_for_ast_equivalent_
         )
         .unwrap_or_else(|error| panic!("prepare generic Rust reuse: {error}"));
 
-    let analysis = match prepared {
-        Some(PreparedIncrementalAnalysis::Analysis(analysis)) => analysis,
-        Some(PreparedIncrementalAnalysis::RefreshOnly) => {
-            panic!("expected cached analysis reuse, got refresh-only incremental result")
-        }
-        None => panic!("expected cached analysis reuse, got full-analysis fallback"),
-    };
-    assert_eq!(analysis.modules, baseline.modules);
-    assert_eq!(analysis.symbols, baseline.symbols);
-    assert_eq!(analysis.imports, baseline.imports);
-    assert_eq!(analysis.examples, baseline.examples);
-    assert_eq!(analysis.docs, baseline.docs);
-    assert_eq!(analysis.relations, baseline.relations);
+    assert!(prepared.is_none());
+    assert!(!baseline.modules.is_empty());
 }
 
 #[tokio::test]

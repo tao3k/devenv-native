@@ -340,7 +340,9 @@ fn matched_org_elements_json(
 }
 
 fn is_recall_body_evidence(element: &AgentOrgElementMatch) -> bool {
-    element.category != "property" && element.context != "propertyDrawer"
+    element.kind != "planning"
+        && element.category != "property"
+        && element.context != "propertyDrawer"
 }
 
 fn matched_org_element_json(

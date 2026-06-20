@@ -15,8 +15,7 @@ use super::support::{
 };
 
 #[test]
-fn analyze_repository_reuses_cached_analysis_for_ast_equivalent_mixed_modelica_rust_rust_source_churn()
- {
+fn analyze_repository_invalidates_cached_analysis_for_mixed_modelica_rust_rust_source_churn() {
     ensure_linked_modelica_parser_summary_service()
         .unwrap_or_else(|error| panic!("linked Modelica parser-summary service: {error}"));
     let tempdir = tempfile::tempdir().unwrap_or_else(|error| panic!("tempdir: {error}"));
@@ -68,8 +67,8 @@ fn analyze_repository_reuses_cached_analysis_for_ast_equivalent_mixed_modelica_r
         analyze_registered_repository_bundle_with_registry(&repository, tempdir.path(), &registry)
             .unwrap_or_else(|error| panic!("second mixed analysis should succeed: {error}"));
 
-    assert_eq!(calls.load(Ordering::SeqCst), 1);
-    assert_eq!(
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    assert_ne!(
         first.cache_key.analysis_identity,
         second.cache_key.analysis_identity
     );
