@@ -1,8 +1,11 @@
 //! Workspace-owned Rust harness policy for xiuxian member crates.
 
 use rust_lang_project_harness::{
-    RustHarnessConfig, RustHarnessReport, RustProjectHarnessDependencyBaseline,
-    RustProjectHarnessDownstreamPolicy, RustProjectHarnessWorkspacePolicy,
+    RustHarnessConfig, RustHarnessReport, RustOwnerResponsibility,
+    RustProjectHarnessDependencyBaseline, RustProjectHarnessDownstreamPolicy,
+    RustProjectHarnessWorkspacePolicy, RustVerificationPhase, RustVerificationProfileHint,
+    RustVerificationRequirement, RustVerificationSkillBinding, RustVerificationSkillDescriptor,
+    RustVerificationTaskContract, RustVerificationTaskKind,
 };
 
 /// Types intentionally exposed for member `build.rs` policy hints.
@@ -36,6 +39,211 @@ pub const XIUXIAN_BUILD_GATE_ADVICE_ALLOW_EXPLANATION: &str = concat!(
 pub fn xiuxian_workspace_harness_config() -> RustHarnessConfig {
     rust_lang_project_harness::default_rust_harness_config()
         .with_cargo_check_advice_allow_explanation(XIUXIAN_BUILD_GATE_ADVICE_ALLOW_EXPLANATION)
+        .with_verification_profile_hint(xiuxian_member_library_performance_hint())
+        .with_verification_responsibility_task_kinds(
+            RustOwnerResponsibility::LatencySensitive,
+            [RustVerificationTaskKind::Performance],
+        )
+        .with_verification_responsibility_task_kinds(
+            RustOwnerResponsibility::AvailabilityCritical,
+            [
+                RustVerificationTaskKind::Stability,
+                RustVerificationTaskKind::Regression,
+            ],
+        )
+        .with_verification_responsibility_task_kinds(
+            RustOwnerResponsibility::SecurityBoundary,
+            [RustVerificationTaskKind::Security],
+        )
+        .with_verification_skill_binding(
+            RustVerificationTaskKind::Performance,
+            RustVerificationSkillBinding::new("rust-verification-performance")
+                .with_adapter("cargo-check"),
+        )
+        .with_verification_skill_descriptor(xiuxian_member_performance_skill_descriptor())
+        .with_verification_skill_binding(
+            RustVerificationTaskKind::Stability,
+            RustVerificationSkillBinding::new("rust-verification-stability")
+                .with_adapter("cargo-check"),
+        )
+        .with_verification_skill_descriptor(xiuxian_member_stability_skill_descriptor())
+        .with_verification_skill_binding(
+            RustVerificationTaskKind::Security,
+            RustVerificationSkillBinding::new("rust-verification-security")
+                .with_adapter("cargo-check"),
+        )
+        .with_verification_skill_descriptor(xiuxian_member_security_skill_descriptor())
+        .with_verification_skill_binding(
+            RustVerificationTaskKind::Regression,
+            RustVerificationSkillBinding::new("rust-verification-regression")
+                .with_adapter("cargo-check"),
+        )
+        .with_verification_skill_descriptor(xiuxian_member_regression_skill_descriptor())
+}
+
+fn xiuxian_member_library_performance_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/lib.rs",
+        [
+            RustOwnerResponsibility::LatencySensitive,
+            RustOwnerResponsibility::PublicApi,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskKind::Stability,
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskKind::Regression,
+    ])
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report member crate cargo-check or package-specific benchmark evidence before release",
+            [
+                RustVerificationRequirement::new(
+                    "verification_command",
+                    "cargo check -p <crate> --locked or stronger package-specific gate",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted package-specific runtime or build-time regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "artifact",
+                    "local or CI log proving the verification gate ran",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Stability,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "stability skill must report member crate cargo-check or stronger package-specific stability evidence before release",
+            [
+                RustVerificationRequirement::new(
+                    "verification_command",
+                    "cargo check -p <crate> --locked or stronger package-specific gate",
+                ),
+                RustVerificationRequirement::new(
+                    "stability_surface",
+                    "public API, build script, and dependency surface covered by the gate",
+                ),
+                RustVerificationRequirement::new(
+                    "artifact",
+                    "local or CI log proving the stability gate ran",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report member crate unsafe, build-script, and dependency-boundary evidence before release",
+            [
+                RustVerificationRequirement::new(
+                    "verification_command",
+                    "cargo check -p <crate> --locked or stronger package-specific gate",
+                ),
+                RustVerificationRequirement::new(
+                    "security_surface",
+                    "unsafe, build-script, and dependency-boundary surface covered by the gate",
+                ),
+                RustVerificationRequirement::new(
+                    "artifact",
+                    "local or CI log proving the security gate ran",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::ScheduledRegression,
+            "regression skill must report member crate cargo-check or stronger package-specific regression evidence before release",
+            [
+                RustVerificationRequirement::new(
+                    "verification_command",
+                    "cargo check -p <crate> --locked or stronger package-specific gate",
+                ),
+                RustVerificationRequirement::new(
+                    "contract_surface",
+                    "public API, feature, and build-script contract covered by the gate",
+                ),
+                RustVerificationRequirement::new(
+                    "artifact",
+                    "local or CI log proving the regression gate ran",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("every xiuxian member crate exposes src/lib.rs as its release verification anchor")
+}
+
+fn xiuxian_member_performance_skill_descriptor() -> RustVerificationSkillDescriptor {
+    RustVerificationSkillDescriptor::new("rust-verification-performance")
+        .with_adapter("cargo-check")
+        .with_tool("cargo")
+        .with_command("cargo check -p <crate> --locked")
+        .with_standard("member crate release checks remain intentional and observable")
+        .with_required_inputs(["verification_command", "regression_threshold", "artifact"])
+        .with_pass_criteria(["check=pass", "artifact=present"])
+        .with_receipt_fields([
+            "verification_command",
+            "regression_threshold",
+            "latency_or_throughput",
+            "artifact",
+        ])
+}
+
+fn xiuxian_member_stability_skill_descriptor() -> RustVerificationSkillDescriptor {
+    RustVerificationSkillDescriptor::new("rust-verification-stability")
+        .with_adapter("cargo-check")
+        .with_tool("cargo")
+        .with_command("cargo check -p <crate> --locked")
+        .with_standard("member crate release stability stays intentional and observable")
+        .with_required_inputs(["verification_command", "stability_surface", "artifact"])
+        .with_pass_criteria(["check=pass", "artifact=present"])
+        .with_receipt_fields([
+            "verification_command",
+            "stability_surface",
+            "latency_or_throughput",
+            "artifact",
+        ])
+}
+
+fn xiuxian_member_security_skill_descriptor() -> RustVerificationSkillDescriptor {
+    RustVerificationSkillDescriptor::new("rust-verification-security")
+        .with_adapter("cargo-check")
+        .with_tool("cargo")
+        .with_command("cargo check -p <crate> --locked")
+        .with_standard("member crate release security boundaries stay intentional and observable")
+        .with_required_inputs(["verification_command", "security_surface", "artifact"])
+        .with_pass_criteria(["check=pass", "artifact=present"])
+        .with_receipt_fields([
+            "verification_command",
+            "security_surface",
+            "finding_summary",
+            "artifact",
+        ])
+}
+
+fn xiuxian_member_regression_skill_descriptor() -> RustVerificationSkillDescriptor {
+    RustVerificationSkillDescriptor::new("rust-verification-regression")
+        .with_adapter("cargo-check")
+        .with_tool("cargo")
+        .with_command("cargo check -p <crate> --locked")
+        .with_standard("member crate release contracts stay intentional and observable")
+        .with_required_inputs(["verification_command", "contract_surface", "artifact"])
+        .with_pass_criteria(["check=pass", "artifact=present"])
+        .with_receipt_fields([
+            "verification_command",
+            "contract_surface",
+            "contract_parity",
+            "artifact",
+        ])
 }
 
 /// Build the shared dependency baseline for workspace evidence receipts.
@@ -51,17 +259,39 @@ pub fn xiuxian_workspace_dependency_baseline() -> RustProjectHarnessDependencyBa
 /// Build the workspace-owned policy used to derive member crate policies.
 #[must_use]
 pub fn xiuxian_workspace_policy() -> RustProjectHarnessWorkspacePolicy {
-    RustProjectHarnessWorkspacePolicy::new(
-        XIUXIAN_WORKSPACE_LABEL,
-        xiuxian_workspace_harness_config(),
-    )
-    .with_dependency_baseline(xiuxian_workspace_dependency_baseline())
+    xiuxian_workspace_policy_with_config(xiuxian_workspace_harness_config())
+}
+
+/// Build the workspace-owned policy with a caller-provided harness config.
+#[must_use]
+pub fn xiuxian_workspace_policy_with_config(
+    config: RustHarnessConfig,
+) -> RustProjectHarnessWorkspacePolicy {
+    RustProjectHarnessWorkspacePolicy::new(XIUXIAN_WORKSPACE_LABEL, config)
+        .with_dependency_baseline(xiuxian_workspace_dependency_baseline())
 }
 
 /// Derive a member crate policy from the shared xiuxian workspace policy.
 #[must_use]
 pub fn xiuxian_member_policy(crate_label: impl Into<String>) -> RustProjectHarnessDownstreamPolicy {
     xiuxian_workspace_policy().member_crate(crate_label)
+}
+
+/// Derive a member crate policy from a caller-provided shared config.
+#[must_use]
+pub fn xiuxian_member_policy_with_config(
+    crate_label: impl Into<String>,
+    config: RustHarnessConfig,
+) -> RustProjectHarnessDownstreamPolicy {
+    xiuxian_workspace_policy_with_config(config).member_crate(crate_label)
+}
+
+fn xiuxian_member_build_gate_policy_with_config(
+    crate_label: impl Into<String>,
+    config: RustHarnessConfig,
+) -> RustProjectHarnessDownstreamPolicy {
+    RustProjectHarnessWorkspacePolicy::new(XIUXIAN_WORKSPACE_LABEL, config)
+        .member_crate(crate_label)
 }
 
 /// Assert the legacy-compatible member harness build gate from `CARGO_MANIFEST_DIR`.
@@ -97,9 +327,10 @@ where
 {
     let config = xiuxian_workspace_harness_config();
     let config = configure(config);
-    rust_lang_project_harness::assert_rust_project_harness_cargo_check_clean_from_env_with_config(
-        &config,
-    )
+    let crate_label =
+        std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "unknown-xiuxian-member".to_owned());
+    let policy = xiuxian_member_build_gate_policy_with_config(crate_label, config);
+    rust_lang_project_harness::assert_rust_project_harness_downstream_policy_from_env(&policy)
 }
 
 #[cfg(test)]
