@@ -9,7 +9,6 @@ publish = false
 
 [features]
 default = ["duckdb", "qianji-full"]
-llm = []
 duckdb = [
   "run-console-flight",
   "dep:tokio-stream",
