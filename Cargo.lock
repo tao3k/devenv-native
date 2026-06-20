@@ -6683,7 +6683,7 @@ dependencies = [
 [[package]]
 name = "orgize"
 version = "0.10.0-alpha.10"
-source = "git+https://github.com/tao3k/orgize?rev=5f7ab1586586ec313e988a9421809ecd03e68d7e#5f7ab1586586ec313e988a9421809ecd03e68d7e"
+source = "git+https://github.com/tao3k/orgize?rev=69b5326b0ba04bbfe6ad3a0d1c5cf77d4292df34#69b5326b0ba04bbfe6ad3a0d1c5cf77d4292df34"
 dependencies = [
  "bytecount",
  "cfg-if",
@@ -6699,7 +6699,7 @@ dependencies = [
 [[package]]
 name = "orgize-build-support"
 version = "0.1.0"
-source = "git+https://github.com/tao3k/orgize?rev=5f7ab1586586ec313e988a9421809ecd03e68d7e#5f7ab1586586ec313e988a9421809ecd03e68d7e"
+source = "git+https://github.com/tao3k/orgize?rev=69b5326b0ba04bbfe6ad3a0d1c5cf77d4292df34#69b5326b0ba04bbfe6ad3a0d1c5cf77d4292df34"
 
 [[package]]
 name = "ownedbytes"

@@ -82,7 +82,7 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "5f7ab1586586ec313e988a9421809ecd03e68d7e" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "69b5326b0ba04bbfe6ad3a0d1c5cf77d4292df34" }
 pulldown-cmark = "0.12"
 quick-xml = { version = "0.39.2", features = ["serialize"] }
 petgraph = "0.7"
