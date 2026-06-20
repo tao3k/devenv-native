@@ -4,8 +4,10 @@ set -euo pipefail
 run_cargo() {
   if [[ -n ${CARGO_BIN:-} ]]; then
     "${CARGO_BIN}" "$@"
-  else
+  elif command -v direnv >/dev/null 2>&1; then
     direnv exec . cargo "$@"
+  else
+    cargo "$@"
   fi
 }
 ROOT_DIR="$(git rev-parse --show-toplevel)"
