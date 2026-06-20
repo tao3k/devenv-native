@@ -14,11 +14,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         package:
           - xiuxian-artisan-workshop
-          - xiuxian-ast-release
           - xiuxian-config-core-release
           - xiuxian-core-rs-release
           - xiuxian-core-rs-python-bindings
-          - xiuxian-edit-release
           - xiuxian-event-release
           - xiuxian-io-release
           - xiuxian-lance-release
@@ -26,10 +24,7 @@ jobs:
           - xiuxian-macros-release
           - xiuxian-memory-engine-release
           - xiuxian-qianji-release
-          - xiuxian-sandbox-release
           - xiuxian-security-release
-          - xiuxian-code-intelligence-release
-          - xiuxian-tokenizer-release
           - xiuxian-types-release
           - xiuxian-vector-release
           - xiuxian-wendao-release
