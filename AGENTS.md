@@ -78,9 +78,15 @@ status --short`, `rtk git diff -- <paths>`, `rtk read <path>`, and `rtk ls
 ## 5. Project Structure & Sovereignty (物理架构主权)
 
 - `$PRJ_ROOT/packages/rust/crates/*`: **Sovereign Kernel**.
-  - `xiuxian-llm`: tool runtime pools, retry logic, and LLM orchestration.
+  - `xiuxian-config-core`: project and runtime configuration ownership.
+  - `xiuxian-db-store`: DuckDB, Arrow, and storage-backed read-model surfaces.
   - `xiuxian-wendao`: Knowledge graph and hybrid search engine.
-  - `xiuxian-vector`: High-performance vector retrieval.
+  - `xiuxian-memory-engine`: agent memory scoring and read-model support.
+  - `xiuxian-polyglot-orchestrator`: Rust-owned bridge contracts for polyglot runtimes.
+  - `xiuxian-julia-core` and `xiuxian-julia-runtime`: Julia contract and runtime boundaries.
+  - `xiuxian-vector`: Vector retrieval/storage evidence behind explicit facades; it does not own router semantics.
+  - LLM orchestration and model routing are owned by `marlin-agent-core`, not by a local `xiuxian-llm` crate.
+  - AST/tree-sitter code intelligence is retired from this repository; future code intelligence connects through `agent-semantic-protocols/languages`.
 - `$PRJ_ROOT/packages/rust/bindings/python`: PyO3 bridge crate (`xiuxian-core-rs`).
 - `$PRJ_ROOT/packages/python/*`: **Utility Adapters**. Used only as lightweight glue or connectivity tools for external services.
 - `$PRJ_ROOT/.gemini/skills/`: **Gemini-CLI Divine Skills**. High-level cognitive and interactive extensions.

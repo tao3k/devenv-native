@@ -37,8 +37,8 @@ pub struct OpenAiCompatibleSemanticIgnition {
 impl OpenAiCompatibleSemanticIgnition {
     /// Create an OpenAI-compatible semantic ignition adapter.
     ///
-    /// `embedding_base_url` is normalized by `xiuxian-llm` into
-    /// `{base}/v1/embeddings` at request time.
+    /// `embedding_base_url` is normalized by this adapter into the
+    /// OpenAI-compatible embeddings endpoint at request time.
     pub fn new(
         store: VectorStore,
         table_name: impl Into<String>,
