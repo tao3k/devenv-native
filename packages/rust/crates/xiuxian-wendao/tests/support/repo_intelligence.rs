@@ -72,11 +72,7 @@ fn cache_key_for_analysis(repo_id: &str, config_path: Option<&Path>, cwd: &Path)
     let cache_path = config_path
         .and_then(|path| path.canonicalize().ok())
         .or_else(|| cwd.canonicalize().ok())
-        .unwrap_or_else(|| {
-            config_path
-                .map(|path| path.to_path_buf())
-                .unwrap_or_else(|| cwd.to_path_buf())
-        });
+        .unwrap_or_else(|| config_path.map_or_else(|| cwd.to_path_buf(), Path::to_path_buf));
     format!(
         "repo-analysis|repo:{}|config:{}",
         repo_id,
@@ -95,14 +91,11 @@ pub fn analyze_repository_from_config_cached(
         .map_err(|error| io_error_to_box(format!("repo analysis cache lock failed: {error}")))?;
     let key = cache_key_for_analysis(repo_id, config_path, cwd);
     if let Some(cached) = cache.get(&key) {
-        return cached
-            .as_ref()
-            .map(|value| value.clone())
-            .map_err(|error| io_error_to_box(error.clone()));
+        return cached.clone().map_err(io_error_to_box);
     }
 
-    let output = analyze_repository_from_config(repo_id, config_path, cwd)
-        .map_err(|error| io_error_to_box(error.to_string()))?;
+    let output =
+        analyze_repository_from_config(repo_id, config_path, cwd).map_err(io_error_to_box)?;
     cache.insert(key, Ok(output.clone()));
 
     Ok(output)

@@ -93,20 +93,16 @@ impl SearchPlaneCache {
             }
         }
 
-        let Some(client) = self.client.as_ref() else {
+        if self.client.is_none() {
             return;
-        };
+        }
         let Ok(payload) = serde_json::to_string(fingerprints) else {
             return;
         };
         let key = scope.storage_key(self);
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
-            return;
-        };
-        let _: redis::RedisResult<()> = connection.set(key, payload).await;
+        if let Some(mut connection) = self.shared_async_connection().await {
+            let _: redis::RedisResult<()> = connection.set(key, payload).await;
+        }
     }
 
     pub(crate) async fn delete_file_fingerprints(
@@ -131,16 +127,12 @@ impl SearchPlaneCache {
             }
         }
 
-        let Some(client) = self.client.as_ref() else {
+        if self.client.is_none() {
             return;
-        };
+        }
         let key = scope.storage_key(self);
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
-            return;
-        };
-        let _: redis::RedisResult<()> = connection.del(key).await;
+        if let Some(mut connection) = self.shared_async_connection().await {
+            let _: redis::RedisResult<()> = connection.del(key).await;
+        }
     }
 }

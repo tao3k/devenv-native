@@ -7,21 +7,16 @@ use crate::search::cache::SearchPlaneCache;
 use crate::search::{SearchCorpusKind, SearchManifestRecord, SearchRepoCorpusRecord};
 
 impl SearchPlaneCache {
-    fn blocking_connection(&self) -> Option<redis::Connection> {
-        let client = self.client.as_ref()?;
-        let connection = client
-            .get_connection_with_timeout(self.config.connection_timeout)
-            .ok()?;
-        let _ = connection.set_read_timeout(Some(self.config.response_timeout));
-        let _ = connection.set_write_timeout(Some(self.config.response_timeout));
-        Some(connection)
+    fn blocking_connection(&self) -> Option<std::sync::Arc<std::sync::Mutex<redis::Connection>>> {
+        self.shared_blocking_connection()
     }
 
     fn get_json_blocking<T>(&self, key: &str) -> Option<T>
     where
         T: DeserializeOwned,
     {
-        let mut connection = self.blocking_connection()?;
+        let connection = self.blocking_connection()?;
+        let mut connection = connection.lock().ok()?;
         let payload: Option<String> = connection.get(key).ok()?;
         serde_json::from_str(payload?.as_str()).ok()
     }
@@ -52,7 +47,10 @@ impl SearchPlaneCache {
         if keys.is_empty() {
             return BTreeMap::new();
         }
-        let Some(mut connection) = self.blocking_connection() else {
+        let Some(connection) = self.blocking_connection() else {
+            return BTreeMap::new();
+        };
+        let Ok(mut connection) = connection.lock() else {
             return BTreeMap::new();
         };
         let mut pipeline = redis::pipe();

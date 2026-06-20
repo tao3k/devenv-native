@@ -17,9 +17,10 @@ use super::{WendaoFlightInternalSecurity, WendaoFlightService};
 fn wendao_flight_internal_security_rejects_missing_gateway_principal() {
     let security = security("internal-secret");
 
-    let error = security
-        .verify_metadata(&MetadataMap::new())
-        .expect_err("missing Gateway principal should be rejected");
+    let error = result_error(
+        security.verify_metadata(&MetadataMap::new()),
+        "missing Gateway principal should be rejected",
+    );
 
     assert_eq!(error.code(), tonic::Code::Unauthenticated);
     assert!(
@@ -39,9 +40,10 @@ fn wendao_flight_internal_security_rejects_raw_public_authorization() {
         MetadataValue::from_static("Bearer public-token"),
     );
 
-    let error = security
-        .verify_metadata(&metadata)
-        .expect_err("raw public Authorization metadata should be rejected");
+    let error = result_error(
+        security.verify_metadata(&metadata),
+        "raw public Authorization metadata should be rejected",
+    );
 
     assert_eq!(error.code(), tonic::Code::Unauthenticated);
     assert!(error.message().contains("Authorization"), "{error:?}");
@@ -60,9 +62,10 @@ fn wendao_flight_internal_security_accepts_gateway_signed_principal() {
 fn wendao_flight_internal_security_rejects_bad_signature() {
     let security = security("internal-secret");
 
-    let error = security
-        .verify_metadata(&gateway_metadata("wrong-secret"))
-        .expect_err("wrong signature should be rejected");
+    let error = result_error(
+        security.verify_metadata(&gateway_metadata("wrong-secret")),
+        "wrong signature should be rejected",
+    );
 
     assert_eq!(error.code(), tonic::Code::Unauthenticated);
     assert!(error.message().contains("invalid signed principal"));
@@ -74,12 +77,14 @@ async fn wendao_flight_service_rejects_get_flight_info_without_gateway_principal
         .unwrap_or_else(|error| panic!("Flight service should build: {error}"))
         .with_internal_security(security("internal-secret"));
 
-    let error = service
-        .get_flight_info(tonic::Request::new(FlightDescriptor::new_cmd(
-            b"/repo/search".to_vec(),
-        )))
-        .await
-        .expect_err("secured Flight service should reject missing Gateway principal");
+    let error = result_error(
+        service
+            .get_flight_info(tonic::Request::new(FlightDescriptor::new_cmd(
+                b"/repo/search".to_vec(),
+            )))
+            .await,
+        "secured Flight service should reject missing Gateway principal",
+    );
 
     assert_eq!(error.code(), tonic::Code::Unauthenticated);
     assert!(
@@ -88,6 +93,13 @@ async fn wendao_flight_service_rejects_get_flight_info_without_gateway_principal
             .contains("WENDAO_FLIGHT_INTERNAL_PRINCIPAL_REQUIRED"),
         "{error:?}"
     );
+}
+
+fn result_error<T, E>(result: Result<T, E>, message: &str) -> E {
+    match result {
+        Ok(_) => panic!("{message}"),
+        Err(error) => error,
+    }
 }
 
 fn security(secret: &str) -> WendaoFlightInternalSecurity {

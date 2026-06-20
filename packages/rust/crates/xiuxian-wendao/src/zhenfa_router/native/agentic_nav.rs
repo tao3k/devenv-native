@@ -47,6 +47,10 @@ fn default_limit() -> usize {
 /// This tool provides "structured GPS" for agents navigating the knowledge graph.
 /// It combines vector similarity search with AST-guided validation to compute
 /// recommended exploration paths based on task intent.
+///
+/// # Errors
+///
+/// Returns [`ZhenfaError`] when request conversion or link graph access fails.
 #[allow(missing_docs)]
 #[allow(clippy::needless_pass_by_value)]
 pub fn wendao_agentic_nav(

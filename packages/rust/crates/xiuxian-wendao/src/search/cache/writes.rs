@@ -24,13 +24,7 @@ impl SearchPlaneCache {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .generic_json_payloads
             .insert(key.to_string(), payload.clone());
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.set_ex(key, payload, ttl_seconds).await;
@@ -43,19 +37,13 @@ impl SearchPlaneCache {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .repo_corpus_records
             .insert((record.corpus, record.repo_id.clone()), record.clone());
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let Ok(payload) = serde_json::to_string(record) else {
             return;
         };
         let key = self
             .keyspace
             .repo_corpus_record_key(record.corpus, record.repo_id.as_str());
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.set(key, payload).await;
@@ -85,9 +73,6 @@ impl SearchPlaneCache {
             );
         self.retain_repo_publication_revision(corpus, repo_id, normalized_revision.as_str())
             .await;
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let Ok(payload) = serde_json::to_string(publication) else {
             return;
         };
@@ -96,10 +81,7 @@ impl SearchPlaneCache {
             repo_id,
             normalized_revision.as_str(),
         );
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.set(key, payload).await;
@@ -121,16 +103,10 @@ impl SearchPlaneCache {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .repo_publication_revision_indexes
             .remove(&(corpus, repo_id.to_string()));
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let key = self
             .keyspace
             .repo_publication_revision_index_key(corpus, repo_id);
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.del(key).await;
@@ -145,21 +121,16 @@ impl SearchPlaneCache {
                 .corpus_manifests
                 .insert(record.corpus, record.clone());
         }
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let Ok(payload) = serde_json::to_string(record) else {
             return;
         };
         let key = self.keyspace.corpus_manifest_key(record.corpus);
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.set(key, payload).await;
     }
+
     pub(crate) async fn delete_repo_corpus_record(&self, corpus: SearchCorpusKind, repo_id: &str) {
         #[cfg(any(test, feature = "test-support"))]
         self.shadow
@@ -167,14 +138,8 @@ impl SearchPlaneCache {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .repo_corpus_records
             .remove(&(corpus, repo_id.to_string()));
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let key = self.keyspace.repo_corpus_record_key(corpus, repo_id);
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.del(key).await;
@@ -196,22 +161,17 @@ impl SearchPlaneCache {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .repo_publications_by_revision
             .remove(&(corpus, repo_id.to_string(), normalized_revision.clone()));
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let key = self.keyspace.repo_publication_revision_key(
             corpus,
             repo_id,
             normalized_revision.as_str(),
         );
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.del(key).await;
     }
+
     pub(crate) async fn delete_repo_corpus_snapshot(&self) {
         #[cfg(any(test, feature = "test-support"))]
         {
@@ -220,14 +180,8 @@ impl SearchPlaneCache {
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .repo_corpus_snapshot = None;
         }
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let key = self.keyspace.repo_corpus_snapshot_key();
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.del(key).await;
@@ -259,16 +213,10 @@ impl SearchPlaneCache {
                 ));
             }
         }
-        let Some(client) = self.client.as_ref() else {
-            return;
-        };
         let index_key = self
             .keyspace
             .repo_publication_revision_index_key(corpus, repo_id);
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return;
         };
         let _: redis::RedisResult<()> = connection.del(index_key.as_str()).await;

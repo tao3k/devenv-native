@@ -17,7 +17,6 @@ const REDIS_URL_ENV: &str = "REDIS_URL";
 #[derive(Debug, Clone)]
 pub(crate) struct SearchPlaneCacheRuntime {
     pub(crate) client: Option<redis::Client>,
-    #[cfg(test)]
     pub(crate) valkey_url: Option<String>,
     pub(crate) config: SearchPlaneCacheConfig,
 }
@@ -74,7 +73,6 @@ fn resolve_search_plane_cache_runtime_with_lookup(
         client: valkey_url
             .as_ref()
             .and_then(|value| open_client(value.as_str()).ok()),
-        #[cfg(test)]
         valkey_url,
         config,
     }

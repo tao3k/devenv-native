@@ -13,7 +13,7 @@ julia-runtime = []
 wendao-contracts = ["dep:xiuxian-wendao-runtime"]
 
 [dependencies]
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 
 [build-dependencies]

@@ -1,4 +1,3 @@
-#[cfg(not(feature = "llm"))]
 use super::common::{AGENDA_FACTS, AGENDA_FLOW_URI_FROM_ALIAS};
 use super::common::{AGENDA_FLOW_URI_CANONICAL, AGENDA_OVERRIDE_RESOURCES};
 use serde_json::json;
@@ -77,7 +76,6 @@ params = { command = "printf inline_bootcamp_ok" }
     assert_eq!(report.node_count, 1);
 }
 
-#[cfg(not(feature = "llm"))]
 #[tokio::test]
 async fn bootcamp_flags_llm_feature_requirement_for_agenda_flow() {
     let Err(error) = run_workflow(

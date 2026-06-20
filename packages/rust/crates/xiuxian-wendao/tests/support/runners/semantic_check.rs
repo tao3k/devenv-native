@@ -48,7 +48,7 @@ impl ScenarioRunner for SemanticCheckRunner {
                 };
 
                 if let Err(error) = observation.validate_pattern() {
-                    if error.to_string().contains("retired") {
+                    if error.contains("retired") {
                         continue;
                     }
                     issues.push(build_issue(
@@ -202,13 +202,12 @@ fn count_observation_matches(
     source_files
         .iter()
         .filter(|file| observation.matches_scope(&file.path))
-        .filter_map(|file| {
+        .map(|file| {
             count_code_pattern_matches_for_language_id(
                 &file.content,
                 &observation.pattern,
                 language_id,
             )
-            .ok()
         })
         .sum()
 }
@@ -217,18 +216,18 @@ fn count_code_pattern_matches_for_language_id(
     content: &str,
     pattern: &str,
     _language_id: &CodeLanguageId,
-) -> Result<usize, String> {
+) -> usize {
     let tokens = pattern
         .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
         .filter(|token| token.len() > 2 && !token.starts_with('$'))
         .collect::<Vec<_>>();
     if tokens.is_empty() {
-        return Ok(0);
+        return 0;
     }
-    Ok(tokens
+    tokens
         .iter()
         .filter(|token| content.contains(*token))
-        .count())
+        .count()
 }
 
 fn build_issue(

@@ -247,7 +247,7 @@ fn webhook_client() -> &'static reqwest::Client {
     CLIENT.get_or_init(|| {
         reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(5))
-            .pool_idle_timeout(Duration::from_secs(120))
+            .pool_idle_timeout(Duration::from_mins(2))
             .pool_max_idle_per_host(64)
             .brotli(true)
             .deflate(true)

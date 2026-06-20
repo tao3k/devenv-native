@@ -145,7 +145,7 @@ datafusion = "53.0.0"
 sqlparser = "0.61.0"
 
 # Redis cache and session backend
-redis = { version = "1.0.3", default-features = false }
+redis = { version = "1.0.3", default-features = false, features = ["tokio-comp", "connection-manager"] }
 
 # Logging
 log = "0.4"

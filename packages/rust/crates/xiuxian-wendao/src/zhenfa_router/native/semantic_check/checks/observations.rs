@@ -81,13 +81,12 @@ fn count_observation_matches(
             let file_path = Path::new(&file.path);
             code_language_id_from_path(file_path)
                 .filter(|file_language_id| *file_language_id == language_id.as_str())
-                .and_then(|_| {
+                .map(|_| {
                     count_code_pattern_matches_for_language_id(
                         &file.content,
                         &obs.pattern,
                         language_id,
                     )
-                    .ok()
                 })
         })
         .sum()
@@ -97,18 +96,18 @@ fn count_code_pattern_matches_for_language_id(
     content: &str,
     pattern: &str,
     _language_id: &CodeLanguageId,
-) -> Result<usize, String> {
+) -> usize {
     let tokens = pattern
         .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
         .filter(|token| token.len() > 2 && !token.starts_with('$'))
         .collect::<Vec<_>>();
     if tokens.is_empty() {
-        return Ok(0);
+        return 0;
     }
-    Ok(tokens
+    tokens
         .iter()
         .filter(|token| content.contains(*token))
-        .count())
+        .count()
 }
 
 /// Check :OBSERVE: code patterns with the retired local AST boundary.
@@ -127,7 +126,7 @@ pub(crate) fn check_code_observations(
         }
 
         if let Err(error) = obs.validate_pattern() {
-            if error.to_string().contains("retired") {
+            if error.contains("retired") {
                 continue;
             }
             let fuzzy_suggestion_data = build_observation_fuzzy_suggestion(

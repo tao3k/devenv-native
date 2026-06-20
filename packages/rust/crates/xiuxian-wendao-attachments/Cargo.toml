@@ -52,7 +52,7 @@ lopdf = { git = "https://github.com/J-F-Liu/lopdf", rev = "7a05512d831415b1f2b1c
 num-traits = { workspace = true, optional = true }
 pdfium-render = { version = "0.9.0", optional = true }
 rayon = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 tar = { workspace = true, optional = true }

@@ -8,6 +8,5 @@ mod agenda;
 mod common;
 #[path = "test_bootcamp_api/core.rs"]
 mod core;
-#[cfg(feature = "llm")]
 #[path = "test_bootcamp_api/forge.rs"]
 mod forge;

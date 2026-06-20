@@ -14,9 +14,7 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 #[serial(repo_intelligence_example_search)]
 fn example_search_matches_related_symbol_name() -> TestResult {
     let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
-    let config_root = repo_dir
-        .parent()
-        .map_or_else(|| repo_dir.as_path(), |path| path);
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
     let analysis =
@@ -38,9 +36,7 @@ fn example_search_matches_related_symbol_name() -> TestResult {
 #[serial(repo_intelligence_example_search)]
 fn example_search_exposes_ranked_hits_for_frontend_sorting() -> TestResult {
     let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
-    let config_root = repo_dir
-        .parent()
-        .map_or_else(|| repo_dir.as_path(), |path| path);
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
     let analysis =
@@ -88,9 +84,7 @@ fn example_search_exposes_ranked_hits_for_frontend_sorting() -> TestResult {
 #[serial(repo_intelligence_example_search)]
 fn example_search_uses_shared_tantivy_fuzzy_index_for_title_typos() -> TestResult {
     let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
-    let config_root = repo_dir
-        .parent()
-        .map_or_else(|| repo_dir.as_path(), |path| path);
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
     let analysis =
@@ -117,9 +111,7 @@ fn example_search_uses_shared_tantivy_fuzzy_index_for_title_typos() -> TestResul
 #[serial(repo_intelligence_example_search)]
 fn cli_repo_example_search_returns_serialized_result() -> TestResult {
     let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
-    let config_root = repo_dir
-        .parent()
-        .map_or_else(|| repo_dir.as_path(), |path| path);
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
     let result = build_example_search(

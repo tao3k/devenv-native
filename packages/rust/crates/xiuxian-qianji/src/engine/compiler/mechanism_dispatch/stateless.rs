@@ -9,10 +9,17 @@ use crate::engine::compiler::{stateful_mechanisms, task_type};
 pub(super) fn build(
     context: resolver_chain::DispatchContext<'_>,
 ) -> Option<resolver_chain::ResolveOutcome> {
+    #[cfg(feature = "wendao-integration")]
     let resolver_chain::DispatchContext {
         task_type,
         compiler,
         node_def,
+    } = context;
+    #[cfg(not(feature = "wendao-integration"))]
+    let resolver_chain::DispatchContext {
+        task_type,
+        node_def,
+        ..
     } = context;
     match task_type {
         #[cfg(feature = "wendao-integration")]

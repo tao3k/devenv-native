@@ -227,8 +227,8 @@ impl RemediationWorker {
     ///
     /// # Errors
     /// Returns `ZhenfaError` when remediation fails.
-    pub async fn emit_signal(&self, signal: ZhenfaSignal) -> Result<(), ZhenfaError> {
-        match &signal {
+    pub fn emit_signal(&self, signal: ZhenfaSignal) -> Result<(), ZhenfaError> {
+        match signal {
             ZhenfaSignal::SemanticDrift {
                 source_path,
                 file_stem: _,
@@ -236,7 +236,8 @@ impl RemediationWorker {
                 confidence,
                 summary,
             } => {
-                let result = self.process_drift(source_path, *affected_count, confidence, summary);
+                let result =
+                    self.process_drift(&source_path, affected_count, &confidence, &summary);
 
                 if result.success {
                     info!(

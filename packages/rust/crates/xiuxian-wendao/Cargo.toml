@@ -172,7 +172,7 @@ rayon = { workspace = true }
 unicode-normalization = { workspace = true }
 
 arrow = { workspace = true }
-arrow-flight = { workspace = true, features = ["flight-sql"], optional = true }
+arrow-flight = { workspace = true, optional = true }
 datafusion = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
@@ -182,7 +182,7 @@ petgraph = { workspace = true }
 
 # Logging
 log = { workspace = true }
-redis = { workspace = true, features = ["tokio-comp"] }
+redis = { workspace = true }
 axum = { workspace = true, optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
 url = { workspace = true }

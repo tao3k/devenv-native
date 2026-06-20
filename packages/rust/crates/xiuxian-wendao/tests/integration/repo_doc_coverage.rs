@@ -22,9 +22,7 @@ fn doc_coverage_counts_symbol_specific_docs_for_module_scope() -> TestResult {
             ("docs/solve.md", "# solve\n"),
         ],
     )?;
-    let config_root = repo_dir
-        .parent()
-        .map_or_else(|| repo_dir.as_path(), |path| path);
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(&repo_dir, &repo_dir, "coverage-sample")?;
     let analysis =
         analyze_repository_from_config_cached("coverage-sample", Some(&config_path), config_root)?;
@@ -50,9 +48,7 @@ fn doc_coverage_counts_symbol_specific_docs_for_module_scope() -> TestResult {
 fn cli_repo_doc_coverage_returns_serialized_result() -> TestResult {
     let repo_dir =
         create_cached_sample_julia_repo("doc-coverage-symbol", "CoveragePkg", true, &[])?;
-    let config_root = repo_dir
-        .parent()
-        .map_or_else(|| repo_dir.as_path(), |path| path);
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(config_root, &repo_dir, "coverage-sample")?;
 
     let output = build_doc_coverage(

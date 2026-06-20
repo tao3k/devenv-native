@@ -103,7 +103,7 @@ impl NotificationService {
             .deflate(true)
             .gzip(true)
             .zstd(true)
-            .pool_idle_timeout(Duration::from_secs(120))
+            .pool_idle_timeout(Duration::from_mins(2))
             .pool_max_idle_per_host(32)
             .connect_timeout(Duration::from_secs(5))
             .timeout(Duration::from_secs(config.timeout_secs))

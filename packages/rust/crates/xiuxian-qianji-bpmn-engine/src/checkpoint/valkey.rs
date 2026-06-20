@@ -4,6 +4,9 @@ use crate::checkpoint::{decode_checkpoint_json_impl, encode_checkpoint_json_impl
 use crate::checkpoint_api::BpmnCheckpointEnvelope;
 use crate::error::{BpmnEngineError, Result};
 use redis::AsyncCommands;
+use std::collections::HashMap;
+use std::sync::{Arc, OnceLock};
+use tokio::sync::RwLock;
 
 use super::{lease_key_impl, state_key_impl};
 
@@ -244,16 +247,39 @@ pub(in crate::checkpoint) async fn connect_valkey_impl(
     valkey_url: &str,
     operation: &'static str,
 ) -> Result<redis::aio::MultiplexedConnection> {
+    if let Some(connection) = shared_valkey_connection_cache()
+        .read()
+        .await
+        .get(valkey_url)
+        .cloned()
+    {
+        return Ok(connection);
+    }
+
     let client =
         redis::Client::open(valkey_url).map_err(|error| BpmnEngineError::CheckpointStorage {
             operation,
             message: error.to_string(),
         })?;
-    client
+    let connection = client
         .get_multiplexed_async_connection()
         .await
         .map_err(|error| BpmnEngineError::CheckpointStorage {
             operation,
             message: error.to_string(),
-        })
+        })?;
+
+    {
+        let mut cache = shared_valkey_connection_cache().write().await;
+        cache.insert(valkey_url.to_owned(), connection.clone());
+    }
+
+    Ok(connection)
+}
+
+type ValkeyConnectionCache = Arc<RwLock<HashMap<String, redis::aio::MultiplexedConnection>>>;
+
+fn shared_valkey_connection_cache() -> &'static ValkeyConnectionCache {
+    static CACHE: OnceLock<ValkeyConnectionCache> = OnceLock::new();
+    CACHE.get_or_init(|| Arc::new(RwLock::new(HashMap::new())))
 }

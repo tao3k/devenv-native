@@ -13,15 +13,21 @@ pub fn extract_dependency_symbols(
     path: &Path,
     lang: &str,
 ) -> Result<Vec<ExternalSymbol>, std::io::Error> {
-    extract_dependency_symbols_impl(path, lang)
+    let _ = std::fs::metadata(path)?;
+
+    #[cfg(feature = "search-runtime")]
+    {
+        Ok(extract_dependency_symbols_impl(path, lang))
+    }
+    #[cfg(not(feature = "search-runtime"))]
+    {
+        extract_dependency_symbols_impl(path, lang)
+    }
 }
 
 #[cfg(feature = "search-runtime")]
-fn extract_dependency_symbols_impl(
-    _path: &Path,
-    _lang: &str,
-) -> Result<Vec<ExternalSymbol>, std::io::Error> {
-    Ok(Vec::new())
+fn extract_dependency_symbols_impl(_path: &Path, _lang: &str) -> Vec<ExternalSymbol> {
+    Vec::new()
 }
 
 #[cfg(not(feature = "search-runtime"))]

@@ -38,7 +38,7 @@ fn shared_http_client() -> &'static reqwest::Client {
             .deflate(true)
             .gzip(true)
             .zstd(true)
-            .timeout(Duration::from_secs(60))
+            .timeout(Duration::from_mins(1))
             .build()
             .unwrap_or_else(|_| reqwest::Client::new())
     })

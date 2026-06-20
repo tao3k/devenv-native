@@ -25,11 +25,7 @@ impl SearchPlaneCache {
         {
             return serde_json::from_str(payload.as_str()).ok();
         }
-        let client = self.client.as_ref()?;
-        let mut connection = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-            .ok()?;
+        let mut connection = self.shared_async_connection().await?;
         let payload: Option<String> = connection.get(key).await.ok()?;
         serde_json::from_str(payload?.as_str()).ok()
     }
@@ -80,13 +76,7 @@ impl SearchPlaneCache {
         if keys.is_empty() {
             return BTreeMap::new();
         }
-        let Some(client) = self.client.as_ref() else {
-            return BTreeMap::new();
-        };
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return BTreeMap::new();
         };
         let mut pipeline = redis::pipe();
@@ -156,13 +146,7 @@ impl SearchPlaneCache {
         {
             return revisions;
         }
-        let Some(client) = self.client.as_ref() else {
-            return Vec::new();
-        };
-        let Ok(mut connection) = client
-            .get_multiplexed_async_connection_with_config(&self.async_connection_config())
-            .await
-        else {
+        let Some(mut connection) = self.shared_async_connection().await else {
             return Vec::new();
         };
         let key = self

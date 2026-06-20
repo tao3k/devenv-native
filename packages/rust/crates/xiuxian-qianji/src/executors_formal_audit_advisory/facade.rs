@@ -115,11 +115,11 @@ impl QianjiAdvisoryAuditExecutor {
     /// Returns an error when any requested role cannot be resolved from the persona registry, when
     /// the role snapshot cannot be assembled, or when the generated `InjectionSnapshot` violates
     /// the configured injection policy.
-    pub async fn build_plan(
+    pub fn build_plan(
         &self,
         request: &AdvisoryAuditRequest,
     ) -> Result<QianjiAdvisoryExecutionPlan> {
-        self.build_plan_internal(request).await
+        self.build_plan_internal(request)
     }
 
     /// Build a typed advisory execution plan while reading prompt-context packs
@@ -130,13 +130,12 @@ impl QianjiAdvisoryAuditExecutor {
     /// Returns an error when advisory planning fails or when the supplied
     /// artifact cache cannot read, build, or write a prompt-context pack.
     #[cfg(feature = "advisory-prompt-pack-cache")]
-    pub async fn build_plan_with_prompt_context_pack_cache(
+    pub fn build_plan_with_prompt_context_pack_cache(
         &self,
         request: &AdvisoryAuditRequest,
         cache: &(dyn ArtifactBlobCache + Send + Sync),
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         self.build_plan_internal_with_prompt_context_pack_cache(request, Some(cache))
-            .await
     }
 }
 
@@ -149,7 +148,7 @@ impl Default for QianjiAdvisoryAuditExecutor {
 #[async_trait]
 impl AdvisoryAuditExecutor for QianjiAdvisoryAuditExecutor {
     async fn run(&self, request: AdvisoryAuditRequest) -> Result<Vec<RoleAuditFinding>> {
-        let plan = self.build_plan(&request).await?;
+        let plan = self.build_plan(&request)?;
         Ok(Self::findings_from_plan(&request, &plan))
     }
 }

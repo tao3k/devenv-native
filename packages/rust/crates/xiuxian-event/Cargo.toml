@@ -9,7 +9,7 @@ workspace = true
 [dependencies]
 # Core dependencies (workspace managed)
 tokio = { workspace = true, features = ["sync", "time", "rt", "test-util"] }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true, default-features = false, features = ["serde", "std", "clock"] }
 uuid = { workspace = true, features = ["v4", "serde"] }

@@ -40,7 +40,7 @@ datafusion = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
 foyer = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
-redis = { workspace = true, features = ["tokio-comp"], optional = true }
+redis = { workspace = true, optional = true }
 xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

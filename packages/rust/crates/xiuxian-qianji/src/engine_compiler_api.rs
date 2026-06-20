@@ -41,3 +41,10 @@ impl QianjiCompiler {
         compile_manifest(self, manifest_toml)
     }
 }
+
+#[cfg(not(feature = "wendao-integration"))]
+impl Default for QianjiCompiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}

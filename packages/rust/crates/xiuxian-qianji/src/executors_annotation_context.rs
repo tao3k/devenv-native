@@ -171,14 +171,14 @@ impl ContextAnnotator {
         Some(format!("{current_history}\n{snapshot}"))
     }
 
-    fn resolve_persona_profile(&self, persona_reference: &str) -> Result<PersonaProfile, String> {
+    fn resolve_persona_profile(persona_reference: &str) -> Result<PersonaProfile, String> {
         if persona_reference.trim_start().starts_with("wendao://") {
-            return self.resolve_wendao_persona_profile(persona_reference);
+            return Self::resolve_wendao_persona_profile(persona_reference);
         }
         persona_profile_from_reference(persona_reference)
     }
 
-    fn resolve_wendao_persona_profile(&self, uri: &str) -> Result<PersonaProfile, String> {
+    fn resolve_wendao_persona_profile(uri: &str) -> Result<PersonaProfile, String> {
         let canonical_uri = uri.trim();
         if canonical_uri.is_empty() {
             return Err("persona semantic URI must not be empty".to_string());
@@ -190,12 +190,7 @@ impl ContextAnnotator {
         ))
     }
 
-    fn assemble_snapshot(
-        &self,
-        persona: &PersonaProfile,
-        blocks: &[String],
-        history: &str,
-    ) -> String {
+    fn assemble_snapshot(persona: &PersonaProfile, blocks: &[String], history: &str) -> String {
         let mut snapshot = String::from("<system_prompt_injection>\n");
         push_xml_text_element(&mut snapshot, "persona_id", persona.id.as_str(), 1);
         push_xml_text_element(&mut snapshot, "persona_name", persona.name.as_str(), 1);
@@ -251,7 +246,7 @@ impl QianjiMechanism for ContextAnnotator {
         let history_seed = self.resolve_history_seed(context);
         let persona_reference = resolve_semantic_reference(&self.persona_id, context)?;
 
-        let persona = self.resolve_persona_profile(persona_reference.as_str())?;
+        let persona = Self::resolve_persona_profile(persona_reference.as_str())?;
         let persona_id = persona.id.clone();
 
         // --- REAL-TIME BATTLE REPORTING ---
@@ -264,7 +259,7 @@ impl QianjiMechanism for ContextAnnotator {
         }
         // ----------------------------------
 
-        let snapshot = self.assemble_snapshot(&persona, &narrative_blocks, &history_seed);
+        let snapshot = Self::assemble_snapshot(&persona, &narrative_blocks, &history_seed);
 
         let mut data = serde_json::Map::new();
         data.insert(self.output_key.clone(), json!(snapshot));

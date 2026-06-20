@@ -346,8 +346,7 @@ where
     )
     .await?;
     let executor_outcome =
-        execute_worker_outcome(executor_registry, &claimed_task.activity_task.task, request)
-            .await?;
+        execute_worker_outcome(executor_registry, &claimed_task.activity_task.task, request)?;
     let terminal = record_terminal(
         ledger,
         &claimed_task,
@@ -374,7 +373,7 @@ where
 }
 
 #[cfg(any(all(feature = "duckdb", feature = "valkey"), test))]
-async fn execute_worker_outcome(
+fn execute_worker_outcome(
     executor_registry: ActivityExecutorRegistry,
     task: &xiuxian_qianji_control::WorkerActivityTask,
     request: &ActivityWorkerOnceStoreRequest<'_>,

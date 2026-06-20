@@ -21,8 +21,7 @@ fn cached_sample_julia_repo_store() -> &'static Mutex<BTreeMap<String, PathBuf>>
 
 fn sample_julia_repo_fixture_root() -> PathBuf {
     std::env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .map_or_else(|| PathBuf::from("/tmp"), PathBuf::from)
         .join("xiuxian-wendao")
         .join("tests")
         .join("fixtures")

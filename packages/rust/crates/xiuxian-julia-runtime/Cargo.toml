@@ -27,7 +27,7 @@ wendao = [
 [dependencies]
 arrow = { workspace = true, optional = true }
 chrono = { workspace = true, features = ["clock"], optional = true }
-serde = { workspace = true, features = ["derive"], optional = true }
+serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }

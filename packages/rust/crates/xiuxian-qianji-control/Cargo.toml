@@ -15,7 +15,7 @@ valkey = ["dep:tokio", "dep:xiuxian-db-store", "xiuxian-db-store/valkey"]
 [dependencies]
 async-trait = { workspace = true }
 duckdb = { workspace = true, optional = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync"], optional = true }

@@ -9,7 +9,7 @@ publish = false
 
 [features]
 default = ["valkey"]
-valkey = ["dep:redis"]
+valkey = ["dep:redis", "dep:tokio"]
 
 [dependencies]
 async-trait = { workspace = true }
@@ -17,10 +17,11 @@ chrono = { workspace = true }
 md5 = { workspace = true }
 quick-xml = { workspace = true }
 rayon = { workspace = true }
-redis = { workspace = true, features = ["tokio-comp"], optional = true }
-serde = { workspace = true, features = ["derive", "rc"] }
+redis = { workspace = true, optional = true }
+serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync", "macros", "rt", "time"], optional = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }

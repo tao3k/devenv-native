@@ -31,33 +31,30 @@ impl QianjiAdvisoryAuditExecutor {
     /// Returns an error when any requested role cannot be resolved from the persona registry, when
     /// the role snapshot cannot be assembled, or when the generated `InjectionSnapshot` violates
     /// the configured injection policy.
-    pub(crate) async fn build_plan_internal(
+    pub(crate) fn build_plan_internal(
         &self,
         request: &AdvisoryAuditRequest,
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         #[cfg(feature = "advisory-prompt-pack-cache")]
         {
-            return self
-                .build_plan_internal_with_prompt_context_pack_cache(request, None)
-                .await;
+            return self.build_plan_internal_with_prompt_context_pack_cache(request, None);
         }
         #[cfg(not(feature = "advisory-prompt-pack-cache"))]
         {
-            self.build_plan_internal_common(request).await
+            self.build_plan_internal_common(request)
         }
     }
 
     #[cfg(feature = "advisory-prompt-pack-cache")]
-    pub(crate) async fn build_plan_internal_with_prompt_context_pack_cache(
+    pub(crate) fn build_plan_internal_with_prompt_context_pack_cache(
         &self,
         request: &AdvisoryAuditRequest,
         prompt_context_pack_cache: Option<&(dyn ArtifactBlobCache + Send + Sync)>,
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         self.build_plan_internal_common(request, prompt_context_pack_cache)
-            .await
     }
 
-    async fn build_plan_internal_common(
+    fn build_plan_internal_common(
         &self,
         request: &AdvisoryAuditRequest,
         #[cfg(feature = "advisory-prompt-pack-cache")] prompt_context_pack_cache: Option<

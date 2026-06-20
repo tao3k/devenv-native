@@ -139,7 +139,7 @@ async fn advisory_executor_builds_role_mix_and_snapshots() {
     let executor = QianjiAdvisoryAuditExecutor::new();
 
     let plan = must_ok(
-        executor.build_plan(&advisory_request()).await,
+        executor.build_plan(&advisory_request()),
         "advisory plan should build",
     );
 

@@ -15,8 +15,11 @@ pub(crate) fn build(
     node_def: &NodeDefinition,
 ) -> Result<Arc<dyn QianjiMechanism>, QianjiError> {
     let task_type = task_type::TaskType::parse(node_def.task_type.as_str())?;
+    #[cfg(not(feature = "wendao-integration"))]
+    let _ = compiler;
     let context = resolver_chain::DispatchContext {
         task_type,
+        #[cfg(feature = "wendao-integration")]
         compiler,
         node_def,
     };
