@@ -34,7 +34,7 @@ parquet = { workspace = true }
 datafusion = { workspace = true }
 
 # Async runtime
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"] }
+tokio = { workspace = true }
 
 # Async stream utilities
 futures = { workspace = true }
@@ -54,7 +54,7 @@ xiuxian-types = { path = "../xiuxian-types" }
 log = { workspace = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

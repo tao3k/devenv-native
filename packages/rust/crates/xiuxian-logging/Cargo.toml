@@ -14,7 +14,7 @@ tracing-log = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

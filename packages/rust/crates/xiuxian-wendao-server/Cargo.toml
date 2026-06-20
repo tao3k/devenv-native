@@ -47,7 +47,7 @@ tonic = { workspace = true, optional = true }
 xiuxian-security = { path = "../xiuxian-security", optional = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

@@ -17,7 +17,7 @@ publish = false
 serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = { workspace = true }
-chrono = { workspace = true, features = ["clock"] }
+chrono = { workspace = true }
 uuid = { workspace = true }
 num-traits = { workspace = true }
 
@@ -41,7 +41,7 @@ valkey = ["dep:redis"]
 # lance = []  # Reserved for future LanceDB upgrade
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

@@ -26,7 +26,7 @@ xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 parquet = { workspace = true }

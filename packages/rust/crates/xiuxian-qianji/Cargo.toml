@@ -80,7 +80,7 @@ arrow = { workspace = true, optional = true }
 arrow-flight = { workspace = true, optional = true }
 ariadne = { workspace = true }
 axum = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 tokio-util = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
@@ -97,7 +97,7 @@ walkdir = { workspace = true, optional = true }
 globset = { workspace = true, optional = true }
 tempfile = { workspace = true }
 merman-core = { workspace = true, optional = true }
-quick-xml = { workspace = true, features = ["serialize"], optional = true }
+quick-xml = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 jsonschema = { workspace = true, optional = true }
 tera = { workspace = true, optional = true }
@@ -123,7 +123,7 @@ rust-lang-project-harness = { workspace = true }
 tower = { workspace = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [lints]
 workspace = true

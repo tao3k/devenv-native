@@ -228,7 +228,7 @@ arrow-flight = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 blake3 = { workspace = true, optional = true }
-chrono = { workspace = true, features = ["clock", "serde"], optional = true }
+chrono = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 comrak = { workspace = true, optional = true }
 criterion = { workspace = true, optional = true }
@@ -247,15 +247,15 @@ specta = { workspace = true, optional = true }
 specta-typescript = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"], optional = true }
+tokio = { workspace = true, optional = true }
 tokio-postgres = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
-tokio-util = { workspace = true, features = ["rt"], optional = true }
+tokio-util = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 tonic-web = { workspace = true, optional = true }
-tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
-tower-http = { workspace = true, features = ["limit"], optional = true }
+tower = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 walkdir = { workspace = true, optional = true }
 
@@ -266,7 +266,7 @@ serial_test = { workspace = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [lints]
 workspace = true

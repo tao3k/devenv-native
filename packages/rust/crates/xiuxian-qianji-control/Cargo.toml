@@ -18,16 +18,16 @@ duckdb = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["sync"], optional = true }
+tokio = { workspace = true, optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [lints]
 workspace = true

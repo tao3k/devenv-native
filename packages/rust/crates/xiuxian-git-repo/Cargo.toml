@@ -8,8 +8,8 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-chrono = { workspace = true, features = ["clock", "serde"] }
-gix = { workspace = true, features = ["blocking-http-transport-reqwest-rust-tls"] }
+chrono = { workspace = true }
+gix = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
@@ -17,7 +17,7 @@ url = { workspace = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

@@ -8,15 +8,15 @@ workspace = true
 
 [dependencies]
 # Core dependencies (workspace managed)
-tokio = { workspace = true, features = ["sync", "time", "rt", "test-util"] }
+tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-chrono = { workspace = true, default-features = false, features = ["serde", "std", "clock"] }
-uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true }
+uuid = { workspace = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { workspace = true }

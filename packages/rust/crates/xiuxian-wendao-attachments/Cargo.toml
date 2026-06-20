@@ -60,7 +60,7 @@ xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, opt
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator" }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 orgize = { workspace = true }

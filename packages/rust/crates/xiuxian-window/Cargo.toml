@@ -12,7 +12,7 @@ serde = { workspace = true }
 pyo3 = { workspace = true, optional = true }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }

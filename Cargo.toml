@@ -22,6 +22,7 @@ members = [
   "packages/rust/crates/xiuxian-macros",
   "packages/rust/crates/xiuxian-memory-engine",
   "packages/rust/crates/xiuxian-logging",
+  "packages/rust/crates/xiuxian-rust-workspace-harness",
   "packages/rust/crates/xiuxian-security",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
@@ -52,8 +53,8 @@ description = "CyberXiuXian Artisan Workshop - High-performance Agentic OS with 
 # Unified dependency management
 [workspace.dependencies]
 # Core dependencies
-tokio = { version = "1.49.0", features = ["full"] }
-serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.49.0", features = ["rt", "rt-multi-thread", "macros", "io-util", "fs", "net", "time", "sync"] }
+serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = "1.0.149"
 serde_yaml = "0.9"
 toml = "0.8"
@@ -61,8 +62,8 @@ anyhow = "1.0.100"
 ariadne = "0.6.0"
 thiserror = "2.0.17"
 walkdir = "2.5.0"
-uuid = { version = "1.11", features = ["v4"] }
-chrono = { version = "0.4.38", default-features = false }
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4.38", default-features = false, features = ["clock", "serde", "std"] }
 chrono-tz = "0.10.4"
 tracing = "0.1"
 tracing-log = "0.2"
@@ -71,7 +72,7 @@ include_dir = "0.7.4"
 rand = "0.8"
 futures = "0.3.32"
 foyer = { version = "0.22.3", default-features = false, features = ["runtime-tokio"] }
-tokio-util = "0.7.18"
+tokio-util = { version = "0.7.18", features = ["rt"] }
 tokio-stream = { version = "0.1", features = ["net"] }
 tokio-postgres = "0.7"
 flate2 = "1.1.9"
@@ -83,13 +84,13 @@ inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
 orgize = { git = "https://github.com/tao3k/orgize", rev = "c5805db55e0a0ebeb70d78e11705bf7bb117bb37" }
 pulldown-cmark = "0.12"
-quick-xml = "0.39.2"
+quick-xml = { version = "0.39.2", features = ["serialize"] }
 petgraph = "0.7"
 async-trait = "0.1"
 num-traits = "0.2"
 url = "2.5.7"
-tower = "0.5"
-tower-http = "0.6"
+tower = { version = "0.5", features = ["limit", "load-shed", "timeout", "util"] }
+tower-http = { version = "0.6", features = ["limit"] }
 proc-macro2 = "1"
 syn = { version = "2.0", features = ["full"] }
 quote = "1"
@@ -106,7 +107,7 @@ imageproc = "0.25"
 duckdb = { version = "=1.10502.0", default-features = false, features = ["bundled", "appender-arrow", "parquet"] }
 
 # Git operations
-gix = "0.81.0"
+gix = { version = "0.81.0", features = ["blocking-http-transport-reqwest-rust-tls"] }
 
 # Python bindings - Python 3.13 support via PyO3 0.27+
 pyo3 = { version = "0.27.2", features = ["extension-module"] }
@@ -170,7 +171,8 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "1e2c1d1ba34500bc72ac8d7ecccd7e6f62a8f7f8" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "f90dc81be0e9cdac6de4ec9378d57d78eaf6b1eb" }
+xiuxian-rust-workspace-harness = { path = "packages/rust/crates/xiuxian-rust-workspace-harness" }
 
 # Release profile optimizations for better performance
 [profile.release]
