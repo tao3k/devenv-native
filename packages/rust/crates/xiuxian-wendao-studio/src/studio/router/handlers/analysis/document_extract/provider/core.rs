@@ -25,7 +25,6 @@ pub(super) const DOCUMENT_EXTRACT_MAX_RUNNING_CONVERSIONS_ENV: &str =
 pub(crate) struct StudioDocumentExtractFlightRouteProvider {
     pub(super) runtime: Arc<DocumentExtractProviderRuntime>,
     pub(super) configured_default_endpoint: Option<String>,
-    pub(super) model_routing_config: Arc<Result<Option<()>, String>>,
 }
 
 pub(super) struct DocumentExtractProviderRuntime {

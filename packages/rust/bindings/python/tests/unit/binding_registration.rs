@@ -17,7 +17,6 @@ fn cargo_manifest_keeps_only_wendao_dependency() {
     for removed_dep in [
         "xiuxian-event",
         "xiuxian-types",
-        "xiuxian-io",
         "xiuxian-tokenizer",
         "xiuxian-ast",
         "xiuxian-security",

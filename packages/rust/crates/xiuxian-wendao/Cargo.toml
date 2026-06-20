@@ -129,7 +129,6 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
-xiuxian-io = { path = "../xiuxian-io" }
 xiuxian-git-repo = { path = "../xiuxian-git-repo" }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }

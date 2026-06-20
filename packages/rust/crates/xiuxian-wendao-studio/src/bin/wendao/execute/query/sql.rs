@@ -1,12 +1,12 @@
 use anyhow::{Context, Result, anyhow};
-use xiuxian_io::PrjDirs;
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_wendao::search::queries::{SearchQueryService, sql::query_sql_payload};
 
 use crate::bin_support::wendao::cli_support::emit;
 use crate::bin_support::wendao::types::{Cli, SqlQueryArgs};
 
 pub(super) async fn handle(cli: &Cli, args: &SqlQueryArgs) -> Result<()> {
-    let service = SearchQueryService::from_project_root(PrjDirs::project_root());
+    let service = SearchQueryService::from_project_root(ProjectDirs::project_root());
     let payload = query_sql_payload(&service, &args.query)
         .await
         .map_err(|error| anyhow!(error))

@@ -1,7 +1,7 @@
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_git_repo::{
     RepoRefreshPolicy, RepoSpec, managed_checkout_root_for, managed_mirror_root_for,
 };
-use xiuxian_io::PrjDirs;
 
 #[test]
 fn managed_repo_paths_follow_ghq_layout_for_remote_urls() {
@@ -15,7 +15,7 @@ fn managed_repo_paths_follow_ghq_layout_for_remote_urls() {
 
     assert_eq!(
         managed_checkout_root_for(&spec),
-        PrjDirs::data_home()
+        ProjectDirs::data_home()
             .join("xiuxian-wendao")
             .join("repo-intelligence")
             .join("repos")
@@ -25,7 +25,7 @@ fn managed_repo_paths_follow_ghq_layout_for_remote_urls() {
     );
     assert_eq!(
         managed_mirror_root_for(&spec),
-        PrjDirs::data_home()
+        ProjectDirs::data_home()
             .join("xiuxian-wendao")
             .join("repo-intelligence")
             .join("mirrors")
@@ -47,7 +47,7 @@ fn managed_repo_paths_support_scp_style_remote_urls() {
 
     assert_eq!(
         managed_checkout_root_for(&spec),
-        PrjDirs::data_home()
+        ProjectDirs::data_home()
             .join("xiuxian-wendao")
             .join("repo-intelligence")
             .join("repos")

@@ -112,7 +112,6 @@ pub(super) fn gateway_state_for_ui_config(
         studio: Arc::new(StudioState {
             project_root: project_root.to_path_buf(),
             config_root: project_root.to_path_buf(),
-            model_routing_config: Arc::new(Ok(None)),
             bootstrap_background_indexing: false,
             cold_start_process_started_at: crate::studio::symbol_index::timestamp_now(),
             cold_start_process_started_instant: std::time::Instant::now(),
@@ -293,7 +292,6 @@ pub(super) fn gateway_state_for_project_with_options(
         studio: Arc::new(StudioState {
             project_root: project_root.to_path_buf(),
             config_root,
-            model_routing_config: Arc::new(Ok(None)),
             bootstrap_background_indexing: false,
             cold_start_process_started_at: crate::studio::symbol_index::timestamp_now(),
             cold_start_process_started_instant: std::time::Instant::now(),

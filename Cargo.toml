@@ -7,7 +7,6 @@ members = [
   "packages/rust/crates/xiuxian-config-core",
   "packages/rust/crates/xiuxian-event",
   "packages/rust/crates/xiuxian-graph-core",
-  "packages/rust/crates/xiuxian-io",
   "packages/rust/crates/xiuxian-git-repo",
   "packages/rust/crates/xiuxian-wendao-attachments",
   "packages/rust/crates/xiuxian-wendao-parsers",

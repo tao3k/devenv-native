@@ -82,7 +82,6 @@ local-runtime = [
   "dep:xiuxian-config-core",
   "dep:xiuxian-db-store",
   "dep:xiuxian-git-repo",
-  "dep:xiuxian-io",
   "dep:xiuxian-wendao",
   "dep:xiuxian-wendao-builtin",
   "dep:xiuxian-wendao-core",
@@ -221,7 +220,6 @@ xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optiona
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
-xiuxian-io = { path = "../xiuxian-io", optional = true }
 xiuxian-qianji = { path = "../xiuxian-qianji", default-features = false, optional = true }
 
 anyhow = { workspace = true, optional = true }

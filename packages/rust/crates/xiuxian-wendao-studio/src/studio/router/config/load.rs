@@ -71,6 +71,7 @@ pub(crate) fn load_document_extract_endpoint_from_wendao_toml_path(
     normalize_endpoint(parsed.document_extract.endpoint.as_deref())
 }
 
+#[cfg(test)]
 pub(crate) fn load_model_routing_config_from_wendao_toml(
     config_root: &Path,
 ) -> Result<Option<()>, String> {
@@ -78,6 +79,7 @@ pub(crate) fn load_model_routing_config_from_wendao_toml(
     load_model_routing_config_from_wendao_toml_path(config_path.as_path())
 }
 
+#[cfg(test)]
 pub(crate) fn load_model_routing_config_from_wendao_toml_path(
     config_path: &Path,
 ) -> Result<Option<()>, String> {

@@ -10,7 +10,7 @@ use crate::support::repo_intelligence::{
 };
 use serde_json::json;
 use uuid::Uuid;
-use xiuxian_io::PrjDirs;
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_wendao::analyzers::{
     RepoSyncDriftState, RepoSyncHealthState, RepoSyncMode, RepoSyncQuery, RepoSyncStalenessState,
     repo_sync_from_config,
@@ -487,7 +487,7 @@ fn append_repo_file_and_commit(
 }
 
 fn repo_cache_root(_cwd: &Path) -> std::path::PathBuf {
-    PrjDirs::data_home()
+    ProjectDirs::data_home()
         .join("xiuxian-wendao")
         .join("repo-intelligence")
 }

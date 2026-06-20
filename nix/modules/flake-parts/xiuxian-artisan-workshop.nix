@@ -1,4 +1,9 @@
-{ workspaceRoot, inputs, self, ... }:
+{
+  workspaceRoot,
+  inputs,
+  self,
+  ...
+}:
 {
   perSystem =
     {
@@ -159,9 +164,6 @@
           depsDrvConfig = lib.recursiveUpdate commonProjectDepsDrvConfig {
             env.PROTOC = "${pkgs.protobuf}/bin/protoc";
           };
-        };
-        "xiuxian-io" = {
-          profiles.release.runTests = false;
         };
         "xiuxian-memory-engine" = {
           profiles.release.runTests = false;

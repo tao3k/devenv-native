@@ -6423,7 +6423,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42b8cfee0e339a0337359f3c88165702ac6e600dc01c0cc9579a92d62b08477a"
 dependencies = [
  "bitflags",
- "serde",
 ]
 
 [[package]]
@@ -10678,7 +10677,7 @@ dependencies = [
  "thiserror 2.0.18",
  "url",
  "uuid",
- "xiuxian-io",
+ "xiuxian-config-core",
 ]
 
 [[package]]
@@ -10689,23 +10688,6 @@ dependencies = [
  "petgraph 0.7.1",
  "rust-lang-project-harness 0.1.2 (git+https://github.com/tao3k/rust-lang-project-harness?rev=1e2c1d1ba34500bc72ac8d7ecccd7e6f62a8f7f8)",
  "thiserror 2.0.18",
-]
-
-[[package]]
-name = "xiuxian-io"
-version = "0.1.1"
-dependencies = [
- "globset",
- "memchr",
- "notify",
- "rayon",
- "rust-lang-project-harness 0.1.2 (git+https://github.com/tao3k/rust-lang-project-harness?rev=1e2c1d1ba34500bc72ac8d7ecccd7e6f62a8f7f8)",
- "serde_json",
- "tempfile",
- "tera",
- "thiserror 2.0.18",
- "tokio",
- "xiuxian-event",
 ]
 
 [[package]]
@@ -10810,7 +10792,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "uuid",
- "xiuxian-io",
+ "xiuxian-config-core",
  "xiuxian-types",
 ]
 
@@ -11054,7 +11036,6 @@ dependencies = [
  "xiuxian-config-core",
  "xiuxian-db-store",
  "xiuxian-git-repo",
- "xiuxian-io",
  "xiuxian-julia-core",
  "xiuxian-julia-runtime",
  "xiuxian-macros",
@@ -11310,7 +11291,6 @@ dependencies = [
  "xiuxian-config-core",
  "xiuxian-db-store",
  "xiuxian-git-repo",
- "xiuxian-io",
  "xiuxian-julia-core",
  "xiuxian-logging",
  "xiuxian-polyglot-orchestrator",

@@ -23,9 +23,10 @@ mod test_support;
 pub(crate) use cache::{build_file_stamps, cache_key, store_cached_merged, try_get_cached_merged};
 pub use error::ConfigCoreError;
 pub use paths::{
-    absolutize_path, normalize_config_home, resolve_cache_home, resolve_cache_home_from_value,
-    resolve_config_home, resolve_data_home, resolve_path_from_value, resolve_project_root,
-    resolve_project_root_or_cwd, resolve_project_root_or_cwd_from_value,
+    ProjectDirs, absolutize_path, normalize_config_home, resolve_cache_home,
+    resolve_cache_home_from_value, resolve_config_home, resolve_data_home, resolve_path_from_value,
+    resolve_project_root, resolve_project_root_or_cwd, resolve_project_root_or_cwd_from_value,
+    resolve_runtime_dir, resolve_runtime_dir_from_value,
 };
 pub use resolve::{
     NamedScalarValue, first_non_empty_lookup, first_non_empty_named_lookup,

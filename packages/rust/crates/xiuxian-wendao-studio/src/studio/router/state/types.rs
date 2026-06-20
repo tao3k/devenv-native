@@ -147,7 +147,6 @@ pub(crate) struct LocalCorpusScanCoalescingState {
 pub struct StudioState {
     pub(crate) project_root: PathBuf,
     pub(crate) config_root: PathBuf,
-    pub(crate) model_routing_config: Arc<Result<Option<()>, String>>,
     pub(crate) bootstrap_background_indexing: bool,
     pub(crate) cold_start_process_started_at: String,
     pub(crate) cold_start_process_started_instant: Instant,
@@ -171,11 +170,6 @@ impl StudioState {
     #[must_use]
     pub fn search_plane_service(&self) -> SearchPlaneService {
         self.search_plane.clone()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn model_routing_config(&self) -> Result<Option<()>, String> {
-        (*self.model_routing_config).clone()
     }
 
     /// Returns whether bootstrap-time background indexing is enabled for this state instance.

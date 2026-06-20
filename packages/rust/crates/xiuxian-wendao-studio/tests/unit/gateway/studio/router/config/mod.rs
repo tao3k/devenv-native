@@ -1,15 +1,11 @@
 use std::fs;
-use std::sync::Arc;
 
-use crate::studio::StudioState;
 use crate::studio::router::{
     load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
     load_model_routing_config_from_wendao_toml, load_ui_config_from_wendao_toml,
     load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml,
     studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
-use xiuxian_wendao::analyzers::PluginRegistry;
-use xiuxian_wendao::search::SearchPlaneService;
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -172,25 +168,6 @@ backend_profile = "hosted-vlm-image-extract-v1"
     )?;
 
     assert!(load_model_routing_config_from_wendao_toml(temp.path())?.is_none());
-    Ok(())
-}
-
-#[test]
-fn studio_state_exposes_no_model_routing_config_after_marlin_migration() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    fs::write(
-        studio_wendao_toml_path(temp.path()),
-        r#"[model_routing.chat]
-model = "deepseek-chat"
-"#,
-    )?;
-    let state = StudioState::new_with_bootstrap_ui_config_for_roots_and_search_plane(
-        Arc::new(PluginRegistry::new()),
-        temp.path().to_path_buf(),
-        temp.path().to_path_buf(),
-        SearchPlaneService::new(temp.path().join("search-plane")),
-    );
-    assert!(state.model_routing_config()?.is_none());
     Ok(())
 }
 

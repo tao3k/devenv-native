@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use url::Url;
-use xiuxian_io::PrjDirs;
+use xiuxian_config_core::ProjectDirs;
 
 use crate::spec::RepoSpec;
 
@@ -34,7 +34,7 @@ impl From<&str> for ManagedRepoId {
 fn substrate_root() -> PathBuf {
     // Keep the existing managed repository cache root stable during the crate
     // extraction slice so on-disk paths do not drift while ownership moves.
-    PrjDirs::data_home()
+    ProjectDirs::data_home()
         .join("xiuxian-wendao")
         .join("repo-intelligence")
 }

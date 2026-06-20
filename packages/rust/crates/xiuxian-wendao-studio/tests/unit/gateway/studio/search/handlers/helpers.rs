@@ -39,7 +39,7 @@ pub(crate) fn test_studio_state_with_cache() -> crate::studio::StudioState {
             .unwrap_or_else(|error| panic!("system time before unix epoch: {error}"))
             .as_nanos()
     );
-    let project_root = xiuxian_io::PrjDirs::project_root();
+    let project_root = xiuxian_config_core::ProjectDirs::project_root();
     let search_plane_root = std::env::temp_dir().join(nonce);
     let manifest_keyspace = xiuxian_wendao::search::SearchManifestKeyspace::new(format!(
         "xiuxian:test:search_plane:{}",

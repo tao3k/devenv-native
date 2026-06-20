@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+#[cfg(test)]
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -26,7 +27,6 @@ impl StudioDocumentExtractFlightRouteProvider {
             configured_default_endpoint: load_document_extract_endpoint_from_wendao_toml(
                 state.studio.config_root.as_path(),
             ),
-            model_routing_config: Arc::clone(&state.studio.model_routing_config),
         }
     }
 
@@ -41,7 +41,6 @@ impl StudioDocumentExtractFlightRouteProvider {
                 conversion_limit,
             )),
             configured_default_endpoint: None,
-            model_routing_config: Arc::new(Ok(None)),
         }
     }
 
@@ -57,7 +56,6 @@ impl StudioDocumentExtractFlightRouteProvider {
                 conversion_limit,
             )),
             configured_default_endpoint: Some(endpoint.into()),
-            model_routing_config: Arc::new(Ok(None)),
         }
     }
 
@@ -76,7 +74,6 @@ impl StudioDocumentExtractFlightRouteProvider {
                 ),
             ),
             configured_default_endpoint: None,
-            model_routing_config: Arc::new(Ok(None)),
         }
     }
 
@@ -93,17 +90,12 @@ impl StudioDocumentExtractFlightRouteProvider {
                 audio_worker_limit,
             )),
             configured_default_endpoint: None,
-            model_routing_config: Arc::new(Ok(None)),
         }
     }
 
     pub(crate) fn status(&self, job_id: &str) -> Result<Option<DocumentExtractJobStatus>, String> {
         let _registry_guard = self.registry_lock();
         self.registry()?.status(job_id)
-    }
-
-    pub(super) fn model_routing_config(&self) -> Result<Option<()>, String> {
-        (*self.model_routing_config).clone()
     }
 
     pub(crate) fn succeeded_output_dir_for_source(

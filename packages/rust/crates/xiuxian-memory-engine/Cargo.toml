@@ -45,7 +45,7 @@ rust-lang-project-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
-xiuxian-io = { path = "../xiuxian-io" }
+xiuxian-config-core = { path = "../xiuxian-config-core" }
 tempfile = { workspace = true }
 rand = { workspace = true }
 

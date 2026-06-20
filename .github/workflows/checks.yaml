@@ -18,7 +18,6 @@ jobs:
           - xiuxian-core-rs-release
           - xiuxian-core-rs-python-bindings
           - xiuxian-event-release
-          - xiuxian-io-release
           - xiuxian-lance-release
           - xiuxian-logging-release
           - xiuxian-macros-release

@@ -2,8 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_db_store::duckdb::{DuckLakeAttachConfig, ensure_duckdb_identifier};
-use xiuxian_io::PrjDirs;
 
 use super::WENDAO_EVENT_LAKE_DEFAULT_ALIAS;
 use super::handle::WendaoEventLake;
@@ -30,7 +30,7 @@ impl WendaoEventLakeLocalConfig {
     ///
     /// Returns an error when the default catalog alias is invalid.
     pub fn from_prj_data_home() -> Result<Self, String> {
-        Self::from_data_home(PrjDirs::data_home())
+        Self::from_data_home(ProjectDirs::data_home())
     }
 
     /// Build local event-lake config from a project data-home path.
