@@ -14,25 +14,11 @@ expression: value
       "title": "README.md"
     },
     {
-      "doc_id": "repo:coverage-sample:doc:docs/Problem.md",
-      "format": "md",
-      "path": "docs/Problem.md",
-      "repo_id": "coverage-sample",
-      "title": "Problem"
-    },
-    {
       "doc_id": "repo:coverage-sample:doc:docs/guide.md",
       "format": "md",
       "path": "docs/guide.md",
       "repo_id": "coverage-sample",
       "title": "guide"
-    },
-    {
-      "doc_id": "repo:coverage-sample:doc:docs/solve.md",
-      "format": "md",
-      "path": "docs/solve.md",
-      "repo_id": "coverage-sample",
-      "title": "solve"
     },
     {
       "doc_id": "repo:coverage-sample:doc:src/CoveragePkg.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.Problem",

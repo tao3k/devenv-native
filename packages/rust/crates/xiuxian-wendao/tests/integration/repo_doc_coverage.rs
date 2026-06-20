@@ -46,8 +46,7 @@ fn doc_coverage_counts_symbol_specific_docs_for_module_scope() -> TestResult {
 #[test]
 #[serial(repo_intelligence_doc_coverage)]
 fn cli_repo_doc_coverage_returns_serialized_result() -> TestResult {
-    let repo_dir =
-        create_cached_sample_julia_repo("doc-coverage-symbol", "CoveragePkg", true, &[])?;
+    let repo_dir = create_cached_sample_julia_repo("doc-coverage-cli", "CoveragePkg", true, &[])?;
     let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
     let config_path = write_repo_config(config_root, &repo_dir, "coverage-sample")?;
 

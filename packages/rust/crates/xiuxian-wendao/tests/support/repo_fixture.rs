@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, hash_map::DefaultHasher};
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Mutex, OnceLock};
@@ -36,6 +37,24 @@ fn sanitize_fixture_name(value: &str) -> String {
             _ => '_',
         })
         .collect()
+}
+
+fn cached_sample_julia_repo_key(
+    fixture_name: &str,
+    package_name: &str,
+    expected_root: bool,
+    extra_files: &[(&str, &str)],
+) -> String {
+    let mut hasher = DefaultHasher::new();
+    fixture_name.hash(&mut hasher);
+    package_name.hash(&mut hasher);
+    expected_root.hash(&mut hasher);
+    extra_files.hash(&mut hasher);
+    format!(
+        "{}-{:016x}",
+        sanitize_fixture_name(fixture_name),
+        hasher.finish()
+    )
 }
 
 fn create_sample_julia_repo_at(
@@ -151,7 +170,7 @@ pub fn create_cached_sample_julia_repo(
     expected_root: bool,
     extra_files: &[(&str, &str)],
 ) -> TestResultPath {
-    let key = sanitize_fixture_name(fixture_name);
+    let key = cached_sample_julia_repo_key(fixture_name, package_name, expected_root, extra_files);
     let mut cache = cached_sample_julia_repo_store().lock().map_err(|error| {
         std::io::Error::other(format!("sample julia fixture cache lock failed: {error}"))
     })?;
