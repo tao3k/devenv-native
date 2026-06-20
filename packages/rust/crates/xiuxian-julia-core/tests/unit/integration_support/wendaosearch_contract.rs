@@ -24,7 +24,6 @@ fn wendaosearch_parser_summary_contract_matches_rust_transport_constants() {
             "julia_file_summary".to_string(),
             "julia_root_summary".to_string(),
             "modelica_file_summary".to_string(),
-            "modelica_ast_query".to_string(),
         ]
     );
 

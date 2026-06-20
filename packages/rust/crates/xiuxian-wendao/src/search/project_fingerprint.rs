@@ -11,8 +11,7 @@ use crate::parsers::markdown::is_supported_note;
 use crate::search::SearchFileFingerprint;
 use crate::search::contracts::SearchProjectConfig;
 use crate::search::contracts::{
-    ast_search_lang, configured_project_scopes, index_path_for_entry, is_markdown_path,
-    should_skip_entry,
+    configured_project_scopes, index_path_for_entry, is_markdown_path, should_skip_entry,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -398,10 +397,21 @@ fn project_files(
 
 fn matches_mode(mode: ProjectFingerprintMode, path: &Path) -> bool {
     match mode {
-        ProjectFingerprintMode::Symbol => is_markdown_path(path) || ast_search_lang(path).is_some(),
-        ProjectFingerprintMode::Source => ast_search_lang(path).is_some(),
+        ProjectFingerprintMode::Symbol => is_markdown_path(path) || is_source_content_path(path),
+        ProjectFingerprintMode::Source => is_source_content_path(path),
         ProjectFingerprintMode::Note => is_supported_note(path),
     }
+}
+
+fn is_source_content_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(std::ffi::OsStr::to_str)
+        .is_some_and(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "rs" | "py" | "ts" | "tsx" | "js" | "jsx"
+            )
+        })
 }
 
 #[cfg(test)]

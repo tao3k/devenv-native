@@ -1,6 +1,6 @@
 use super::{
-    AstSearchHit, AttachmentSearchHit, DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit,
-    ObservationHint, ReferenceSearchHit, SearchBacklinkItem, SearchHit,
+    AttachmentSearchHit, DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit, ObservationHint,
+    ReferenceSearchHit, SearchBacklinkItem, SearchHit, SourceSymbolHit,
 };
 use xiuxian_wendao::search::contracts as domain;
 
@@ -25,8 +25,8 @@ impl From<domain::AttachmentSearchHit> for AttachmentSearchHit {
     }
 }
 
-impl From<domain::AstSearchHit> for AstSearchHit {
-    fn from(value: domain::AstSearchHit) -> Self {
+impl From<domain::SourceSymbolHit> for SourceSymbolHit {
+    fn from(value: domain::SourceSymbolHit) -> Self {
         Self {
             name: value.name,
             signature: value.signature,
@@ -45,8 +45,8 @@ impl From<domain::AstSearchHit> for AstSearchHit {
     }
 }
 
-impl From<AstSearchHit> for domain::AstSearchHit {
-    fn from(value: AstSearchHit) -> Self {
+impl From<SourceSymbolHit> for domain::SourceSymbolHit {
+    fn from(value: SourceSymbolHit) -> Self {
         Self {
             name: value.name,
             signature: value.signature,
@@ -68,9 +68,9 @@ impl From<AstSearchHit> for domain::AstSearchHit {
 }
 
 #[cfg(all(test, feature = "zhenfa-router"))]
-pub(crate) fn domain_ast_hits_for_search_plane(
-    hits: Vec<AstSearchHit>,
-) -> Vec<domain::AstSearchHit> {
+pub(crate) fn domain_source_symbol_hits_for_search_plane(
+    hits: Vec<SourceSymbolHit>,
+) -> Vec<domain::SourceSymbolHit> {
     hits.into_iter().map(Into::into).collect()
 }
 

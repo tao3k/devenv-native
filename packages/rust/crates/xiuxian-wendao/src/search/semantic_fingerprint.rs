@@ -1,10 +1,10 @@
 use serde::Serialize;
 
-use crate::search::contracts::{AstSearchHit, AttachmentSearchHit, ReferenceSearchHit};
+use crate::search::contracts::{AttachmentSearchHit, ReferenceSearchHit, SourceSymbolHit};
 
 #[must_use]
-pub(crate) fn ast_hits_fingerprint(hits: &[AstSearchHit]) -> String {
-    stable_payload_fingerprint("ast_hits", hits)
+pub(crate) fn source_symbol_hits_fingerprint(hits: &[SourceSymbolHit]) -> String {
+    stable_payload_fingerprint("source_symbol_hits", hits)
 }
 
 #[must_use]

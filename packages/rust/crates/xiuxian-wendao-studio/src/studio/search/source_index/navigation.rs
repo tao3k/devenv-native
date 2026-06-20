@@ -1,6 +1,6 @@
 use crate::studio::types::StudioNavigationTarget;
 
-pub(super) fn ast_navigation_target(
+pub(super) fn source_symbol_navigation_target(
     path: &str,
     crate_name: &str,
     project_name: Option<&str>,

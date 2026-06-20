@@ -203,7 +203,7 @@ async fn try_restore_symbol_index(
             };
             let hits = hits.into_iter().map(Into::into).collect::<Vec<_>>();
             Ok(Some((
-                search::build_symbol_index_from_ast_hits(hits.as_slice()),
+                search::build_symbol_index_from_source_symbol_hits(hits.as_slice()),
                 phase,
             )))
         }
@@ -251,7 +251,7 @@ async fn wait_for_fresh_local_symbol_artifact(
                     .await
                     .map(|hits| {
                         let hits = hits.into_iter().map(Into::into).collect::<Vec<_>>();
-                        search::build_symbol_index_from_ast_hits(hits.as_slice())
+                        search::build_symbol_index_from_source_symbol_hits(hits.as_slice())
                     })
                     .map(Some)
                     .map_err(|error| format!("restore local symbol artifact: {error}"));

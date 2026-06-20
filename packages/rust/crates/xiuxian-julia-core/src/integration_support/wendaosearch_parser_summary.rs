@@ -11,13 +11,10 @@ use std::{
 use serde_json::json;
 use xiuxian_wendao_core::repo_intelligence::{RegisteredRepository, RepositoryPluginConfig};
 
+use crate::fetch_modelica_parser_file_summary_blocking_for_repository;
 use crate::integration_support::service_runtime::{
     JuliaServiceGuard, repo_root, reserve_service_port, wait_for_service_ready_with_attempts,
     wendaocodeparser_julia_project, wendaosearch_parser_summary_contract,
-};
-use crate::{
-    fetch_modelica_ast_query_analysis_blocking_for_repository,
-    fetch_modelica_parser_file_summary_blocking_for_repository,
 };
 
 use super::project_julia_command;
@@ -43,13 +40,11 @@ const WENDAOSEARCH_PARSER_SUMMARY_READY_ROUTE_RETRIES_ENV: &str =
 const WENDAOSEARCH_PARSER_SUMMARY_READY_RETRY_DELAY_MILLIS_ENV: &str =
     "WENDAOSEARCH_PARSER_SUMMARY_READY_RETRY_DELAY_MILLIS";
 const JULIA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &["julia_file_summary", "julia_root_summary"];
-const MODELICA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] =
-    &["modelica_file_summary", "modelica_ast_query"];
+const MODELICA_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &["modelica_file_summary"];
 const ALL_PARSER_SUMMARY_ROUTE_NAMES: &[&str] = &[
     "julia_file_summary",
     "julia_root_summary",
     "modelica_file_summary",
-    "modelica_ast_query",
 ];
 const DEFAULT_PARSER_SUMMARY_WENDAOSEARCH_READY_ATTEMPTS: usize = 300;
 const WENDAOSEARCH_PARSER_SUMMARY_READY_ATTEMPTS_ENV: &str =
@@ -177,14 +172,13 @@ pub async fn spawn_wendaosearch_modelica_parser_summary_service() -> (String, Ju
 }
 
 /// Probe the `WendaoSearch` Modelica parser-summary service on one explicit
-/// base URL using the same file-summary plus ast-query warmup fixture as the
-/// linked Julia integration helpers.
+/// base URL using the same file-summary warmup fixture as the linked Julia
+/// integration helpers.
 ///
 /// # Errors
 ///
 /// Returns an error string when the fixed service does not accept the warmup
-/// Modelica file-summary and ast-query requests on the configured Flight
-/// endpoint.
+/// Modelica file-summary requests on the configured Flight endpoint.
 pub fn probe_wendaosearch_modelica_parser_summary_route_for_tests(
     base_url: &str,
 ) -> Result<(), String> {
@@ -300,24 +294,6 @@ fn check_modelica_parser_summary_route_ready_once(
         ));
     }
 
-    let analysis = fetch_modelica_ast_query_analysis_blocking_for_repository(
-        repository,
-        MODELICA_PARSER_SUMMARY_READY_SOURCE_ID.into(),
-        MODELICA_PARSER_SUMMARY_READY_SOURCE,
-    )
-    .map_err(|error| {
-        format!("Modelica ast-query readiness probe failed for `{base_url}`: {error}")
-    })?;
-    if !analysis
-        .modules
-        .iter()
-        .any(|module| module.qualified_name == "Warmup")
-    {
-        return Err(format!(
-            "Modelica ast-query readiness probe returned no Warmup module for `{base_url}`"
-        ));
-    }
-
     Ok(())
 }
 
@@ -330,9 +306,6 @@ fn modelica_parser_summary_ready_repository(base_url: &str) -> RegisteredReposit
                 "parser_summary_transport": {
                     "base_url": base_url,
                     "file_summary": {
-                        "timeout_secs": parser_summary_ready_timeout_secs(),
-                    },
-                    "ast_query": {
                         "timeout_secs": parser_summary_ready_timeout_secs(),
                     }
                 }

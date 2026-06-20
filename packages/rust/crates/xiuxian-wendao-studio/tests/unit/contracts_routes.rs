@@ -10,7 +10,6 @@ use xiuxian_wendao_studio::contracts::routes::{
 #[cfg(feature = "openapi-artifacts")]
 use xiuxian_wendao_studio::openapi::load_bundled_wendao_gateway_openapi_document;
 
-const RETIRED_SEARCH_AST_OPENAPI_PATH: &str = "/api/search/ast";
 const RETIRED_SEARCH_DEFINITION_OPENAPI_PATH: &str = "/api/search/definition";
 const RETIRED_SEARCH_AUTOCOMPLETE_OPENAPI_PATH: &str = "/api/search/autocomplete";
 const RETIRED_SEARCH_KNOWLEDGE_OPENAPI_PATH: &str = "/api/search";
@@ -21,7 +20,6 @@ const RETIRED_SEARCH_SYMBOLS_OPENAPI_PATH: &str = "/api/search/symbols";
 const RETIRED_GRAPH_NEIGHBORS_OPENAPI_PATH: &str = "/api/graph/neighbors/{id}";
 const RETIRED_NODE_NEIGHBORS_OPENAPI_PATH: &str = "/api/neighbors/{id}";
 const RETIRED_ANALYSIS_MARKDOWN_OPENAPI_PATH: &str = "/api/analysis/markdown";
-const RETIRED_ANALYSIS_CODE_AST_OPENAPI_PATH: &str = "/api/analysis/code-ast";
 const RETIRED_UI_CONFIG_OPENAPI_PATH: &str = "/api/ui/config";
 
 #[test]
@@ -68,10 +66,6 @@ fn route_inventory_omits_retired_flight_only_http_paths() {
         "stable shared route inventory must not re-expose retired attachment HTTP search path"
     );
     assert!(
-        !openapi_paths.contains(RETIRED_SEARCH_AST_OPENAPI_PATH),
-        "stable shared route inventory must not re-expose retired AST HTTP search path"
-    );
-    assert!(
         !openapi_paths.contains(RETIRED_SEARCH_REFERENCES_OPENAPI_PATH),
         "stable shared route inventory must not re-expose retired references HTTP search path"
     );
@@ -90,10 +84,6 @@ fn route_inventory_omits_retired_flight_only_http_paths() {
     assert!(
         !openapi_paths.contains(RETIRED_ANALYSIS_MARKDOWN_OPENAPI_PATH),
         "stable shared route inventory must not re-expose retired markdown HTTP analysis path"
-    );
-    assert!(
-        !openapi_paths.contains(RETIRED_ANALYSIS_CODE_AST_OPENAPI_PATH),
-        "stable shared route inventory must not re-expose retired code-AST HTTP analysis path"
     );
     assert!(
         !openapi_paths.contains(RETIRED_UI_CONFIG_OPENAPI_PATH),

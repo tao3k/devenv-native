@@ -20,9 +20,9 @@ pub(crate) use document_extract::{
     validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
 };
 pub(crate) use graph_vfs_analysis::{
-    validate_code_ast_analysis_request_metadata, validate_graph_neighbors_request_metadata,
-    validate_markdown_analysis_request_metadata, validate_semantic_scope_request_metadata,
-    validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
+    validate_graph_neighbors_request_metadata, validate_markdown_analysis_request_metadata,
+    validate_semantic_scope_request_metadata, validate_vfs_content_request_metadata,
+    validate_vfs_resolve_request_metadata,
 };
 pub(crate) use ontology::{
     validate_dataset_ontology_materialize_request_metadata,

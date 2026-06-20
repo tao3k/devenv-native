@@ -6,7 +6,6 @@ pub mod routes;
 pub use routes::{RouteContract, WENDAO_GATEWAY_ROUTE_CONTRACTS};
 
 mod analysis_nodes;
-mod code_ast;
 mod document_extract;
 mod error;
 mod graph;
@@ -49,11 +48,6 @@ pub use search_manifest::{
 mod types;
 
 pub use analysis_nodes::{AnalysisNode, AnalysisNodeKind};
-pub use code_ast::{
-    CodeAstAnalysisResponse, CodeAstEdge, CodeAstEdgeKind, CodeAstNode, CodeAstNodeKind,
-    CodeAstProjection, CodeAstProjectionKind, CodeAstRetrievalAtom, CodeAstRetrievalAtomScope,
-};
-
 pub use graph::{
     GraphLink, GraphNeighborsResponse, GraphNode, Topology3dPayload, TopologyCluster, TopologyLink,
     TopologyNode,
@@ -68,12 +62,11 @@ pub use markdown_analysis::{
 pub use navigation::StudioNavigationTarget;
 pub use retrieval::{RetrievalChunk, RetrievalChunkSurface};
 #[cfg(all(test, feature = "zhenfa-router"))]
-pub(crate) use search_responses::domain_ast_hits_for_search_plane;
+pub(crate) use search_responses::domain_source_symbol_hits_for_search_plane;
 pub use search_responses::{
-    AstSearchHit, AstSearchResponse, AttachmentSearchHit, AttachmentSearchResponse,
-    DefinitionResolveResponse, DefinitionSearchHit, IntentSearchHit, KnowledgeSearchHit,
-    ObservationHint, ReferenceSearchHit, ReferenceSearchResponse, SearchBacklinkItem, SearchHit,
-    SearchResponse,
+    AttachmentSearchHit, AttachmentSearchResponse, DefinitionResolveResponse, DefinitionSearchHit,
+    IntentSearchHit, KnowledgeSearchHit, ObservationHint, ReferenceSearchHit,
+    ReferenceSearchResponse, SearchBacklinkItem, SearchHit, SearchResponse, SourceSymbolHit,
 };
 
 pub use symbols::{

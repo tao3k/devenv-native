@@ -20,9 +20,6 @@ use crate::studio::search::build_symbol_index;
 use crate::studio::test_support::commit_all;
 use crate::studio::{GatewayState, StudioState, configured_repositories};
 use crate::transport::{
-    ANALYSIS_CODE_AST_ROUTE, WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
-};
-use crate::transport::{
     ANALYSIS_MARKDOWN_ROUTE, RepoSearchFlightRequest, RepoSearchFlightRouteProvider,
     SEARCH_SYMBOLS_ROUTE, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
     WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER, flight_descriptor_path,
@@ -42,8 +39,8 @@ mod support;
 
 use support::{
     RepoSearchRequestFilters, commit_all_or_panic, create_dir_all_or_panic, init_git_repo_or_panic,
-    populate_code_ast_analysis_headers, populate_markdown_analysis_headers,
-    populate_search_headers, repo_document, repo_search_batch_or_panic, repo_search_request,
-    string_column, tempdir_or_panic, test_studio_state, write_file_or_panic,
+    populate_markdown_analysis_headers, populate_search_headers, repo_document,
+    repo_search_batch_or_panic, repo_search_request, string_column, tempdir_or_panic,
+    test_studio_state, write_file_or_panic,
 };
 use support::{first_ticket, float_column};

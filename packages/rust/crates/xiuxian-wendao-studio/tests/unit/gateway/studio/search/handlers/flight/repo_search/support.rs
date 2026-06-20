@@ -2,9 +2,8 @@ use super::{
     Arc, Command, FlightInfo, HashSet, LanceFloat64Array, LanceRecordBatch, LanceStringArray, Path,
     PathBuf, RepoCodeDocument, RepoSearchFlightRequest, RepoSearchFlightRouteProvider,
     SearchPlaneService, StudioRepoSearchFlightRouteProvider, StudioState,
-    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
-    WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER,
-    bootstrap_builtin_registry, commit_all,
+    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_SCHEMA_VERSION_HEADER, WENDAO_SEARCH_LIMIT_HEADER,
+    WENDAO_SEARCH_QUERY_HEADER, bootstrap_builtin_registry, commit_all,
 };
 
 #[derive(Default)]
@@ -198,30 +197,6 @@ pub(super) fn populate_markdown_analysis_headers(
         path.parse()
             .unwrap_or_else(|error| panic!("analysis path metadata: {error}")),
     );
-}
-
-pub(super) fn populate_code_ast_analysis_headers(
-    metadata: &mut tonic::metadata::MetadataMap,
-    path: &str,
-    repo_id: &str,
-    line_hint: Option<usize>,
-) {
-    populate_markdown_analysis_headers(metadata, path);
-    metadata.insert(
-        WENDAO_ANALYSIS_REPO_HEADER,
-        repo_id
-            .parse()
-            .unwrap_or_else(|error| panic!("analysis repo metadata: {error}")),
-    );
-    if let Some(line_hint) = line_hint {
-        metadata.insert(
-            WENDAO_ANALYSIS_LINE_HEADER,
-            line_hint
-                .to_string()
-                .parse()
-                .unwrap_or_else(|error| panic!("analysis line metadata: {error}")),
-        );
-    }
 }
 
 pub(super) fn test_studio_state(search_plane_root: PathBuf) -> StudioState {

@@ -121,7 +121,7 @@ fn pi_wendao_local_checkout_real_repo_harness_records_external_orchestration_evi
     assert_eq!(receipt.summary.repositories_total, 1);
     assert_eq!(receipt.summary.queries_failed, 0);
     assert_eq!(receipt.summary.knowledge_scenarios_failed, 0);
-    assert_eq!(receipt.summary.queries_total, 6);
+    assert_eq!(receipt.summary.queries_total, 3);
     assert_eq!(receipt.summary.knowledge_scenarios_total, 2);
 
     let Some(repository) = receipt.repositories.first() else {
@@ -129,8 +129,6 @@ fn pi_wendao_local_checkout_real_repo_harness_records_external_orchestration_evi
     };
     assert_eq!(repository.repo_id, "pi-wendao");
     assert!(repository.indexed);
-    assert!(repository.repo_ast_index_file_count > 0);
-    assert!(repository.repo_ast_index_symbol_count > 0);
     assert_eq!(repository.knowledge_scenarios.len(), 2);
     assert!(
         repository
@@ -147,9 +145,6 @@ fn pi_wendao_local_checkout_real_repo_harness_records_external_orchestration_evi
         "pi-wendao-readme-subagents-host",
         "pi-wendao-named-workflows-brainstorm-cache",
         "pi-wendao-bpmn-format-runtime-ownership",
-        "pi-wendao-subagents-extension-source",
-        "pi-wendao-agent-host-interface-source",
-        "pi-wendao-model-resolver-source",
     ] {
         assert!(
             repository

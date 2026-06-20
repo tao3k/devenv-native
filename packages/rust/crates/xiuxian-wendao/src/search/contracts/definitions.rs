@@ -5,11 +5,11 @@ use specta::Type;
 
 use super::StudioNavigationTarget;
 
-/// A single hit in an AST definition search.
+/// A single source-symbol hit used by local symbol and Markdown recovery.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 /// Stringly state boundary: this public record preserves serialized catalog tokens from external or stored Wendao data.
-pub struct AstSearchHit {
+pub struct SourceSymbolHit {
     /// Captured definition name.
     pub name: String,
     /// Signature line or skeleton snippet.
@@ -26,7 +26,7 @@ pub struct AstSearchHit {
     /// Configured root label when the source path maps to a project root path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root_label: Option<String>,
-    /// Optional AST node kind for richer Markdown search presentation.
+    /// Optional source node kind for richer Markdown search presentation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub node_kind: Option<String>,
     /// Optional owning Markdown section title/path for property-box derived hits.
@@ -63,7 +63,7 @@ pub struct DefinitionSearchHit {
     /// Optional root label derived from configured project scopes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root_label: Option<String>,
-    /// Optional AST node kind for the resolved symbol.
+    /// Optional source node kind for the resolved symbol.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub node_kind: Option<String>,
     /// Optional owner title or containing symbol label.

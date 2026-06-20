@@ -39,21 +39,18 @@ pub(crate) struct RealRepoGoldQuery {
 #[serde(rename_all = "snake_case")]
 pub(crate) enum RealRepoGoldQueryKind {
     LinkGraph,
-    RepoAst,
 }
 
 impl RealRepoGoldQueryKind {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
             Self::LinkGraph => "link_graph",
-            Self::RepoAst => "repo_ast",
         }
     }
 
     pub(crate) fn parse_filter(raw: Option<&str>) -> Option<Self> {
         match raw.map(str::trim).filter(|value| !value.is_empty()) {
             Some(value) if value.eq_ignore_ascii_case("link_graph") => Some(Self::LinkGraph),
-            Some(value) if value.eq_ignore_ascii_case("repo_ast") => Some(Self::RepoAst),
             _ => None,
         }
     }
@@ -261,9 +258,6 @@ pub(crate) struct RealRepoPrecisionRepositoryReceipt {
     pub(crate) markdown_knowledge_semantic_gate:
         Option<RealRepoMarkdownKnowledgeSemanticGateReceipt>,
     pub(crate) knowledge_scenarios: Vec<RealRepoKnowledgeScenarioReceipt>,
-    pub(crate) repo_ast_index_ms: Option<u128>,
-    pub(crate) repo_ast_index_file_count: usize,
-    pub(crate) repo_ast_index_symbol_count: usize,
     pub(crate) query_wall_ms: u128,
     pub(crate) query_sum_ms: u128,
     pub(crate) total_ms: u128,

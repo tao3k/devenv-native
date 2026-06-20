@@ -15,7 +15,7 @@ struct ParsedObservationInput<'a> {
 pub struct CodeObservation {
     /// Target language for the pattern (e.g., "rust", "python", "typescript").
     pub language: String,
-    /// The sgrep/ast-grep pattern to match in source code.
+    /// The provider-owned pattern to match in source code.
     pub pattern: String,
     /// Optional scope filter to restrict pattern matching to specific paths.
     ///
@@ -110,13 +110,13 @@ impl CodeObservation {
         Some(build_observation(parsed))
     }
 
-    /// Report that local AST pattern validation is no longer available.
+    /// Report that local pattern validation is no longer available.
     ///
     /// # Errors
     ///
-    /// Always returns an error because local tree-sitter/ast-grep validation
-    /// was retired from this crate. Code intelligence will be provided by the
-    /// external language-provider boundary.
+    /// Always returns an error because local parser validation was retired
+    /// from this crate. Code intelligence will be provided by the external
+    /// language-provider boundary.
     pub fn validate_pattern(&self) -> Result<(), String> {
         Err(format!(
             "code observation validation for `{}` is retired; use the language-provider boundary",

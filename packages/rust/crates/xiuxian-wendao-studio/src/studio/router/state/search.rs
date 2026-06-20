@@ -4,7 +4,7 @@ use std::time::Duration;
 use crate::studio::router::error::StudioApiError;
 use crate::studio::router::state::types::StudioState;
 use crate::studio::types::{
-    AstSearchHit, AttachmentSearchHit, AutocompleteSuggestion, ReferenceSearchHit, SearchHit,
+    AttachmentSearchHit, AutocompleteSuggestion, ReferenceSearchHit, SearchHit, SourceSymbolHit,
 };
 use xiuxian_wendao::link_graph::LinkGraphAttachmentKind;
 use xiuxian_wendao::search::{SearchCorpusKind, SearchPlanePhase};
@@ -291,7 +291,7 @@ impl StudioState {
         &self,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<AstSearchHit>, StudioApiError> {
+    ) -> Result<Vec<SourceSymbolHit>, StudioApiError> {
         match self.search_plane.search_local_symbols(query, limit).await {
             Ok(hits) => Ok(hits.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::LocalSymbolSearchError::NotReady) => {

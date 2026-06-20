@@ -1,11 +1,9 @@
 //! Analysis-route query contracts for Wendao Flight metadata.
 
-mod code_ast;
 mod document_extract;
 mod headers;
 mod markdown;
 
-pub use code_ast::{ANALYSIS_CODE_AST_ROUTE, validate_code_ast_analysis_request};
 pub use document_extract::{
     ANALYSIS_AUDIO_SHARDS_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_PDF_OCR_SHARDS_ROUTE,

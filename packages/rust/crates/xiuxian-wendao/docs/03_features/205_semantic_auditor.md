@@ -19,7 +19,7 @@ The auditor executes a multi-pass diagnostic flow:
 1. **DeadLinks**: Verifies all `[[id]]` references.
 2. **DeprecatedRefs**: Flags usage of nodes marked as `:STATUS: DEPRECATED`.
 3. **IdCollisions**: Ensures global uniqueness of all manual `:ID:` entries.
-4. **CodeObservations**: Validates `ast-grep` patterns against the external language-provider protocol.
+4. **CodeObservations**: Validates structural code observations against the external language-provider protocol.
 5. **HashAlignment**: Checks for content drift using content fingerprints.
 6. **DocGovernance**: Validates package-local crate docs under `packages/rust/crates/*/docs/`, currently enforcing opaque top-level `:ID:` values inside the first property drawer for both explicit package-doc audits and workspace/package-doc tree scans, the presence of `docs/index.md` when a package-local docs tree already exists, a minimal docs-tree bootstrap path for crates that still have no package-local `docs/` directory, the presence of standard section landing pages once `docs/index.md` already exists, the presence of matching standard section links inside the package index once those landing pages exist, the presence of a package-index `:RELATIONS: :LINKS:` block when body links already exist, the presence of a package-index `:FOOTER:` block once the relations block exists, completeness of required footer fields once that footer block exists, normalization of stale footer standards versions, and coherence between package-index body links and that bottom relations block in both directions.
 

@@ -1,12 +1,12 @@
 use super::{
-    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REPO_INDEX_ROUTE,
+    ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REPO_INDEX_ROUTE,
     ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
     ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_DEFAULT_HOPS, GRAPH_NEIGHBORS_DEFAULT_LIMIT,
     GRAPH_NEIGHBORS_ROUTE, ONTOLOGY_DATASET_MATERIALIZE_ROUTE, QUERY_SQL_ROUTE,
     REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT, REPO_SEARCH_DEFAULT_LIMIT,
     REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_PATH_COLUMN,
     REPO_SEARCH_ROUTE, REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
+    SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
     SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE,
     VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER,
     WENDAO_ANALYSIS_REPO_HEADER, WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
@@ -192,7 +192,6 @@ fn query_contract_exposes_stable_routes() {
     assert_eq!(SEARCH_INTENT_ROUTE, "/search/intent");
     assert_eq!(SEARCH_KNOWLEDGE_ROUTE, "/search/knowledge");
     assert_eq!(SEARCH_ATTACHMENTS_ROUTE, "/search/attachments");
-    assert_eq!(SEARCH_AST_ROUTE, "/search/ast");
     assert_eq!(SEARCH_REFERENCES_ROUTE, "/search/references");
     assert_eq!(SEARCH_SYMBOLS_ROUTE, "/search/symbols");
     assert_eq!(SEARCH_DEFINITION_ROUTE, "/search/definition");
@@ -206,7 +205,6 @@ fn query_contract_exposes_stable_routes() {
     assert_eq!(VFS_CONTENT_ROUTE, "/vfs/content");
     assert_eq!(GRAPH_NEIGHBORS_ROUTE, "/graph/neighbors");
     assert_eq!(ANALYSIS_MARKDOWN_ROUTE, "/analysis/markdown");
-    assert_eq!(ANALYSIS_CODE_AST_ROUTE, "/analysis/code-ast");
     assert_eq!(ANALYSIS_REPO_INDEX_ROUTE, "/analysis/repo-index");
     assert_eq!(ANALYSIS_REPO_SYNC_ROUTE, "/analysis/repo-sync");
     assert_eq!(
@@ -283,10 +281,6 @@ fn descriptor_path_matches_stable_query_route() {
         Ok(vec!["search".to_string(), "attachments".to_string()])
     );
     assert_eq!(
-        flight_descriptor_path(SEARCH_AST_ROUTE),
-        Ok(vec!["search".to_string(), "ast".to_string()])
-    );
-    assert_eq!(
         flight_descriptor_path(SEARCH_REFERENCES_ROUTE),
         Ok(vec!["search".to_string(), "references".to_string()])
     );
@@ -321,10 +315,6 @@ fn descriptor_path_matches_stable_query_route() {
     assert_eq!(
         flight_descriptor_path(ANALYSIS_MARKDOWN_ROUTE),
         Ok(vec!["analysis".to_string(), "markdown".to_string()])
-    );
-    assert_eq!(
-        flight_descriptor_path(ANALYSIS_CODE_AST_ROUTE),
-        Ok(vec!["analysis".to_string(), "code-ast".to_string()])
     );
     assert_eq!(
         flight_descriptor_path(ANALYSIS_REPO_INDEX_ROUTE),

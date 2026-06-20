@@ -6,7 +6,7 @@ use super::types::SearchPlaneService;
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::attachment::AttachmentBuildError;
 #[cfg(any(test, feature = "test-support"))]
-use crate::search::contracts::{AstSearchHit, ProjectConfigView, materialize_project_configs};
+use crate::search::contracts::{ProjectConfigView, SourceSymbolHit, materialize_project_configs};
 #[cfg(any(test, feature = "test-support"))]
 use crate::search::knowledge_section::KnowledgeSectionBuildError;
 #[cfg(any(test, feature = "test-support"))]
@@ -25,7 +25,7 @@ impl SearchPlaneService {
     pub async fn publish_local_symbol_hits(
         &self,
         fingerprint: &str,
-        hits: &[AstSearchHit],
+        hits: &[SourceSymbolHit],
     ) -> Result<(), LocalSymbolBuildError> {
         crate::search::local_symbol::publish_local_symbol_hits(self, fingerprint, hits).await
     }

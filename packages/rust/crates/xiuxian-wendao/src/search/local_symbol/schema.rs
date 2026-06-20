@@ -5,7 +5,7 @@ use xiuxian_db_store::{
     VectorStoreError,
 };
 
-use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::SourceSymbolHit;
 
 const CHUNK_SIZE: usize = 1_000;
 
@@ -38,14 +38,14 @@ pub(super) fn local_symbol_schema() -> Arc<LanceSchema> {
 }
 
 pub(super) fn local_symbol_batches(
-    hits: &[AstSearchHit],
+    hits: &[SourceSymbolHit],
 ) -> Result<Vec<LanceRecordBatch>, VectorStoreError> {
     hits.chunks(CHUNK_SIZE)
         .map(batch_from_hits)
         .collect::<Result<Vec<_>, _>>()
 }
 
-fn batch_from_hits(hits: &[AstSearchHit]) -> Result<LanceRecordBatch, VectorStoreError> {
+fn batch_from_hits(hits: &[SourceSymbolHit]) -> Result<LanceRecordBatch, VectorStoreError> {
     let schema = local_symbol_schema();
     let ids = hits
         .iter()
@@ -96,8 +96,9 @@ fn batch_from_hits(hits: &[AstSearchHit]) -> Result<LanceRecordBatch, VectorStor
     let hit_json = hits
         .iter()
         .map(|hit| {
-            serde_json::to_string(hit)
-                .map_err(|error| VectorStoreError::General(format!("serialize ast hit: {error}")))
+            serde_json::to_string(hit).map_err(|error| {
+                VectorStoreError::General(format!("serialize source-symbol hit: {error}"))
+            })
         })
         .collect::<Result<Vec<_>, _>>()?;
 

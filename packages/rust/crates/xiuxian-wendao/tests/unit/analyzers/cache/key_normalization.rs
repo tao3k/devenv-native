@@ -56,7 +56,7 @@ fn build_repository_analysis_cache_key_normalizes_mixed_plugin_declarations() {
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
         plugins: vec![
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
             RepositoryPluginConfig::Id("julia-code-parser".to_string()),
             RepositoryPluginConfig::Config {
                 id: "modelica".to_string(),
@@ -75,8 +75,8 @@ fn build_repository_analysis_cache_key_normalizes_mixed_plugin_declarations() {
                 }),
             },
             RepositoryPluginConfig::Id("julia-code-parser".to_string()),
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
         ],
         ..first_repository.clone()
     };
@@ -104,9 +104,9 @@ fn build_repository_analysis_cache_key_normalizes_mixed_plugin_declarations() {
     assert_eq!(
         first_key.plugin_ids,
         vec![
-            "ast-grep".to_string(),
             "julia-code-parser".to_string(),
-            "modelica".to_string()
+            "modelica".to_string(),
+            "repo-content".to_string(),
         ]
     );
     assert_eq!(first_key, second_key);

@@ -3,9 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::{
-    AstSearchHit, AttachmentSearchHit, DefinitionSearchHit, ReferenceSearchHit, SearchHit,
-};
+use super::{AttachmentSearchHit, DefinitionSearchHit, ReferenceSearchHit, SearchHit};
 use crate::contracts::{StudioContractMode, StudioContractState, StudioNavigationTarget};
 
 /// Response for Studio attachment search queries.
@@ -27,29 +25,6 @@ pub struct AttachmentSearchResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub indexing_state: Option<StudioContractState>,
     /// Optional attachment-index error surfaced without blocking the request path.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub index_error: Option<String>,
-}
-
-/// Response for Studio AST definition search queries.
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AstSearchResponse {
-    /// Original query string.
-    pub query: String,
-    /// Matching AST hits.
-    pub hits: Vec<AstSearchHit>,
-    /// Total number of hits returned.
-    pub hit_count: usize,
-    /// Selected AST scope.
-    pub selected_scope: String,
-    /// Whether the response is partial because the AST index is still warming.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub partial: bool,
-    /// Current AST-index lifecycle state.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub indexing_state: Option<StudioContractState>,
-    /// Optional AST-index error surfaced without blocking the request path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub index_error: Option<String>,
 }

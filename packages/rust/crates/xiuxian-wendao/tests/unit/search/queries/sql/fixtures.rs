@@ -17,7 +17,7 @@ use crate::analyzers::{
     RepositoryAnalysisOutput, SymbolRecord,
 };
 use crate::repo_index::RepoCodeDocument;
-use crate::search::contracts::{AstSearchHit, ReferenceSearchHit, StudioNavigationTarget};
+use crate::search::contracts::{ReferenceSearchHit, SourceSymbolHit, StudioNavigationTarget};
 use crate::search::queries::sql::provider::metadata::StudioSqlFlightMetadata;
 use crate::search::{
     BeginBuildDecision, SearchCorpusKind, SearchMaintenancePolicy, SearchManifestKeyspace,
@@ -73,8 +73,12 @@ pub(super) fn sample_hit(name: &str, path: &str, line: usize) -> ReferenceSearch
     }
 }
 
-pub(super) fn sample_local_symbol_hit(name: &str, path: &str, line_start: usize) -> AstSearchHit {
-    AstSearchHit {
+pub(super) fn sample_local_symbol_hit(
+    name: &str,
+    path: &str,
+    line_start: usize,
+) -> SourceSymbolHit {
+    SourceSymbolHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
         path: path.to_string(),
@@ -145,7 +149,7 @@ pub(super) async fn publish_reference_hits(
 pub(super) async fn publish_local_symbol_hits(
     service: &SearchPlaneService,
     build_id: &str,
-    hits: &[AstSearchHit],
+    hits: &[SourceSymbolHit],
 ) {
     service
         .publish_local_symbol_hits(build_id, hits)

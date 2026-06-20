@@ -13,12 +13,12 @@ use crate::search::local_symbol::build::partitions::{
 use crate::search::project_fingerprint::scan_symbol_project_files;
 use crate::search::{
     MarkdownProjectSnapshot, ProjectScannedFile, SearchCorpusKind, SearchFileFingerprint,
-    SearchPlaneService, ast_hits_fingerprint,
+    SearchPlaneService, source_symbol_hits_fingerprint,
 };
 
 const LOCAL_SYMBOL_EXTRACTOR_VERSION: u32 = 2;
 
-type LocalSymbolFileHits = Vec<crate::search::contracts::AstSearchHit>;
+type LocalSymbolFileHits = Vec<crate::search::contracts::SourceSymbolHit>;
 
 struct LocalSymbolFileEvaluation {
     fingerprint: SearchFileFingerprint,
@@ -198,7 +198,7 @@ fn evaluate_local_symbol_file(
                 &fingerprint,
             ),
             fingerprint,
-            hits: Some(entry.clone_ast_hits()),
+            hits: Some(entry.clone_source_symbol_hits()),
         };
     }
 
@@ -206,7 +206,7 @@ fn evaluate_local_symbol_file(
     let fingerprint = file.to_semantic_file_fingerprint(
         LOCAL_SYMBOL_EXTRACTOR_VERSION,
         SearchCorpusKind::LocalSymbol.schema_version(),
-        ast_hits_fingerprint(&file_hits),
+        source_symbol_hits_fingerprint(&file_hits),
     );
     LocalSymbolFileEvaluation {
         changed: local_symbol_file_changed(

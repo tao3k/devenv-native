@@ -33,12 +33,7 @@ pub(crate) fn build_reference_occurrences_for_file(
     );
     let crate_name = infer_crate_name(normalized_path_ref);
     let snapshot = service.shared_source_snapshot_entry(project_root, file);
-    let definition_locations = snapshot
-        .ast_hits
-        .iter()
-        .cloned()
-        .map(|hit| (hit.name.to_ascii_lowercase(), hit.path, hit.line_start))
-        .collect::<HashSet<_>>();
+    let definition_locations = HashSet::<(String, String, usize)>::new();
 
     let mut hits = Vec::new();
     for (line_idx, line_text) in snapshot.content.lines().enumerate() {

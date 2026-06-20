@@ -149,7 +149,7 @@ fn hydrate_repository_record_backfills_checkout_metadata() {
 fn analyze_registered_repository_bundle_requires_repo_intelligence_plugins() {
     let repository = RegisteredRepository {
         id: "sample".to_string(),
-        plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("repo-content".to_string())],
         ..RegisteredRepository::default()
     };
     let registry = PluginRegistry::new();

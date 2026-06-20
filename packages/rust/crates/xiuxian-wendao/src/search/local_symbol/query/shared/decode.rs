@@ -2,14 +2,14 @@
 use std::collections::BTreeMap;
 
 use crate::duckdb::ParquetQueryEngine;
-use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::SourceSymbolHit;
 
 use super::types::{LocalSymbolCandidate, LocalSymbolSearchError};
 
 pub(crate) async fn decode_local_symbol_hits(
     engine: &ParquetQueryEngine,
     candidates: Vec<LocalSymbolCandidate>,
-) -> Result<Vec<AstSearchHit>, LocalSymbolSearchError> {
+) -> Result<Vec<SourceSymbolHit>, LocalSymbolSearchError> {
     let payloads = load_hit_payloads(engine, candidates.as_slice()).await?;
     candidates
         .into_iter()
@@ -23,7 +23,7 @@ pub(crate) async fn decode_local_symbol_hits(
                         candidate.table_name, candidate.id
                     ))
                 })?;
-            let mut hit: AstSearchHit = serde_json::from_str(hit_json.as_str())
+            let mut hit: SourceSymbolHit = serde_json::from_str(hit_json.as_str())
                 .map_err(|error| LocalSymbolSearchError::Decode(error.to_string()))?;
             hit.score = candidate.score;
             Ok(hit)

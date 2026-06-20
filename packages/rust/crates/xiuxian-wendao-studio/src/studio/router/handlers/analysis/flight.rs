@@ -9,8 +9,7 @@ use xiuxian_wendao_parsers::{
     semantic_scope_metadata_envelope, semantic_scope_metadata_envelope_to_vec,
 };
 use xiuxian_wendao_server::transport::{
-    AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
-    MarkdownAnalysisFlightRouteProvider, SemanticScopeFlightRequest,
+    AnalysisFlightRouteResponse, MarkdownAnalysisFlightRouteProvider, SemanticScopeFlightRequest,
     SemanticScopeFlightRouteProvider,
 };
 use xiuxian_wendao_sql::DuckDbLocalRelationEngine;
@@ -26,7 +25,7 @@ use crate::studio::router::GatewayState;
 use crate::studio::router::StudioApiError;
 use crate::studio::router::retrieval_arrow::build_retrieval_chunks_flight_batch;
 
-use super::{load_code_ast_analysis_response, load_markdown_analysis_response};
+use super::load_markdown_analysis_response;
 
 #[derive(Clone)]
 pub(crate) struct StudioMarkdownAnalysisFlightRouteProvider {
@@ -66,56 +65,6 @@ impl MarkdownAnalysisFlightRouteProvider for StudioMarkdownAnalysisFlightRoutePr
             "nodes": response.nodes,
             "edges": response.edges,
             "projections": response.projections,
-            "diagnostics": response.diagnostics,
-        }))
-        .map_err(|error| error.to_string())?;
-        Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(metadata))
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct StudioCodeAstAnalysisFlightRouteProvider {
-    state: Arc<GatewayState>,
-}
-
-impl StudioCodeAstAnalysisFlightRouteProvider {
-    #[must_use]
-    pub(crate) fn new(state: Arc<GatewayState>) -> Self {
-        Self { state }
-    }
-}
-
-impl std::fmt::Debug for StudioCodeAstAnalysisFlightRouteProvider {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("StudioCodeAstAnalysisFlightRouteProvider")
-            .finish_non_exhaustive()
-    }
-}
-
-#[async_trait]
-impl CodeAstAnalysisFlightRouteProvider for StudioCodeAstAnalysisFlightRouteProvider {
-    async fn code_ast_analysis_batch(
-        &self,
-        path: &str,
-        repo_key: &str,
-        line_hint: Option<usize>,
-    ) -> Result<AnalysisFlightRouteResponse, String> {
-        let response =
-            load_code_ast_analysis_response(self.state.as_ref(), path, repo_key, line_hint)
-                .await
-                .map_err(|error| map_studio_api_error(&error))?;
-        let batch = build_retrieval_chunks_flight_batch(response.retrieval_atoms.as_slice())?;
-        let metadata = serde_json::to_vec(&serde_json::json!({
-            "repoId": response.repo_id,
-            "path": response.path,
-            "language": response.language,
-            "nodeCount": response.nodes.len(),
-            "edgeCount": response.edges.len(),
-            "nodes": response.nodes,
-            "edges": response.edges,
-            "projections": response.projections,
-            "focusNodeId": response.focus_node_id,
             "diagnostics": response.diagnostics,
         }))
         .map_err(|error| error.to_string())?;

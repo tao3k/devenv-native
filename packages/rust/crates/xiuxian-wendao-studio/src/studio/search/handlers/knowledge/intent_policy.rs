@@ -1,9 +1,9 @@
 use axum::http::StatusCode;
 
 use crate::studio::StudioApiError;
-use crate::studio::types::{AstSearchHit, SearchHit};
+use crate::studio::types::{SearchHit, SourceSymbolHit};
 
-pub(super) fn local_symbol_hit_to_search_hit(hit: AstSearchHit, code_biased: bool) -> SearchHit {
+pub(super) fn local_symbol_hit_to_search_hit(hit: SourceSymbolHit, code_biased: bool) -> SearchHit {
     let mut tags = vec![
         hit.crate_name.clone(),
         "code".to_string(),

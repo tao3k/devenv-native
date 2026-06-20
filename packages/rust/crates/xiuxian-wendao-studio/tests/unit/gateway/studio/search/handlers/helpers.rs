@@ -7,7 +7,7 @@ use std::sync::Arc;
 #[cfg(feature = "duckdb")]
 use crate::contracts::{UiConfig, UiProjectConfig};
 #[cfg(feature = "duckdb")]
-use crate::studio::build_ast_index;
+use crate::studio::search::build_source_symbol_hits;
 #[cfg(feature = "duckdb")]
 use xiuxian_wendao::set_link_graph_wendao_config_override;
 
@@ -90,7 +90,7 @@ pub(crate) fn write_search_duckdb_runtime_override(
 #[cfg(feature = "duckdb")]
 pub(crate) async fn publish_local_symbol_index(studio: &crate::studio::StudioState) {
     let projects = studio.configured_projects();
-    let hits = build_ast_index(
+    let hits = build_source_symbol_hits(
         studio.project_root.as_path(),
         studio.config_root.as_path(),
         &projects,
@@ -108,7 +108,7 @@ pub(crate) async fn publish_local_symbol_index(studio: &crate::studio::StudioSta
         )
         .to_hex()
     );
-    let hits = crate::contracts::domain_ast_hits_for_search_plane(hits);
+    let hits = crate::contracts::domain_source_symbol_hits_for_search_plane(hits);
     studio
         .search_plane
         .publish_local_symbol_hits(fingerprint.as_str(), hits.as_slice())

@@ -1,4 +1,4 @@
-use crate::studio::types::{AstSearchHit, SearchHit};
+use crate::studio::types::{SearchHit, SourceSymbolHit};
 #[cfg(all(test, feature = "duckdb"))]
 use xiuxian_wendao::duckdb::ParquetQueryEngine;
 #[cfg(test)]
@@ -25,7 +25,7 @@ pub(crate) struct IntentIndexState {
 #[derive(Debug, Clone)]
 pub(crate) struct IntentSourceHits {
     pub(crate) knowledge_hits: Vec<SearchHit>,
-    pub(crate) local_symbol_hits: Vec<AstSearchHit>,
+    pub(crate) local_symbol_hits: Vec<SourceSymbolHit>,
     pub(crate) knowledge_indexing: bool,
     pub(crate) local_symbol_indexing: bool,
     #[cfg(test)]

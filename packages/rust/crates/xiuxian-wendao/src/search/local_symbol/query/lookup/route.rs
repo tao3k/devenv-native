@@ -1,4 +1,4 @@
-use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::SourceSymbolHit;
 use crate::search::local_symbol::query::shared::{
     LocalSymbolSearchError, compare_candidates, decode_local_symbol_hits,
     execute_local_symbol_search, prepare_local_symbol_read_tables, retained_window,
@@ -10,7 +10,7 @@ pub(crate) async fn search_local_symbols(
     service: &SearchPlaneService,
     query: &str,
     limit: usize,
-) -> Result<Vec<AstSearchHit>, LocalSymbolSearchError> {
+) -> Result<Vec<SourceSymbolHit>, LocalSymbolSearchError> {
     let query_lower = query.trim().to_ascii_lowercase();
     if query_lower.is_empty() {
         return Ok(Vec::new());

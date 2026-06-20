@@ -42,11 +42,7 @@ fn assert_artisan_catalog_contract(entry: &RealRepoPrecisionCatalogEntry) {
         "docs-polyglot-compute-orchestrator-rfc",
         "docs/rfcs/2026-05-04-polyglot-compute-orchestrator-rfc.md",
     );
-    assert!(entry.gold_queries.iter().any(|query| matches!(
-        query.kind,
-        RealRepoGoldQueryKind::RepoAst
-    ) && query.id
-        == "repo-link-graph-build-with-filters-source"));
+    assert!(entry.repository.plugins.is_empty());
     assert!(entry.knowledge_scenarios.len() >= 7);
     assert!(
         entry
@@ -76,11 +72,7 @@ fn assert_pi_wendao_catalog_contract(pi_wendao: &RealRepoPrecisionCatalogEntry) 
         "pi-wendao-named-workflows-brainstorm-cache",
         "docs/named-workflows.md",
     );
-    assert!(pi_wendao.gold_queries.iter().any(|query| matches!(
-        query.kind,
-        RealRepoGoldQueryKind::RepoAst
-    ) && query.id
-        == "pi-wendao-agent-host-interface-source"));
+    assert!(pi_wendao.repository.plugins.is_empty());
     assert!(
         pi_wendao
             .knowledge_scenarios

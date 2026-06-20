@@ -31,7 +31,6 @@ fn studio_frontend_type_collection_exports_frontend_runtime_types() {
     assert!(exported.contains("UiConfig"));
     assert!(exported.contains("SearchResponse"));
     assert!(exported.contains("MarkdownAnalysisResponse"));
-    assert!(exported.contains("CodeAstAnalysisResponse"));
     assert!(exported.contains("DocumentExtractResult"));
     assert!(exported.contains("DocumentExtractResource"));
     assert!(exported.contains("DocumentExtractJobSubmitRequest"));

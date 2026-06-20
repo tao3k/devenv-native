@@ -163,7 +163,7 @@ pub(crate) use repo_staging::{
 };
 #[cfg(feature = "search-runtime")]
 pub(crate) use semantic_fingerprint::{
-    ast_hits_fingerprint, attachment_hits_fingerprint, reference_hits_fingerprint,
+    attachment_hits_fingerprint, reference_hits_fingerprint, source_symbol_hits_fingerprint,
     stable_payload_fingerprint,
 };
 #[cfg(feature = "search-runtime")]

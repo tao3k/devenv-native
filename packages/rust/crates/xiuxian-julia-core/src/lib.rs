@@ -28,7 +28,6 @@ pub(crate) use plugin::test_support as julia_plugin_test_support;
 pub use modelica_plugin::{
     ModelicaRepoIntelligencePlugin, ModelicaSourceId,
     clear_modelica_parser_summary_transport_cache_for_tests,
-    fetch_modelica_ast_query_analysis_blocking_for_repository,
     modelica_package_incremental_semantic_fingerprint_for_repository,
     modelica_parser_summary_allows_safe_incremental_file_for_repository,
     modelica_parser_summary_allows_safe_package_incremental_file_for_repository,

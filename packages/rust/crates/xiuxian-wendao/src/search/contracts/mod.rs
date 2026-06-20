@@ -22,13 +22,13 @@ pub use attachments::AttachmentSearchHit;
 #[cfg(feature = "search-runtime")]
 pub(crate) use config::materialize_project_configs;
 pub use config::{ProjectConfigView, SearchProjectConfig};
-pub use definitions::{AstSearchHit, DefinitionSearchHit, ObservationHint, ReferenceSearchHit};
+pub use definitions::{DefinitionSearchHit, ObservationHint, ReferenceSearchHit, SourceSymbolHit};
 #[cfg(feature = "search-runtime")]
 pub(crate) use helpers::{
-    SearchProjectMetadata, ast_search_lang, build_code_ast_hits_from_content,
-    build_markdown_ast_hits_from_sections, compile_markdown_nodes, configured_project_scopes,
-    index_path_for_entry, infer_crate_name, is_markdown_path, markdown_scope_name,
-    project_metadata_for_path, resolve_project_root_path, score_reference_hit, should_skip_entry,
+    SearchProjectMetadata, build_markdown_source_symbol_hits_from_sections, compile_markdown_nodes,
+    configured_project_scopes, index_path_for_entry, infer_crate_name, is_markdown_path,
+    markdown_scope_name, project_metadata_for_path, resolve_project_root_path, score_reference_hit,
+    should_skip_entry,
 };
 pub use hits::{IntentSearchHit, KnowledgeSearchHit, SearchBacklinkItem, SearchHit};
 pub use navigation::StudioNavigationTarget;

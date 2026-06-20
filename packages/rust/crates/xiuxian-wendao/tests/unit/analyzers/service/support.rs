@@ -341,14 +341,14 @@ pub(super) fn mixed_modelica_rust_plugin_configs() -> Vec<RepositoryPluginConfig
 pub(super) fn mixed_rust_unknown_plugin_configs() -> Vec<RepositoryPluginConfig> {
     vec![
         RepositoryPluginConfig::Id("rust".to_string()),
-        RepositoryPluginConfig::Id("ast-grep".to_string()),
+        RepositoryPluginConfig::Id("repo-content".to_string()),
     ]
 }
 
 pub(super) fn mixed_modelica_unknown_plugin_configs() -> Vec<RepositoryPluginConfig> {
     vec![
         RepositoryPluginConfig::Id("modelica".to_string()),
-        RepositoryPluginConfig::Id("ast-grep".to_string()),
+        RepositoryPluginConfig::Id("repo-content".to_string()),
     ]
 }
 

@@ -25,7 +25,7 @@ fn sync_repositories_enqueues_search_only_repositories_for_repo_backed_search() 
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("repo-content".to_string())],
     };
 
     let enqueued = coordinator.sync_repositories(vec![repository]);
@@ -42,16 +42,16 @@ fn sync_repositories_enqueues_search_only_repositories_for_repo_backed_search() 
 fn sync_repositories_reenqueues_repositories_when_configured_plugin_set_changes() {
     let coordinator = new_coordinator(SearchPlaneService::new(PathBuf::from(".")));
     let repository = repo("sciml", "./sciml");
-    let repository_with_ast_grep = RegisteredRepository {
+    let repository_with_repo_content = RegisteredRepository {
         plugins: vec![
             RepositoryPluginConfig::Id("julia-code-parser".to_string()),
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
         ],
         ..repository.clone()
     };
 
     let first = coordinator.sync_repositories(vec![repository]);
-    let second = coordinator.sync_repositories(vec![repository_with_ast_grep]);
+    let second = coordinator.sync_repositories(vec![repository_with_repo_content]);
 
     assert_eq!(first, vec!["sciml".to_string()]);
     assert_eq!(second, vec!["sciml".to_string()]);
@@ -67,7 +67,7 @@ fn sync_repositories_does_not_reenqueue_repositories_when_configured_plugin_orde
     let repository = RegisteredRepository {
         plugins: vec![
             RepositoryPluginConfig::Id("julia-code-parser".to_string()),
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
             RepositoryPluginConfig::Config {
                 id: "modelica".to_string(),
                 options: serde_json::json!({
@@ -86,8 +86,8 @@ fn sync_repositories_does_not_reenqueue_repositories_when_configured_plugin_orde
                 }),
             },
             RepositoryPluginConfig::Id("julia-code-parser".to_string()),
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
-            RepositoryPluginConfig::Id("ast-grep".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
+            RepositoryPluginConfig::Id("repo-content".to_string()),
         ],
         ..repository.clone()
     };

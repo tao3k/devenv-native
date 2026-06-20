@@ -1,7 +1,5 @@
 //! Search backend integration for Studio API.
 
-#[path = "ast/mod.rs"]
-mod ast;
 #[path = "attachments/mod.rs"]
 mod attachments;
 #[path = "autocomplete/mod.rs"]
@@ -29,8 +27,6 @@ mod symbols;
 mod test_prelude;
 
 #[cfg(test)]
-pub use ast::search_ast;
-#[cfg(test)]
 pub(crate) use attachments::load_attachment_search_response_from_studio;
 #[cfg(test)]
 pub(crate) use autocomplete::build_autocomplete_response;
@@ -46,7 +42,6 @@ pub use flight::{
     build_repo_search_flight_service, build_repo_search_flight_service_with_weights,
     build_studio_flight_service, build_studio_flight_service_for_roots,
 };
-pub use index::build_ast_index;
 pub use index::build_symbol_index;
 #[cfg(test)]
 pub(crate) use knowledge::build_knowledge_search_response;

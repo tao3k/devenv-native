@@ -16,7 +16,7 @@ async fn run_repository_analysis_returns_empty_analysis_for_search_only_reposito
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("repo-content".to_string())],
     };
 
     let analysis = coordinator
@@ -65,7 +65,7 @@ async fn search_only_repository_task_publishes_repo_backed_corpora_for_supported
         url: None,
         git_ref: None,
         refresh: RepositoryRefreshPolicy::Fetch,
-        plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        plugins: vec![RepositoryPluginConfig::Id("repo-content".to_string())],
     };
 
     let enqueued = coordinator.sync_repositories(vec![repository]);

@@ -44,11 +44,11 @@ pub struct AttachmentSearchHit {
     pub vision_snippet: Option<String>,
 }
 
-/// A single hit in an AST definition search.
+/// A local source-symbol search hit used by definition and intent recovery.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct AstSearchHit {
-    /// Captured definition name.
+pub struct SourceSymbolHit {
+    /// Captured symbol or heading name.
     pub name: String,
     /// Signature line or skeleton snippet.
     pub signature: String,
@@ -64,7 +64,7 @@ pub struct AstSearchHit {
     /// Configured root label when the source path maps to a project root path.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root_label: Option<String>,
-    /// Optional AST node kind for richer Markdown search presentation.
+    /// Optional source node kind for richer Markdown search presentation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub node_kind: Option<StudioContractNodeKind>,
     /// Optional owning Markdown section title/path for property-box derived hits.

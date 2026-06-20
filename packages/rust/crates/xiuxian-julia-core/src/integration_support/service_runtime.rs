@@ -230,9 +230,7 @@ pub(crate) struct WendaoSearchParserSummaryServiceContract {
 pub(crate) struct WendaoSearchModelicaTransportContract {
     pub(crate) schema_version: String,
     pub(crate) file_summary_route_name: String,
-    pub(crate) ast_query_route_name: String,
     pub(crate) file_summary_path: String,
-    pub(crate) ast_query_path: String,
     pub(crate) readiness_route_names: Vec<String>,
 }
 
@@ -320,20 +318,14 @@ pub(crate) fn wendaosearch_parser_summary_contract() -> WendaoSearchParserSummar
 pub(crate) fn expected_wendaosearch_modelica_transport_contract()
 -> WendaoSearchModelicaTransportContract {
     use crate::modelica_plugin::{
-        MODELICA_AST_QUERY_ROUTE, MODELICA_FILE_SUMMARY_ROUTE,
-        MODELICA_PARSER_SUMMARY_SCHEMA_VERSION,
+        MODELICA_FILE_SUMMARY_ROUTE, MODELICA_PARSER_SUMMARY_SCHEMA_VERSION,
     };
 
     WendaoSearchModelicaTransportContract {
         schema_version: MODELICA_PARSER_SUMMARY_SCHEMA_VERSION.to_string(),
         file_summary_route_name: "modelica_file_summary".to_string(),
-        ast_query_route_name: "modelica_ast_query".to_string(),
         file_summary_path: MODELICA_FILE_SUMMARY_ROUTE.to_string(),
-        ast_query_path: MODELICA_AST_QUERY_ROUTE.to_string(),
-        readiness_route_names: vec![
-            "modelica_file_summary".to_string(),
-            "modelica_ast_query".to_string(),
-        ],
+        readiness_route_names: vec!["modelica_file_summary".to_string()],
     }
 }
 

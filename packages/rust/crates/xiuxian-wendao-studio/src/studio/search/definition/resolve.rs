@@ -6,7 +6,7 @@ use super::filters::{
     build_scope_matcher, definition_match_score, normalize_match_path, normalize_path,
 };
 use crate::studio::search::project_metadata_for_path;
-use crate::studio::types::{AstSearchHit, DefinitionSearchHit, UiProjectConfig};
+use crate::studio::types::{DefinitionSearchHit, SourceSymbolHit, UiProjectConfig};
 use xiuxian_wendao::search::{FuzzyMatcher, FuzzySearchOptions, LexicalMatcher};
 
 /// Match mode for definition resolution.
@@ -49,10 +49,10 @@ impl Default for DefinitionResolveOptions {
     }
 }
 
-/// Resolves the best definition hit from a list of AST hits.
+/// Resolves the best definition hit from a list of local source-symbol hits.
 pub(crate) fn resolve_best_definition(
     query_str: &str,
-    ast_hits: &[AstSearchHit],
+    source_symbol_hits: &[SourceSymbolHit],
     project_root: &Path,
     config_root: &Path,
     projects: &[UiProjectConfig],
@@ -60,7 +60,7 @@ pub(crate) fn resolve_best_definition(
 ) -> Option<DefinitionSearchHit> {
     resolve_definition_candidates(
         query_str,
-        ast_hits,
+        source_symbol_hits,
         project_root,
         config_root,
         projects,
@@ -73,7 +73,7 @@ pub(crate) fn resolve_best_definition(
 #[allow(clippy::too_many_lines)]
 pub(crate) fn resolve_definition_candidates(
     query_str: &str,
-    ast_hits: &[AstSearchHit],
+    source_symbol_hits: &[SourceSymbolHit],
     project_root: &Path,
     config_root: &Path,
     projects: &[UiProjectConfig],
@@ -95,7 +95,7 @@ pub(crate) fn resolve_definition_candidates(
         .and_then(Path::parent)
         .map(normalize_path);
 
-    let filtered_hits = ast_hits
+    let filtered_hits = source_symbol_hits
         .iter()
         .filter(|hit| {
             if let Some(langs) = &options.languages
@@ -160,13 +160,13 @@ pub(crate) fn resolve_definition_candidates(
     }
 
     if candidates.is_empty() && matches!(options.match_mode, DefinitionMatchMode::ExactThenFuzzy) {
-        fn ast_hit_name(hit: &AstSearchHit) -> &str {
+        fn source_symbol_hit_name(hit: &SourceSymbolHit) -> &str {
             hit.name.as_str()
         }
 
         let matcher = LexicalMatcher::new(
             filtered_hits.as_slice(),
-            ast_hit_name,
+            source_symbol_hit_name,
             options.fuzzy_options,
         );
         let fuzzy_matches = matcher
@@ -206,13 +206,13 @@ pub(crate) fn resolve_definition_candidates(
     candidates
         .into_iter()
         .map(|(hit, score)| {
-            definition_hit_from_ast(hit, score, project_root, config_root, projects)
+            definition_hit_from_source_symbol(hit, score, project_root, config_root, projects)
         })
         .collect()
 }
 
-fn definition_hit_from_ast(
-    hit: AstSearchHit,
+fn definition_hit_from_source_symbol(
+    hit: SourceSymbolHit,
     score: f64,
     project_root: &Path,
     config_root: &Path,

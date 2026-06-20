@@ -7,7 +7,7 @@ use xiuxian_wendao_parsers::sections::MarkdownSection;
 use crate::parsers::markdown::extract_observations;
 
 use super::{
-    AnalysisNode, AnalysisNodeKind, AstSearchHit, SearchProjectConfig, StudioNavigationTarget,
+    AnalysisNode, AnalysisNodeKind, SearchProjectConfig, SourceSymbolHit, StudioNavigationTarget,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -171,30 +171,6 @@ pub(crate) fn project_metadata_for_path(
         .unwrap_or_default()
 }
 
-pub(crate) fn build_code_ast_hits_from_content(
-    normalized_path: &str,
-    content: &str,
-) -> Vec<AstSearchHit> {
-    let _ = (normalized_path, content);
-    Vec::new()
-}
-
-pub(crate) fn ast_search_lang(path: &Path) -> Option<&'static str> {
-    match path.extension().and_then(std::ffi::OsStr::to_str) {
-        Some(ext) if ext.eq_ignore_ascii_case("rs") => Some("rust"),
-        Some(ext) if ext.eq_ignore_ascii_case("py") => Some("python"),
-        Some(ext) if ext.eq_ignore_ascii_case("ts") || ext.eq_ignore_ascii_case("tsx") => {
-            Some("typescript")
-        }
-        Some(ext) if ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("jsx") => {
-            Some("javascript")
-        }
-        Some(ext) if ext.eq_ignore_ascii_case("jl") => Some("julia"),
-        Some(ext) if ext.eq_ignore_ascii_case("mo") => Some("modelica"),
-        _ => None,
-    }
-}
-
 pub(crate) fn markdown_scope_name(path: &Path) -> String {
     path.components()
         .find_map(|component| match component {
@@ -224,12 +200,12 @@ pub(crate) fn compile_markdown_nodes(_path: &str, content: &str) -> Vec<Analysis
         .collect()
 }
 
-pub(crate) fn build_markdown_ast_hits_from_sections(
+pub(crate) fn build_markdown_source_symbol_hits_from_sections(
     path: &str,
     crate_name: &str,
     nodes: &[AnalysisNode],
     sections: &[MarkdownSection],
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let mut hits = build_markdown_node_hits(path, crate_name, nodes);
     for section in sections {
         hits.extend(build_markdown_property_hits_from_toc_section(
@@ -296,12 +272,12 @@ fn build_markdown_node_hits(
     path: &str,
     crate_name: &str,
     nodes: &[AnalysisNode],
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     nodes
         .iter()
         .filter_map(|node| {
             let signature = markdown_signature(node.kind, node.depth, node.label.as_str())?;
-            Some(AstSearchHit {
+            Some(SourceSymbolHit {
                 name: node.label.clone(),
                 signature,
                 path: path.to_string(),
@@ -311,7 +287,7 @@ fn build_markdown_node_hits(
                 root_label: None,
                 node_kind: markdown_node_kind(node.kind).map(ToOwned::to_owned),
                 owner_title: None,
-                navigation_target: ast_navigation_target(
+                navigation_target: source_symbol_navigation_target(
                     path,
                     crate_name,
                     None,
@@ -347,13 +323,13 @@ fn build_markdown_property_hits_from_toc_section(
     path: &str,
     crate_name: &str,
     section: &MarkdownSection,
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let owner_title = markdown_owner_title_from_toc_section(section);
     section
         .attributes()
         .iter()
         .filter(|(key, _)| !is_observation_attribute(key.as_str()))
-        .map(|(key, value)| AstSearchHit {
+        .map(|(key, value)| SourceSymbolHit {
             name: key.clone(),
             signature: format!(":{key}: {value}"),
             path: path.to_string(),
@@ -363,7 +339,7 @@ fn build_markdown_property_hits_from_toc_section(
             root_label: None,
             node_kind: Some("property".to_string()),
             owner_title: owner_title.clone(),
-            navigation_target: ast_navigation_target(
+            navigation_target: source_symbol_navigation_target(
                 path,
                 crate_name,
                 None,
@@ -382,11 +358,11 @@ fn build_markdown_observation_hits_from_toc_section(
     path: &str,
     crate_name: &str,
     section: &MarkdownSection,
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let owner_title = markdown_owner_title_from_toc_section(section);
     extract_observations(section.attributes())
         .into_iter()
-        .map(|observation| AstSearchHit {
+        .map(|observation| SourceSymbolHit {
             name: "OBSERVE".to_string(),
             signature: format!(":OBSERVE: {}", observation.raw_value),
             path: path.to_string(),
@@ -396,7 +372,7 @@ fn build_markdown_observation_hits_from_toc_section(
             root_label: None,
             node_kind: Some("observation".to_string()),
             owner_title: owner_title.clone(),
-            navigation_target: ast_navigation_target(
+            navigation_target: source_symbol_navigation_target(
                 path,
                 crate_name,
                 None,
@@ -425,7 +401,7 @@ fn is_observation_attribute(key: &str) -> bool {
     key == "OBSERVE" || key.starts_with("OBSERVE_")
 }
 
-fn ast_navigation_target(
+fn source_symbol_navigation_target(
     path: &str,
     crate_name: &str,
     project_name: Option<&str>,

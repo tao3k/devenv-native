@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::SourceSymbolHit;
 use crate::search::contracts::is_markdown_path;
 use crate::search::local_symbol::build::LocalSymbolPartitionBuildPlan;
 use crate::search::{MarkdownProjectSnapshot, ProjectScannedFile, SearchPlaneService};
 
 pub(crate) fn build_partition_plans_from_file_hits(
     files: &[ProjectScannedFile],
-    file_hits_by_path: &BTreeMap<String, Vec<AstSearchHit>>,
+    file_hits_by_path: &BTreeMap<String, Vec<SourceSymbolHit>>,
 ) -> BTreeMap<String, LocalSymbolPartitionBuildPlan> {
     let mut partitions = BTreeMap::<String, LocalSymbolPartitionBuildPlan>::new();
     for file in files {
@@ -29,16 +29,14 @@ pub(crate) fn build_hits_for_file(
     project_root: &Path,
     file: &ProjectScannedFile,
     markdown_snapshot: &MarkdownProjectSnapshot,
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let mut file_hits = if is_markdown_path(file.absolute_path.as_path()) {
         markdown_snapshot
             .entry(file.normalized_path.as_str())
-            .map_or_else(Vec::new, |entry| entry.clone_ast_hits())
+            .map_or_else(Vec::new, |entry| entry.clone_source_symbol_hits())
     } else {
-        service
-            .shared_source_snapshot_entry(project_root, file)
-            .ast_hits
-            .clone()
+        let _ = (service, project_root);
+        Vec::new()
     };
     for hit in &mut file_hits {
         if file.project_name.is_some() {

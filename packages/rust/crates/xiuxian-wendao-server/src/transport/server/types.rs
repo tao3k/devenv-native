@@ -64,16 +64,12 @@ pub struct WendaoFlightRouteProviders {
     pub search: Option<Arc<dyn SearchFlightRouteProvider>>,
     /// Optional attachment-search provider.
     pub attachment_search: Option<Arc<dyn AttachmentSearchFlightRouteProvider>>,
-    /// Optional AST-search provider.
-    pub ast_search: Option<Arc<dyn AstSearchFlightRouteProvider>>,
     /// Optional definition provider.
     pub definition: Option<Arc<dyn DefinitionFlightRouteProvider>>,
     /// Optional autocomplete provider.
     pub autocomplete: Option<Arc<dyn AutocompleteFlightRouteProvider>>,
     /// Optional markdown-analysis provider.
     pub markdown_analysis: Option<Arc<dyn MarkdownAnalysisFlightRouteProvider>>,
-    /// Optional code-AST-analysis provider.
-    pub code_ast_analysis: Option<Arc<dyn CodeAstAnalysisFlightRouteProvider>>,
     /// Optional semantic-scope analysis provider.
     pub semantic_scope: Option<Arc<dyn SemanticScopeFlightRouteProvider>>,
     /// Optional repo-overview analysis provider.
@@ -124,11 +120,9 @@ impl WendaoFlightRouteProviders {
             repo_search: repo_search_provider,
             search: None,
             attachment_search: None,
-            ast_search: None,
             definition: None,
             autocomplete: None,
             markdown_analysis: None,
-            code_ast_analysis: None,
             semantic_scope: None,
             repo_overview: None,
             repo_index: None,
@@ -701,22 +695,6 @@ pub trait AttachmentSearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
     }
 }
 
-/// Transport-owned provider contract for stable AST-search Flight reads.
-#[async_trait]
-pub trait AstSearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
-    /// Resolve one stable AST-search response batch.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the requested AST-search payload cannot be
-    /// materialized for the current transport host.
-    async fn ast_search_batch(
-        &self,
-        query_text: &str,
-        limit: usize,
-    ) -> Result<SearchFlightRouteResponse, String>;
-}
-
 /// Transport-owned provider contract for stable markdown analysis Flight reads.
 #[async_trait]
 pub trait MarkdownAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
@@ -807,23 +785,6 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
             "document extract status route is not configured for job `{job_id}`"
         ))
     }
-}
-
-/// Transport-owned provider contract for stable code-AST analysis Flight reads.
-#[async_trait]
-pub trait CodeAstAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
-    /// Resolve one stable code-AST analysis response batch.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the requested code-AST analysis payload cannot be
-    /// materialized for the current transport host.
-    async fn code_ast_analysis_batch(
-        &self,
-        path: &str,
-        repo_id: &str,
-        line_hint: Option<usize>,
-    ) -> Result<AnalysisFlightRouteResponse, String>;
 }
 
 /// Transport-owned provider contract for stable repo doc-coverage Flight reads.

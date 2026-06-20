@@ -137,7 +137,7 @@ fn repository_search_query_cache_key_is_stable_for_normalized_plugin_identity() 
             git_ref: None,
             refresh: RepositoryRefreshPolicy::Fetch,
             plugins: vec![
-                RepositoryPluginConfig::Id("ast-grep".to_string()),
+                RepositoryPluginConfig::Id("repo-content".to_string()),
                 RepositoryPluginConfig::Id("julia-code-parser".to_string()),
                 RepositoryPluginConfig::Config {
                     id: "modelica".to_string(),
@@ -164,9 +164,9 @@ fn repository_search_query_cache_key_is_stable_for_normalized_plugin_identity() 
                         "mode": "doc-surface"
                     }),
                 },
-                RepositoryPluginConfig::Id("ast-grep".to_string()),
+                RepositoryPluginConfig::Id("repo-content".to_string()),
                 RepositoryPluginConfig::Id("julia-code-parser".to_string()),
-                RepositoryPluginConfig::Id("ast-grep".to_string()),
+                RepositoryPluginConfig::Id("repo-content".to_string()),
             ],
         },
         &source,

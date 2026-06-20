@@ -86,12 +86,6 @@ pub(crate) async fn build_code_search_response_with_budget(
     )
     .await
     .map_err(|error| match error {
-        RepoCodeSearchExecutionError::MissingRepositoryScopeForAstGrep => {
-            StudioApiError::bad_request(
-                "MISSING_REPOSITORY",
-                "ast-grep code search requires repo:<id> or an explicit repository hint",
-            )
-        }
         RepoCodeSearchExecutionError::Search(message) => StudioApiError::internal(
             "REPO_CODE_SEARCH_FAILED",
             "Failed to execute shared repo code search",

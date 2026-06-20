@@ -138,7 +138,7 @@ impl RepositoryPluginConfig {
     /// Returns whether this plugin is search-only and should not enter repo intelligence.
     #[must_use]
     pub fn is_search_only_plugin(&self) -> bool {
-        matches!(self.id(), "ast-grep")
+        matches!(self.id(), "repo-content")
     }
 }
 

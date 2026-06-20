@@ -18,8 +18,8 @@ pub(crate) use definition::resolve_best_definition;
 pub(crate) use definition::resolve_definition_candidates;
 pub use handlers::{build_symbol_index, search_index_status};
 pub(crate) use project_scope::project_metadata_for_path;
-pub(crate) use source_index::build_symbol_index_from_ast_hits;
-
-pub use handlers::build_ast_index;
+#[cfg(test)]
+pub(crate) use source_index::build_source_symbol_hits;
+pub(crate) use source_index::build_symbol_index_from_source_symbol_hits;
 #[cfg(test)]
 pub(crate) use support::strip_option;

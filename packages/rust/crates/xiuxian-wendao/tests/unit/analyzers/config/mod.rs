@@ -20,7 +20,7 @@ fn load_repo_intelligence_config_parses_inline_plugin_config() -> TestResult {
 root = "repos/sample"
 refresh = "manual"
 plugins = [
-  "ast-grep",
+  "repo-content",
   { id = "julia-code-parser", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", timeout_secs = 15 } }
 ]
 "#,
@@ -181,11 +181,11 @@ fn load_repo_intelligence_config_filters_search_only_plugins_and_adds_markdown_p
         &config_path,
         r#"[link_graph.projects.mixed]
 root = "repos/mixed"
-plugins = ["ast-grep", "julia-code-parser"]
+plugins = ["repo-content", "julia-code-parser"]
 
 [link_graph.projects.search-only]
 root = "repos/search-only"
-plugins = ["ast-grep"]
+plugins = ["repo-content"]
 "#,
     )?;
 

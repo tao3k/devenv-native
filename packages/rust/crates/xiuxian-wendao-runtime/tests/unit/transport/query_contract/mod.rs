@@ -16,7 +16,7 @@ use std::fmt::Display;
 #[cfg(feature = "transport")]
 use super::validate_sql_query_request;
 use super::{
-    ANALYSIS_AUDIO_SHARDS_ROUTE, ANALYSIS_CODE_AST_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
+    ANALYSIS_AUDIO_SHARDS_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_PDF_OCR_SHARDS_ROUTE,
     ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
     ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE, ANALYSIS_REPO_SYNC_ROUTE,
@@ -26,7 +26,7 @@ use super::{
     REPO_PROJECTED_RETRIEVAL_CONTEXT_DEFAULT_RELATED_LIMIT, REPO_SEARCH_DEFAULT_LIMIT,
     REPO_SEARCH_DOC_ID_COLUMN, REPO_SEARCH_LANGUAGE_COLUMN, REPO_SEARCH_PATH_COLUMN,
     REPO_SEARCH_ROUTE, REPO_SEARCH_SCORE_COLUMN, REPO_SEARCH_TITLE_COLUMN, RERANK_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
+    SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
     SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE,
     VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER,
     WENDAO_ANALYSIS_REPO_HEADER, WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
@@ -61,10 +61,10 @@ use super::{
     decode_document_extract_source_path_utf8_hex, encode_dataset_ontology_manifest_header,
     encode_document_extract_source_path_utf8_hex, flight_descriptor_path, normalize_flight_route,
     validate_attachment_search_request, validate_autocomplete_request,
-    validate_code_ast_analysis_request, validate_dataset_ontology_flight_manifest,
-    validate_definition_request, validate_document_extract_request,
-    validate_graph_neighbors_request, validate_markdown_analysis_request,
-    validate_repo_search_request, validate_vfs_content_request, validate_vfs_resolve_request,
+    validate_dataset_ontology_flight_manifest, validate_definition_request,
+    validate_document_extract_request, validate_graph_neighbors_request,
+    validate_markdown_analysis_request, validate_repo_search_request, validate_vfs_content_request,
+    validate_vfs_resolve_request,
 };
 
 #[cfg(feature = "transport")]

@@ -15,10 +15,9 @@ pub use ontology::{
 };
 pub use sample_host::run_wendao_flight_server_from_args;
 pub use types::{
-    AnalysisFlightRouteResponse, AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
+    AnalysisFlightRouteResponse, AttachmentSearchFlightRouteProvider,
     AttachmentSearchFlightRouteRequest, AutocompleteFlightRouteProvider,
-    AutocompleteFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
-    DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
+    AutocompleteFlightRouteResponse, DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
     DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
     GraphNeighborsFlightRouteProvider, GraphNeighborsFlightRouteResponse,
     MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
@@ -37,7 +36,6 @@ pub use types::{
 pub(crate) use request_metadata::{
     descriptor_route, is_search_family_route, join_sorted_set, ticket_route,
     validate_attachment_search_request_metadata, validate_autocomplete_request_metadata,
-    validate_code_ast_analysis_request_metadata,
     validate_dataset_ontology_materialize_request_metadata, validate_definition_request_metadata,
     validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
     validate_graph_neighbors_request_metadata, validate_markdown_analysis_request_metadata,
