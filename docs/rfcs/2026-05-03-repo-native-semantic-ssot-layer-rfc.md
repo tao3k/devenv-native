@@ -179,7 +179,7 @@ derived lanes; they do not change repo-native authority.
 ### 2.1 Stable References
 
 1. [Documentation Design](../DOCUMENTATION_DESIGN.md)
-2. [Xiuxian-Zhixing Theoretical Foundations](../99_llm/xiuxian_zhixing_theory.md)
+2. [Zhixing Theory Archive](../99_llm/zhixing-theory.md)
 3. [RFC: Wendao Memory Layer Boundaries](2026-04-05-wendao-memory-layer-boundaries-rfc.md)
 4. [RFC: DuckDB as a Bounded In-Process Analytic Lane for Wendao and Qianji](2026-04-08-wendao-qianji-duckdb-bounded-analytics-rfc.md)
 5. [Wendao SPEC](../01_core/wendao/SPEC.md)

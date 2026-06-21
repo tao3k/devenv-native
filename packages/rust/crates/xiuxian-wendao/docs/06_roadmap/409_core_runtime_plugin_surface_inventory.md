@@ -1053,7 +1053,7 @@ cutover baseline.
 Current dependency reality:
 
 1. live monolith-era `xiuxian-wendao` direct dependencies still exist in
-   `xiuxian-qianji`, `xiuxian-zhixing`, and `xiuxian-daochang`
+   `xiuxian-qianji`, `retired Zhixing crate`, and `xiuxian-daochang`
 2. the retired prompt/persona package no longer participates in this inventory
 3. `xiuxian-wendao-modelica` already uses `xiuxian-wendao-core` for
    production code, but still retains a monolith dev-dependency for
@@ -1071,7 +1071,7 @@ Current source-level concentration:
    consumer surface
 3. `xiuxian-daochang` still depends on monolith exports for
    `LinkGraphIndex` and related host helpers
-4. `xiuxian-zhixing` still depends on monolith exports for repo-intelligence
+4. `retired Zhixing crate` still depends on monolith exports for repo-intelligence
    and graph-facing types such as `LinkGraphIndex`, `LinkGraphHit`,
    `KnowledgeGraph`, `Entity`, and related repo-intelligence owners
 
@@ -1112,20 +1112,20 @@ canonical_web_uri}`
    blocked only by deeper pre-existing compile failures outside the touched
    ingress files
 10. the next bounded incremental-sync policy slice is now also landed across
-    `xiuxian-daochang`, `xiuxian-zhixing`, and Wendao's own unit-test
+    `xiuxian-daochang`, `retired Zhixing crate`, and Wendao's own unit-test
     consumer surface
 11. those touched consumers now use the owner seam
     `xiuxian_wendao::sync::IncrementalSyncPolicy`
 12. root-qualified imports for `IncrementalSyncPolicy` are now cleared across
     the workspace `packages/**` Rust source and test scope
 13. bounded verification is clean on that seam:
-    `xiuxian-zhixing --lib` and
+    `retired Zhixing crate --lib` and
     `xiuxian-wendao --test wendao-validation-gate --no-run` pass, while
     `xiuxian-daochang --lib` and
-    `xiuxian-zhixing --test test_wendao_indexer --no-run` remain blocked
+    `retired Zhixing crate --test test_wendao_indexer --no-run` remain blocked
     only by deeper pre-existing drift outside this family
 14. the next bounded Zhixing indexer family slice is now also landed across
-    `xiuxian-zhixing` source and test consumers
+    `retired Zhixing crate` source and test consumers
 15. those touched consumers now use the owner seam
     `xiuxian_wendao::skill_runtime::zhixing::{ZhixingIndexSummary,
 ZhixingWendaoIndexer}`
@@ -1136,10 +1136,10 @@ ZhixingWendaoIndexer}`
     `ZhixingWendaoIndexer` are now cleared across the workspace `packages/**`
     Rust source and test scope
 18. bounded verification is clean on that seam:
-    `xiuxian-zhixing --lib`,
-    `xiuxian-zhixing --test test_wendao_indexer --no-run`, and
+    `retired Zhixing crate --lib`,
+    `retired Zhixing crate --test test_wendao_indexer --no-run`, and
     `xiuxian-wendao --test wendao-validation-gate --no-run` pass, while
-    `xiuxian-zhixing --tests --no-run` and `xiuxian-daochang --lib`
+    `retired Zhixing crate --tests --no-run` and `xiuxian-daochang --lib`
     remain blocked only by deeper pre-existing drift outside this family
 19. the next bounded contract-feedback / knowledge-entry slice is now also
     landed across `xiuxian-qianji` source and test consumers
@@ -1158,29 +1158,29 @@ ZhixingWendaoIndexer}`
     `xiuxian-qianji --tests --no-run`, and
     `xiuxian-wendao --test wendao-validation-gate --no-run` pass
 24. the next bounded graph-primitive slice is now also landed across the
-    touched `xiuxian-qianji` and `xiuxian-zhixing` source/test consumers
+    touched `xiuxian-qianji` and `retired Zhixing crate` source/test consumers
 25. those touched consumers now use the owner seams:
     `xiuxian_wendao::entity::{Entity, EntityType, Relation, RelationType}`
     and `xiuxian_wendao::graph::KnowledgeGraph`
-26. the touched `xiuxian-zhixing/tests/test_strict_teacher.rs` seam also now
+26. the touched `retired Zhixing crate/tests/test_strict_teacher.rs` seam also now
     matches the current live APIs by using a local `ManifestationInterface`
     stub and the current `ZhixingHeyi::add_task(title, scheduled_at)`
     signature
 27. root-qualified imports for `Entity`, `EntityType`, `Relation`,
     `RelationType`, and root-braced `KnowledgeGraph` are now cleared across
-    the touched `xiuxian-qianji` / `xiuxian-zhixing` scope, while explicit
+    the touched `xiuxian-qianji` / `retired Zhixing crate` scope, while explicit
     `xiuxian_wendao::graph::KnowledgeGraph` owner imports remain by design
 28. bounded verification is clean on that seam:
     `xiuxian-qianji --lib`,
-    `xiuxian-zhixing --lib`,
-    `xiuxian-zhixing --test test_strict_teacher --no-run`, and
-    `xiuxian-zhixing --test test_wendao_indexer --no-run` pass
-29. the residual `xiuxian-zhixing/tests/test_heyi.rs` tail is now also
+    `retired Zhixing crate --lib`,
+    `retired Zhixing crate --test test_strict_teacher --no-run`, and
+    `retired Zhixing crate --test test_wendao_indexer --no-run` pass
+29. the residual `retired Zhixing crate/tests/test_heyi.rs` tail is now also
     compile-aligned to the same owner seams and to the current live
     `ZhixingHeyi` API signatures
 30. bounded compile verification on that residual tail is clean:
-    `xiuxian-zhixing --test test_heyi --no-run` passes
-31. an attempted full `xiuxian-zhixing --test test_heyi` run still fails on
+    `retired Zhixing crate --test test_heyi --no-run` passes
+31. an attempted full `retired Zhixing crate --test test_heyi` run still fails on
     deeper pre-existing reminder/agenda/task behavior drift in that Zhixing
     test surface, not on the owner-path cutover itself
 32. the next bounded markdown-config slice is now also landed on the
@@ -1245,17 +1245,17 @@ extract_markdown_config_blocks}`
 49. the natural next Stage-B follow-up is still another small bounded
     consumer family that stays off a broad `LinkGraphIndex` cut
 50. the next bounded `Stage B` slice is now also landed on the
-    `LinkGraphHit / LinkGraphSearchOptions` family in `xiuxian-zhixing`
+    `LinkGraphHit / LinkGraphSearchOptions` family in `retired Zhixing crate`
 51. the touched consumer now uses the owner seam instead of crate-root
     imports:
     - `xiuxian_wendao::link_graph::{LinkGraphHit, LinkGraphSearchOptions}`
 52. the touched file is:
-    - `xiuxian-zhixing/src/heyi/agenda_render.rs`
+    - `retired Zhixing crate/src/heyi/agenda_render.rs`
 53. bounded verification for this family is clean on the library seam:
-    - `xiuxian-zhixing --lib` passes
+    - `retired Zhixing crate --lib` passes
     - sibling-consumer grep for crate-root `LinkGraphHit` /
       `LinkGraphSearchOptions` imports is clean
-54. an attempted `xiuxian-zhixing --tests --no-run` still fails, but the
+54. an attempted `retired Zhixing crate --tests --no-run` still fails, but the
     compile front is in pre-existing `tests/test_storage_markdown.rs`
     crate-path drift outside this owner-path cutover
 55. the natural next Stage-B follow-up is still another small bounded
@@ -1280,16 +1280,16 @@ extract_markdown_config_blocks}`
 61. the natural next Stage-B follow-up is still another small bounded
     consumer family that stays off a broad `LinkGraphIndex` cut
 62. the next bounded `Stage B` slice is now also landed on the residual
-    resource/VFS test tail in `xiuxian-zhixing`
+    resource/VFS test tail in `retired Zhixing crate`
 63. the touched tests now use owner seams instead of crate-root imports:
     - `xiuxian_wendao::enhancer::WendaoResourceRegistry`
     - `xiuxian_wendao::skill_runtime::{...}`
 64. the touched files are:
-    - `xiuxian-zhixing/tests/test_forge_skill_resources.rs`
-    - `xiuxian-zhixing/tests/test_wendao_skill_resources.rs`
+    - `retired Zhixing crate/tests/test_forge_skill_resources.rs`
+    - `retired Zhixing crate/tests/test_wendao_skill_resources.rs`
 65. bounded verification for this residual tail is clean:
-    - `xiuxian-zhixing --test test_forge_skill_resources --no-run` passes
-    - `xiuxian-zhixing --test test_wendao_skill_resources --no-run` passes
+    - `retired Zhixing crate --test test_forge_skill_resources --no-run` passes
+    - `retired Zhixing crate --test test_wendao_skill_resources --no-run` passes
     - sibling-consumer grep for crate-root resource/VFS imports in this
       family is clean
 66. the natural next Stage-B follow-up is still another small bounded

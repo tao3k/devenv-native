@@ -36,6 +36,7 @@ if ! PYTHON_BIN="$(_pick_python)"; then
   echo "Python is required to resolve libpython for xiuxian-core-rs tests." >&2
   exit 1
 fi
+export PYO3_PYTHON="${PYTHON_BIN}"
 
 if ! PYLIB_PATH="$("${PYTHON_BIN}" scripts/rust/resolve_libpython_path.py)"; then
   PYLIB_PATH=""
@@ -61,11 +62,9 @@ echo "Resolved libpython: ${PYLIB_PATH}"
 case "$(uname -s)" in
 Darwin)
   PYLIB_DIR="$(dirname "${PYLIB_PATH}")"
-  PYLIB_NAME="$(basename "${PYLIB_PATH}")"
-  PYLIB_NAME="${PYLIB_NAME#lib}"
-  PYLIB_NAME="${PYLIB_NAME%.dylib}"
-  DYLD_INSERT_LIBRARIES="${PYLIB_PATH}" \
-    RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-L native=${PYLIB_DIR} -l dylib=${PYLIB_NAME}" \
+  # Keep Python available for runtime loading without forcing every Cargo
+  # build-script process to link or inject libpython.
+  DYLD_FALLBACK_LIBRARY_PATH="${PYLIB_DIR}${DYLD_FALLBACK_LIBRARY_PATH:+:${DYLD_FALLBACK_LIBRARY_PATH}}" \
     run_cargo test -p xiuxian-core-rs "$@"
   ;;
 *)

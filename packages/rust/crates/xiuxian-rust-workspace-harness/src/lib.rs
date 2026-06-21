@@ -366,7 +366,7 @@ mod tests {
     #[test]
     fn build_gate_policy_carries_harness_rev_baseline() {
         let member_policy = xiuxian_member_build_gate_policy_with_config(
-            "xiuxian-event",
+            "xiuxian-config-core",
             xiuxian_workspace_harness_config(),
         );
         let packages = match member_policy.dependency_baseline() {

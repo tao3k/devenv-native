@@ -18,7 +18,7 @@ By introducing the `xiuxian-zhenfa` matrix, we drastically alter how the LLM "Ac
 
 ## The Legacy Native Paradigm
 
-Previously, tools like `wendao.search` or `agenda.view` required the `xiuxian-daochang` binary to compile against the full Rust source code of `xiuxian-wendao` and `xiuxian-zhixing`. The host had to manage massive dependency trees, and any change required a full workspace recompile.
+Previously, tools like `wendao.search` or `agenda.view` required the `xiuxian-daochang` binary to compile against the full Rust source code of `xiuxian-wendao` and `retired Zhixing crate`. The host had to manage massive dependency trees, and any change required a full workspace recompile.
 
 ## The Zhenfa Paradigm
 

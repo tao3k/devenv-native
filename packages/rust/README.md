@@ -8,9 +8,9 @@ metadata:
 
 > Rust workspace managed from the project-root `Cargo.toml`.
 
-This directory contains the Rust crates for `xiuxian-artisan-workshop`.
-Crate membership, shared dependency versions, and build profiles are owned by
-the repository root `Cargo.toml`.
+This directory contains the Rust crates for `xiuxian-artisan-workshop`. Crate
+membership, shared dependency versions, and build profiles are owned by the
+repository root `Cargo.toml`.
 
 ## Quick Start
 
@@ -27,16 +27,12 @@ uv sync --reinstall-package xiuxian-core-rs
 
 ## Boundary Notes
 
-- `xiuxian-config-core` owns project-local configuration and `PRJ_*` directory
-  resolution.
-- `xiuxian-db-store` owns reusable storage primitives such as Arrow codecs,
-  DuckDB, and DuckLake support.
+- `xiuxian-config-core` owns project-local configuration and `PRJ_*` directory resolution.
+- `xiuxian-db-store` owns reusable storage primitives such as Arrow codecs, DuckDB, and DuckLake support.
 - `xiuxian-git-repo` owns managed repository materialization and sync paths.
-- Wendao crates own knowledge graph, parser, runtime, query, and Studio
-  behavior.
+- Wendao crates own knowledge graph, parser, runtime, query, and Studio behavior.
 - Qianji crates own BPMN/control-plane/client/runtime behavior.
-- Julia and polyglot crates own Julia runtime contracts and cross-language
-  orchestration.
+- Julia and polyglot crates own Julia runtime contracts and cross-language orchestration.
 
 ## Crates
 
@@ -44,7 +40,6 @@ uv sync --reinstall-package xiuxian-core-rs
 | ------------------------------- | ----------------------------------------------------------------- |
 | `xiuxian-config-core`           | Cascading config, env lookup, and project directory resolution    |
 | `xiuxian-db-store`              | Arrow/DuckDB/DuckLake storage primitives                          |
-| `xiuxian-event`                 | Event contracts                                                   |
 | `xiuxian-git-repo`              | Managed repository checkout, mirror, and sync substrate           |
 | `xiuxian-graph-core`            | Shared graph projection and optional rendering/algorithm adapters |
 | `xiuxian-julia-core`            | Julia-facing core contracts                                       |
@@ -74,7 +69,6 @@ uv sync --reinstall-package xiuxian-core-rs
 | `xiuxian-wendao-sql`            | Wendao SQL support                                                |
 | `xiuxian-wendao-studio`         | Studio HTTP and gateway adapter boundary                          |
 | `xiuxian-zhenfa`                | Zhenfa route and native adapter boundary                          |
-| `xiuxian-zhixing`               | Zhixing integration boundary                                      |
 | `xiuxian-core-rs`               | Wendao Python bindings via PyO3                                   |
 
 ## Directory Structure

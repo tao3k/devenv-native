@@ -5,7 +5,6 @@ resolver = "2"
 members = [
   "packages/rust/bindings/python",
   "packages/rust/crates/xiuxian-config-core",
-  "packages/rust/crates/xiuxian-event",
   "packages/rust/crates/xiuxian-graph-core",
   "packages/rust/crates/xiuxian-git-repo",
   "packages/rust/crates/xiuxian-wendao-attachments",
@@ -36,7 +35,6 @@ members = [
   "packages/rust/crates/xiuxian-qianji-runtime",
   "packages/rust/crates/xiuxian-qianji-client",
   "packages/rust/crates/xiuxian-qianji",
-  "packages/rust/crates/xiuxian-zhixing",
   "packages/rust/crates/xiuxian-zhenfa",
 ]
 

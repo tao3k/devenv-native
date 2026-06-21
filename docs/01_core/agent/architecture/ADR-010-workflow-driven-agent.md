@@ -28,7 +28,7 @@ this ADR to justify adding an in-process Agent core to this repository.
 
 Our current `Agent` implementation is "over-educated" and "over-involved." It manually manages persona registries, pre-loads templates, and hardcodes the association between logic and assets. This creates a monolithic bottleneck in the `bootstrap/` sequence and violates the principle of **Separation of Concerns**.
 
-The `Agent` layer should not need to know the internal details of a specific domain like "Agenda Management." All those details (personas, templates, rules) already exist in the `xiuxian-zhixing` skill directory.
+The `Agent` layer should not need to know the internal details of a specific domain like "Agenda Management." All those details (personas, templates, rules) already exist in the `retired Zhixing crate` skill directory.
 
 ## 2. Decision: Total Decoupling via Late Binding
 
@@ -36,7 +36,7 @@ We will adopt the **"Ignorant Host"** architecture. The `Agent` will be reduced 
 
 ### 2.1 The Semantic Handshake Chain
 
-1.  **Storage**: Assets are stored in `xiuxian-zhixing/resources/zhixing/skills/agenda-management/references/`.
+1.  **Storage**: Assets are stored in `retired Zhixing crate/resources/zhixing/skills/agenda-management/references/`.
 2.  **Addressing**: `xiuxian-wendao` maps these to stable `wendao://` URIs.
 3.  **Mapping**: `xiuxian-qianji` workflow TOMLs use the **`$` placeholder** to reference these URIs (e.g., `persona = "$wendao://..."`).
 4.  **Late Binding**: The `Qianji` engine resolves these placeholders via the `Zhenfa` bus at the exact moment of execution.

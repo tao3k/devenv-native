@@ -17,7 +17,6 @@ jobs:
           - xiuxian-config-core-release
           - xiuxian-core-rs-release
           - xiuxian-core-rs-python-bindings
-          - xiuxian-event-release
           - xiuxian-lance-release
           - xiuxian-logging-release
           - xiuxian-macros-release
@@ -28,7 +27,6 @@ jobs:
           - xiuxian-vector-release
           - xiuxian-wendao-release
           - xiuxian-zhenfa-release
-          - xiuxian-zhixing-release
           - xiuxian-wendao-client-release
     env:
       GLM_API_KEY: ${{ secrets.GLM_API_KEY }}

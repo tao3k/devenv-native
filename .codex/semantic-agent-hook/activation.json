@@ -25,7 +25,6 @@
           "packages/rust/crates/xiuxian-config-core",
           "packages/rust/crates/xiuxian-db-store",
           "packages/rust/crates/xiuxian-edit",
-          "packages/rust/crates/xiuxian-event",
           "packages/rust/crates/xiuxian-git-repo",
           "packages/rust/crates/xiuxian-graph-core",
           "packages/rust/crates/xiuxian-io",
@@ -59,8 +58,7 @@
           "packages/rust/crates/xiuxian-wendao-server",
           "packages/rust/crates/xiuxian-wendao-sql",
           "packages/rust/crates/xiuxian-wendao-studio",
-          "packages/rust/crates/xiuxian-zhenfa",
-          "packages/rust/crates/xiuxian-zhixing"
+          "packages/rust/crates/xiuxian-zhenfa"
         ],
         "sourceRoots": ["src", "crates", "tests"],
         "configFiles": ["Cargo.toml"],

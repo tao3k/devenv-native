@@ -11,7 +11,7 @@ pub(crate) const FORGE_FLOW_URI_CANONICAL: &str =
 pub(crate) const AGENDA_FACTS: &str = "timeboxing; execution order; deadline awareness; review loop; tool output fidelity; single message clarity; language alignment; cognitive load; historical carryover; execution realism; risk-first review; carryover=1; milimeter-level alignment; audit trail; traceability; architectural consistency";
 
 pub(crate) static ZHIXING_RESOURCES: Dir<'_> =
-    include_dir!("$CARGO_MANIFEST_DIR/../xiuxian-zhixing/resources");
+    include_dir!("$CARGO_MANIFEST_DIR/../xiuxian-wendao/resources");
 pub(crate) static AGENDA_OVERRIDE_RESOURCES: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/tests/fixtures/agenda_override/resources");
 

@@ -15,7 +15,6 @@ fn cargo_manifest_keeps_only_wendao_dependency() {
     assert!(manifest.contains("xiuxian-wendao"));
 
     for removed_dep in [
-        "xiuxian-event",
         "xiuxian-types",
         "xiuxian-tokenizer",
         "xiuxian-ast",

@@ -77,7 +77,7 @@ Here is why `wendao` is an engine for LLMs, whereas Obsidian is a vault for huma
 **Obsidian:**
 
 - It is a passive observer of the file system. If a Python script modifies a file, Obsidian just re-renders it.
-- Building complex state machines (like `xiuxian-zhixing`'s "Strict Teacher" mode where `journal:carryover >= 3` locks the system) is incredibly brittle because the state lives entirely in text manipulation.
+- Building complex state machines (like `retired Zhixing crate`'s "Strict Teacher" mode where `journal:carryover >= 3` locks the system) is incredibly brittle because the state lives entirely in text manipulation.
 
 **Wendao (The Thin Bridge):**
 
