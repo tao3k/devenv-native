@@ -20,7 +20,6 @@ jobs:
           - xiuxian-lance-release
           - xiuxian-logging-release
           - xiuxian-macros-release
-          - xiuxian-memory-engine-release
           - xiuxian-qianji-release
           - xiuxian-security-release
           - xiuxian-types-release
