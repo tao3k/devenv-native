@@ -1,12 +1,15 @@
+#[cfg(feature = "search-runtime")]
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 
-use crate::dependency_indexer::{
-    ExternalSymbol, SymbolIndex, SymbolKind, extract_dependency_symbols,
-};
+#[cfg(feature = "search-runtime")]
+use crate::dependency_indexer::extract_dependency_symbols;
+use crate::dependency_indexer::{ExternalSymbol, SymbolIndex, SymbolKind};
 
+#[cfg(feature = "search-runtime")]
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
+#[cfg(feature = "search-runtime")]
 fn extract_fixture_symbols(
     content: &str,
     language: &str,
@@ -55,6 +58,7 @@ fn build_symbol_index() -> SymbolIndex {
     index
 }
 
+#[cfg(feature = "search-runtime")]
 #[test]
 fn test_extract_rust_symbols() -> TestResult {
     let symbols = extract_fixture_symbols(
@@ -77,6 +81,7 @@ pub fn my_function() {
     Ok(())
 }
 
+#[cfg(feature = "search-runtime")]
 #[test]
 fn test_extract_python_symbols() -> TestResult {
     let symbols = extract_fixture_symbols(
