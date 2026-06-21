@@ -1104,7 +1104,7 @@ Phase-8 gate review:
    exposure consumed by `test_support/*`
 5. the following bounded crate-health slice has now repaired the
    `session/*` owner drift by restoring the missing local `SessionStore`,
-   switching the live `TurnSlot` owner back to `xiuxian_window`, fixing the
+   switching the live turn-slot owner back to the retired window crate, fixing the
    `RedisSessionBackend` message-content snapshot field, and rebinding the
    touched session tests to `xiuxian_daochang` instead of `omni_agent`; the
    compile front no longer stops in that bundle and now starts deeper in

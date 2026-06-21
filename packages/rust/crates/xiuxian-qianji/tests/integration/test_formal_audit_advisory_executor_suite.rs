@@ -82,9 +82,7 @@ async fn advisory_executor_reports_prompt_context_pack_artifact_hits()
     let request = advisory_request();
 
     let first_plan = must_ok(
-        executor
-            .build_plan_with_prompt_context_pack_cache(&request, &cache)
-            .await,
+        executor.build_plan_with_prompt_context_pack_cache(&request, &cache),
         "first advisory plan should populate prompt-context pack cache",
     );
     let first_reports = first_plan
@@ -103,9 +101,7 @@ async fn advisory_executor_reports_prompt_context_pack_artifact_hits()
     }
 
     let second_plan = must_ok(
-        executor
-            .build_plan_with_prompt_context_pack_cache(&request, &cache)
-            .await,
+        executor.build_plan_with_prompt_context_pack_cache(&request, &cache),
         "second advisory plan should read prompt-context packs from cache",
     );
     let second_reports = second_plan

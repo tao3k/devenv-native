@@ -54,7 +54,6 @@ qianji-full = [
   "dep:tokio-util",
   "dep:walkdir",
   "dep:xiuxian-logging",
-  "dep:xiuxian-window",
   "dep:xiuxian-zhenfa",
 ]
 wendao-integration = [
@@ -112,7 +111,6 @@ xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
 xiuxian-macros = { path = "../xiuxian-macros" }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
-xiuxian-window = { path = "../xiuxian-window", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
 xiuxian-qianji-runtime = { path = "../xiuxian-qianji-runtime", default-features = false }

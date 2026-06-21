@@ -530,7 +530,7 @@ Phase-8 exit review:
    consumed by `test_support/*`
 5. the following bounded crate-health slice has now repaired the
    `session/*` owner drift by restoring the missing local `SessionStore`,
-   switching the live `TurnSlot` owner back to `xiuxian_window`, fixing the
+   switching the live turn-slot owner back to the retired window crate, fixing the
    `RedisSessionBackend` message-content snapshot field, and rebinding the
    touched session tests to `xiuxian_daochang`; the compile front now starts
    deeper in `test_support/*`, `lib.rs`, and `agent/*` private-module

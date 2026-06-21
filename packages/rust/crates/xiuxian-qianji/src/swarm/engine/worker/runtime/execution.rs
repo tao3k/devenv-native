@@ -13,7 +13,9 @@ use crate::swarm::{GlobalSwarmRegistry, RemotePossessionBus};
 use crate::telemetry::{SwarmEvent, unix_millis_now};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use xiuxian_window::{SessionWindow, SessionWindowCheckpointId};
+
+const WORKER_BOOT_TURNS: u64 = 1;
+const WORKER_SUCCESS_TURNS: u64 = 1;
 
 impl SwarmEngine {
     pub(in crate::swarm) fn spawn_worker_task(
@@ -43,16 +45,6 @@ impl SwarmEngine {
     ) -> Result<SwarmAgentReport, QianjiError> {
         let session_id = runtime.session_id.clone();
         let role = identity.role_class.clone();
-        let mut window = SessionWindow::new(
-            format!("{session_id}:{}", identity.agent_id).as_str(),
-            identity.window_size.max(32),
-        );
-        window.append_turn(
-            "system",
-            "swarm_worker_boot",
-            0,
-            Some(SessionWindowCheckpointId::from(session_id.as_str())),
-        );
 
         let thread_id = format!("{:?}", std::thread::current().id());
         log::info!(
@@ -93,7 +85,7 @@ impl SwarmEngine {
         };
         Self::stop_remote_responder(stop_tx, responder_handle).await;
 
-        Self::build_worker_report(identity, role, session_id.as_str(), &mut window, run_result)
+        Self::build_worker_report(identity, role, run_result)
     }
 
     fn build_worker_scheduler(
@@ -164,39 +156,17 @@ impl SwarmEngine {
     fn build_worker_report(
         identity: SwarmAgentConfig,
         role: Option<String>,
-        session_id: &str,
-        window: &mut SessionWindow,
         run_result: Result<serde_json::Value, QianjiError>,
     ) -> Result<SwarmAgentReport, QianjiError> {
-        let context = match run_result {
-            Ok(context) => {
-                window.append_turn(
-                    "assistant",
-                    "swarm_worker_completed",
-                    0,
-                    Some(SessionWindowCheckpointId::from(session_id)),
-                );
-                context
-            }
-            Err(error) => {
-                window.append_turn(
-                    "assistant",
-                    "swarm_worker_failed",
-                    0,
-                    Some(SessionWindowCheckpointId::from(session_id)),
-                );
-                return Err(error);
-            }
-        };
-        let stats = window.get_stats();
+        let context = run_result?;
         Ok(SwarmAgentReport {
             agent_id: identity.agent_id,
             role_class: role,
             success: true,
             context: Some(context),
             error: None,
-            window_turns: stats.total_turns,
-            window_tool_calls: stats.total_tool_calls,
+            window_turns: WORKER_BOOT_TURNS + WORKER_SUCCESS_TURNS,
+            window_tool_calls: 0,
         })
     }
 }

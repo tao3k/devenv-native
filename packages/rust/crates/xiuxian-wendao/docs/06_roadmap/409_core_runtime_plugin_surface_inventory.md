@@ -514,7 +514,7 @@ Current Stage-C status:
     exposure consumed by `test_support/*`
 18. the following bounded crate-health slice has now repaired the
     `session/*` owner drift by restoring the missing local `SessionStore`,
-    switching the live `TurnSlot` owner back to `xiuxian_window`, fixing the
+    switching the live turn-slot owner back to the retired window crate, fixing the
     `RedisSessionBackend` message-content snapshot field, and rebinding the
     touched session tests to `xiuxian_daochang`; the current compile front
     now starts deeper in `test_support/*`, `lib.rs`, and `agent/*`

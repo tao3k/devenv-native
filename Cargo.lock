@@ -10870,7 +10870,6 @@ dependencies = [
  "xiuxian-wendao-core",
  "xiuxian-wendao-runtime",
  "xiuxian-wendao-sql",
- "xiuxian-window",
  "xiuxian-zhenfa",
 ]
 
@@ -11341,16 +11340,6 @@ dependencies = [
  "xiuxian-wendao-server",
  "xiuxian-wendao-sql",
  "xiuxian-zhenfa",
-]
-
-[[package]]
-name = "xiuxian-window"
-version = "0.1.1"
-dependencies = [
- "pyo3",
- "rust-lang-project-harness",
- "serde",
- "xiuxian-rust-workspace-harness",
 ]
 
 [[package]]

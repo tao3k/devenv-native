@@ -27,7 +27,7 @@ To solve this, Qianji enforces strict **Memory Boundaries** through distinct exe
 
 - **Mechanism:** Each node evaluation spins up a **brand-new, ephemeral HTTP request**.
 - **Data Flow (Strict Quarantine):** The annotation engine generates a completely distinct `InjectionSnapshot` for each node based on its unique `persona_id`. The underlying persona instructions and node-specific thought processes are strictly quarantined.
-- **Contextual Grounding (The `xiuxian-window` Bridge):** To prevent the isolated agent from becoming "amnesiac" to the user's ongoing conversation, Qianji injects the _read-only, sanitized recent chat history_ (provided by `xiuxian-window`) into the `<working_history>` block of the node's `InjectionSnapshot`. This allows the agent to understand the user's immediate intent without being contaminated by another agent's hidden CoT.
+- **Contextual Grounding:** To prevent the isolated agent from becoming "amnesiac" to the user's ongoing conversation, Qianji injects the _read-only, sanitized recent chat history_ provided by the host runtime into the `<working_history>` block of the node's `InjectionSnapshot`. This allows the agent to understand the user's immediate intent without being contaminated by another agent's hidden CoT.
 - **Node Handoff:** Only the _structured XML output_ (e.g., `<agenda_draft>`) of Node A is passed as an _input variable_ to Node B's J2 template.
 - **Research Alignment:** This guarantees the "Strict Teacher" never sees the "Agenda Steward's" internal Chain-of-Thought (CoT), completely eliminating real-time social influence and preventing Sycophancy, while remaining contextually aware of the user's request.
 

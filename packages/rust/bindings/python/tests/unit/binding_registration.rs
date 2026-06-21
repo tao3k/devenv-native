@@ -25,7 +25,6 @@ fn cargo_manifest_keeps_only_wendao_dependency() {
         "xiuxian-vector",
         "xiuxian-tui",
         "xiuxian-memory-engine",
-        "xiuxian-window",
     ] {
         assert!(
             !manifest.contains(removed_dep),

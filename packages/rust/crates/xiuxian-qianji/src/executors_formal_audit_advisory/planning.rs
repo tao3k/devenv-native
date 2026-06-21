@@ -37,7 +37,7 @@ impl QianjiAdvisoryAuditExecutor {
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         #[cfg(feature = "advisory-prompt-pack-cache")]
         {
-            return self.build_plan_internal_with_prompt_context_pack_cache(request, None);
+            self.build_plan_internal_with_prompt_context_pack_cache(request, None)
         }
         #[cfg(not(feature = "advisory-prompt-pack-cache"))]
         {

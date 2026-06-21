@@ -73,7 +73,6 @@ uv sync --reinstall-package xiuxian-core-rs
 | `xiuxian-wendao-server`         | Wendao server transport adapters                                  |
 | `xiuxian-wendao-sql`            | Wendao SQL support                                                |
 | `xiuxian-wendao-studio`         | Studio HTTP and gateway adapter boundary                          |
-| `xiuxian-window`                | Window/runtime utility boundary                                   |
 | `xiuxian-zhenfa`                | Zhenfa route and native adapter boundary                          |
 | `xiuxian-zhixing`               | Zhixing integration boundary                                      |
 | `xiuxian-core-rs`               | Wendao Python bindings via PyO3                                   |

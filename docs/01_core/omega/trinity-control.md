@@ -48,18 +48,15 @@ flowchart LR
   T --> PY[Legacy Python Tool Adapters (compat only)]
   T --> RS[Rust-native Tool Services]
 
-  R --> W[xiuxian-window]
   R --> MM[xiuxian-memory-engine]
   R --> KG[xiuxian-wendao / link-graph]
   R --> SPI[Session Prompt Injection XML]
 
-  W --> I
   MM --> I
   KG --> I
   SPI --> I
   I --> P
   I --> X
-  W --> MM
   MM --> R
   KG --> R
 ```
@@ -68,7 +65,7 @@ flowchart LR
 
 1. Intake:
    - Receive request and resolve `session_id` (channel/chat/thread aware).
-   - Load bounded context from `xiuxian-window`.
+   - Load bounded context through the Rust runtime context assembler.
 2. Omega deliberation:
    - Evaluate complexity and choose execution route (`react` direct vs `graph` first).
    - Produce context policy (what to inject, max size, ordering, role-mix profile, injection mode).
@@ -76,7 +73,7 @@ flowchart LR
    - Assemble typed context blocks from:
      - session prompt injection XML (operator/session scoped),
      - memory recall context (`xiuxian-memory-engine`, MemRL-style),
-     - bounded summaries/window state (`xiuxian-window`),
+     - bounded runtime context summaries,
      - knowledge context (`xiuxian-wendao`, link-graph).
    - Compose scenario-specific mixed-role prompts (for example debug/recovery/architecture reflection packs).
    - Apply deterministic ordering and token budget before execution.
@@ -115,15 +112,15 @@ flowchart LR
 
 Project progress must be tracked by feature name (not phase/stage labels). Recommended feature names:
 
-| Feature name                             | Definition of done                                                                        |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Unified Rust Execution Kernel**        | One Rust entry for channel/repl/gateway execution; no Python runtime loop on hot path.    |
-| **Graph Planning Engine (Rust)**         | Graph planning API runs inside Rust runtime and produces stable, testable plan contracts. |
-| **Omega Deliberation Engine (Rust)**     | Quality gates and plan-repair logic run in Rust with structured outputs.                  |
-| **ReAct Tool Runtime (Rust)**            | Tool-call loop, retry, budget, and failure policy consolidated in Rust.                   |
-| **Session Window Compression (Rust)**    | Predictable context compression and restore strategy backed by `xiuxian-window`.          |
-| **Memory Self-Evolution Runtime (Rust)** | Outcome feedback and recall adaptation persisted via DB-backed `xiuxian-memory-engine`.   |
-| **Python Runtime Decommissioning**       | Python side is transport/adapter-only; no duplicated runtime loop entrypoints.            |
+| Feature name                             | Definition of done                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Unified Rust Execution Kernel**        | One Rust entry for channel/repl/gateway execution; no Python runtime loop on hot path.            |
+| **Graph Planning Engine (Rust)**         | Graph planning API runs inside Rust runtime and produces stable, testable plan contracts.         |
+| **Omega Deliberation Engine (Rust)**     | Quality gates and plan-repair logic run in Rust with structured outputs.                          |
+| **ReAct Tool Runtime (Rust)**            | Tool-call loop, retry, budget, and failure policy consolidated in Rust.                           |
+| **Session Context Compression (Rust)**   | Predictable context compression and restore strategy owned by the Rust runtime and memory engine. |
+| **Memory Self-Evolution Runtime (Rust)** | Outcome feedback and recall adaptation persisted via DB-backed `xiuxian-memory-engine`.           |
+| **Python Runtime Decommissioning**       | Python side is transport/adapter-only; no duplicated runtime loop entrypoints.                    |
 
 ## 5. Migration Rules
 

@@ -32,7 +32,6 @@ members = [
   "packages/rust/crates/xiuxian-julia-runtime",
   "packages/rust/crates/xiuxian-polyglot-orchestrator",
   "packages/rust/crates/xiuxian-wendao-client",
-  "packages/rust/crates/xiuxian-window",
   "packages/rust/crates/xiuxian-qianji-control",
   "packages/rust/crates/xiuxian-qianji-runtime",
   "packages/rust/crates/xiuxian-qianji-client",
