@@ -108,7 +108,6 @@ pub mod sync;
         feature = "julia",
         feature = "repo-lexical-index",
         feature = "search-runtime",
-        feature = "test-support",
         feature = "zhenfa-router"
     )
 ))]
