@@ -59,24 +59,13 @@
           "packages/rust/crates/xiuxian-wendao-server",
           "packages/rust/crates/xiuxian-wendao-sql",
           "packages/rust/crates/xiuxian-wendao-studio",
-          "packages/rust/crates/xiuxian-window",
           "packages/rust/crates/xiuxian-zhenfa",
           "packages/rust/crates/xiuxian-zhixing"
         ],
-        "sourceRoots": [
-          "src",
-          "crates",
-          "tests"
-        ],
-        "configFiles": [
-          "Cargo.toml"
-        ],
-        "sourceExtensions": [
-          ".rs"
-        ],
-        "ignoredPathPrefixes": [
-          "target"
-        ]
+        "sourceRoots": ["src", "crates", "tests"],
+        "configFiles": ["Cargo.toml"],
+        "sourceExtensions": [".rs"],
+        "ignoredPathPrefixes": ["target"]
       }
     },
     {
@@ -87,20 +76,9 @@
       "binary": "ts-harness",
       "providerCommandPrefix": [],
       "coverage": {
-        "packageRoots": [
-          "."
-        ],
-        "sourceRoots": [
-          "src",
-          "tests",
-          "app",
-          "packages"
-        ],
-        "configFiles": [
-          "package.json",
-          "tsconfig.json",
-          "pnpm-workspace.yaml"
-        ],
+        "packageRoots": ["."],
+        "sourceRoots": ["src", "tests", "app", "packages"],
+        "configFiles": ["package.json", "tsconfig.json", "pnpm-workspace.yaml"],
         "sourceExtensions": [
           ".ts",
           ".tsx",
@@ -111,12 +89,7 @@
           ".mjs",
           ".cjs"
         ],
-        "ignoredPathPrefixes": [
-          "node_modules",
-          "dist",
-          "build",
-          ".next"
-        ]
+        "ignoredPathPrefixes": ["node_modules", "dist", "build", ".next"]
       }
     },
     {
@@ -139,24 +112,10 @@
           "packages/python/xiuxian-wendao-analyzer",
           "packages/rust/bindings/python"
         ],
-        "sourceRoots": [
-          "src",
-          "tests"
-        ],
-        "configFiles": [
-          "pyproject.toml",
-          "setup.py",
-          "setup.cfg"
-        ],
-        "sourceExtensions": [
-          ".py"
-        ],
-        "ignoredPathPrefixes": [
-          ".venv",
-          "venv",
-          "__pycache__",
-          ".mypy_cache"
-        ]
+        "sourceRoots": ["src", "tests"],
+        "configFiles": ["pyproject.toml", "setup.py", "setup.cfg"],
+        "sourceExtensions": [".py"],
+        "ignoredPathPrefixes": [".venv", "venv", "__pycache__", ".mypy_cache"]
       }
     }
   ]

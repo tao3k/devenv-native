@@ -27,7 +27,6 @@ jobs:
           - xiuxian-types-release
           - xiuxian-vector-release
           - xiuxian-wendao-release
-          - xiuxian-window-release
           - xiuxian-zhenfa-release
           - xiuxian-zhixing-release
           - xiuxian-wendao-client-release
