@@ -142,6 +142,7 @@ jobs:
           components: clippy
 
       - name: Install sccache
+        continue-on-error: true
         uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
         with:
           tool: sccache@0.7.5
@@ -149,6 +150,13 @@ jobs:
       - name: Configure sccache backend
         run: |
           set -euo pipefail
+          if ! command -v sccache >/dev/null 2>&1; then
+            echo "SCCACHE_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "sccache is unavailable; continuing without Rust compiler cache."
+            exit 0
+          fi
+          echo "SCCACHE_AVAILABLE=true" >> "$GITHUB_ENV"
           if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
             echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
           else
@@ -158,7 +166,7 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
       - name: Restore sccache cache (fallback)
-        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
@@ -180,7 +188,7 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Save sccache cache (fallback)
-        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ always() && !cancelled() && env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
@@ -387,6 +395,7 @@ jobs:
           tool: cargo-nextest@0.9.127
 
       - name: Install sccache
+        continue-on-error: true
         uses: taiki-e/install-action@51cd0b8c0499559d9a4d75c0f5c67bec3a894ec8 # v2
         with:
           tool: sccache@0.7.5
@@ -394,6 +403,13 @@ jobs:
       - name: Configure sccache backend
         run: |
           set -euo pipefail
+          if ! command -v sccache >/dev/null 2>&1; then
+            echo "SCCACHE_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "sccache is unavailable; continuing without Rust compiler cache."
+            exit 0
+          fi
+          echo "SCCACHE_AVAILABLE=true" >> "$GITHUB_ENV"
           if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
             echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
           else
@@ -403,7 +419,7 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
       - name: Restore sccache cache (fallback)
-        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
@@ -471,7 +487,7 @@ jobs:
             valkey-server
 
       - name: Save sccache cache (fallback)
-        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ always() && !cancelled() && env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
