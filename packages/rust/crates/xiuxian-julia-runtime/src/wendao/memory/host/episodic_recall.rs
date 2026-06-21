@@ -1,7 +1,6 @@
 //! Host-side staging for Julia episodic-recall request rows.
 
 use arrow::record_batch::RecordBatch;
-use xiuxian_memory_engine::MemoryProjectionRow;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use crate::wendao::memory::{
@@ -11,6 +10,7 @@ use crate::wendao::memory::{
 use super::staging::{
     optional_text, required_text, validate_embedding, validate_finite, validate_non_negative_finite,
 };
+use super::types::MemoryProjectionRow;
 
 const SURFACE: &str = "memory Julia episodic_recall host staging";
 

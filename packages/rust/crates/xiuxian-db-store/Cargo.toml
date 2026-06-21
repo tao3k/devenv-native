@@ -24,7 +24,7 @@ engine = [
 vector-store = ["engine", "dep:xiuxian-vector", "xiuxian-vector/vector-store"]
 duckdb-types = ["dep:serde"]
 duckdb = ["duckdb-types", "dep:duckdb"]
-project-state = ["dep:xiuxian-config-core"]
+artisan-state = []
 qianji-bpmn-workflow-state = [
   "duckdb",
   "arrow-codec",
@@ -48,7 +48,6 @@ serde_json = { workspace = true, optional = true }
 tar = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
-xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
 
 [build-dependencies]

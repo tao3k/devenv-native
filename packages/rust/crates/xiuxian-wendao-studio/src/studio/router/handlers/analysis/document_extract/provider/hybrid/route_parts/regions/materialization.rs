@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 #[cfg(feature = "document-extract-pdf-render")]
 use sha2::{Digest, Sha256};
 #[cfg(feature = "document-extract-pdf-render")]
-use xiuxian_db_store::state::project_cache_root;
+use xiuxian_db_store::state::artisan_state_root;
 
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, is_hosted_vlm_direct_profile};
 #[cfg(feature = "document-extract-pdf-render")]
@@ -274,7 +274,7 @@ pub(crate) fn ocr2_region_render_cache_root() -> PathBuf {
             |parent| parent.join(OCR2_REGION_RENDER_CACHE_DIR_NAME),
         );
     }
-    project_cache_root()
+    artisan_state_root()
         .join("wendao-document-extract")
         .join(OCR2_REGION_RENDER_CACHE_DIR_NAME)
 }

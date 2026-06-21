@@ -45,18 +45,16 @@ mod lib_policy;
 #[cfg(feature = "qianji-bpmn-workflow-state")]
 #[path = "unit/qianji_bpmn/mod.rs"]
 mod qianji_bpmn;
-#[cfg(feature = "project-state")]
+#[cfg(feature = "artisan-state")]
 use xiuxian_db_store::state::{
-    ProjectCacheRootConfig, STATE_STORE_DIR_NAME, STATE_STORE_DUCKDB_FILE_NAME,
-    git_utils::{
-        discover_git_toplevel_from, project_namespace_from_root, sanitize_project_namespace,
-    },
-    project_cache_root_from_config,
+    ARTISAN_STATE_ROOT_DIR_NAME, ArtisanStateRootConfig, STATE_STORE_DIR_NAME,
+    STATE_STORE_DUCKDB_FILE_NAME, artisan_state_root_from_config,
+    git_utils::discover_git_toplevel_from,
 };
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 #[path = "unit/retrieval.rs"]
 mod retrieval;
-#[cfg(feature = "project-state")]
+#[cfg(feature = "artisan-state")]
 #[path = "unit/state/mod.rs"]
 mod state;
 #[cfg(feature = "valkey")]

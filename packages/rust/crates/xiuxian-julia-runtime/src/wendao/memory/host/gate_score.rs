@@ -1,7 +1,6 @@
 //! Host-side staging for Julia memory-gate scoring request rows.
 
 use arrow::record_batch::RecordBatch;
-use xiuxian_memory_engine::{Episode, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use crate::wendao::memory::{
@@ -9,26 +8,9 @@ use crate::wendao::memory::{
 };
 
 use super::staging::{optional_text, required_text, validate_probability};
+use super::types::{MemoryLifecycleState, MemoryUtilityLedger};
 
 const SURFACE: &str = "memory Julia memory_gate_score host staging";
-
-/// Borrowed host memory identifier used to look up a scored episode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MemoryGateScoreMemoryId<'a>(&'a str);
-
-impl<'a> MemoryGateScoreMemoryId<'a> {
-    /// Return the raw host memory identifier for store lookup.
-    #[must_use]
-    pub fn as_str(self) -> &'a str {
-        self.0
-    }
-}
-
-impl<'a> From<&'a str> for MemoryGateScoreMemoryId<'a> {
-    fn from(value: &'a str) -> Self {
-        Self(value)
-    }
-}
 
 /// Host-owned evidence row for one Julia `memory_gate_score` downcall.
 #[derive(Debug, Clone, PartialEq)]
@@ -54,18 +36,6 @@ pub struct MemoryGateScoreEvidenceSignals {
     pub omega_alignment_score: f32,
     /// Current Rust-owned lifecycle state.
     pub current_state: MemoryLifecycleState,
-}
-
-/// Named inputs for looking up one gate-score evidence row from a store.
-pub struct MemoryGateScoreStoreEvidenceInput<'a> {
-    /// Episode store that owns the memory item.
-    pub store: &'a EpisodeStore,
-    /// Host memory identifier used for store lookup.
-    pub memory_id: MemoryGateScoreMemoryId<'a>,
-    /// Optional scenario pack forwarded into Julia.
-    pub scenario_pack: Option<String>,
-    /// Host-computed evidence signals for this memory item.
-    pub signals: MemoryGateScoreEvidenceSignals,
 }
 
 /// Build typed Julia `memory_gate_score` request rows from Rust-owned gate
@@ -98,51 +68,6 @@ pub fn build_memory_gate_score_request_batch_from_evidence(
         ));
     }
     build_memory_julia_gate_score_request_batch(&rows)
-}
-
-/// Build one canonical gate-score evidence row from a host episode plus
-/// already-computed evidence signals.
-#[must_use]
-pub fn build_memory_gate_score_evidence_row_from_episode(
-    episode: &Episode,
-    scenario_pack: Option<String>,
-    signals: &MemoryGateScoreEvidenceSignals,
-) -> MemoryGateScoreEvidenceRow {
-    MemoryGateScoreEvidenceRow {
-        memory_id: episode.id.clone(),
-        scenario_pack,
-        ledger: MemoryUtilityLedger::from_episode(
-            episode,
-            signals.react_revalidation_score,
-            signals.graph_consistency_score,
-            signals.omega_alignment_score,
-        ),
-        current_state: signals.current_state,
-    }
-}
-
-/// Build one canonical gate-score evidence row from a stored episode id.
-///
-/// # Errors
-///
-/// Returns [`RepoIntelligenceError`] when the requested episode does not
-/// exist in the store.
-pub fn build_memory_gate_score_evidence_row_from_store(
-    input: MemoryGateScoreStoreEvidenceInput<'_>,
-) -> Result<MemoryGateScoreEvidenceRow, RepoIntelligenceError> {
-    let memory_id = input.memory_id.as_str();
-    let Some(episode) = input.store.get(memory_id) else {
-        return Err(staging_error(format!(
-            "memory Julia memory_gate_score host staging could not find episode `{}`",
-            memory_id.trim()
-        )));
-    };
-
-    Ok(build_memory_gate_score_evidence_row_from_episode(
-        &episode,
-        input.scenario_pack,
-        &input.signals,
-    ))
 }
 
 fn build_request_row(

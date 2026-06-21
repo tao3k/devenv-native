@@ -1,7 +1,6 @@
 //! Host-side staging for Julia recall-plan tuning request rows.
 
 use arrow::record_batch::RecordBatch;
-use xiuxian_memory_engine::{RecallPlanTuning, normalize_feedback_bias};
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 
 use crate::wendao::memory::{
@@ -9,6 +8,7 @@ use crate::wendao::memory::{
 };
 
 use super::staging::{optional_text, positive_u32_from_usize, required_text, validate_probability};
+use super::types::{RecallPlanTuning, normalize_feedback_bias};
 
 const SURFACE: &str = "memory Julia memory_plan_tuning host staging";
 

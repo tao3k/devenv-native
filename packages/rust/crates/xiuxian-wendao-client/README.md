@@ -15,16 +15,6 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client orgize fmt [--check] [PATH]...
-wendao-client orgize lint [--format compact|text|json] [--json] [PATH]...
-wendao-client orgize agent-planning --date YYYY-MM-DD [--end YYYY-MM-DD] [--include-done] [--include-archived] [--include-comments] [--match EXPR] [PATH]...
-wendao-client orgize read-model [PATH]...
-wendao-client orgize task-list [--text TEXT] [--tag TAG]... [--include-done] [--include-archived] [--limit N] [PATH]...
-wendao-client orgize orgid-show --id ORGID [--full] [PATH]...
-wendao-client orgize task-report [--text TEXT] [--tag TAG]... [--include-archived] [--limit N] [PATH]...
-wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG]... [--limit N] [PATH]...
-wendao-client orgize sparse-tree [--text TEXT] [--match EXPR] [--exclude-done] [--exclude-archived] [--include-comments] [--explain-skips] [PATH]...
-wendao-client orgize sdd status [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -188,66 +178,10 @@ Behavior:
     exactly one DuckDB-dialect read-only query statement and rejects blank,
     multi-statement, or mutation SQL before table registration. The local
     relation engine is DuckDB.
-37. exposes upstream Orgize tooling through `orgize fmt`, `orgize lint`,
-    `orgize agent-planning`, `orgize read-model`, `orgize task-list`,
-    `orgize orgid-show`, `orgize task-probe`, `orgize task-report`,
-    `orgize task-archive`, `orgize sparse-tree`, and `orgize sdd status`.
-    Formatting and linting use parser-owned Orgize adapters from
-    `xiuxian-wendao-parsers`; planning and sparse-tree commands render compact
-    cards derived from native Org agenda and sparse-tree semantics. The `sdd
-status` command renders Org-native SDD
-    system/capability/view/decision/audit architecture status and parent edges
-    from upstream Orgize SDD parsing. The `read-model` command materializes
-    agent-tagged Org tasks into DuckDB by default and also writes the derived
-    `agent_org_memory_objects` table. Memory object rows keep `orgid` as the
-    source section identity and use `source_kind`, `source_key`, and
-    `object_index` for row disambiguation; no separate `memory_id` or
-    `task_orgid` identity is introduced. The command does not expose a
-    `--duckdb` runtime selector. The `task-list` command refreshes the same
-    DuckDB read model and renders active task rows for agent recovery, with
-    optional text/tag filtering and explicit DONE/archive inclusion flags.
-    Text filtering also considers the derived memory object kind, facet,
-    source key, and value fields through the source `orgid`. The `task-probe`
-    command is the compact
-    remembered-task recovery view; it reranks candidates with
-    `xiuxian-memory-engine` plus structured Org facet fusion so title text,
-    properties, SDD references, checklist state, and next actions vote together
-    instead of letting one noisy title phrase dominate. The `task-list` and
-    `orgid-show` JSON outputs include inferred `memoryObjects` derived from
-    typed Org properties and completed Reflection Questions rows; the memory
-    engine owns the object classification and the client only projects Org
-    evidence. This is the serverless memory path: copied or normalized
-    reference-memory samples become project-owned Org properties, then
-    `wendao-client orgize read-model` materializes them into DuckDB/Arrow-ready
-    rows for compact local recall. Rows marked with memory lifecycle properties
-    such as `MEMORY_STATUS: superseded`, `MEMORY_STATUS: stale`,
-    `MEMORY_STATUS: rejected`, or `MEMORY_STATUS: blocked` stay visible as Org
-    tasks but are excluded from derived memory objects and serverless recall
-    packets. The client does not read external Codex memory files at runtime.
-    The `task-report`
-    command summarizes the same snapshot for active rows, completed
-    achievements, archive candidates, repeating rows, and tag counts. The
-    `task-archive` command renders an archive plan by default and only mutates
-    Org source when `--apply` is passed; applied tasks are moved to
-    `archives/<source-task-file>.org` by default, receive the native `ARCHIVE`
-    tag, and are appended as raw Org subtrees without synthesized archive-file
-    metadata headers. Deprecated yearly bucket targets such as `2026.org` are
-    ignored in favor of the source-task-file target. Native Org repeater
-    cookies on `SCHEDULED` or
-    `DEADLINE` timestamps are preserved and rendered as `repeat:` metadata so
-    recurring profile, benchmark, or audit tasks remain visible without a
-    custom schedule DSL. When no source path is
-    supplied, read-model commands read from `$PRJ_CACHE_HOME/agent/org`; the
-    default database is
-    `$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb`. Optional
-    path/runtime overrides belong in the `wendao.toml` `[agent.org_read_model]`
-    table through `database_path`, `temp_directory`, and `threads`. The refresh
-    path uses DuckDB's native appender for materialization. The performance
-    profile is covered by
-    `cargo bench -p xiuxian-wendao-client --features performance --bench wendao_client_orgize`;
-    the current 1,024-row refresh plus cached-query profile is roughly
-    42-57 ms on the local benchmark fixture. The cached active recovery query
-    for a 20-row window is roughly 6.1-6.8 ms.
+37. does not expose an `orgize` subcommand. Org parsing, SDD recovery, and
+    agent task memory are no longer owned by `xiuxian-wendao-client`; use the
+    dedicated Org provider or the owning runtime surface instead of adding Org
+    read-model state back to this client.
 
 Diagnostic rendering is split deliberately:
 

@@ -346,7 +346,7 @@ fn source_pdf_page_profile_disk_cache_path(key: &SourcePdfPageProfileCacheKey) -
 
 fn source_pdf_page_profile_disk_cache_root() -> Option<PathBuf> {
     Some(
-        xiuxian_db_store::state::project_cache_root()
+        xiuxian_db_store::state::artisan_state_root()
             .join("wendao-document-extract")
             .join(SOURCE_PROFILE_CACHE_DIR_NAME),
     )

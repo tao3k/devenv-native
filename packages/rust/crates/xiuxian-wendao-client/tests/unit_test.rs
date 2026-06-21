@@ -10,5 +10,3 @@ mod lib_policy;
 mod lint_discovery;
 #[path = "unit/lint_run/mod.rs"]
 mod lint_run;
-#[path = "unit/orgize_runtime/mod.rs"]
-mod orgize_runtime;

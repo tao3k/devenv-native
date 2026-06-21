@@ -1,99 +1,89 @@
-//! Project-local state path resolution.
+//! User-local Artisan state path resolution.
 
 use std::path::{Path, PathBuf};
 
-use xiuxian_config_core::{ProjectDirs, resolve_cache_home};
-
 use super::git_utils;
 
-/// Default subdirectory used for shared state data inside the project
-/// cache namespace.
+/// Default user-home directory used for shared Artisan state data.
+pub const ARTISAN_STATE_ROOT_DIR_NAME: &str = ".xiuxian-artisan-workshop";
+/// Default subdirectory used for shared state data inside the Artisan state
+/// namespace.
 pub const STATE_STORE_DIR_NAME: &str = "state";
 
-/// Default `DuckDB` database filename for shared project-state records.
+/// Default `DuckDB` database filename for shared state records.
 pub const STATE_STORE_DUCKDB_FILE_NAME: &str = "state.duckdb";
 
-/// Named inputs for resolving the project cache namespace.
+/// Named inputs for resolving the shared Artisan state root.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct ProjectCacheRootConfig {
-    /// Optional project root. When absent, current project dirs are resolved
-    /// from the process environment.
+pub struct ArtisanStateRootConfig {
+    /// Optional project root. Used only to resolve relative explicit roots and
+    /// as a fallback when no user home can be resolved.
     pub project_root: Option<PathBuf>,
-    /// Optional cache home. When absent, `PRJ_CACHE_HOME` is used when set,
-    /// otherwise `<git-toplevel>/.cache`.
-    pub cache_home: Option<PathBuf>,
-    /// Optional explicit namespace. When absent, the sanitized project-root
-    /// directory name is used.
-    pub project_namespace: Option<String>,
+    /// Optional explicit state root. Absolute values are used as-is; relative
+    /// values are resolved against `project_root` when available.
+    pub state_root: Option<PathBuf>,
+    /// Optional home directory. When absent, `HOME` is used.
+    pub home_dir: Option<PathBuf>,
 }
 
-/// Resolve the namespaced project cache root for the current process.
+/// Resolve the shared Artisan state root for the current process.
 #[must_use]
-pub fn project_cache_root() -> PathBuf {
-    project_cache_root_from_config(ProjectCacheRootConfig::default())
+pub fn artisan_state_root() -> PathBuf {
+    artisan_state_root_from_config(ArtisanStateRootConfig::default())
 }
 
-/// Resolve the shared project-state root for the current process.
+/// Resolve the shared state-store root for the current process.
 #[must_use]
 pub fn state_store_root() -> PathBuf {
-    project_cache_root().join(STATE_STORE_DIR_NAME)
+    artisan_state_root().join(STATE_STORE_DIR_NAME)
 }
 
-/// Resolve the shared project-state `DuckDB` path for the current process.
+/// Resolve the shared state-store `DuckDB` path for the current process.
 #[must_use]
 pub fn state_store_duckdb_path() -> PathBuf {
     state_store_root().join(STATE_STORE_DUCKDB_FILE_NAME)
 }
 
-/// Resolve the namespaced project cache root from explicit inputs.
+/// Resolve the shared Artisan state root from explicit inputs.
 #[must_use]
-pub fn project_cache_root_from_config(config: ProjectCacheRootConfig) -> PathBuf {
-    let (project_root, cache_home) =
-        project_root_and_cache_home(config.project_root, config.cache_home);
-    let namespace = config
-        .project_namespace
-        .as_deref()
-        .and_then(git_utils::sanitize_project_namespace)
-        .unwrap_or_else(|| git_utils::project_namespace_from_root(&project_root));
-    cache_home_with_namespace(cache_home, namespace.as_str())
-}
-
-fn project_root_and_cache_home(
-    project_root: Option<PathBuf>,
-    cache_home: Option<PathBuf>,
-) -> (PathBuf, PathBuf) {
-    match (project_root, cache_home) {
-        (Some(project_root), Some(cache_home)) => (project_root, cache_home),
-        (Some(project_root), None) => {
-            let cache_home = resolve_cache_home(Some(&project_root))
-                .unwrap_or_else(|| project_root.join(".cache"));
-            (project_root, cache_home)
-        }
-        (None, Some(cache_home)) => {
-            let project_root = git_utils::discover_git_toplevel_from_current_dir()
-                .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
-            (project_root, cache_home)
-        }
-        (None, None) => {
-            let dirs = ProjectDirs::from_env();
-            (
-                dirs.project_root_path().to_path_buf(),
-                dirs.cache_home_path().to_path_buf(),
-            )
-        }
+pub fn artisan_state_root_from_config(config: ArtisanStateRootConfig) -> PathBuf {
+    if let Some(state_root) = config
+        .state_root
+        .filter(|path| !path.as_os_str().is_empty())
+    {
+        return normalize_explicit_state_root(config.project_root.as_deref(), state_root);
     }
+
+    let home_dir = config
+        .home_dir
+        .filter(|path| !path.as_os_str().is_empty())
+        .or_else(home_dir_from_env);
+    if let Some(home_dir) = home_dir {
+        return home_dir.join(ARTISAN_STATE_ROOT_DIR_NAME);
+    }
+
+    fallback_project_root(config.project_root).join(ARTISAN_STATE_ROOT_DIR_NAME)
 }
 
-fn cache_home_with_namespace(cache_home: PathBuf, namespace: &str) -> PathBuf {
-    if path_file_name_eq(cache_home.as_path(), namespace) {
-        cache_home
+fn normalize_explicit_state_root(project_root: Option<&Path>, state_root: PathBuf) -> PathBuf {
+    if state_root.is_absolute() {
+        state_root
+    } else if let Some(project_root) = project_root {
+        project_root.join(state_root)
     } else {
-        cache_home.join(namespace)
+        state_root
     }
 }
 
-fn path_file_name_eq(path: &Path, expected: &str) -> bool {
-    path.file_name()
-        .and_then(|value| value.to_str())
-        .is_some_and(|value| value == expected)
+fn home_dir_from_env() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+}
+
+fn fallback_project_root(project_root: Option<PathBuf>) -> PathBuf {
+    project_root
+        .or_else(git_utils::discover_git_toplevel_from_current_dir)
+        .or_else(|| std::env::current_dir().ok())
+        .unwrap_or_else(|| PathBuf::from("."))
 }

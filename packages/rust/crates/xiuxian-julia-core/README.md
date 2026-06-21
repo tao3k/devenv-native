@@ -818,15 +818,15 @@ needs a feature-gated second plugin bundle for these languages.
   runtime binding builders, and typed `episodic_recall`, `memory_gate_score`,
   `memory_plan_tuning`, and `memory_calibration` Arrow request or response
   helpers
-- `memory::host::*` for plugin-owned host-adapter helpers over
-  `xiuxian-memory-engine` read models, gate evidence, recall tuning inputs,
-  and calibration job inputs
+- `memory::host::*` for plugin-owned host-adapter helpers over host-provided
+  memory projection rows, gate evidence, recall tuning inputs, and calibration
+  job inputs
 - `memory::transport::*` for memory-family Flight client construction,
   request or response validation dispatch, roundtrip execution, and typed
   fetch helpers for the four staged memory profiles
-- `memory::downcall::*` for plugin-owned composition helpers that turn Rust
-  memory-engine projection, evidence, tuning, or calibration inputs into one
-  staged Julia downcall plus typed result rows
+- `memory::downcall::*` for plugin-owned composition helpers that turn host
+  projection, evidence, tuning, or calibration inputs into one staged Julia
+  downcall plus typed result rows
 - `GraphStructuralRouteKind`
 - `JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION`
 - `graph_structural_route_kind`

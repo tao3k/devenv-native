@@ -1,7 +1,5 @@
-use xiuxian_memory_engine::MemoryProjectionRow;
-
 use super::fetch_episodic_recall_score_rows_from_projection;
-use crate::memory::host::EpisodicRecallQueryInputs;
+use crate::memory::host::{EpisodicRecallQueryInputs, MemoryProjectionRow};
 use crate::memory::test_support::{
     episodic_recall_response_batch, runtime_for_test, spawn_memory_service,
 };

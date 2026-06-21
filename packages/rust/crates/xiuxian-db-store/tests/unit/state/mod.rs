@@ -3,59 +3,56 @@ use std::fs;
 use tempfile::tempdir;
 
 use super::{
-    ProjectCacheRootConfig, STATE_STORE_DIR_NAME, STATE_STORE_DUCKDB_FILE_NAME,
-    discover_git_toplevel_from, project_cache_root_from_config, project_namespace_from_root,
-    sanitize_project_namespace,
+    ARTISAN_STATE_ROOT_DIR_NAME, ArtisanStateRootConfig, STATE_STORE_DIR_NAME,
+    STATE_STORE_DUCKDB_FILE_NAME, artisan_state_root_from_config, discover_git_toplevel_from,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
-fn project_cache_root_adds_repository_namespace_under_cache_home() -> TestResult {
+fn artisan_state_root_uses_home_scoped_directory_by_default() -> TestResult {
     let tempdir = tempdir()?;
     let project_root = tempdir.path().join("xiuxian-artisan-workshop");
-    let cache_home = project_root.join(".cache");
-    fs::create_dir_all(&cache_home)?;
+    let home_dir = tempdir.path().join("home");
 
-    let root = project_cache_root_from_config(ProjectCacheRootConfig {
+    let root = artisan_state_root_from_config(ArtisanStateRootConfig {
         project_root: Some(project_root),
-        cache_home: Some(cache_home.clone()),
-        project_namespace: None,
+        state_root: None,
+        home_dir: Some(home_dir.clone()),
     });
 
-    assert_eq!(root, cache_home.join("xiuxian-artisan-workshop"));
+    assert_eq!(root, home_dir.join(ARTISAN_STATE_ROOT_DIR_NAME));
     Ok(())
 }
 
 #[test]
-fn project_cache_root_does_not_duplicate_existing_namespace() -> TestResult {
+fn artisan_state_root_respects_absolute_explicit_root() -> TestResult {
     let tempdir = tempdir()?;
     let project_root = tempdir.path().join("xiuxian-artisan-workshop");
-    let cache_home = project_root.join(".cache").join("xiuxian-artisan-workshop");
+    let state_root = tempdir.path().join("state-root");
 
-    let root = project_cache_root_from_config(ProjectCacheRootConfig {
+    let root = artisan_state_root_from_config(ArtisanStateRootConfig {
         project_root: Some(project_root),
-        cache_home: Some(cache_home.clone()),
-        project_namespace: None,
+        state_root: Some(state_root.clone()),
+        home_dir: None,
     });
 
-    assert_eq!(root, cache_home);
+    assert_eq!(root, state_root);
     Ok(())
 }
 
 #[test]
-fn project_cache_root_uses_explicit_namespace_when_provided() -> TestResult {
+fn artisan_state_root_resolves_relative_explicit_root_against_project_root() -> TestResult {
     let tempdir = tempdir()?;
     let project_root = tempdir.path().join("repo");
-    let cache_home = project_root.join(".cache");
 
-    let root = project_cache_root_from_config(ProjectCacheRootConfig {
-        project_root: Some(project_root),
-        cache_home: Some(cache_home.clone()),
-        project_namespace: Some("CyberXiuXian Artisan workshop".to_owned()),
+    let root = artisan_state_root_from_config(ArtisanStateRootConfig {
+        project_root: Some(project_root.clone()),
+        state_root: Some(".local-state".into()),
+        home_dir: None,
     });
 
-    assert_eq!(root, cache_home.join("CyberXiuXian-Artisan-workshop"));
+    assert_eq!(root, project_root.join(".local-state"));
     Ok(())
 }
 
@@ -63,12 +60,12 @@ fn project_cache_root_uses_explicit_namespace_when_provided() -> TestResult {
 fn state_store_duckdb_path_shape_is_stable() -> TestResult {
     let tempdir = tempdir()?;
     let project_root = tempdir.path().join("xiuxian-artisan-workshop");
-    let cache_home = project_root.join(".cache");
+    let home_dir = tempdir.path().join("home");
 
-    let root = project_cache_root_from_config(ProjectCacheRootConfig {
+    let root = artisan_state_root_from_config(ArtisanStateRootConfig {
         project_root: Some(project_root),
-        cache_home: Some(cache_home),
-        project_namespace: None,
+        state_root: None,
+        home_dir: Some(home_dir),
     });
 
     assert_eq!(
@@ -101,15 +98,4 @@ fn git_toplevel_discovery_accepts_git_file_marker() -> TestResult {
 
     assert_eq!(discover_git_toplevel_from(&nested), Some(repo));
     Ok(())
-}
-
-#[test]
-fn project_namespace_sanitizes_repository_root_name() {
-    let namespace = project_namespace_from_root("/tmp/CyberXiuXian Artisan workshop");
-    assert_eq!(namespace, "CyberXiuXian-Artisan-workshop");
-}
-
-#[test]
-fn empty_project_namespace_is_rejected() {
-    assert_eq!(sanitize_project_namespace(" @@@ "), None);
 }

@@ -13,7 +13,7 @@ foyer-artifact-cache = [
   "dep:xiuxian-db-store",
   "xiuxian-db-store/arrow-codec",
   "xiuxian-db-store/foyer-artifact-cache",
-  "xiuxian-db-store/project-state",
+  "xiuxian-db-store/artisan-state",
 ]
 audio-shard-arrow = [
   "dep:arrow",
@@ -34,7 +34,7 @@ pdf-source-range = [
   "dep:arrow",
   "dep:xiuxian-db-store",
   "xiuxian-db-store/arrow-codec",
-  "xiuxian-db-store/project-state",
+  "xiuxian-db-store/artisan-state",
   "dep:lopdf",
   "dep:num-traits",
 ]

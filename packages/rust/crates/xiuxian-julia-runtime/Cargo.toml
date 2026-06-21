@@ -16,7 +16,6 @@ wendao = [
     "dep:serde_json",
     "dep:serde_yaml",
     "dep:toml",
-    "dep:xiuxian-memory-engine",
     "dep:xiuxian-polyglot-orchestrator",
     "xiuxian-polyglot-orchestrator/julia-runtime",
     "dep:xiuxian-wendao-core",
@@ -31,7 +30,6 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
-xiuxian-memory-engine = { path = "../xiuxian-memory-engine", optional = true }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }

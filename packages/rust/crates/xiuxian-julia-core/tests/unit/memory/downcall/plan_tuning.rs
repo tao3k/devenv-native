@@ -1,7 +1,5 @@
-use xiuxian_memory_engine::RecallPlanTuning;
-
 use super::fetch_plan_tuning_advice_rows_from_inputs;
-use crate::memory::host::MemoryPlanTuningInputs;
+use crate::memory::host::{MemoryPlanTuningInputs, RecallPlanTuning};
 use crate::memory::test_support::{
     plan_tuning_response_batch, runtime_for_test, spawn_memory_service,
 };

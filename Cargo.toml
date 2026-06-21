@@ -19,7 +19,6 @@ members = [
   "packages/rust/crates/xiuxian-wendao-server",
   "packages/rust/crates/xiuxian-lance",
   "packages/rust/crates/xiuxian-macros",
-  "packages/rust/crates/xiuxian-memory-engine",
   "packages/rust/crates/xiuxian-logging",
   "packages/rust/crates/xiuxian-rust-workspace-harness",
   "packages/rust/crates/xiuxian-security",

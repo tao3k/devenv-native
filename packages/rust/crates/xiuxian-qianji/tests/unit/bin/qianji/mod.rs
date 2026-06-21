@@ -30,7 +30,8 @@ use tempfile::TempDir;
 use xiuxian_config_core::resolve_path_from_value;
 #[cfg(feature = "wendao-integration")]
 use xiuxian_db_store::state::{
-    ProjectCacheRootConfig, STATE_STORE_DIR_NAME, project_cache_root_from_config,
+    ARTISAN_STATE_ROOT_DIR_NAME, ArtisanStateRootConfig, STATE_STORE_DIR_NAME,
+    artisan_state_root_from_config,
 };
 
 mod bpmn;
@@ -190,21 +191,21 @@ use = ["missing-module as missing"]
 #[cfg(feature = "wendao-integration")]
 fn default_contract_feedback_storage_path_with(
     workspace_root: &Path,
-    raw_cache_home: Option<&str>,
+    raw_state_root: Option<&str>,
 ) -> PathBuf {
-    resolve_project_state_root_with(workspace_root, raw_cache_home)
+    resolve_artisan_state_root_with(workspace_root, raw_state_root)
         .join("xiuxian-qianji")
         .join("contract_feedback")
 }
 
 #[cfg(feature = "wendao-integration")]
-fn resolve_project_state_root_with(workspace_root: &Path, raw_cache_home: Option<&str>) -> PathBuf {
-    let cache_home = resolve_path_from_value(Some(workspace_root), raw_cache_home)
-        .unwrap_or_else(|| workspace_root.join(".cache"));
-    project_cache_root_from_config(ProjectCacheRootConfig {
+fn resolve_artisan_state_root_with(workspace_root: &Path, raw_state_root: Option<&str>) -> PathBuf {
+    let state_root = resolve_path_from_value(Some(workspace_root), raw_state_root);
+    let home_dir = workspace_root.join("home");
+    artisan_state_root_from_config(ArtisanStateRootConfig {
         project_root: Some(workspace_root.to_path_buf()),
-        cache_home: Some(cache_home),
-        project_namespace: None,
+        state_root,
+        home_dir: Some(home_dir),
     })
     .join(STATE_STORE_DIR_NAME)
 }

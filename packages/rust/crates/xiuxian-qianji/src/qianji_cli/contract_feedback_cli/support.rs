@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::executors::QianjiAdvisoryAuditExecutor;
 use crate::sovereign::KnowledgeStorageContractFeedbackSink;
 use xiuxian_db_store::state::{
-    ProjectCacheRootConfig, STATE_STORE_DIR_NAME, project_cache_root_from_config,
+    ArtisanStateRootConfig, STATE_STORE_DIR_NAME, artisan_state_root_from_config,
 };
 
 use super::types::RestDocsCliCommand;
@@ -43,10 +43,10 @@ pub(super) fn build_contract_feedback_session_id(openapi_path: &Path) -> String 
 }
 
 fn default_contract_feedback_storage_path(workspace_root: &Path) -> PathBuf {
-    project_cache_root_from_config(ProjectCacheRootConfig {
+    artisan_state_root_from_config(ArtisanStateRootConfig {
         project_root: Some(workspace_root.to_path_buf()),
-        cache_home: None,
-        project_namespace: None,
+        state_root: None,
+        home_dir: None,
     })
     .join(STATE_STORE_DIR_NAME)
     .join("xiuxian-qianji")

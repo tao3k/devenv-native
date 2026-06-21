@@ -12,7 +12,7 @@ default = []
 duckdb-config = [
     "dep:xiuxian-db-store",
     "xiuxian-db-store/duckdb-types",
-    "xiuxian-db-store/project-state",
+    "xiuxian-db-store/artisan-state",
 ]
 transport = [
     "dep:arrow-array",

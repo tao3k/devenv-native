@@ -246,8 +246,8 @@ pub(super) fn render_org_task(
 :COMMAND_PROXY: rtk
 :COOKIE_DATA: direct
 :NEXT_ACTION: Run task-local research and implement the bounded slice.
-:RESUME_QUERY: wendao-client orgize task-list --text '{title}' $PRJ_CACHE_HOME/agent/org
-:ARCHIVE_TARGET: $PRJ_CACHE_HOME/agent/org/archives/2026.org
+:RESUME_QUERY: wendao-client orgize task-list --text '{title}' $ARTISAN_STATE_ROOT/agent/org
+:ARCHIVE_TARGET: $ARTISAN_STATE_ROOT/agent/org/archives/{slug}.org
 :EVIDENCE: pending
 :END:
 
@@ -283,7 +283,7 @@ Pending implementation.
 ** Recovery
 
 #+begin_src text
-rtk wendao-client orgize task-list --text '{title}' $PRJ_CACHE_HOME/agent/org
+rtk wendao-client orgize task-list --text '{title}' $ARTISAN_STATE_ROOT/agent/org
 #+end_src
 ",
         sdd_path = sdd_path.display(),

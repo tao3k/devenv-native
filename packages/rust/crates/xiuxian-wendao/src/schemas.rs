@@ -78,11 +78,6 @@ pub const ROUTER_SEARCH_CONFIG_V1: &str =
 pub const DISCOVER_MATCH_V1: &str =
     include_str!("../resources/agent/xiuxian.discover.match.v1.schema.json");
 
-// --- xiuxian-memory-engine schemas ---
-/// Canonical schema for `memory-engine` gate events.
-pub const MEMORY_GATE_EVENT_V1: &str =
-    include_str!("../../xiuxian-memory-engine/resources/xiuxian.memory.gate_event.v1.schema.json");
-
 // --- Wendao skill schemas ---
 /// Canonical schema for skill metadata.
 pub const SKILL_METADATA_V1: &str = include_str!("../resources/skill_metadata.schema.json");

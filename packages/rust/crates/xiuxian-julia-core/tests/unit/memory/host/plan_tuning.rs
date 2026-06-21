@@ -1,9 +1,8 @@
-use xiuxian_memory_engine::RecallPlanTuning;
-
 use crate::memory::host::plan_tuning::{
     MemoryPlanTuningInputs, build_memory_plan_tuning_request_batch_from_inputs,
     build_memory_plan_tuning_request_rows_from_inputs,
 };
+use crate::memory::host::RecallPlanTuning;
 
 fn sample_inputs() -> MemoryPlanTuningInputs {
     MemoryPlanTuningInputs {

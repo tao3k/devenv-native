@@ -2,7 +2,7 @@
 
 #[cfg(feature = "semantic-sql")]
 use crate::semantic;
-use crate::{ClientCommand, ClientContext, LintCommand, get, lint, orgize};
+use crate::{ClientCommand, ClientContext, LintCommand, get, lint};
 use anyhow::Result;
 
 /// Stable process outcome for standalone and embedded command entrypoints.
@@ -42,7 +42,6 @@ pub fn run_command(command: &ClientCommand, context: &ClientContext) -> Result<C
         ClientCommand::Lint { command } => run_lint_command(command, context),
         #[cfg(feature = "semantic-sql")]
         ClientCommand::Semantic { command } => semantic::run_command(command, context),
-        ClientCommand::Orgize { command } => orgize::run_command(command, context),
     }
 }
 

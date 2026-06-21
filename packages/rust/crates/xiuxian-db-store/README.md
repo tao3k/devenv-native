@@ -6,7 +6,7 @@ runtime code.
 
 ## Feature Surfaces
 
-- `project-state`: exposes the shared project-local state path contract. It resolves `PRJ_CACHE_HOME` when present, otherwise uses the git toplevel `.cache`, then appends the sanitized project namespace so state databases live under `$PRJ_CACHE_HOME/<project-namespace>/...`.
+- `artisan-state`: exposes the shared user-local Artisan state path contract. By default, state databases live under `$HOME/.xiuxian-artisan-workshop/...`; callers may still pass an explicit state root when a test or operator-owned override requires isolation.
 - `engine`: exposes Arrow/DataFusion engine record batches, IPC helpers,
   retrieval result schemas generated through the shared Arrow table-contract
   surface, and Parquet write helpers without compiling `xiuxian-vector` or
@@ -41,7 +41,7 @@ runtime code.
 
 ## Ownership Boundary
 
-Project-local state path contracts belong here behind `project-state`. Consumers should use `state::project_cache_root`, `state::state_store_root`, or `state::state_store_duckdb_path` instead of hardcoding `.cache/agent`, package-local cache roots, or route-owned DuckDB locations. The state surface only owns stable storage placement and git/cache namespace discovery; Org task semantics, memory scoring, workflow payload schemas, and runtime-specific state records remain with their owning crates.
+User-local Artisan state path contracts belong here behind `artisan-state`. Consumers should use `state::artisan_state_root`, `state::state_store_root`, or `state::state_store_duckdb_path` instead of hardcoding `.cache/agent`, package-local cache roots, or route-owned DuckDB locations. The state surface only owns stable storage placement under `$HOME/.xiuxian-artisan-workshop`; Org task semantics, memory scoring, workflow payload schemas, and runtime-specific state records remain with their owning crates.
 
 Generic DuckDB and DuckLake storage primitives belong here. Wendao may still
 own search-specific runtime resolution, Flight-facing behavior, event-lake

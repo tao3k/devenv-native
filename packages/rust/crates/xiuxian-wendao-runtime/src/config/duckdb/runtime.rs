@@ -7,14 +7,13 @@ use serde_yaml::Value;
 use xiuxian_config_core::resolve_path_from_value;
 pub use xiuxian_db_store::duckdb::DuckDbDatabasePath;
 use xiuxian_db_store::duckdb::{DuckDbExecutionConfig, DuckDbRuntimeConfig};
-use xiuxian_db_store::state::{ProjectCacheRootConfig, project_cache_root_from_config};
+use xiuxian_db_store::state::{ArtisanStateRootConfig, artisan_state_root_from_config};
 
 /// State namespace for Wendao-owned runtime artifacts.
 pub const DEFAULT_WENDAO_STATE_NAMESPACE: &str = "wendao";
 /// `DuckDB`'s special marker for one ephemeral in-process database.
 ///
-/// This is a DuckDB-local catalog mode, not Wendao memory-layer state and not
-/// an integration point for `xiuxian-memory-engine`.
+/// This is a DuckDB-local catalog mode, not Wendao memory-layer state.
 pub const SEARCH_DUCKDB_IN_MEMORY_DATABASE_PATH: &str = ":memory:";
 /// Compatibility alias for the config marker that keeps older callers compiling.
 pub const DEFAULT_SEARCH_DUCKDB_DATABASE_PATH: &str = SEARCH_DUCKDB_IN_MEMORY_DATABASE_PATH;
@@ -45,10 +44,10 @@ pub type SearchDuckDbRuntimeConfig = DuckDbRuntimeConfig;
 /// Resolve the default Wendao state root.
 #[must_use]
 pub fn default_wendao_state_root(project_root: &Path) -> PathBuf {
-    project_cache_root_from_config(ProjectCacheRootConfig {
+    artisan_state_root_from_config(ArtisanStateRootConfig {
         project_root: Some(project_root.to_path_buf()),
-        cache_home: None,
-        project_namespace: None,
+        state_root: None,
+        home_dir: None,
     })
     .join(DEFAULT_WENDAO_STATE_NAMESPACE)
 }

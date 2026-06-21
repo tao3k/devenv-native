@@ -1,7 +1,6 @@
 //! Thin bridge from `xiuxian-wendao` into plugin-owned Julia memory compute.
 //!
 //! Ownership rule:
-//! - `xiuxian-memory-engine` owns authoritative memory state and read models
 //! - `xiuxian-wendao-runtime` owns runtime config and transport negotiation
 //! - `xiuxian-julia-runtime` owns host staging, typed contracts, transport, and
 //!   composed downcalls

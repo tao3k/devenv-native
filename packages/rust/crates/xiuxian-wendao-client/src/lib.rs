@@ -5,7 +5,6 @@ mod context;
 mod execute;
 mod get;
 mod lint;
-mod orgize;
 mod output;
 #[cfg(feature = "semantic-sql")]
 mod semantic;
@@ -31,23 +30,6 @@ pub use lint::{
 pub use lint::{
     SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
     SemanticLintWritebackArgs,
-};
-#[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeOrgidShowArgs;
-#[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeReadModelArgs;
-#[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeTaskProbeArgs;
-#[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeTaskRecoverArgs;
-#[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeTaskSddArgs;
-#[cfg(all(feature = "performance", feature = "orgize-agent-read-model"))]
-pub use orgize::perf_support as orgize_perf_support;
-pub use orgize::{
-    OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeEvalCommand, OrgizeFormatArgs, OrgizeLintArgs,
-    OrgizeLintFormatArg, OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs,
-    OrgizeSparseTreeArgs,
 };
 pub use output::OutputFormat;
 #[cfg(feature = "semantic-sql")]

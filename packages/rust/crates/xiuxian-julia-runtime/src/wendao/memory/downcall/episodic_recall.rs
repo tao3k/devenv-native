@@ -1,11 +1,11 @@
 //! Downcall helpers for Julia episodic-recall requests.
 
-use xiuxian_memory_engine::MemoryProjectionRow;
 use xiuxian_wendao_core::repo_intelligence::RepoIntelligenceError;
 use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;
 
 use crate::wendao::memory::host::{
-    EpisodicRecallQueryInputs, build_episodic_recall_request_rows_from_projection,
+    EpisodicRecallQueryInputs, MemoryProjectionRow,
+    build_episodic_recall_request_rows_from_projection,
 };
 use crate::wendao::memory::{
     MemoryJuliaEpisodicRecallScoreRow, fetch_memory_julia_episodic_recall_score_rows,

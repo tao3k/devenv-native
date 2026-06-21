@@ -13,7 +13,7 @@ duckdb = [
   "run-console-flight",
   "dep:tokio-stream",
   "dep:xiuxian-db-store",
-  "xiuxian-db-store/project-state",
+  "xiuxian-db-store/artisan-state",
   "xiuxian-db-store/qianji-bpmn-workflow-state",
   "xiuxian-qianji-control/duckdb",
 ]

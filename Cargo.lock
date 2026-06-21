@@ -10644,7 +10644,6 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
- "xiuxian-config-core",
  "xiuxian-qianji-bpmn-engine",
  "xiuxian-rust-workspace-harness",
  "xiuxian-vector",
@@ -10724,7 +10723,6 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "toml 0.8.23",
- "xiuxian-memory-engine",
  "xiuxian-polyglot-orchestrator",
  "xiuxian-rust-workspace-harness",
  "xiuxian-wendao-core",
@@ -10766,28 +10764,6 @@ dependencies = [
  "uuid",
  "xiuxian-config-core",
  "xiuxian-rust-workspace-harness",
-]
-
-[[package]]
-name = "xiuxian-memory-engine"
-version = "0.1.1"
-dependencies = [
- "anyhow",
- "chrono",
- "log",
- "num-traits",
- "rand 0.8.6",
- "redis",
- "rust-lang-project-harness",
- "schemars 1.2.1",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.18",
- "uuid",
- "xiuxian-db-store",
- "xiuxian-rust-workspace-harness",
- "xiuxian-types",
 ]
 
 [[package]]
@@ -11122,10 +11098,7 @@ dependencies = [
  "toml 0.8.23",
  "walkdir",
  "xiuxian-config-core",
- "xiuxian-db-store",
- "xiuxian-graph-core",
  "xiuxian-logging",
- "xiuxian-memory-engine",
  "xiuxian-rust-workspace-harness",
  "xiuxian-wendao-parsers",
  "xiuxian-wendao-sql",

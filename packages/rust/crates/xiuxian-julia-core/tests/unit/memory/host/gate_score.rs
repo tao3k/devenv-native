@@ -1,61 +1,56 @@
-use tempfile::TempDir;
-use xiuxian_memory_engine::{
-    Episode, EpisodeDraft, EpisodeStore, MemoryLifecycleState, MemoryUtilityLedger, StoreConfig,
-};
-
 use crate::memory::host::gate_score::{
-    MemoryGateScoreEvidenceRow, MemoryGateScoreEvidenceSignals, MemoryGateScoreStoreEvidenceInput,
-    build_memory_gate_score_evidence_row_from_episode,
-    build_memory_gate_score_evidence_row_from_store,
-    build_memory_gate_score_request_batch_from_evidence,
+    MemoryGateScoreEvidenceRow, build_memory_gate_score_request_batch_from_evidence,
     build_memory_gate_score_request_rows_from_evidence,
 };
+use crate::memory::host::{MemoryLifecycleState, MemoryUtilityLedger};
 
-fn make_store() -> Result<(TempDir, EpisodeStore), Box<dyn std::error::Error>> {
-    let temp = tempfile::tempdir()?;
-    let store = EpisodeStore::new(StoreConfig {
-        path: temp.path().to_string_lossy().to_string(),
-        embedding_dim: 3,
-        table_name: "gate-score-host-staging".to_string(),
-    });
-    Ok((temp, store))
-}
-
-fn sample_episode(memory_id: &str) -> Episode {
-    let mut episode = Episode::new_scoped(
-        EpisodeDraft {
-            id: memory_id.to_string().into(),
-            intent: "intent".to_string(),
-            intent_embedding: vec![0.1, 0.2, 0.3],
-            experience: "experience".to_string(),
-            outcome: "completed".to_string(),
-            scope: None,
-        }
-        .with_scope("alpha"),
-    );
-    episode.q_value = 0.84;
-    episode.success_count = 5;
-    episode.failure_count = 1;
-    episode.retrieval_count = 6;
-    episode
-}
-
-fn gate_score_signals(current_state: MemoryLifecycleState) -> MemoryGateScoreEvidenceSignals {
-    MemoryGateScoreEvidenceSignals {
-        react_revalidation_score: 0.91,
-        graph_consistency_score: 0.88,
-        omega_alignment_score: 0.93,
+fn sample_evidence_row(
+    memory_id: &str,
+    scenario_pack: Option<String>,
+    current_state: MemoryLifecycleState,
+) -> MemoryGateScoreEvidenceRow {
+    MemoryGateScoreEvidenceRow {
+        memory_id: memory_id.to_string(),
+        scenario_pack,
+        ledger: MemoryUtilityLedger {
+            react_revalidation_score: 0.91,
+            graph_consistency_score: 0.88,
+            omega_alignment_score: 0.93,
+            ttl_score: 0.66,
+            utility_score: 0.82,
+            q_value: 0.84,
+            usage_count: 6,
+            failure_rate: 1.0 / 6.0,
+        },
         current_state,
+    }
+}
+
+fn sample_cooling_evidence_row(memory_id: &str) -> MemoryGateScoreEvidenceRow {
+    MemoryGateScoreEvidenceRow {
+        memory_id: memory_id.to_string(),
+        scenario_pack: None,
+        ledger: MemoryUtilityLedger {
+            react_revalidation_score: 0.77,
+            graph_consistency_score: 0.74,
+            omega_alignment_score: 0.81,
+            ttl_score: 0.58,
+            utility_score: 0.7,
+            q_value: 0.62,
+            usage_count: 2,
+            failure_rate: 0.5,
+        },
+        current_state: MemoryLifecycleState::Cooling,
     }
 }
 
 #[test]
 fn build_memory_gate_score_request_rows_from_evidence_maps_host_fields()
 -> Result<(), Box<dyn std::error::Error>> {
-    let evidence = build_memory_gate_score_evidence_row_from_episode(
-        &sample_episode("memory-alpha"),
+    let evidence = sample_evidence_row(
+        "memory-alpha",
         Some("searchinfra".to_string()),
-        &gate_score_signals(MemoryLifecycleState::Active),
+        MemoryLifecycleState::Active,
     );
 
     let rows = build_memory_gate_score_request_rows_from_evidence(&[evidence])?;
@@ -70,7 +65,7 @@ fn build_memory_gate_score_request_rows_from_evidence_maps_host_fields()
     assert!((row.q_value - 0.84).abs() < 1e-6);
     assert_eq!(row.usage_count, 6);
     assert!((row.failure_rate - (1.0 / 6.0)).abs() < 1e-6);
-    assert!(row.ttl_score > 0.0);
+    assert!((row.ttl_score - 0.66).abs() < 1e-6);
     assert_eq!(row.current_state, "active");
 
     Ok(())
@@ -80,21 +75,12 @@ fn build_memory_gate_score_request_rows_from_evidence_maps_host_fields()
 fn build_memory_gate_score_request_batch_from_evidence_materializes_staged_contract()
 -> Result<(), Box<dyn std::error::Error>> {
     let evidence_rows = vec![
-        build_memory_gate_score_evidence_row_from_episode(
-            &sample_episode("memory-alpha"),
+        sample_evidence_row(
+            "memory-alpha",
             Some("searchinfra".to_string()),
-            &gate_score_signals(MemoryLifecycleState::Active),
+            MemoryLifecycleState::Active,
         ),
-        build_memory_gate_score_evidence_row_from_episode(
-            &sample_episode("memory-beta"),
-            None,
-            &MemoryGateScoreEvidenceSignals {
-                react_revalidation_score: 0.77,
-                graph_consistency_score: 0.74,
-                omega_alignment_score: 0.81,
-                current_state: MemoryLifecycleState::Cooling,
-            },
-        ),
+        sample_cooling_evidence_row("memory-beta"),
     ];
 
     let batch = build_memory_gate_score_request_batch_from_evidence(&evidence_rows)?;
@@ -131,28 +117,4 @@ fn build_memory_gate_score_request_batch_from_evidence_rejects_invalid_memory_id
     };
 
     assert!(error.to_string().contains("memory_id"));
-}
-
-#[test]
-fn build_memory_gate_score_evidence_row_from_store_roundtrips_real_episode()
--> Result<(), Box<dyn std::error::Error>> {
-    let (_temp, store) = make_store()?;
-    store.store(sample_episode("memory-alpha"))?;
-
-    let evidence =
-        build_memory_gate_score_evidence_row_from_store(MemoryGateScoreStoreEvidenceInput {
-            store: &store,
-            memory_id: "memory-alpha".into(),
-            scenario_pack: Some("searchinfra".to_string()),
-            signals: gate_score_signals(MemoryLifecycleState::RevalidatePending),
-        })?;
-    let rows = build_memory_gate_score_request_rows_from_evidence(&[evidence])?;
-
-    assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].memory_id, "memory-alpha");
-    assert_eq!(rows[0].usage_count, 6);
-    assert_eq!(rows[0].current_state, "revalidate_pending");
-    assert!((rows[0].failure_rate - (1.0 / 6.0)).abs() < 1e-6);
-
-    Ok(())
 }

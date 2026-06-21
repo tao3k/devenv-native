@@ -1,7 +1,7 @@
-use xiuxian_memory_engine::{MemoryLifecycleState, MemoryUtilityLedger};
-
 use super::fetch_gate_score_recommendation_rows_from_evidence;
-use crate::memory::host::MemoryGateScoreEvidenceRow;
+use crate::memory::host::{
+    MemoryGateScoreEvidenceRow, MemoryLifecycleState, MemoryUtilityLedger,
+};
 use crate::memory::test_support::{
     gate_score_response_batch, runtime_for_test, spawn_memory_service,
 };
