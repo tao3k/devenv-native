@@ -8,12 +8,14 @@ use super::{
     sanitize_project_namespace,
 };
 
+type TestResult = Result<(), Box<dyn std::error::Error>>;
+
 #[test]
-fn project_cache_root_adds_repository_namespace_under_cache_home() {
-    let tempdir = tempdir().expect("create tempdir");
+fn project_cache_root_adds_repository_namespace_under_cache_home() -> TestResult {
+    let tempdir = tempdir()?;
     let project_root = tempdir.path().join("xiuxian-artisan-workshop");
     let cache_home = project_root.join(".cache");
-    fs::create_dir_all(&cache_home).expect("create cache home");
+    fs::create_dir_all(&cache_home)?;
 
     let root = project_cache_root_from_config(ProjectCacheRootConfig {
         project_root: Some(project_root),
@@ -22,11 +24,12 @@ fn project_cache_root_adds_repository_namespace_under_cache_home() {
     });
 
     assert_eq!(root, cache_home.join("xiuxian-artisan-workshop"));
+    Ok(())
 }
 
 #[test]
-fn project_cache_root_does_not_duplicate_existing_namespace() {
-    let tempdir = tempdir().expect("create tempdir");
+fn project_cache_root_does_not_duplicate_existing_namespace() -> TestResult {
+    let tempdir = tempdir()?;
     let project_root = tempdir.path().join("xiuxian-artisan-workshop");
     let cache_home = project_root.join(".cache").join("xiuxian-artisan-workshop");
 
@@ -37,11 +40,12 @@ fn project_cache_root_does_not_duplicate_existing_namespace() {
     });
 
     assert_eq!(root, cache_home);
+    Ok(())
 }
 
 #[test]
-fn project_cache_root_uses_explicit_namespace_when_provided() {
-    let tempdir = tempdir().expect("create tempdir");
+fn project_cache_root_uses_explicit_namespace_when_provided() -> TestResult {
+    let tempdir = tempdir()?;
     let project_root = tempdir.path().join("repo");
     let cache_home = project_root.join(".cache");
 
@@ -52,11 +56,12 @@ fn project_cache_root_uses_explicit_namespace_when_provided() {
     });
 
     assert_eq!(root, cache_home.join("CyberXiuXian-Artisan-workshop"));
+    Ok(())
 }
 
 #[test]
-fn state_store_duckdb_path_shape_is_stable() {
-    let tempdir = tempdir().expect("create tempdir");
+fn state_store_duckdb_path_shape_is_stable() -> TestResult {
+    let tempdir = tempdir()?;
     let project_root = tempdir.path().join("xiuxian-artisan-workshop");
     let cache_home = project_root.join(".cache");
 
@@ -71,28 +76,31 @@ fn state_store_duckdb_path_shape_is_stable() {
             .join(STATE_STORE_DUCKDB_FILE_NAME),
         root.join("state").join("state.duckdb")
     );
+    Ok(())
 }
 
 #[test]
-fn git_toplevel_discovery_accepts_git_directory_marker() {
-    let tempdir = tempdir().expect("create tempdir");
+fn git_toplevel_discovery_accepts_git_directory_marker() -> TestResult {
+    let tempdir = tempdir()?;
     let repo = tempdir.path().join("xiuxian-artisan-workshop");
     let nested = repo.join("packages/rust/crates");
-    fs::create_dir_all(repo.join(".git")).expect("create git marker");
-    fs::create_dir_all(&nested).expect("create nested path");
+    fs::create_dir_all(repo.join(".git"))?;
+    fs::create_dir_all(&nested)?;
 
     assert_eq!(discover_git_toplevel_from(&nested), Some(repo));
+    Ok(())
 }
 
 #[test]
-fn git_toplevel_discovery_accepts_git_file_marker() {
-    let tempdir = tempdir().expect("create tempdir");
+fn git_toplevel_discovery_accepts_git_file_marker() -> TestResult {
+    let tempdir = tempdir()?;
     let repo = tempdir.path().join("xiuxian-artisan-workshop");
     let nested = repo.join("packages/rust/crates");
-    fs::create_dir_all(&nested).expect("create nested path");
-    fs::write(repo.join(".git"), "gitdir: ../worktrees/current\n").expect("write git marker");
+    fs::create_dir_all(&nested)?;
+    fs::write(repo.join(".git"), "gitdir: ../worktrees/current\n")?;
 
     assert_eq!(discover_git_toplevel_from(&nested), Some(repo));
+    Ok(())
 }
 
 #[test]
