@@ -10,7 +10,7 @@ use super::git_utils;
 /// cache namespace.
 pub const STATE_STORE_DIR_NAME: &str = "state";
 
-/// Default DuckDB database filename for shared project-state records.
+/// Default `DuckDB` database filename for shared project-state records.
 pub const STATE_STORE_DUCKDB_FILE_NAME: &str = "state.duckdb";
 
 /// Named inputs for resolving the project cache namespace.
@@ -39,7 +39,7 @@ pub fn state_store_root() -> PathBuf {
     project_cache_root().join(STATE_STORE_DIR_NAME)
 }
 
-/// Resolve the shared project-state DuckDB path for the current process.
+/// Resolve the shared project-state `DuckDB` path for the current process.
 #[must_use]
 pub fn state_store_duckdb_path() -> PathBuf {
     state_store_root().join(STATE_STORE_DUCKDB_FILE_NAME)

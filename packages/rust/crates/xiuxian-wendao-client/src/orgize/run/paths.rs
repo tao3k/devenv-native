@@ -2,19 +2,15 @@
 
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
 use xiuxian_db_store::state::{ProjectCacheRootConfig, project_cache_root_from_config};
 
 use crate::ClientContext;
 
-pub(super) fn resolve_sdd_paths(
-    paths: &[PathBuf],
-    context: &ClientContext,
-) -> Result<Vec<PathBuf>> {
+pub(super) fn resolve_sdd_paths(paths: &[PathBuf], context: &ClientContext) -> Vec<PathBuf> {
     if paths.is_empty() {
-        return Ok(vec![project_cache_root(context).join("agent").join("sdd")]);
+        return vec![project_cache_root(context).join("agent").join("sdd")];
     }
-    Ok(resolve_paths(paths, context))
+    resolve_paths(paths, context)
 }
 
 pub(super) fn resolve_paths(paths: &[PathBuf], context: &ClientContext) -> Vec<PathBuf> {

@@ -26,7 +26,7 @@ fn run_sdd_graph_diff(
     context: &ClientContext,
 ) -> Result<CommandOutcome> {
     let request = OrgizeSddGraphDiffRequest {
-        paths: resolve_sdd_paths(&args.paths, context)?,
+        paths: resolve_sdd_paths(&args.paths, context),
     };
     let rendered = render_sdd_graph_diff(&request)?;
     print!("{rendered}");
@@ -39,7 +39,7 @@ fn run_sdd_graph_diff(
 
 fn run_sdd_status(args: &OrgizeSddStatusArgs, context: &ClientContext) -> Result<CommandOutcome> {
     let request = OrgizeSddStatusRequest {
-        paths: resolve_sdd_paths(&args.paths, context)?,
+        paths: resolve_sdd_paths(&args.paths, context),
         issues_only: args.issues_only,
     };
     let rendered = if args.json {
