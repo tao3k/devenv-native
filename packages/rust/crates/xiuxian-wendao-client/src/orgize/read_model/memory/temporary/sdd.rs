@@ -103,7 +103,13 @@ pub(super) fn task_source_project_root(row: &AgentOrgTaskListRow) -> PathBuf {
 }
 
 pub(super) fn expand_task_sdd_path(raw: &str, root: &Path) -> String {
-    let cache_home = root.join(".cache");
+    let cache_home = xiuxian_db_store::state::project_cache_root_from_config(
+        xiuxian_db_store::state::ProjectCacheRootConfig {
+            project_root: Some(root.to_path_buf()),
+            cache_home: None,
+            project_namespace: None,
+        },
+    );
     let replacements = [
         ("${PRJ_CACHE_HOME}", cache_home.as_path()),
         ("$PRJ_CACHE_HOME", cache_home.as_path()),

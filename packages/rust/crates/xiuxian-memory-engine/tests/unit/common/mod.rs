@@ -1,13 +1,14 @@
 //! Shared test helpers for `xiuxian-memory-engine`.
 //!
-//! Store paths go under PRJ_CACHE_HOME/xiuxian-memory-engine per project conventions.
+//! Store paths go under the project-local state cache per project conventions.
 
-/// Path for test store under PRJ_CACHE/xiuxian-memory-engine.
+/// Path for test store under the project-local xiuxian-memory-engine state root.
 ///
 /// Uses a unique suffix per call for parallel test isolation.
 pub fn test_store_path(name: &str) -> String {
-    let cache = xiuxian_config_core::ProjectDirs::cache_home();
-    let base = cache.join("xiuxian-memory-engine").join(name);
+    let base = xiuxian_db_store::state::state_store_root()
+        .join("xiuxian-memory-engine")
+        .join(name);
     let unique = uuid::Uuid::new_v4();
     base.join(unique.to_string()).to_string_lossy().to_string()
 }

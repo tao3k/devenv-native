@@ -3,9 +3,10 @@ use std::{path::Path, process::Command};
 use crate::orgize_runtime::support::tempdir_or_panic;
 
 use super::{
-    assert_agent_memory_object_projection, assert_agent_memory_object_row_count,
-    assert_agent_memory_object_row_count_for_orgid, assert_agent_org_element_projection_exists,
-    assert_agent_org_element_row_count_at_least, assert_agent_task_row_count,
+    agent_read_model_database_path, assert_agent_memory_object_projection,
+    assert_agent_memory_object_row_count, assert_agent_memory_object_row_count_for_orgid,
+    assert_agent_org_element_projection_exists, assert_agent_org_element_row_count_at_least,
+    assert_agent_task_row_count,
 };
 
 #[test]
@@ -64,12 +65,7 @@ fn standalone_orgize_read_model_materializes_default_duckdb_snapshot() {
     assert!(stdout.contains("rows: 2"), "stdout: {stdout}");
     assert!(stdout.contains("memory-objects: 2"), "stdout: {stdout}");
     assert!(stdout.contains("org-elements: "), "stdout: {stdout}");
-    let database_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("readmodels")
-        .join("org_agent_tasks.duckdb");
+    let database_path = agent_read_model_database_path(temp.path());
     assert!(database_path.is_file());
     assert_agent_task_row_count(&database_path, 2);
     assert_agent_memory_object_row_count(&database_path, 2);
@@ -125,12 +121,7 @@ fn standalone_orgize_read_model_materializes_serverless_memory_reference_fixture
         "stdout: {stdout}\nstderr: {stderr}"
     );
     assert!(stdout.contains("memory-objects: 5"), "stdout: {stdout}");
-    let database_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("readmodels")
-        .join("org_agent_tasks.duckdb");
+    let database_path = agent_read_model_database_path(temp.path());
     assert_agent_task_row_count(&database_path, 2);
     assert_agent_memory_object_row_count(&database_path, 5);
     assert_agent_memory_object_row_count_for_orgid(&database_path, "superseded-memory-sample", 0);

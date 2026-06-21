@@ -14,17 +14,17 @@ pub fn resolve_link_graph_index_runtime_with_settings(
     settings: &Value,
 ) -> LinkGraphIndexRuntimeConfig {
     let explicit_include = dedup_dirs(
-        get_setting_string_list(settings, "link_graph.include_dirs")
+        get_setting_string_list(settings, "sources.include_dirs")
             .into_iter()
             .filter_map(|item| normalize_relative_dir(&item))
             .collect(),
     );
 
     let include_dirs = if explicit_include.is_empty()
-        && get_setting_bool(settings, "link_graph.include_dirs_auto").unwrap_or(true)
+        && get_setting_bool(settings, "sources.include_dirs_auto").unwrap_or(true)
     {
         dedup_dirs(
-            get_setting_string_list(settings, "link_graph.include_dirs_auto_candidates")
+            get_setting_string_list(settings, "sources.include_dirs_auto_candidates")
                 .into_iter()
                 .filter_map(|item| normalize_relative_dir(&item))
                 .filter(|candidate| root_dir.join(candidate).is_dir())
@@ -35,7 +35,7 @@ pub fn resolve_link_graph_index_runtime_with_settings(
     };
 
     let exclude_dirs = dedup_dirs(
-        get_setting_string_list(settings, "link_graph.exclude_dirs")
+        get_setting_string_list(settings, "sources.exclude_dirs")
             .into_iter()
             .filter_map(|item| normalize_relative_dir(&item))
             .filter(|value| !value.starts_with('.'))

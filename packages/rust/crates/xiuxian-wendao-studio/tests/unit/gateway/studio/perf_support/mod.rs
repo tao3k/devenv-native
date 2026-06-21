@@ -82,7 +82,7 @@ fn gateway_ui_config_falls_back_to_repo_intelligence_projects() {
         .unwrap_or_else(|error| panic!("failed to create temporary config root: {error}"));
     fs::write(
         root.join("wendao.toml"),
-        r#"[link_graph.projects."ADTypes.jl"]
+        r#"[sources.projects."ADTypes.jl"]
 url = "https://github.com/SciML/ADTypes.jl.git"
 refresh = "fetch"
 plugins = ["julia-code-parser"]

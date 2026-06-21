@@ -138,10 +138,10 @@ pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_
 fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
     let mut projects = Vec::new();
     let mut repo_projects = Vec::new();
-    let global_include_dirs = sanitize_path_list(&parsed.link_graph.include_dirs);
+    let global_include_dirs = sanitize_path_list(&parsed.sources.include_dirs);
     let mut global_include_dirs_applied = false;
 
-    for (id, project) in parsed.link_graph.projects {
+    for (id, project) in parsed.sources.projects {
         let root = project
             .root
             .as_deref()

@@ -39,7 +39,7 @@ async fn repo_doc_coverage_endpoint_executes_over_external_modelica_plugin_path(
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-doc-coverage]
+            r#"[sources.projects.modelica-gateway-doc-coverage]
 root = "{}"
 plugins = ["modelica"]
 "#,

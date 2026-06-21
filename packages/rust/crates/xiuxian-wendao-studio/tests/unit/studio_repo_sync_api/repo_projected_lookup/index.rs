@@ -46,7 +46,7 @@ async fn repo_projected_page_index_tree_endpoint_executes_over_external_modelica
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-projected-index-tree]
+            r#"[sources.projects.modelica-gateway-projected-index-tree]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -145,7 +145,7 @@ async fn repo_projected_page_index_node_endpoint_executes_over_external_modelica
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-projected-index-node]
+            r#"[sources.projects.modelica-gateway-projected-index-node]
 root = "{}"
 plugins = ["modelica"]
 "#,

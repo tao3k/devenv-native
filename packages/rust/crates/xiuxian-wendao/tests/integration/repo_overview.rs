@@ -38,7 +38,7 @@ fn config_parses_relative_repo_paths_against_config_dir() -> TestResult {
     let config_path = config_dir.join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "../repos/sample"
 plugins = ["julia-code-parser"]
 "#,
@@ -100,7 +100,7 @@ fn modelica_plugin_builds_repo_overview_and_search_results_from_local_repo() -> 
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-demo]
+            r#"[sources.projects.modelica-demo]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -400,7 +400,7 @@ fn write_repo_url_config_with_ref(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 url = "{}"
 {}{}plugins = [{plugin}]
 "#,

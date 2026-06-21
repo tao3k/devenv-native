@@ -34,7 +34,7 @@ provider = "openrouter"
 model = "qwen/qwen3-vl-8b-instruct"
 backend_profile = "hosted-vlm-image-extract-v1"
 
-[link_graph]
+[sources]
 include_dirs = [
     "docs",
     "semantic",
@@ -47,1076 +47,1076 @@ exclude_dirs = [
     "target",
 ]
 
-[link_graph.projects."ADTypes.jl"]
+[sources.projects."ADTypes.jl"]
 dirs = []
 url = "https://github.com/SciML/ADTypes.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."AutoOffload.jl"]
+[sources.projects."AutoOffload.jl"]
 dirs = []
 url = "https://github.com/SciML/AutoOffload.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."AutoOptimize.jl"]
+[sources.projects."AutoOptimize.jl"]
 dirs = []
 url = "https://github.com/SciML/AutoOptimize.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."BipartiteGraphs.jl"]
+[sources.projects."BipartiteGraphs.jl"]
 dirs = []
 url = "https://github.com/SciML/BipartiteGraphs.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."BlackBoxOptim.jl"]
+[sources.projects."BlackBoxOptim.jl"]
 dirs = []
 url = "https://github.com/SciML/BlackBoxOptim.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."BoundaryValueDiffEq.jl"]
+[sources.projects."BoundaryValueDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/BoundaryValueDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."BridgeDiffEq.jl"]
+[sources.projects."BridgeDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/BridgeDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."CasADi.jl"]
+[sources.projects."CasADi.jl"]
 dirs = []
 url = "https://github.com/SciML/CasADi.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Catalyst.jl"]
+[sources.projects."Catalyst.jl"]
 dirs = []
 url = "https://github.com/SciML/Catalyst.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."CatalystNetworkAnalysis.jl"]
+[sources.projects."CatalystNetworkAnalysis.jl"]
 dirs = []
 url = "https://github.com/SciML/CatalystNetworkAnalysis.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."CellMLToolkit.jl"]
+[sources.projects."CellMLToolkit.jl"]
 dirs = []
 url = "https://github.com/SciML/CellMLToolkit.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.ColPrac]
+[sources.projects.ColPrac]
 dirs = []
 url = "https://github.com/SciML/ColPrac.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."CommonSolve.jl"]
+[sources.projects."CommonSolve.jl"]
 dirs = []
 url = "https://github.com/SciML/CommonSolve.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."CommonWorldInvalidations.jl"]
+[sources.projects."CommonWorldInvalidations.jl"]
 dirs = []
 url = "https://github.com/SciML/CommonWorldInvalidations.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ComplementaritySolve.jl"]
+[sources.projects."ComplementaritySolve.jl"]
 dirs = []
 url = "https://github.com/SciML/ComplementaritySolve.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ComponentArrays.jl"]
+[sources.projects."ComponentArrays.jl"]
 dirs = []
 url = "https://github.com/SciML/ComponentArrays.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ConcreteStructs.jl"]
+[sources.projects."ConcreteStructs.jl"]
 dirs = []
 url = "https://github.com/SciML/ConcreteStructs.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Corleone.jl"]
+[sources.projects."Corleone.jl"]
 dirs = []
 url = "https://github.com/SciML/Corleone.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."CurveFit.jl"]
+[sources.projects."CurveFit.jl"]
 dirs = []
 url = "https://github.com/SciML/CurveFit.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DASKR.jl"]
+[sources.projects."DASKR.jl"]
 dirs = []
 url = "https://github.com/SciML/DASKR.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DASSL.jl"]
+[sources.projects."DASSL.jl"]
 dirs = []
 url = "https://github.com/SciML/DASSL.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DEDataArrays.jl"]
+[sources.projects."DEDataArrays.jl"]
 dirs = []
 url = "https://github.com/SciML/DEDataArrays.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DataCollocations.jl"]
+[sources.projects."DataCollocations.jl"]
 dirs = []
 url = "https://github.com/SciML/DataCollocations.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DataDrivenDiffEq.jl"]
+[sources.projects."DataDrivenDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/DataDrivenDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DataInterpolations.jl"]
+[sources.projects."DataInterpolations.jl"]
 dirs = []
 url = "https://github.com/SciML/DataInterpolations.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DataInterpolationsND.jl"]
+[sources.projects."DataInterpolationsND.jl"]
 dirs = []
 url = "https://github.com/SciML/DataInterpolationsND.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DeepEquilibriumNetworks.jl"]
+[sources.projects."DeepEquilibriumNetworks.jl"]
 dirs = []
 url = "https://github.com/SciML/DeepEquilibriumNetworks.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DelayDiffEq.jl"]
+[sources.projects."DelayDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/DelayDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqApproxFun.jl"]
+[sources.projects."DiffEqApproxFun.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqApproxFun.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqBase.jl"]
+[sources.projects."DiffEqBase.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqBayes.jl"]
+[sources.projects."DiffEqBayes.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqBayes.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqCallbacks.jl"]
+[sources.projects."DiffEqCallbacks.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqCallbacks.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqDSL.jl"]
+[sources.projects."DiffEqDSL.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqDSL.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqDevDocs.jl"]
+[sources.projects."DiffEqDevDocs.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqDevDocs.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqDevTools.jl"]
+[sources.projects."DiffEqDevTools.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqDevTools.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqDiagrams.jl"]
+[sources.projects."DiffEqDiagrams.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqDiagrams.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqDocs.jl"]
+[sources.projects."DiffEqDocs.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqDocs.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqFinancial.jl"]
+[sources.projects."DiffEqFinancial.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqFinancial.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqFlux.jl"]
+[sources.projects."DiffEqFlux.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqFlux.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqGPU.jl"]
+[sources.projects."DiffEqGPU.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqGPU.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqIO.jl"]
+[sources.projects."DiffEqIO.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqIO.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqMonteCarlo.jl"]
+[sources.projects."DiffEqMonteCarlo.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqMonteCarlo.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqNoiseProcess.jl"]
+[sources.projects."DiffEqNoiseProcess.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqNoiseProcess.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.DiffEqOnlineServer]
+[sources.projects.DiffEqOnlineServer]
 dirs = []
 url = "https://github.com/SciML/DiffEqOnlineServer.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqOperators.jl"]
+[sources.projects."DiffEqOperators.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqOperators.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqParamEstim.jl"]
+[sources.projects."DiffEqParamEstim.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqParamEstim.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqPhysics.jl"]
+[sources.projects."DiffEqPhysics.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqPhysics.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqProblemLibrary.jl"]
+[sources.projects."DiffEqProblemLibrary.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqProblemLibrary.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqPy.jl"]
+[sources.projects."DiffEqPy.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqPy.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DiffEqWebBase.jl"]
+[sources.projects."DiffEqWebBase.jl"]
 dirs = []
 url = "https://github.com/SciML/DiffEqWebBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DifferenceEquations.jl"]
+[sources.projects."DifferenceEquations.jl"]
 dirs = []
 url = "https://github.com/SciML/DifferenceEquations.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DifferentialEquations.jl"]
+[sources.projects."DifferentialEquations.jl"]
 dirs = []
 url = "https://github.com/SciML/DifferentialEquations.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."DimensionalPlotRecipes.jl"]
+[sources.projects."DimensionalPlotRecipes.jl"]
 dirs = []
 url = "https://github.com/SciML/DimensionalPlotRecipes.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."EasyModelAnalysis.jl"]
+[sources.projects."EasyModelAnalysis.jl"]
 dirs = []
 url = "https://github.com/SciML/EasyModelAnalysis.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."EllipsisNotation.jl"]
+[sources.projects."EllipsisNotation.jl"]
 dirs = []
 url = "https://github.com/SciML/EllipsisNotation.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Expmv.jl"]
+[sources.projects."Expmv.jl"]
 dirs = []
 url = "https://github.com/SciML/Expmv.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ExponentialUtilities.jl"]
+[sources.projects."ExponentialUtilities.jl"]
 dirs = []
 url = "https://github.com/SciML/ExponentialUtilities.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FEniCS.jl"]
+[sources.projects."FEniCS.jl"]
 dirs = []
 url = "https://github.com/SciML/FEniCS.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FastAlmostBandedMatrices.jl"]
+[sources.projects."FastAlmostBandedMatrices.jl"]
 dirs = []
 url = "https://github.com/SciML/FastAlmostBandedMatrices.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FastPower.jl"]
+[sources.projects."FastPower.jl"]
 dirs = []
 url = "https://github.com/SciML/FastPower.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FastSolvers.jl"]
+[sources.projects."FastSolvers.jl"]
 dirs = []
 url = "https://github.com/SciML/FastSolvers.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FindFirstFunctions.jl"]
+[sources.projects."FindFirstFunctions.jl"]
 dirs = []
 url = "https://github.com/SciML/FindFirstFunctions.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FiniteElementDiffEq.jl"]
+[sources.projects."FiniteElementDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/FiniteElementDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FiniteStateProjection.jl"]
+[sources.projects."FiniteStateProjection.jl"]
 dirs = []
 url = "https://github.com/SciML/FiniteStateProjection.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FiniteVolumeMethod.jl"]
+[sources.projects."FiniteVolumeMethod.jl"]
 dirs = []
 url = "https://github.com/SciML/FiniteVolumeMethod.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FiniteVolumeMethod1D.jl"]
+[sources.projects."FiniteVolumeMethod1D.jl"]
 dirs = []
 url = "https://github.com/SciML/FiniteVolumeMethod1D.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FluxNeuralOperators.jl"]
+[sources.projects."FluxNeuralOperators.jl"]
 dirs = []
 url = "https://github.com/SciML/FluxNeuralOperators.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FunctionProperties.jl"]
+[sources.projects."FunctionProperties.jl"]
 dirs = []
 url = "https://github.com/SciML/FunctionProperties.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."FunctionWrappersWrappers.jl"]
+[sources.projects."FunctionWrappersWrappers.jl"]
 dirs = []
 url = "https://github.com/SciML/FunctionWrappersWrappers.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."GeometricIntegratorsDiffEq.jl"]
+[sources.projects."GeometricIntegratorsDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/GeometricIntegratorsDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."GlobalDiffEq.jl"]
+[sources.projects."GlobalDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/GlobalDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."GlobalSensitivity.jl"]
+[sources.projects."GlobalSensitivity.jl"]
 dirs = []
 url = "https://github.com/SciML/GlobalSensitivity.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."HelicopterSciML.jl"]
+[sources.projects."HelicopterSciML.jl"]
 dirs = []
 url = "https://github.com/SciML/HelicopterSciML.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."HighDimPDE.jl"]
+[sources.projects."HighDimPDE.jl"]
 dirs = []
 url = "https://github.com/SciML/HighDimPDE.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."IRKGaussLegendre.jl"]
+[sources.projects."IRKGaussLegendre.jl"]
 dirs = []
 url = "https://github.com/SciML/IRKGaussLegendre.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."IfElse.jl"]
+[sources.projects."IfElse.jl"]
 dirs = []
 url = "https://github.com/SciML/IfElse.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Integrals.jl"]
+[sources.projects."Integrals.jl"]
 dirs = []
 url = "https://github.com/SciML/Integrals.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.JuliaCon2022_Catalyst_Workshop]
+[sources.projects.JuliaCon2022_Catalyst_Workshop]
 dirs = []
 url = "https://github.com/SciML/JuliaCon2022_Catalyst_Workshop.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."JumpProcesses.jl"]
+[sources.projects."JumpProcesses.jl"]
 dirs = []
 url = "https://github.com/SciML/JumpProcesses.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."LabelledArrays.jl"]
+[sources.projects."LabelledArrays.jl"]
 dirs = []
 url = "https://github.com/SciML/LabelledArrays.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."LightweightStats.jl"]
+[sources.projects."LightweightStats.jl"]
 dirs = []
 url = "https://github.com/SciML/LightweightStats.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."LineSearch.jl"]
+[sources.projects."LineSearch.jl"]
 dirs = []
 url = "https://github.com/SciML/LineSearch.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."LinearSolve.jl"]
+[sources.projects."LinearSolve.jl"]
 dirs = []
 url = "https://github.com/SciML/LinearSolve.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MATLABDiffEq.jl"]
+[sources.projects."MATLABDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/MATLABDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MathML.jl"]
+[sources.projects."MathML.jl"]
 dirs = []
 url = "https://github.com/SciML/MathML.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MaybeInplace.jl"]
+[sources.projects."MaybeInplace.jl"]
 dirs = []
 url = "https://github.com/SciML/MaybeInplace.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MethodOfLines.jl"]
+[sources.projects."MethodOfLines.jl"]
 dirs = []
 url = "https://github.com/SciML/MethodOfLines.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MinimallyDisruptiveCurves.jl"]
+[sources.projects."MinimallyDisruptiveCurves.jl"]
 dirs = []
 url = "https://github.com/SciML/MinimallyDisruptiveCurves.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ModelOrderReduction.jl"]
+[sources.projects."ModelOrderReduction.jl"]
 dirs = []
 url = "https://github.com/SciML/ModelOrderReduction.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ModelingToolkit.jl"]
+[sources.projects."ModelingToolkit.jl"]
 dirs = []
 url = "https://github.com/SciML/ModelingToolkit.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.ModelingToolkitCourse]
+[sources.projects.ModelingToolkitCourse]
 dirs = []
 url = "https://github.com/SciML/ModelingToolkitCourse.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ModelingToolkitNeuralNets.jl"]
+[sources.projects."ModelingToolkitNeuralNets.jl"]
 dirs = []
 url = "https://github.com/SciML/ModelingToolkitNeuralNets.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ModelingToolkitStandardLibrary.jl"]
+[sources.projects."ModelingToolkitStandardLibrary.jl"]
 dirs = []
 url = "https://github.com/SciML/ModelingToolkitStandardLibrary.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.ModelingToolkitWorkshop_JuliaCon2024]
+[sources.projects.ModelingToolkitWorkshop_JuliaCon2024]
 dirs = []
 url = "https://github.com/SciML/ModelingToolkitWorkshop_JuliaCon2024.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MuladdMacro.jl"]
+[sources.projects."MuladdMacro.jl"]
 dirs = []
 url = "https://github.com/SciML/MuladdMacro.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."MultiScaleArrays.jl"]
+[sources.projects."MultiScaleArrays.jl"]
 dirs = []
 url = "https://github.com/SciML/MultiScaleArrays.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NBodySimulator.jl"]
+[sources.projects."NBodySimulator.jl"]
 dirs = []
 url = "https://github.com/SciML/NBodySimulator.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NeuralLyapunov.jl"]
+[sources.projects."NeuralLyapunov.jl"]
 dirs = []
 url = "https://github.com/SciML/NeuralLyapunov.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NeuralOperators.jl"]
+[sources.projects."NeuralOperators.jl"]
 dirs = []
 url = "https://github.com/SciML/NeuralOperators.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NeuralPDE.jl"]
+[sources.projects."NeuralPDE.jl"]
 dirs = []
 url = "https://github.com/SciML/NeuralPDE.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NonlinearSolve.jl"]
+[sources.projects."NonlinearSolve.jl"]
 dirs = []
 url = "https://github.com/SciML/NonlinearSolve.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NonlinearSolveBase.jl"]
+[sources.projects."NonlinearSolveBase.jl"]
 dirs = []
 url = "https://github.com/SciML/NonlinearSolveBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."NonlinearSolveMINPACK.jl"]
+[sources.projects."NonlinearSolveMINPACK.jl"]
 dirs = []
 url = "https://github.com/SciML/NonlinearSolveMINPACK.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ODE.jl"]
+[sources.projects."ODE.jl"]
 dirs = []
 url = "https://github.com/SciML/ODE.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ODEInterfaceDiffEq.jl"]
+[sources.projects."ODEInterfaceDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/ODEInterfaceDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OperatorLearning.jl"]
+[sources.projects."OperatorLearning.jl"]
 dirs = []
 url = "https://github.com/SciML/OperatorLearning.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OptimalControl.jl"]
+[sources.projects."OptimalControl.jl"]
 dirs = []
 url = "https://github.com/SciML/OptimalControl.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OptimalUncertaintyQuantification.jl"]
+[sources.projects."OptimalUncertaintyQuantification.jl"]
 dirs = []
 url = "https://github.com/SciML/OptimalUncertaintyQuantification.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Optimization.jl"]
+[sources.projects."Optimization.jl"]
 dirs = []
 url = "https://github.com/SciML/Optimization.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OptimizationBase.jl"]
+[sources.projects."OptimizationBase.jl"]
 dirs = []
 url = "https://github.com/SciML/OptimizationBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OrdinaryDiffEq.jl"]
+[sources.projects."OrdinaryDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/OrdinaryDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OrdinaryDiffEqExtendedTests.jl"]
+[sources.projects."OrdinaryDiffEqExtendedTests.jl"]
 dirs = []
 url = "https://github.com/SciML/OrdinaryDiffEqExtendedTests.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OrdinaryDiffEqOperatorSplitting.jl"]
+[sources.projects."OrdinaryDiffEqOperatorSplitting.jl"]
 dirs = []
 url = "https://github.com/SciML/OrdinaryDiffEqOperatorSplitting.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."OrgMaintenanceScripts.jl"]
+[sources.projects."OrgMaintenanceScripts.jl"]
 dirs = []
 url = "https://github.com/SciML/OrgMaintenanceScripts.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PDEBase.jl"]
+[sources.projects."PDEBase.jl"]
 dirs = []
 url = "https://github.com/SciML/PDEBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PDESystemLibrary.jl"]
+[sources.projects."PDESystemLibrary.jl"]
 dirs = []
 url = "https://github.com/SciML/PDESystemLibrary.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ParallelBroadcastArrays.jl"]
+[sources.projects."ParallelBroadcastArrays.jl"]
 dirs = []
 url = "https://github.com/SciML/ParallelBroadcastArrays.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ParallelParticleSwarms.jl"]
+[sources.projects."ParallelParticleSwarms.jl"]
 dirs = []
 url = "https://github.com/SciML/ParallelParticleSwarms.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ParameterizedFunctions.jl"]
+[sources.projects."ParameterizedFunctions.jl"]
 dirs = []
 url = "https://github.com/SciML/ParameterizedFunctions.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PoissonRandom.jl"]
+[sources.projects."PoissonRandom.jl"]
 dirs = []
 url = "https://github.com/SciML/PoissonRandom.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PolyChaos.jl"]
+[sources.projects."PolyChaos.jl"]
 dirs = []
 url = "https://github.com/SciML/PolyChaos.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PowerModels.jl"]
+[sources.projects."PowerModels.jl"]
 dirs = []
 url = "https://github.com/SciML/PowerModels.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PreallocationTools.jl"]
+[sources.projects."PreallocationTools.jl"]
 dirs = []
 url = "https://github.com/SciML/PreallocationTools.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ProcessSimulator.jl"]
+[sources.projects."ProcessSimulator.jl"]
 dirs = []
 url = "https://github.com/SciML/ProcessSimulator.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PubChem.jl"]
+[sources.projects."PubChem.jl"]
 dirs = []
 url = "https://github.com/SciML/PubChem.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PubChemReactions.jl"]
+[sources.projects."PubChemReactions.jl"]
 dirs = []
 url = "https://github.com/SciML/PubChemReactions.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."PyDSTool.jl"]
+[sources.projects."PyDSTool.jl"]
 dirs = []
 url = "https://github.com/SciML/PyDSTool.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Pyomo.jl"]
+[sources.projects."Pyomo.jl"]
 dirs = []
 url = "https://github.com/SciML/Pyomo.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."QuantumNLDiffEq.jl"]
+[sources.projects."QuantumNLDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/QuantumNLDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."QuasiMonteCarlo.jl"]
+[sources.projects."QuasiMonteCarlo.jl"]
 dirs = []
 url = "https://github.com/SciML/QuasiMonteCarlo.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ReactionNetworkImporters.jl"]
+[sources.projects."ReactionNetworkImporters.jl"]
 dirs = []
 url = "https://github.com/SciML/ReactionNetworkImporters.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."RecursiveArrayTools.jl"]
+[sources.projects."RecursiveArrayTools.jl"]
 dirs = []
 url = "https://github.com/SciML/RecursiveArrayTools.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ReservoirComputing.jl"]
+[sources.projects."ReservoirComputing.jl"]
 dirs = []
 url = "https://github.com/SciML/ReservoirComputing.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."ResettableStacks.jl"]
+[sources.projects."ResettableStacks.jl"]
 dirs = []
 url = "https://github.com/SciML/ResettableStacks.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."RootedTrees.jl"]
+[sources.projects."RootedTrees.jl"]
 dirs = []
 url = "https://github.com/SciML/RootedTrees.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."RuntimeGeneratedFunctions.jl"]
+[sources.projects."RuntimeGeneratedFunctions.jl"]
 dirs = []
 url = "https://github.com/SciML/RuntimeGeneratedFunctions.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SBMLToolkit.jl"]
+[sources.projects."SBMLToolkit.jl"]
 dirs = []
 url = "https://github.com/SciML/SBMLToolkit.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SBMLToolkitTestSuite.jl"]
+[sources.projects."SBMLToolkitTestSuite.jl"]
 dirs = []
 url = "https://github.com/SciML/SBMLToolkitTestSuite.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLBase.jl"]
+[sources.projects."SciMLBase.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.SciMLDocs]
+[sources.projects.SciMLDocs]
 dirs = []
 url = "https://github.com/SciML/SciMLDocs.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLExpectations.jl"]
+[sources.projects."SciMLExpectations.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLExpectations.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLLogging.jl"]
+[sources.projects."SciMLLogging.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLLogging.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLNLSolve.jl"]
+[sources.projects."SciMLNLSolve.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLNLSolve.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLOperators.jl"]
+[sources.projects."SciMLOperators.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLOperators.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLPublic.jl"]
+[sources.projects."SciMLPublic.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLPublic.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLSensitivity.jl"]
+[sources.projects."SciMLSensitivity.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLSensitivity.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLStructures.jl"]
+[sources.projects."SciMLStructures.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLStructures.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.SciMLStyle]
+[sources.projects.SciMLStyle]
 dirs = []
 url = "https://github.com/SciML/SciMLStyle.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciMLWorkshop.jl"]
+[sources.projects."SciMLWorkshop.jl"]
 dirs = []
 url = "https://github.com/SciML/SciMLWorkshop.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SciPyDiffEq.jl"]
+[sources.projects."SciPyDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/SciPyDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SimpleBoundaryValueDiffEq.jl"]
+[sources.projects."SimpleBoundaryValueDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/SimpleBoundaryValueDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SimpleDiffEq.jl"]
+[sources.projects."SimpleDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/SimpleDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SimpleNonlinearSolve.jl"]
+[sources.projects."SimpleNonlinearSolve.jl"]
 dirs = []
 url = "https://github.com/SciML/SimpleNonlinearSolve.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SimpleNorm.jl"]
+[sources.projects."SimpleNorm.jl"]
 dirs = []
 url = "https://github.com/SciML/SimpleNorm.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SimpleOptimization.jl"]
+[sources.projects."SimpleOptimization.jl"]
 dirs = []
 url = "https://github.com/SciML/SimpleOptimization.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SparseBandedMatrices.jl"]
+[sources.projects."SparseBandedMatrices.jl"]
 dirs = []
 url = "https://github.com/SciML/SparseBandedMatrices.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SparseMatrixIdentification.jl"]
+[sources.projects."SparseMatrixIdentification.jl"]
 dirs = []
 url = "https://github.com/SciML/SparseMatrixIdentification.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SparsityDetection.jl"]
+[sources.projects."SparsityDetection.jl"]
 dirs = []
 url = "https://github.com/SciML/SparsityDetection.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Static.jl"]
+[sources.projects."Static.jl"]
 dirs = []
 url = "https://github.com/SciML/Static.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SteadyStateDiffEq.jl"]
+[sources.projects."SteadyStateDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/SteadyStateDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."StochasticDelayDiffEq.jl"]
+[sources.projects."StochasticDelayDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/StochasticDelayDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."StochasticDiffEq.jl"]
+[sources.projects."StochasticDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/StochasticDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."StokesDiffEq.jl"]
+[sources.projects."StokesDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/StokesDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."StructuralIdentifiability.jl"]
+[sources.projects."StructuralIdentifiability.jl"]
 dirs = []
 url = "https://github.com/SciML/StructuralIdentifiability.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Sundials.jl"]
+[sources.projects."Sundials.jl"]
 dirs = []
 url = "https://github.com/SciML/Sundials.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.SundialsBuilder]
+[sources.projects.SundialsBuilder]
 dirs = []
 url = "https://github.com/SciML/SundialsBuilder.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."Surrogates.jl"]
+[sources.projects."Surrogates.jl"]
 dirs = []
 url = "https://github.com/SciML/Surrogates.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SurrogatesBase.jl"]
+[sources.projects."SurrogatesBase.jl"]
 dirs = []
 url = "https://github.com/SciML/SurrogatesBase.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SymbolicAnalysis.jl"]
+[sources.projects."SymbolicAnalysis.jl"]
 dirs = []
 url = "https://github.com/SciML/SymbolicAnalysis.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SymbolicIndexingInterface.jl"]
+[sources.projects."SymbolicIndexingInterface.jl"]
 dirs = []
 url = "https://github.com/SciML/SymbolicIndexingInterface.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SymbolicLimits.jl"]
+[sources.projects."SymbolicLimits.jl"]
 dirs = []
 url = "https://github.com/SciML/SymbolicLimits.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."SymbolicNumericIntegration.jl"]
+[sources.projects."SymbolicNumericIntegration.jl"]
 dirs = []
 url = "https://github.com/SciML/SymbolicNumericIntegration.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."TensorFlowDiffEq.jl"]
+[sources.projects."TensorFlowDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/TensorFlowDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.TestPackage]
+[sources.projects.TestPackage]
 dirs = []
 url = "https://github.com/SciML/TestPackage.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."TruncatedStacktraces.jl"]
+[sources.projects."TruncatedStacktraces.jl"]
 dirs = []
 url = "https://github.com/SciML/TruncatedStacktraces.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects."deSolveDiffEq.jl"]
+[sources.projects."deSolveDiffEq.jl"]
 dirs = []
 url = "https://github.com/SciML/deSolveDiffEq.jl.git"
 refresh = "fetch"
 plugins = ["julia"]
 
-[link_graph.projects.frontend]
+[sources.projects.frontend]
 root = "."
 dirs = ["docs"]
 plugins = []
 
-[link_graph.projects.qianji-flowhub]
+[sources.projects.qianji-flowhub]
 root = "./qianji-flowhub"
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = []
 plugins = []
 
-[link_graph.projects.mcl]
+[sources.projects.mcl]
 dirs = []
 url = "https://github.com/modelica/ModelicaStandardLibrary.git"
 plugins = ["modelica"]

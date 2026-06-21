@@ -127,9 +127,9 @@ fn collect_registry_authority_surface(
     let config_relative_path = repo_relative_path(project_root, config_path.as_path())?;
 
     if let Some(project_tables) = config
-        .get("link_graph")
+        .get("sources")
         .and_then(toml::Value::as_table)
-        .and_then(|link_graph| link_graph.get("projects"))
+        .and_then(|sources| sources.get("projects"))
         .and_then(toml::Value::as_table)
     {
         for (project_id, project) in project_tables {
@@ -242,7 +242,7 @@ fn project_table_line(config_text: &str, project_id: &str) -> Option<usize> {
 fn project_table_line_matches(line: &str, project_id: &str) -> bool {
     let line = line.trim();
     let Some(body) = line
-        .strip_prefix("[link_graph.projects.")
+        .strip_prefix("[sources.projects.")
         .and_then(|line| line.strip_suffix(']'))
     else {
         return false;

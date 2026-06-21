@@ -118,7 +118,7 @@ To avoid architectural ambiguity, the following terms are mapped to concrete imp
 
 The common core should absorb everything that is high-performance, repeated, and repository-agnostic:
 
-- repository registry from `link_graph.projects.<id>` in `wendao.toml`
+- repository registry from `sources.projects.<id>` in `wendao.toml`
 - dedicated `xiuxian-git-repo` ownership for git mirror management, ghq-style
   layout, checkout locking, revision sync, and backend-neutral substrate
   contracts
@@ -324,14 +324,14 @@ Query-intent-driven weighting remains a Wendao retrieval concern and should be s
 The repository registry should live in `wendao.toml`. Example:
 
 ```toml
-[link_graph.projects.sciml-diffeq]
+[sources.projects.sciml-diffeq]
 url = "https://github.com/SciML/DifferentialEquations.jl.git"
 ref = "main"
 refresh = "fetch"
 plugins = ["julia-code-parser"]
 dirs = ["docs"]
 
-[link_graph.projects.msl]
+[sources.projects.msl]
 url = "https://github.com/modelica/ModelicaStandardLibrary.git"
 ref = "main"
 refresh = "fetch"

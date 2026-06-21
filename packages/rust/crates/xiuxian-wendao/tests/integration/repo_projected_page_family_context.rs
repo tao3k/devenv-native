@@ -58,7 +58,7 @@ fn modelica_plugin_projected_page_family_context_groups_related_pages_by_family(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-family-context]
+            r#"[sources.projects.modelica-family-context]
 root = "{}"
 plugins = ["modelica"]
 "#,

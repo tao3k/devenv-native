@@ -94,6 +94,7 @@ local-runtime = [
   "xiuxian-wendao/repo-lexical-index",
   "xiuxian-wendao/search-runtime",
   "xiuxian-wendao-core/arrow-transport",
+  "xiuxian-db-store/project-state",
 ]
 duckdb = [
   "local-runtime",

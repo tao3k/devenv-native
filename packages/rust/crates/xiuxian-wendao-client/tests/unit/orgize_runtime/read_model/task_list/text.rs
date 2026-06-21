@@ -3,8 +3,9 @@ use std::process::Command;
 use crate::orgize_runtime::support::tempdir_or_panic;
 
 use crate::orgize_runtime::read_model::{
-    assert_agent_memory_object_row_count, assert_agent_org_element_join_matches_text,
-    assert_agent_org_element_projection_exists, assert_agent_org_element_row_count_at_least,
+    agent_read_model_database_path, assert_agent_memory_object_row_count,
+    assert_agent_org_element_join_matches_text, assert_agent_org_element_projection_exists,
+    assert_agent_org_element_row_count_at_least,
 };
 
 #[test]
@@ -130,12 +131,7 @@ fn standalone_orgize_task_list_text_matches_memory_object_rows() {
         String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
     let stderr =
         String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
-    let database_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("readmodels")
-        .join("org_agent_tasks.duckdb");
+    let database_path = agent_read_model_database_path(temp.path());
     assert_agent_memory_object_row_count(&database_path, 1);
     assert_eq!(
         output.status.code(),
@@ -186,12 +182,7 @@ fn standalone_orgize_task_list_text_matches_org_elements_sql_rows() {
         String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
     let stderr =
         String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
-    let database_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("readmodels")
-        .join("org_agent_tasks.duckdb");
+    let database_path = agent_read_model_database_path(temp.path());
     assert_agent_org_element_row_count_at_least(&database_path, 1);
     assert_agent_org_element_projection_exists(
         &database_path,
@@ -265,12 +256,7 @@ fn standalone_orgize_task_list_recalls_serverless_memory_reference_fixture() {
         String::from_utf8(output.stdout).unwrap_or_else(|error| panic!("stdout utf8: {error}"));
     let stderr =
         String::from_utf8(output.stderr).unwrap_or_else(|error| panic!("stderr utf8: {error}"));
-    let database_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("readmodels")
-        .join("org_agent_tasks.duckdb");
+    let database_path = agent_read_model_database_path(temp.path());
     assert_agent_memory_object_row_count(&database_path, 5);
     assert_eq!(
         output.status.code(),

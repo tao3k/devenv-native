@@ -149,7 +149,10 @@ in
     nixfmt.enable = true;
     ruff.enable = true;
     rustfmt.enable = true;
-    prettier.enable = true;
+    prettier = {
+      enable = true;
+      excludes = [ "\\.(js|jsx|ts|tsx)$" ];
+    };
     oxlint.enable = true;
     oxfmt.enable = true;
   };

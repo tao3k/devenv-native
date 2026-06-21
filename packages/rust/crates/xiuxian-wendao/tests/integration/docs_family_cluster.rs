@@ -21,7 +21,7 @@ fn modelica_plugin_docs_family_cluster_resolves_how_to_cluster_for_reference_pag
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-family-cluster]
+            r#"[sources.projects.modelica-docs-family-cluster]
 root = "{}"
 plugins = ["modelica"]
 "#,

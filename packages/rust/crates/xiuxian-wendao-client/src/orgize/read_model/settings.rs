@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use xiuxian_config_core::{
-    load_toml_value_with_imports_and_paths, resolve_cache_home, resolve_config_home,
-    resolve_path_from_value,
+    load_toml_value_with_imports_and_paths, resolve_config_home, resolve_path_from_value,
 };
+use xiuxian_db_store::state::{ProjectCacheRootConfig, project_cache_root_from_config};
 
 use crate::ClientContext;
 
@@ -38,8 +38,11 @@ struct AgentOrgReadModelTomlConfig {
 pub(super) fn resolve_read_model_settings(
     context: &ClientContext,
 ) -> Result<ResolvedReadModelSettings> {
-    let cache_home = resolve_cache_home(Some(context.root()))
-        .with_context(|| "failed to resolve PRJ_CACHE_HOME for agent read model")?;
+    let cache_home = project_cache_root_from_config(ProjectCacheRootConfig {
+        project_root: Some(context.root().to_path_buf()),
+        cache_home: None,
+        project_namespace: None,
+    });
     let default_database_path = cache_home
         .join("agent")
         .join("readmodels")

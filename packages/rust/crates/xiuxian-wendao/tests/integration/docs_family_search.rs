@@ -20,7 +20,7 @@ fn modelica_plugin_docs_family_search_matches_reference_family_clusters() -> Tes
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-family-search]
+            r#"[sources.projects.modelica-docs-family-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

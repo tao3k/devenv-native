@@ -21,7 +21,7 @@ fn modelica_plugin_docs_family_context_groups_related_pages_by_family() -> TestR
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-family-context]
+            r#"[sources.projects.modelica-docs-family-context]
 root = "{}"
 plugins = ["modelica"]
 "#,

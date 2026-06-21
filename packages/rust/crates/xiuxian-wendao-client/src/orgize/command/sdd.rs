@@ -27,7 +27,7 @@ pub struct OrgizeSddStatusArgs {
     #[arg(long = "fail-on-issues")]
     pub fail_on_issues: bool,
 
-    /// Org files or directories to inspect. When omitted, uses `$PRJ_CACHE_HOME/agent/sdd`.
+    /// Org files or directories to inspect. When omitted, uses the namespaced project cache `agent/sdd`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }
@@ -39,7 +39,7 @@ pub struct OrgizeSddGraphDiffArgs {
     #[arg(long = "fail-on-drift")]
     pub fail_on_drift: bool,
 
-    /// Org files or directories to inspect. When omitted, uses `$PRJ_CACHE_HOME/agent/sdd`.
+    /// Org files or directories to inspect. When omitted, uses the namespaced project cache `agent/sdd`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }

@@ -20,7 +20,7 @@ fn modelica_plugin_docs_retrieval_merges_page_and_node_hits() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-retrieval]
+            r#"[sources.projects.modelica-docs-retrieval]
 root = "{}"
 plugins = ["modelica"]
 "#,

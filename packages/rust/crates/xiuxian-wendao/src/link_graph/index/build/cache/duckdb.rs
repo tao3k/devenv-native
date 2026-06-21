@@ -20,7 +20,7 @@ use xiuxian_db_store::duckdb::{
     DuckDbDatabasePath, DuckDbExecutionConfig, DuckDbRuntimeConfig, open_duckdb_connection,
 };
 #[cfg(feature = "duckdb")]
-use xiuxian_wendao_runtime::config::default_wendao_data_root;
+use xiuxian_wendao_runtime::config::default_wendao_state_root;
 
 #[cfg(feature = "duckdb")]
 const LINK_GRAPH_LOCAL_CACHE_TABLE: &str = "link_graph_index_cache";
@@ -298,7 +298,7 @@ fn read_cache_row_payload(row: &duckdb::Row<'_>) -> Result<LinkGraphArrowSnapsho
 
 #[cfg(feature = "duckdb")]
 pub(in crate::link_graph::index::build) fn default_local_duckdb_cache_path(root: &Path) -> PathBuf {
-    default_wendao_data_root(root)
+    default_wendao_state_root(root)
         .join("link_graph")
         .join("index_cache.duckdb")
 }

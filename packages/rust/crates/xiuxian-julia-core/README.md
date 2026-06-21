@@ -907,7 +907,7 @@ needs a feature-gated second plugin bundle for these languages.
 The transport builder consumes repository plugin entries that resolve to:
 
 ```toml
-[link_graph.projects.sample]
+[sources.projects.sample]
 root = "/path/to/repo"
 plugins = [
   { id = "julia-code-parser", flight_transport = { base_url = "http://127.0.0.1:8815", route = "/rerank", health_route = "/healthz", timeout_secs = 15, max_in_flight_requests = 32 } }
@@ -922,7 +922,7 @@ The graph-structural transport surface now stages from a separate repository
 plugin option block so Search downcalls can stay Julia-plugin-owned as well:
 
 ```toml
-[link_graph.projects.sample]
+[sources.projects.sample]
 root = "/path/to/repo"
 plugins = [
   { id = "julia-code-parser", graph_structural_transport = { base_url = "http://127.0.0.1:8815", max_in_flight_requests = 32, structural_rerank = { route = "/graph/structural/rerank", schema_version = "v0-draft" }, constraint_filter = { route = "/graph/structural/filter", timeout_secs = 20 } } }
@@ -949,7 +949,7 @@ keeps static plugin identity registration, while the Julia plugin crate owns
 the Arrow contract for a dedicated capability-manifest route:
 
 ```toml
-[link_graph.projects.sample]
+[sources.projects.sample]
 root = "/path/to/repo"
 plugins = [
   { id = "julia-code-parser", capability_manifest_transport = { base_url = "http://127.0.0.1:8815", route = "/plugin/capabilities", health_route = "/healthz", schema_version = "v0-draft", timeout_secs = 15 } }

@@ -278,7 +278,7 @@ impl StudioState {
             .or_else(|| load_ui_config_from_wendao_toml(state.config_root.as_path()));
         if let Some(config) = boot_config {
             info!(
-                "Studio bootstrap loaded {} link_graph.projects and {} repo projects; startup background indexing is {}",
+                "Studio bootstrap loaded {} sources.projects and {} repo projects; startup background indexing is {}",
                 config.projects.len(),
                 config.repo_projects.len(),
                 if eager_background_indexing {

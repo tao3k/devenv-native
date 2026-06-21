@@ -338,7 +338,7 @@ pub(super) fn write_default_repo_config_without_priming(
     fs::write(
         base.join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 root = "{}"
 plugins = ["julia-code-parser"]
 "#,
@@ -980,7 +980,7 @@ pub(super) fn write_modelica_repo_config(
     fs::write(
         base.join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 root = "{}"
 plugins = ["modelica"]
 "#,

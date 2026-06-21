@@ -69,7 +69,7 @@ pub struct ScopedTwoPhaseEmbeddingRecallRequest<'a> {
 /// Episode store configuration.
 #[derive(Debug, Clone)]
 pub struct StoreConfig {
-    /// State-store root path for persisted episodic memory snapshots.
+    /// Project-state root path for persisted episodic memory snapshots.
     pub path: String,
     /// Embedding dimension for intent vectors.
     pub embedding_dim: usize,
@@ -88,22 +88,10 @@ impl Default for StoreConfig {
 }
 
 fn default_memory_store_path() -> String {
-    let root = std::env::var("PRJ_ROOT")
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .map_or_else(
-            || std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-            PathBuf::from,
-        );
-
-    let data_home = std::env::var("PRJ_DATA_HOME")
-        .ok()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .map_or_else(|| root.join(".data"), PathBuf::from);
-
-    data_home.join("omni-memory").to_string_lossy().to_string()
+    xiuxian_db_store::state::state_store_root()
+        .join("xiuxian-memory-engine")
+        .to_string_lossy()
+        .to_string()
 }
 
 /// Episode store with episodic persistence and Q-learning.

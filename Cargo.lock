@@ -10644,6 +10644,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "xiuxian-config-core",
  "xiuxian-qianji-bpmn-engine",
  "xiuxian-rust-workspace-harness",
  "xiuxian-vector",
@@ -10797,7 +10798,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "uuid",
- "xiuxian-config-core",
+ "xiuxian-db-store",
  "xiuxian-rust-workspace-harness",
  "xiuxian-types",
 ]

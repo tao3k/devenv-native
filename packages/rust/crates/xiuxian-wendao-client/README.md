@@ -48,11 +48,11 @@ wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs
 Behavior:
 
 1.  walks Markdown files under the provided paths, or when no paths are given,
-    loads local writable `link_graph.projects.*.root` entries from
+    loads local writable `sources.projects.*.root` entries from
     `wendao.toml` before falling back to the configured root
-2.  treats `link_graph.projects.<id>.read_only = true` as the canonical way to
+2.  treats `sources.projects.<id>.read_only = true` as the canonical way to
     exclude a configured project root from default lint discovery
-3.  honors `link_graph.projects.<id>.read_only = false` even when the project
+3.  honors `sources.projects.<id>.read_only = false` even when the project
     also declares `url`, so writable mirrors can still be linted by default
 4.  keeps `url`-based managed-remote detection only as a backward-compatible
     readonly inference when `read_only` is omitted
@@ -303,7 +303,7 @@ The `get` commands stay local and parser-owned by design:
 7. recursive directory traversal merges:
    - built-in local runtime-dir ignores such as `.cache`, `.data`, `.run`,
      `.config`, `.bin`, `target`, and `node_modules`
-   - `link_graph.exclude_dirs` from the active `wendao.toml` config
+   - `sources.exclude_dirs` from the active `wendao.toml` config
    - repeatable `--ignore DIR` command-line additions
 8. the same command tree can be flattened into the main `wendao` CLI without
    reimplementing execution logic in `xiuxian-wendao`

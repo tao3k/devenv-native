@@ -19,9 +19,8 @@ pub(crate) use super::construct_cli::{
 #[cfg(feature = "wendao-integration")]
 pub(crate) use super::contract_feedback_cli::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, REST_DOCS_PACK_ID,
-    RestDocsCliCommand, build_contract_feedback_config, normalize_prj_data_home,
-    parse_contract_feedback_command, run_deterministic_rest_docs_contract_feedback,
-    run_scaffold_rest_docs_contract_feedback,
+    RestDocsCliCommand, build_contract_feedback_config, parse_contract_feedback_command,
+    run_deterministic_rest_docs_contract_feedback, run_scaffold_rest_docs_contract_feedback,
 };
 #[cfg(all(feature = "duckdb", feature = "valkey"))]
 pub(crate) use super::control_cli::handle_control_command_async;

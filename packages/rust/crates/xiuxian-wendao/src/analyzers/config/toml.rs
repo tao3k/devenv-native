@@ -5,11 +5,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub(crate) struct WendaoTomlConfig {
     #[serde(default)]
-    pub(crate) link_graph: WendaoTomlLinkGraphConfig,
+    pub(crate) sources: WendaoTomlSourcesConfig,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub(crate) struct WendaoTomlLinkGraphConfig {
+pub(crate) struct WendaoTomlSourcesConfig {
     #[serde(default)]
     pub(crate) projects: BTreeMap<String, WendaoTomlProjectConfig>,
 }

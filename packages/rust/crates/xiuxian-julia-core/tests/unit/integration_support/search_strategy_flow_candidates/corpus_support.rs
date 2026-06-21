@@ -161,18 +161,15 @@ fn collect_wendao_config_surface(
         format!("parse Wendao SearchStrategyFlow config {path}: {error}")
     })?;
 
-    if let Some(link_graph) = config.get("link_graph").and_then(toml::Value::as_table) {
-        if let Some(dirs) = link_graph
-            .get("include_dirs")
-            .and_then(toml::Value::as_array)
-        {
+    if let Some(sources) = config.get("sources").and_then(toml::Value::as_table) {
+        if let Some(dirs) = sources.get("include_dirs").and_then(toml::Value::as_array) {
             include_dirs.extend(
                 dirs.iter()
                     .filter_map(toml::Value::as_str)
                     .map(str::to_owned),
             );
         }
-        if let Some(projects) = link_graph.get("projects").and_then(toml::Value::as_table) {
+        if let Some(projects) = sources.get("projects").and_then(toml::Value::as_table) {
             project_ids.extend(projects.keys().cloned());
         }
     }

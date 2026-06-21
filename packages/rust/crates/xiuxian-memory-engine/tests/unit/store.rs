@@ -19,6 +19,16 @@ fn test_store_creation() {
 }
 
 #[test]
+fn default_store_config_uses_project_state_cache_root() {
+    let expected = xiuxian_db_store::state::state_store_root()
+        .join("xiuxian-memory-engine")
+        .to_string_lossy()
+        .to_string();
+
+    assert_eq!(StoreConfig::default().path, expected);
+}
+
+#[test]
 fn test_store_episode() -> TestResult {
     let store = EpisodeStore::default();
 

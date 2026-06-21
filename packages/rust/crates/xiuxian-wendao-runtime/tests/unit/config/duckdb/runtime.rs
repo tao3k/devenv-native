@@ -8,7 +8,7 @@ use crate::config::test_support;
 use crate::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW,
     default_search_duckdb_database_path, default_search_duckdb_temp_directory,
-    default_wendao_data_root,
+    default_wendao_state_root,
 };
 
 #[test]
@@ -112,7 +112,7 @@ prefer_virtual_arrow = true
 }
 
 #[test]
-fn duckdb_runtime_defaults_live_under_wendao_data_namespace()
+fn duckdb_runtime_defaults_live_under_wendao_state_namespace()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     let root = temp.path();
@@ -120,13 +120,13 @@ fn duckdb_runtime_defaults_live_under_wendao_data_namespace()
     fs::write(&config_path, "[search.duckdb]\nenabled = true\n")?;
     let settings = test_support::load_test_settings_from_path(&config_path)?;
     let runtime = resolve_search_duckdb_runtime_with_settings(root, &settings);
-    let data_root = default_wendao_data_root(root);
+    let state_root = default_wendao_state_root(root);
 
     assert_eq!(
         runtime.database_path,
-        DuckDbDatabasePath::File(data_root.join("duckdb/search.duckdb"))
+        DuckDbDatabasePath::File(state_root.join("duckdb/search.duckdb"))
     );
-    assert_eq!(runtime.temp_directory, data_root.join("duckdb/tmp"));
+    assert_eq!(runtime.temp_directory, state_root.join("duckdb/tmp"));
 
     Ok(())
 }

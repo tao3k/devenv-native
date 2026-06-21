@@ -16,7 +16,7 @@ fn load_repo_intelligence_config_parses_inline_plugin_config() -> TestResult {
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "repos/sample"
 refresh = "manual"
 plugins = [
@@ -59,7 +59,7 @@ fn load_repo_intelligence_config_rejects_empty_inline_plugin_id() -> TestResult 
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "repos/sample"
 plugins = [{ id = "   ", flight_transport = { base_url = "http://127.0.0.1:8815" } }]
 "#,
@@ -88,12 +88,12 @@ fn load_repo_intelligence_config_parses_prefixed_repository_refs() -> TestResult
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.commit-sample]
+        r#"[sources.projects.commit-sample]
 root = "repos/commit-sample"
 ref = "commit:abc123"
 plugins = ["julia-code-parser"]
 
-[link_graph.projects.tag-sample]
+[sources.projects.tag-sample]
 root = "repos/tag-sample"
 ref = "tag:v1.2.3"
 plugins = ["julia-code-parser"]
@@ -121,7 +121,7 @@ fn load_repo_intelligence_config_defaults_markdown_parser_for_source_repositorie
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.knowledge]
+        r#"[sources.projects.knowledge]
 root = "repos/knowledge"
 "#,
     )?;
@@ -147,7 +147,7 @@ fn load_repo_intelligence_config_reads_overlay_importing_base() -> TestResult {
     let overlay_path = temp.path().join("wendao.studio.overlay.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "repos/sample"
 plugins = ["julia-code-parser"]
 "#,
@@ -156,7 +156,7 @@ plugins = ["julia-code-parser"]
         &overlay_path,
         r#"imports = ["wendao.toml"]
 
-[link_graph.projects.sample]
+[sources.projects.sample]
 refresh = "manual"
 "#,
     )?;
@@ -179,11 +179,11 @@ fn load_repo_intelligence_config_filters_search_only_plugins_and_adds_markdown_p
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.mixed]
+        r#"[sources.projects.mixed]
 root = "repos/mixed"
 plugins = ["repo-content", "julia-code-parser"]
 
-[link_graph.projects.search-only]
+[sources.projects.search-only]
 root = "repos/search-only"
 plugins = ["repo-content"]
 "#,

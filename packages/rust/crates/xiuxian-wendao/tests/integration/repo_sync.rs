@@ -460,7 +460,7 @@ fn write_repo_url_config_with_refresh(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 url = "{}"
 refresh = "{refresh}"
 plugins = ["julia-code-parser"]

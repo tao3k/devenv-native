@@ -1,5 +1,7 @@
 use crate::orgize_runtime::support::{assert_cli_success, run_orgize, tempdir_or_panic};
 
+use crate::orgize_runtime::read_model::agent_read_model_database_path;
+
 #[test]
 fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() {
     let temp = tempdir_or_panic();
@@ -12,12 +14,7 @@ fn standalone_orgize_task_list_uses_read_only_snapshot_when_refresh_is_locked() 
 
     let first_refresh = run_orgize(temp.path(), &["read-model", "agenda.org"], "read-model");
     assert_cli_success(&first_refresh);
-    let database_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("readmodels")
-        .join("org_agent_tasks.duckdb");
+    let database_path = agent_read_model_database_path(temp.path());
     let _writer_lock = xiuxian_db_store::duckdb_crate::Connection::open(&database_path)
         .unwrap_or_else(|error| panic!("open writer lock: {error}"));
 

@@ -33,7 +33,7 @@ impl StudioState {
         if configured_projects.is_empty() {
             return Err(StudioApiError::bad_request(
                 "UI_CONFIG_REQUIRED",
-                "Studio graph access requires configured link_graph.projects",
+                "Studio graph access requires configured sources.projects",
             ));
         }
 
@@ -45,7 +45,7 @@ impl StudioState {
             );
             if include_dirs.is_empty() {
                 Err(
-                    "configured link_graph.projects did not produce any graph include dirs"
+                    "configured sources.projects did not produce any graph include dirs"
                         .to_string(),
                 )
             } else {
@@ -128,7 +128,7 @@ impl StudioState {
         if configured_projects.is_empty() {
             return Err(StudioApiError::bad_request(
                 "UI_CONFIG_REQUIRED",
-                "Studio symbol search requires configured link_graph.projects",
+                "Studio symbol search requires configured sources.projects",
             ));
         }
         let current_status = self.symbol_index_coordinator.status();

@@ -10,6 +10,8 @@ use std::{collections::BTreeSet, path::Path};
 use serde_json::{Value, json};
 #[cfg(feature = "document-extract-pdf-render")]
 use sha2::{Digest, Sha256};
+#[cfg(feature = "document-extract-pdf-render")]
+use xiuxian_db_store::state::project_cache_root;
 
 use xiuxian_wendao_attachments::pdf::ocr::{PdfOcrShardInput, is_hosted_vlm_direct_profile};
 #[cfg(feature = "document-extract-pdf-render")]
@@ -272,9 +274,7 @@ pub(crate) fn ocr2_region_render_cache_root() -> PathBuf {
             |parent| parent.join(OCR2_REGION_RENDER_CACHE_DIR_NAME),
         );
     }
-    let cache_root =
-        std::env::var_os("PRJ_CACHE_HOME").map_or_else(|| PathBuf::from(".cache"), PathBuf::from);
-    cache_root
+    project_cache_root()
         .join("wendao-document-extract")
         .join(OCR2_REGION_RENDER_CACHE_DIR_NAME)
 }

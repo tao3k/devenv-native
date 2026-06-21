@@ -45,7 +45,7 @@ async fn docs_retrieval_endpoint_executes_over_external_modelica_plugin_path() -
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-retrieval]
+            r#"[sources.projects.modelica-gateway-retrieval]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -142,7 +142,7 @@ async fn docs_retrieval_context_endpoint_executes_over_external_modelica_plugin_
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-retrieval-context]
+            r#"[sources.projects.modelica-gateway-retrieval-context]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -252,7 +252,7 @@ async fn docs_retrieval_hit_endpoint_executes_over_external_modelica_plugin_path
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-retrieval-hit]
+            r#"[sources.projects.modelica-gateway-retrieval-hit]
 root = "{}"
 plugins = ["modelica"]
 "#,

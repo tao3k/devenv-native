@@ -84,7 +84,7 @@ fn modelica_plugin_projected_page_navigation_bundle_resolves_tree_context() -> T
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-projected-navigation]
+            r#"[sources.projects.modelica-projected-navigation]
 root = "{}"
 plugins = ["modelica"]
 "#,

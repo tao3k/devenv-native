@@ -33,7 +33,7 @@ fn write_modelica_docs_config(
     fs::write(
         config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 root = "{}"
 plugins = [{plugin}]
 "#,

@@ -33,6 +33,9 @@ pub use ::duckdb as duckdb_crate;
 #[cfg(feature = "qianji-bpmn-workflow-state")]
 /// Qianji BPMN workflow-state persistence surface.
 pub mod qianji_bpmn;
+#[cfg(feature = "project-state")]
+/// Unified project-local state path contracts.
+pub mod state;
 #[cfg(feature = "valkey")]
 /// Structured Valkey storage primitives for hot indexes and leases.
 pub mod valkey;

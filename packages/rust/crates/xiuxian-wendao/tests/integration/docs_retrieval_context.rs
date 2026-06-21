@@ -24,7 +24,7 @@ fn modelica_plugin_docs_retrieval_context_resolves_node_context() -> TestResult 
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-retrieval-context]
+            r#"[sources.projects.modelica-docs-retrieval-context]
 root = "{}"
 plugins = ["modelica"]
 "#,

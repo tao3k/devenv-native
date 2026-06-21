@@ -27,6 +27,7 @@ anyhow = { workspace = true }
 
 # Reuse common types
 xiuxian-types = { path = "../xiuxian-types" }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["project-state"] }
 
 # Vector operations for embedding similarity (using our own simple implementation)
 # lance-linalg = { workspace = true } # Deferred
@@ -45,7 +46,6 @@ xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
-xiuxian-config-core = { path = "../xiuxian-config-core" }
 tempfile = { workspace = true }
 rand = { workspace = true }
 

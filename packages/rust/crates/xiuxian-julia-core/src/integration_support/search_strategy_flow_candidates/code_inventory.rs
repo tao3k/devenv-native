@@ -253,9 +253,9 @@ fn collect_configured_include_dirs(
         format!("parse Wendao code-intelligence inventory config {path}: {error}")
     })?;
     if let Some(dirs) = config
-        .get("link_graph")
+        .get("sources")
         .and_then(toml::Value::as_table)
-        .and_then(|link_graph| link_graph.get("include_dirs"))
+        .and_then(|sources| sources.get("include_dirs"))
         .and_then(toml::Value::as_array)
     {
         include_dirs.extend(

@@ -345,12 +345,11 @@ fn source_pdf_page_profile_disk_cache_path(key: &SourcePdfPageProfileCacheKey) -
 }
 
 fn source_pdf_page_profile_disk_cache_root() -> Option<PathBuf> {
-    std::env::var_os("PRJ_CACHE_HOME")
-        .map(PathBuf::from)
-        .map(|root| {
-            root.join("wendao-document-extract")
-                .join(SOURCE_PROFILE_CACHE_DIR_NAME)
-        })
+    Some(
+        xiuxian_db_store::state::project_cache_root()
+            .join("wendao-document-extract")
+            .join(SOURCE_PROFILE_CACHE_DIR_NAME),
+    )
 }
 
 fn source_pdf_page_profile_disk_cache_key(key: &SourcePdfPageProfileCacheKey) -> String {

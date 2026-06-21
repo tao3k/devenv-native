@@ -80,7 +80,7 @@ Plugins should return normalized records and relations, not mutate Wendao storag
   - plugin trait boundaries
   - plugin registry behavior
 - All five Repo Intelligence query slices are now wired end to end:
-  - `wendao.toml` now derives repo-intelligence registrations from `link_graph.projects.<id>` instead of maintaining a parallel `[[repo_intelligence.repos]]` registry
+  - `wendao.toml` now derives repo-intelligence registrations from `sources.projects.<id>` instead of maintaining a parallel `[[repo_intelligence.repos]]` registry
   - legacy `[[repo_intelligence.repos]]` entries are now ignored by the runtime loader instead of being merged with project-derived registrations
   - project-scoped repo sources use `root = "..."` for local checkouts and `url = "..."` with optional `ref = "..."` for managed git materialization, while `plugins = ["julia-code-parser" | "modelica"]` acts as the repo-intelligence opt-in on that same project entry
   - relative project roots resolve against the active `wendao.toml` directory
@@ -112,7 +112,7 @@ Plugins should return normalized records and relations, not mutate Wendao storag
   - managed checkout lock acquisition now treats `EMFILE` / `Too many open files` as transient pressure, waiting within the existing bounded lock window instead of failing immediately when the process briefly exhausts descriptors
   - managed mirror/opened-checkout bootstrap now also retries `Repository::open_bare(...)` and `Repository::open(...)` for descriptor-pressure failures with a short bounded backoff, which hardens the exact repo-intelligence path that the pressure benchmark surfaced
   - the remaining three `unsupported` rows (`StokesDiffEq.jl`, `SundialsBuilder`, `TensorFlowDiffEq.jl`) now consistently classify as expected Julia-layout misses with `missing Project.toml`, not transient sync/network failures
-  - the `177` live repo-index total against `.data/wendao-frontend/wendao.toml` is now explained: the config contains `179` `link_graph.projects.*` entries, but `kernel` and `main` are link-graph-only local projects with `plugins = []`, so they are intentionally excluded from repo-index registration
+  - the `177` live repo-index total against `.data/wendao-frontend/wendao.toml` is now explained: the config contains `179` `sources.projects.*` entries, but `kernel` and `main` are link-graph-only local projects with `plugins = []`, so they are intentionally excluded from repo-index registration
   - the new real-workspace live audit surface now confirms the current short-window bottleneck is no longer an immediate transport-failure burst: with both `XIUXIAN_WENDAO_REPO_INDEX_SYNC_CONCURRENCY=1` and `=2`, the first `15s` sample window stayed at `failed=0` while all `177` audited repos classified as `managed_remote`
   - that same audit also exposed why throughput was collapsing: startup fanout briefly reached multi-repo activity, but `targetConcurrency` dropped back to `1` within the first `5s` because unsupported Julia-layout repos were still feeding the same adaptive failure path as true runtime pressure
   - the repo-index task lane now routes scheduler success feedback through a dedicated sync/admission `control_elapsed` metric and ignores structural repo failures such as `UnsupportedRepositoryLayout` when adjusting adaptive concurrency, so long indexing tasks and expected `missing Project.toml` rows no longer count as transport pressure

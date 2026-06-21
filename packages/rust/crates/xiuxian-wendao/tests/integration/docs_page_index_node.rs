@@ -23,7 +23,7 @@ fn modelica_plugin_docs_page_index_node_lookup_resolves_one_stable_node() -> Tes
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-page-index-node]
+            r#"[sources.projects.modelica-docs-page-index-node]
 root = "{}"
 plugins = ["modelica"]
 "#,

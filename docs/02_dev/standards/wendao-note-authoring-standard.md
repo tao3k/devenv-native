@@ -21,7 +21,7 @@ This standard applies to all Markdown notes intended for LinkGraph indexing:
 
 - `docs/**/*.md`
 - `assets/skills/**/SKILL.md`
-- future notebook folders that are included by `link_graph.include_dirs`.
+- future notebook folders that are included by `sources.include_dirs`.
 
 ## 2. Hard Requirements
 

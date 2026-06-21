@@ -151,7 +151,7 @@ fn custom_registry_drives_repo_overview_queries() -> repo_fixture::TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.external-sample]
+            r#"[sources.projects.external-sample]
 root = "{}"
 plugins = ["modelica"]
 "#,

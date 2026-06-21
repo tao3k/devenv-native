@@ -8,11 +8,11 @@ use crate::ClientContext;
 #[derive(Debug, Clone, Default, Deserialize)]
 struct WendaoTomlConfig {
     #[serde(default)]
-    link_graph: WendaoTomlLinkGraphConfig,
+    sources: WendaoTomlSourcesConfig,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
-struct WendaoTomlLinkGraphConfig {
+struct WendaoTomlSourcesConfig {
     #[serde(default)]
     exclude_dirs: Vec<String>,
 }
@@ -36,7 +36,7 @@ pub(crate) fn configured_ignore_dirs(context: &ClientContext) -> Result<Vec<Stri
     })?;
 
     let mut ignore_dirs = parsed
-        .link_graph
+        .sources
         .exclude_dirs
         .into_iter()
         .map(|value| value.trim().to_string())

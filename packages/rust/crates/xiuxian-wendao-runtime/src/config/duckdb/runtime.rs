@@ -4,12 +4,13 @@ use std::path::{Path, PathBuf};
 
 use crate::settings::{first_non_empty, get_setting_bool, get_setting_string, parse_positive_u64};
 use serde_yaml::Value;
-use xiuxian_config_core::{resolve_data_home, resolve_path_from_value};
+use xiuxian_config_core::resolve_path_from_value;
 pub use xiuxian_db_store::duckdb::DuckDbDatabasePath;
 use xiuxian_db_store::duckdb::{DuckDbExecutionConfig, DuckDbRuntimeConfig};
+use xiuxian_db_store::state::{ProjectCacheRootConfig, project_cache_root_from_config};
 
-/// Data namespace for Wendao-owned runtime artifacts.
-pub const DEFAULT_WENDAO_DATA_NAMESPACE: &str = "xiuxian-wendao";
+/// State namespace for Wendao-owned runtime artifacts.
+pub const DEFAULT_WENDAO_STATE_NAMESPACE: &str = "wendao";
 /// `DuckDB`'s special marker for one ephemeral in-process database.
 ///
 /// This is a DuckDB-local catalog mode, not Wendao memory-layer state and not
@@ -41,18 +42,21 @@ pub type SearchDuckDbExecutionConfig = DuckDbExecutionConfig;
 /// Runtime-owned `DuckDB` config for bounded Wendao search analytics.
 pub type SearchDuckDbRuntimeConfig = DuckDbRuntimeConfig;
 
-/// Resolve the default Wendao data root.
+/// Resolve the default Wendao state root.
 #[must_use]
-pub fn default_wendao_data_root(project_root: &Path) -> PathBuf {
-    resolve_data_home(Some(project_root))
-        .unwrap_or_else(|| project_root.join(".data"))
-        .join(DEFAULT_WENDAO_DATA_NAMESPACE)
+pub fn default_wendao_state_root(project_root: &Path) -> PathBuf {
+    project_cache_root_from_config(ProjectCacheRootConfig {
+        project_root: Some(project_root.to_path_buf()),
+        cache_home: None,
+        project_namespace: None,
+    })
+    .join(DEFAULT_WENDAO_STATE_NAMESPACE)
 }
 
 /// Resolve the default database file for bounded `DuckDB` search analytics.
 #[must_use]
 pub fn default_search_duckdb_database_path(project_root: &Path) -> PathBuf {
-    default_wendao_data_root(project_root)
+    default_wendao_state_root(project_root)
         .join("duckdb")
         .join("search.duckdb")
 }
@@ -60,7 +64,7 @@ pub fn default_search_duckdb_database_path(project_root: &Path) -> PathBuf {
 /// Resolve the default temp directory for bounded `DuckDB` analytics.
 #[must_use]
 pub fn default_search_duckdb_temp_directory(project_root: &Path) -> PathBuf {
-    default_wendao_data_root(project_root)
+    default_wendao_state_root(project_root)
         .join("duckdb")
         .join("tmp")
 }

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 /// CLI arguments for agent Org read-model materialization.
 #[derive(Args, Debug)]
 pub struct OrgizeReadModelArgs {
-    /// Org files or directories to materialize. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    /// Org files or directories to materialize. When omitted, uses the namespaced project cache `agent/org`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }
@@ -43,7 +43,7 @@ pub struct OrgizeTaskListArgs {
     #[arg(long = "limit", default_value_t = 20)]
     pub limit: usize,
 
-    /// Org files or directories to materialize before listing. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    /// Org files or directories to materialize before listing. When omitted, uses the namespaced project cache `agent/org`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }
@@ -75,7 +75,7 @@ pub struct OrgizeTaskProbeArgs {
     #[arg(long = "limit", default_value_t = 3)]
     pub limit: usize,
 
-    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    /// Org files or directories to materialize before lookup. When omitted, uses the namespaced project cache `agent/org`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }
@@ -95,7 +95,7 @@ pub struct OrgizeOrgidShowArgs {
     #[arg(long = "full")]
     pub full: bool,
 
-    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    /// Org files or directories to materialize before lookup. When omitted, uses the namespaced project cache `agent/org`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }
@@ -111,7 +111,7 @@ pub struct OrgizeTaskSddArgs {
     #[arg(long = "id", value_name = "ID")]
     pub id: String,
 
-    /// Org files or directories to materialize before lookup. When omitted, uses `$PRJ_CACHE_HOME/agent/org`.
+    /// Org files or directories to materialize before lookup. When omitted, uses the namespaced project cache `agent/org`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,
 }

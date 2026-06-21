@@ -43,7 +43,7 @@ async fn docs_search_endpoint_executes_over_external_modelica_plugin_path() -> T
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-search]
+            r#"[sources.projects.modelica-gateway-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

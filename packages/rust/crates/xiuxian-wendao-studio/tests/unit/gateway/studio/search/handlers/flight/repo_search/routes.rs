@@ -94,7 +94,7 @@ async fn build_studio_flight_service_for_roots_accepts_runtime_studio_providers(
     write_file_or_panic(
         project_root.join("wendao.toml"),
         r#"
-[link_graph.projects.kernel]
+[sources.projects.kernel]
 root = "."
 dirs = ["packages"]
 "#,
@@ -155,7 +155,7 @@ async fn build_studio_flight_service_for_roots_accepts_markdown_analysis_routes(
     write_file_or_panic(
         project_root.join("wendao.toml"),
         r#"
-[link_graph.projects.kernel]
+[sources.projects.kernel]
 root = "."
 dirs = ["docs"]
 "#,

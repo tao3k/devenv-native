@@ -14,7 +14,7 @@ fn load_ui_config_from_wendao_toml_accepts_inline_repo_plugin_config() -> TestRe
     let temp = tempfile::tempdir()?;
     fs::write(
         temp.path().join("wendao.toml"),
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "."
 plugins = [
   "ast-grep",
@@ -44,7 +44,7 @@ fn load_ui_config_from_wendao_toml_defaults_markdown_parser_for_repo_projects() 
     let temp = tempfile::tempdir()?;
     fs::write(
         temp.path().join("wendao.toml"),
-        r#"[link_graph.projects.knowledge]
+        r#"[sources.projects.knowledge]
 root = "."
 "#,
     )?;
@@ -70,7 +70,7 @@ fn load_ui_config_from_wendao_toml_maps_global_link_graph_include_dirs_to_main_p
         r#"[link_graph]
 include_dirs = ["docs", "./semantic", "packages/rust/crates/xiuxian-wendao"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 plugins = []
 "#,
@@ -100,7 +100,7 @@ fn load_ui_config_from_wendao_toml_prefers_overlay_importing_base() -> TestResul
     let temp = tempfile::tempdir()?;
     fs::write(
         studio_wendao_toml_path(temp.path()),
-        r#"[link_graph.projects.kernel]
+        r#"[sources.projects.kernel]
 root = "."
 dirs = ["docs"]
 "#,
@@ -109,7 +109,7 @@ dirs = ["docs"]
         studio_wendao_overlay_toml_path(temp.path()),
         r#"imports = ["wendao.toml"]
 
-[link_graph.projects.kernel]
+[sources.projects.kernel]
 root = "."
 dirs = ["docs", "src"]
 "#,

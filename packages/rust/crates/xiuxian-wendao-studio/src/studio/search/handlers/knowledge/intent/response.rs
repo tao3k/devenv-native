@@ -130,6 +130,6 @@ pub(crate) fn missing_intent_config(
 pub(crate) fn missing_intent_config_error() -> StudioApiError {
     StudioApiError::bad_request(
         "UI_CONFIG_REQUIRED",
-        "Studio intent search requires configured link_graph.projects or repo_projects",
+        "Studio intent search requires configured sources.projects or repo_projects",
     )
 }

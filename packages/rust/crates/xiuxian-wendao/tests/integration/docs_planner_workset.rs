@@ -22,7 +22,7 @@ fn modelica_plugin_docs_planner_workset_executes_over_external_plugin_path() -> 
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-planner-workset]
+            r#"[sources.projects.modelica-docs-planner-workset]
 root = "{}"
 plugins = ["modelica"]
 "#,

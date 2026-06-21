@@ -2,14 +2,12 @@ use std::path::{Path, PathBuf};
 
 use crate::executors::QianjiAdvisoryAuditExecutor;
 use crate::sovereign::KnowledgeStorageContractFeedbackSink;
-use xiuxian_config_core::resolve_data_home;
+use xiuxian_db_store::state::{
+    ProjectCacheRootConfig, STATE_STORE_DIR_NAME, project_cache_root_from_config,
+};
 
 use super::types::RestDocsCliCommand;
 use crate::qianji_cli::input::resolve_path_against_root;
-
-pub(crate) fn normalize_prj_data_home(_workspace_root: &Path, resolved: PathBuf) -> PathBuf {
-    resolved
-}
 
 pub(super) fn build_scaffold_advisory_executor() -> QianjiAdvisoryAuditExecutor {
     QianjiAdvisoryAuditExecutor::new()
@@ -45,9 +43,12 @@ pub(super) fn build_contract_feedback_session_id(openapi_path: &Path) -> String 
 }
 
 fn default_contract_feedback_storage_path(workspace_root: &Path) -> PathBuf {
-    let resolved =
-        resolve_data_home(Some(workspace_root)).unwrap_or_else(|| workspace_root.join(".data"));
-    normalize_prj_data_home(workspace_root, resolved)
-        .join("xiuxian-qianji")
-        .join("contract_feedback")
+    project_cache_root_from_config(ProjectCacheRootConfig {
+        project_root: Some(workspace_root.to_path_buf()),
+        cache_home: None,
+        project_namespace: None,
+    })
+    .join(STATE_STORE_DIR_NAME)
+    .join("xiuxian-qianji")
+    .join("contract_feedback")
 }

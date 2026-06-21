@@ -153,9 +153,9 @@ def get_link_graph_include_dirs(
 ) -> list[str]:
     """Resolve LinkGraph include dirs from settings + notebook root."""
     reader = setting_reader or get_setting
-    include_dirs_raw = reader("link_graph.include_dirs", [])
-    include_dirs_auto = _coerce_bool(reader("link_graph.include_dirs_auto", True), default=True)
-    auto_candidates_raw = reader("link_graph.include_dirs_auto_candidates", [])
+    include_dirs_raw = reader("sources.include_dirs", [])
+    include_dirs_auto = _coerce_bool(reader("sources.include_dirs_auto", True), default=True)
+    auto_candidates_raw = reader("sources.include_dirs_auto_candidates", [])
     return resolve_link_graph_include_dirs(
         include_dirs_raw,
         notebook_root=notebook_root,
@@ -192,7 +192,7 @@ def get_link_graph_excluded_dirs(
     """Resolve LinkGraph excluded directories from settings + built-in policy."""
     reader = setting_reader or get_setting
     raw = reader(
-        "link_graph.exclude_dirs",
+        "sources.exclude_dirs",
         list(DEFAULT_LINK_GRAPH_EXCLUDED_ADDITIONAL_DIRS),
     )
     return resolve_link_graph_excluded_dirs(raw)
@@ -644,17 +644,17 @@ def get_link_graph_runtime_config(
 ) -> LinkGraphRuntimeConfig:
     """Resolve unified LinkGraph runtime config from settings + env."""
     reader = setting_reader or get_setting
-    include_dirs = normalize_link_graph_dir_entries(reader("link_graph.include_dirs", []))
+    include_dirs = normalize_link_graph_dir_entries(reader("sources.include_dirs", []))
     include_dirs_auto = _coerce_bool(
-        reader("link_graph.include_dirs_auto", True),
+        reader("sources.include_dirs_auto", True),
         default=True,
     )
     include_dirs_auto_candidates = normalize_link_graph_dir_entries(
-        reader("link_graph.include_dirs_auto_candidates", [])
+        reader("sources.include_dirs_auto_candidates", [])
     )
     exclude_dirs = resolve_link_graph_excluded_dirs(
         reader(
-            "link_graph.exclude_dirs",
+            "sources.exclude_dirs",
             list(DEFAULT_LINK_GRAPH_EXCLUDED_ADDITIONAL_DIRS),
         )
     )
@@ -839,9 +839,9 @@ __all__ = [
     "DEFAULT_LINK_GRAPH_STATS_RESPONSE_REFRESH_TIMEOUT_SEC",
     "DEFAULT_LINK_GRAPH_STATS_TIMEOUT_SEC",
     "LINK_GRAPH_CACHE_VALKEY_URL_ENV",
+    "LINK_GRAPH_GATEWAY_BASE_URL_ENV",
     "LINK_GRAPH_VALKEY_KEY_PREFIX_ENV",
     "LINK_GRAPH_VALKEY_TTL_SECONDS_ENV",
-    "LINK_GRAPH_GATEWAY_BASE_URL_ENV",
     "LinkGraphRuntimeConfig",
     "get_link_graph_backend_name",
     "get_link_graph_cache_key_prefix",

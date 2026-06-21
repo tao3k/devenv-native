@@ -158,7 +158,7 @@ fn write_semantic_fixture_wendao_config(project_root: &Path) {
     write_file_or_panic(
         project_root.join("wendao.toml"),
         r#"
-[link_graph.projects.kernel]
+[sources.projects.kernel]
 root = "."
 dirs = ["semantic"]
 "#,

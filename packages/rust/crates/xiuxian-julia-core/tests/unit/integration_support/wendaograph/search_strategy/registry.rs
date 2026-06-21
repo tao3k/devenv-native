@@ -22,11 +22,11 @@ fn search_strategy_flow_registry_authority_batch_replays_through_julia()
     fs::write(
         root.join("wendao.toml"),
         r#"
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 
-[link_graph.projects.wendaograph]
+[sources.projects.wendaograph]
 url = "https://example.invalid/wendaograph.git"
 plugins = ["julia"]
 "#,

@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use duckdb::Connection;
+use xiuxian_db_store::state::{ProjectCacheRootConfig, project_cache_root_from_config};
 
 use super::types::{DEFAULT_CONVERTER_PROFILE, DocumentExtractJobRegistry};
 
@@ -32,8 +33,11 @@ impl DocumentExtractJobRegistry {
     }
 
     pub(crate) fn default_for_project(project_root: &Path) -> Result<Self, String> {
-        let cache_root = std::env::var_os("PRJ_CACHE_HOME")
-            .map_or_else(|| project_root.join(".cache"), PathBuf::from);
+        let cache_root = project_cache_root_from_config(ProjectCacheRootConfig {
+            project_root: Some(project_root.to_path_buf()),
+            cache_home: None,
+            project_namespace: None,
+        });
         let job_db = std::env::var_os("WENDAO_DOCUMENT_EXTRACT_JOB_DB").map_or_else(
             || cache_root.join("wendao-document-extract/jobs.duckdb"),
             PathBuf::from,

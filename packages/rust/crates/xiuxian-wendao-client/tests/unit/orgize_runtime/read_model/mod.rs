@@ -2,6 +2,19 @@ mod config;
 mod materialize;
 mod task_list;
 
+fn agent_read_model_database_path(root: &std::path::Path) -> std::path::PathBuf {
+    xiuxian_db_store::state::project_cache_root_from_config(
+        xiuxian_db_store::state::ProjectCacheRootConfig {
+            project_root: Some(root.to_path_buf()),
+            cache_home: Some(root.join(".cache")),
+            project_namespace: None,
+        },
+    )
+    .join("agent")
+    .join("readmodels")
+    .join("org_agent_tasks.duckdb")
+}
+
 fn assert_agent_task_row_count(database_path: &std::path::Path, expected: i64) {
     let connection = xiuxian_db_store::duckdb_crate::Connection::open(database_path)
         .unwrap_or_else(|error| panic!("open read-model duckdb: {error}"));

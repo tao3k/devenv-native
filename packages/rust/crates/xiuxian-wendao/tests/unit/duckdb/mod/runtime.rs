@@ -1,6 +1,6 @@
 #[cfg(feature = "duckdb")]
 use super::{
-    DEFAULT_SEARCH_DUCKDB_THREADS, Path, default_wendao_data_root, load_toml_settings_from_path,
+    DEFAULT_SEARCH_DUCKDB_THREADS, Path, default_wendao_state_root, load_toml_settings_from_path,
     resolve_search_duckdb_runtime_with_settings,
 };
 use super::{
@@ -75,14 +75,14 @@ fn embedded_search_duckdb_defaults_follow_system_profile() -> TestResult {
     let resource_path = crate_root.join("resources/config/wendao.toml");
     let settings = load_toml_settings_from_path(resource_path.as_path())?;
     let runtime = resolve_search_duckdb_runtime_with_settings(crate_root, &settings);
-    let data_root = default_wendao_data_root(crate_root);
+    let state_root = default_wendao_state_root(crate_root);
 
     assert!(runtime.enabled);
     assert_eq!(
         runtime.database_path,
-        DuckDbDatabasePath::File(data_root.join("duckdb/search.duckdb"))
+        DuckDbDatabasePath::File(state_root.join("duckdb/search.duckdb"))
     );
-    assert_eq!(runtime.temp_directory, data_root.join("duckdb/tmp"));
+    assert_eq!(runtime.temp_directory, state_root.join("duckdb/tmp"));
     assert_eq!(runtime.threads, DEFAULT_SEARCH_DUCKDB_THREADS);
     assert!(runtime.execution.preserve_insertion_order);
     assert!(!runtime.execution.parquet_metadata_cache);

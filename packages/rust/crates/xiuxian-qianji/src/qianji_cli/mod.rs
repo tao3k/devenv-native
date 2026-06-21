@@ -40,7 +40,7 @@ pub(crate) use test_exports::{
 pub(crate) use test_exports::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, REST_DOCS_PACK_ID,
     RestDocsCliCommand, build_contract_feedback_config, build_rest_docs_collection_context,
-    normalize_prj_data_home, parse_contract_feedback_command, resolve_workspace_root,
+    parse_contract_feedback_command, resolve_workspace_root,
     run_deterministic_rest_docs_contract_feedback, run_scaffold_rest_docs_contract_feedback,
 };
 #[path = "facade.rs"]

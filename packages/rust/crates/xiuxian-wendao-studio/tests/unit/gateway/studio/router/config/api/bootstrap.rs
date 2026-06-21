@@ -116,7 +116,7 @@ fn studio_bootstrap_uses_explicit_gateway_config_path_and_its_imports() {
         &gateway_config_path,
         r#"imports = [".data/wendao-frontend/wendao.toml"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 "#,
@@ -124,11 +124,11 @@ dirs = ["docs"]
     .unwrap_or_else(|error| panic!("write gateway config: {error}"));
     fs::write(
         frontend_root.join("wendao.toml"),
-        r#"[link_graph.projects.kernel]
+        r#"[sources.projects.kernel]
 root = "."
 dirs = ["docs"]
 
-[link_graph.projects.frontend]
+[sources.projects.frontend]
 root = "."
 dirs = ["src"]
 "#,
@@ -208,7 +208,7 @@ fn studio_bootstrap_preserves_imported_search_only_repo_projects_from_explicit_r
 
     fs::write(
         project_root.join("github-repo-list.toml"),
-        r#"[link_graph.projects.lance]
+        r#"[sources.projects.lance]
 dirs = []
 url = "https://github.com/lance-format/lance"
 refresh = "fetch"
@@ -222,7 +222,7 @@ plugins = ["ast-grep"]
         &gateway_config_path,
         r#"imports = ["github-repo-list.toml", ".data/wendao-frontend/wendao.toml"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 "#,
@@ -230,7 +230,7 @@ dirs = ["docs"]
     .unwrap_or_else(|error| panic!("write gateway config: {error}"));
     fs::write(
         frontend_root.join("wendao.toml"),
-        r#"[link_graph.projects.frontend]
+        r#"[sources.projects.frontend]
 root = "."
 dirs = ["src"]
 "#,
@@ -270,7 +270,7 @@ fn eager_bootstrap_enqueues_imported_search_only_repo_projects() {
 
     fs::write(
         project_root.join("github-repo-list.toml"),
-        r#"[link_graph.projects.lance]
+        r#"[sources.projects.lance]
 dirs = []
 url = "https://github.com/lance-format/lance"
 refresh = "fetch"
@@ -284,7 +284,7 @@ plugins = ["ast-grep"]
         &gateway_config_path,
         r#"imports = ["github-repo-list.toml"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 "#,
@@ -334,7 +334,7 @@ fn eager_bootstrap_enqueues_imported_repo_intelligence_projects() {
 
     fs::write(
         project_root.join("github-repo-list.toml"),
-        r#"[link_graph.projects.sciml]
+        r#"[sources.projects.sciml]
 dirs = []
 url = "https://github.com/SciML/OrdinaryDiffEq.jl"
 refresh = "fetch"
@@ -348,7 +348,7 @@ plugins = ["julia-code-parser"]
         &gateway_config_path,
         r#"imports = ["github-repo-list.toml"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 "#,

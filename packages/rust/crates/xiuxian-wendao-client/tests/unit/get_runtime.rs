@@ -158,7 +158,7 @@ fn standalone_get_command_merges_root_wendao_toml_and_cli_ignore_dirs() {
     .unwrap_or_else(|error| panic!("write scratch doc: {error}"));
     std::fs::write(
         temp.path().join("wendao.toml"),
-        "[link_graph]\nexclude_dirs = [\"generated\"]\n",
+        "[sources]\nexclude_dirs = [\"generated\"]\n",
     )
     .unwrap_or_else(|error| panic!("write wendao.toml: {error}"));
 

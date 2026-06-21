@@ -11,7 +11,7 @@ fn resolve_index_runtime_filters_hidden_excludes_and_uses_auto_candidates()
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph]
+        r#"[sources]
 include_dirs_auto = true
 include_dirs_auto_candidates = ["src", "docs", "missing"]
 exclude_dirs = [".git", "target", "target"]
@@ -30,7 +30,7 @@ exclude_dirs = [".git", "target", "target"]
 }
 
 #[test]
-fn resolve_index_runtime_accepts_explicit_link_graph_source_scope()
+fn resolve_index_runtime_accepts_explicit_configured_source_scope()
 -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
     fs::create_dir_all(temp.path().join("docs"))?;
@@ -42,7 +42,7 @@ fn resolve_index_runtime_accepts_explicit_link_graph_source_scope()
     let config_path = temp.path().join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph]
+        r#"[sources]
 include_dirs = [
   "docs",
   "semantic",

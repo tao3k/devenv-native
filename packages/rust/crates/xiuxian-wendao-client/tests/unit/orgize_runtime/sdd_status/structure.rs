@@ -85,7 +85,15 @@ fn standalone_orgize_sdd_status_reports_missing_path_recovery() {
 #[test]
 fn standalone_orgize_sdd_status_defaults_to_agent_sdd_cache() {
     let temp = tempdir_or_panic();
-    let sdd_dir = temp.path().join(".cache").join("agent").join("sdd");
+    let sdd_dir = xiuxian_db_store::state::project_cache_root_from_config(
+        xiuxian_db_store::state::ProjectCacheRootConfig {
+            project_root: Some(temp.path().to_path_buf()),
+            cache_home: Some(temp.path().join(".cache")),
+            project_namespace: None,
+        },
+    )
+    .join("agent")
+    .join("sdd");
     std::fs::create_dir_all(&sdd_dir).unwrap_or_else(|error| panic!("create sdd dir: {error}"));
     std::fs::write(
         sdd_dir.join("default.org"),

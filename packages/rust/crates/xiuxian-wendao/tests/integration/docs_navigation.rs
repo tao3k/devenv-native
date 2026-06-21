@@ -22,7 +22,7 @@ fn modelica_plugin_docs_navigation_bundle_resolves_tree_context_and_family_clust
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-navigation]
+            r#"[sources.projects.modelica-docs-navigation]
 root = "{}"
 plugins = ["modelica"]
 "#,

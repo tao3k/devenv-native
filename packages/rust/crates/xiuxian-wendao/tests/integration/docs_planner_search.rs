@@ -22,7 +22,7 @@ fn modelica_plugin_docs_planner_search_executes_over_external_plugin_path() -> T
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-planner-search]
+            r#"[sources.projects.modelica-docs-planner-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

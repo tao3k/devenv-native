@@ -191,11 +191,11 @@ pub(super) async fn make_gateway_state_with_search_strategy_flow_routes() -> Gat
     fs::write(
         temp_dir.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.kernel]
+            r#"[sources.projects.kernel]
 root = "."
 dirs = ["docs"]
 
-[link_graph.projects.gateway-sync]
+[sources.projects.gateway-sync]
 root = "{}"
 plugins = ["julia-code-parser"]
 refresh = "manual"

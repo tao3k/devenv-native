@@ -14,7 +14,7 @@ pub(crate) struct WendaoTomlConfig {
     #[serde(default)]
     pub(crate) episteme: WendaoTomlEpistemeConfig,
     #[serde(default)]
-    pub(crate) link_graph: WendaoTomlLinkGraphConfig,
+    pub(crate) sources: WendaoTomlSourcesConfig,
     #[serde(default, flatten)]
     pub(crate) extra: BTreeMap<String, toml::Value>,
     #[serde(default)]
@@ -94,9 +94,9 @@ pub(crate) struct WendaoGraphOntologyReadModelQualityEndpointConfig {
     pub(crate) max_in_flight_requests: Option<u64>,
 }
 
-/// Link graph configuration.
+/// Source discovery configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub(crate) struct WendaoTomlLinkGraphConfig {
+pub(crate) struct WendaoTomlSourcesConfig {
     #[serde(default)]
     pub(crate) include_dirs: Vec<String>,
     #[serde(default)]

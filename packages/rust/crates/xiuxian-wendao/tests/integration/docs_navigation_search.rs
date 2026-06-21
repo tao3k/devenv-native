@@ -23,7 +23,7 @@ fn modelica_plugin_docs_navigation_search_expands_reference_hits_into_navigation
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-navigation-search]
+            r#"[sources.projects.modelica-docs-navigation-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

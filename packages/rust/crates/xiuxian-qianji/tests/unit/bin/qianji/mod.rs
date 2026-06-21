@@ -19,8 +19,8 @@ use super::{
 use super::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, REST_DOCS_PACK_ID,
     RestDocsCliCommand, build_contract_feedback_config, build_rest_docs_collection_context,
-    normalize_prj_data_home, parse_contract_feedback_command,
-    run_deterministic_rest_docs_contract_feedback, run_scaffold_rest_docs_contract_feedback,
+    parse_contract_feedback_command, run_deterministic_rest_docs_contract_feedback,
+    run_scaffold_rest_docs_contract_feedback,
 };
 use crate::runtime_config::QianjiRuntimeEnv;
 use std::fs;
@@ -28,6 +28,10 @@ use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 #[cfg(feature = "wendao-integration")]
 use xiuxian_config_core::resolve_path_from_value;
+#[cfg(feature = "wendao-integration")]
+use xiuxian_db_store::state::{
+    ProjectCacheRootConfig, STATE_STORE_DIR_NAME, project_cache_root_from_config,
+};
 
 mod bpmn;
 #[cfg(feature = "wendao-integration")]
@@ -186,18 +190,23 @@ use = ["missing-module as missing"]
 #[cfg(feature = "wendao-integration")]
 fn default_contract_feedback_storage_path_with(
     workspace_root: &Path,
-    raw_data_home: Option<&str>,
+    raw_cache_home: Option<&str>,
 ) -> PathBuf {
-    resolve_prj_data_home_with(workspace_root, raw_data_home)
+    resolve_project_state_root_with(workspace_root, raw_cache_home)
         .join("xiuxian-qianji")
         .join("contract_feedback")
 }
 
 #[cfg(feature = "wendao-integration")]
-fn resolve_prj_data_home_with(workspace_root: &Path, raw_data_home: Option<&str>) -> PathBuf {
-    let resolved = resolve_path_from_value(Some(workspace_root), raw_data_home)
-        .unwrap_or_else(|| workspace_root.join(".data"));
-    normalize_prj_data_home(workspace_root, resolved)
+fn resolve_project_state_root_with(workspace_root: &Path, raw_cache_home: Option<&str>) -> PathBuf {
+    let cache_home = resolve_path_from_value(Some(workspace_root), raw_cache_home)
+        .unwrap_or_else(|| workspace_root.join(".cache"));
+    project_cache_root_from_config(ProjectCacheRootConfig {
+        project_root: Some(workspace_root.to_path_buf()),
+        cache_home: Some(cache_home),
+        project_namespace: None,
+    })
+    .join(STATE_STORE_DIR_NAME)
 }
 
 fn assert_common_show_shape(rendered: &str) {

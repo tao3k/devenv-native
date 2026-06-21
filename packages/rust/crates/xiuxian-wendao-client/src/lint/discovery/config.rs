@@ -7,11 +7,11 @@ use xiuxian_config_core::load_toml_value_with_imports;
 #[derive(Debug, Clone, Default, Deserialize)]
 struct WendaoTomlConfig {
     #[serde(default)]
-    link_graph: WendaoTomlLinkGraphConfig,
+    sources: WendaoTomlSourcesConfig,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
-struct WendaoTomlLinkGraphConfig {
+struct WendaoTomlSourcesConfig {
     #[serde(default)]
     projects: BTreeMap<String, WendaoTomlProjectConfig>,
 }
@@ -49,7 +49,7 @@ pub(super) fn configured_project_roots(root: &Path) -> Result<Vec<PathBuf>> {
         .map_or_else(|| root.to_path_buf(), Path::to_path_buf);
 
     let mut resolved_roots = parsed
-        .link_graph
+        .sources
         .projects
         .into_values()
         .filter(|project| !project_is_read_only(project))

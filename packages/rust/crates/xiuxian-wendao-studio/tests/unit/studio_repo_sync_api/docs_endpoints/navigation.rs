@@ -83,7 +83,7 @@ async fn docs_navigation_endpoint_executes_over_external_modelica_plugin_path() 
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-navigation]
+            r#"[sources.projects.modelica-gateway-navigation]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -203,7 +203,7 @@ async fn docs_navigation_search_endpoint_executes_over_external_modelica_plugin_
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-navigation-search]
+            r#"[sources.projects.modelica-gateway-navigation-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

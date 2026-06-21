@@ -215,7 +215,7 @@ async fn repo_sync_endpoint_executes_over_external_modelica_plugin_path() -> Tes
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-sync]
+            r#"[sources.projects.modelica-gateway-sync]
 root = "{}"
 plugins = ["modelica"]
 "#,

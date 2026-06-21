@@ -21,20 +21,20 @@ fn configured_markdown_corpus_audit_follows_root_wendao_toml_imports()
         r#"
 imports = ["assets/wendao/imported.toml"]
 
-[link_graph]
+[sources]
 include_dirs = ["docs"]
 
-[link_graph.projects.local]
+[sources.projects.local]
 plugins = ["julia"]
 "#,
     )?;
     fs::write(
         root.join("assets/wendao/imported.toml"),
         r#"
-[link_graph]
+[sources]
 include_dirs = ["semantic"]
 
-[link_graph.projects.remote]
+[sources.projects.remote]
 plugins = ["julia"]
 "#,
     )?;
@@ -89,26 +89,26 @@ fn configured_markdown_replay_families_follow_root_wendao_toml_imports()
         r#"
 imports = ["assets/wendao/imported.toml"]
 
-[link_graph]
+[sources]
 include_dirs = ["docs"]
 
-[link_graph.projects.local]
+[sources.projects.local]
 plugins = ["julia"]
 "#,
     )?;
     fs::write(
         root.join("assets/wendao/imported.toml"),
         r#"
-[link_graph]
+[sources]
 include_dirs = ["semantic"]
 
-[link_graph.projects.remote]
+[sources.projects.remote]
 plugins = ["julia"]
 "#,
     )?;
     fs::write(
         root.join("docs/scenario.md"),
-        "# Search Strategy Flow\n\n## Precision Gate\n\nConfigured Markdown corpus.\n",
+        "# SearchStrategyFlow proof\n\n## Precision Gate\n\nConfigured Markdown corpus.\n",
     )?;
     fs::write(
         root.join("semantic/working_knowledge.md"),

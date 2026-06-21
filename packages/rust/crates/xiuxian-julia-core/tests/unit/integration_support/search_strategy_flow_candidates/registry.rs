@@ -16,12 +16,12 @@ fn registry_authority_audit_follows_root_wendao_toml_imports()
         r#"
 imports = ["assets/wendao/imported.toml"]
 
-[link_graph.projects.local]
+[sources.projects.local]
 root = "."
 dirs = ["docs"]
 plugins = ["markdown"]
 
-[link_graph.projects.remote]
+[sources.projects.remote]
 url = "https://example.invalid/root.git"
 refresh = "on-demand"
 plugins = ["julia"]
@@ -30,11 +30,11 @@ plugins = ["julia"]
     fs::write(
         root.join("assets/wendao/imported.toml"),
         r#"
-[link_graph.projects.remote]
+[sources.projects.remote]
 url = "https://example.invalid/imported.git"
 plugins = ["python"]
 
-[link_graph.projects."remote-lib"]
+[sources.projects."remote-lib"]
 url = "https://example.invalid/remote-lib.git"
 plugins = ["modelica"]
 "#,
@@ -65,11 +65,11 @@ fn registry_authority_batch_uses_authority_route_markers_and_receipt()
     fs::write(
         root.join("wendao.toml"),
         r#"
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 
-[link_graph.projects."GraphSignals.jl"]
+[sources.projects."GraphSignals.jl"]
 url = "https://example.invalid/GraphSignals.jl.git"
 plugins = ["julia"]
 "#,
@@ -128,16 +128,16 @@ fn registry_authority_batch_covers_real_root_wendao_toml_surface()
     let batch = search_strategy_flow_registry_authority_candidate_input_batch(root.as_path())?;
 
     assert_eq!(audit.config_surface, "root-wendao.toml");
-    assert_eq!(audit.configured_project_count, 181);
+    assert_eq!(audit.configured_project_count, 180);
     assert_eq!(batch.source, REGISTRY_METADATA_CANDIDATE_SOURCE);
-    assert_eq!(batch.row_count, 181);
+    assert_eq!(batch.row_count, 180);
     assert_eq!(
         batch
             .candidate_input_arrow_snapshot()
             .lines()
             .filter(|line| !line.trim().is_empty())
             .count(),
-        181
+        180
     );
     assert!(
         batch
@@ -147,7 +147,7 @@ fn registry_authority_batch_covers_real_root_wendao_toml_surface()
     assert!(
         batch
             .candidate_input_arrow_snapshot()
-            .contains("registry-authority-source-authority-package-owner-lance")
+            .contains("registry-authority-source-authority-package-owner-mcl")
     );
     Ok(())
 }

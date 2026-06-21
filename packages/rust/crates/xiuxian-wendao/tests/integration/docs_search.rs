@@ -18,7 +18,7 @@ fn modelica_plugin_docs_search_matches_reference_pages() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-search]
+            r#"[sources.projects.modelica-docs-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

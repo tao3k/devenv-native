@@ -15,6 +15,7 @@ orgize-agent-read-model = [
   "dep:xiuxian-graph-core",
   "dep:xiuxian-memory-engine",
   "xiuxian-db-store/duckdb",
+  "xiuxian-db-store/project-state",
   "xiuxian-graph-core/mermaid",
 ]
 performance = []

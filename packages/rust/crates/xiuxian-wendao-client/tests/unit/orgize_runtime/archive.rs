@@ -2,6 +2,42 @@ use std::path::{Path, PathBuf};
 
 use crate::orgize_runtime::support::{assert_cli_success, run_orgize, tempdir_or_panic};
 
+fn project_cache_root_rel(root: &Path) -> String {
+    let cache_root = xiuxian_db_store::state::project_cache_root_from_config(
+        xiuxian_db_store::state::ProjectCacheRootConfig {
+            project_root: Some(root.to_path_buf()),
+            cache_home: Some(root.join(".cache")),
+            project_namespace: None,
+        },
+    );
+    cache_root
+        .strip_prefix(root)
+        .unwrap_or(cache_root.as_path())
+        .display()
+        .to_string()
+}
+
+fn archive_rel_path(root: &Path, file_name: &str) -> String {
+    format!(
+        "{}/agent/org/archives/{file_name}",
+        project_cache_root_rel(root)
+    )
+}
+
+fn expected_archive_path(root: &Path, file_name: &str) -> PathBuf {
+    xiuxian_db_store::state::project_cache_root_from_config(
+        xiuxian_db_store::state::ProjectCacheRootConfig {
+            project_root: Some(root.to_path_buf()),
+            cache_home: Some(root.join(".cache")),
+            project_namespace: None,
+        },
+    )
+    .join("agent")
+    .join("org")
+    .join("archives")
+    .join(file_name)
+}
+
 #[cfg(feature = "orgize-agent-read-model")]
 #[test]
 fn standalone_orgize_task_archive_plans_and_applies_completed_rows() {
@@ -58,7 +94,8 @@ fn standalone_orgize_task_archive_apply_json_outputs_write_receipt() {
     assert_eq!(parsed["selected"], 1);
     assert_eq!(parsed["sourcesUpdated"][0], "agenda.org", "json: {parsed}");
     assert_eq!(
-        parsed["targetsUpdated"][0], ".cache/agent/org/archives/completed.org",
+        parsed["targetsUpdated"][0],
+        archive_rel_path(temp.path(), "completed.org"),
         "json: {parsed}"
     );
     assert_eq!(parsed["postApplyRefresh"], "refreshed");
@@ -103,19 +140,17 @@ fn standalone_orgize_task_archive_defaults_to_source_file_target() {
 
     assert_cli_success(&apply);
     assert!(
-        apply
-            .stdout
-            .contains("- target: .cache/agent/org/archives/completed_task.org"),
+        apply.stdout.contains(
+            format!(
+                "- target: {}",
+                archive_rel_path(temp.path(), "completed_task.org")
+            )
+            .as_str()
+        ),
         "stdout: {}",
         apply.stdout
     );
-    let archive_path = temp
-        .path()
-        .join(".cache")
-        .join("agent")
-        .join("org")
-        .join("archives")
-        .join("completed_task.org");
+    let archive_path = expected_archive_path(temp.path(), "completed_task.org");
     assert!(archive_path.is_file());
 }
 
@@ -154,21 +189,18 @@ fn standalone_orgize_task_archive_ignores_deprecated_year_bucket_target() {
 
     assert_cli_success(&apply);
     assert!(
-        apply
-            .stdout
-            .contains("- target: .cache/agent/org/archives/year_bucket_task.org"),
+        apply.stdout.contains(
+            format!(
+                "- target: {}",
+                archive_rel_path(temp.path(), "year_bucket_task.org")
+            )
+            .as_str()
+        ),
         "stdout: {}",
         apply.stdout
     );
     assert!(
-        !temp
-            .path()
-            .join(".cache")
-            .join("agent")
-            .join("org")
-            .join("archives")
-            .join("2026.org")
-            .exists(),
+        !expected_archive_path(temp.path(), "2026.org").exists(),
         "deprecated yearly bucket should not be created"
     );
 }
@@ -183,18 +215,8 @@ struct ArchiveFixture {
 #[cfg(feature = "orgize-agent-read-model")]
 fn write_archive_fixture(root: &Path) -> ArchiveFixture {
     let agenda = root.join("agenda.org");
-    let archive_path = root
-        .join(".cache")
-        .join("agent")
-        .join("org")
-        .join("archives")
-        .join("completed.org");
-    let secondary_archive_path = root
-        .join(".cache")
-        .join("agent")
-        .join("org")
-        .join("archives")
-        .join("secondary.org");
+    let archive_path = expected_archive_path(root, "completed.org");
+    let secondary_archive_path = expected_archive_path(root, "secondary.org");
     std::fs::write(
         &agenda,
         concat!(
@@ -273,13 +295,13 @@ fn assert_archive_plan(root: &Path, fixture: &ArchiveFixture) {
     );
     assert!(
         plan.stdout
-            .contains(".cache/agent/org/archives/completed.org: 2"),
+            .contains(format!("{}: 2", archive_rel_path(root, "completed.org")).as_str()),
         "stdout: {}",
         plan.stdout
     );
     assert!(
         plan.stdout
-            .contains(".cache/agent/org/archives/secondary.org: 1"),
+            .contains(format!("{}: 1", archive_rel_path(root, "secondary.org")).as_str()),
         "stdout: {}",
         plan.stdout
     );
@@ -468,16 +490,11 @@ fn assert_archive_plan_json(root: &Path, _fixture: &ArchiveFixture) {
     assert_eq!(parsed["expectSelected"], 1);
     assert_eq!(parsed["candidates"], 1);
     assert_eq!(parsed["selected"], 1);
-    assert_eq!(
-        parsed["archiveTargets"][".cache/agent/org/archives/completed.org"],
-        1
-    );
+    let archive_target = archive_rel_path(root, "completed.org");
+    assert_eq!(parsed["archiveTargets"][archive_target.as_str()], 1);
     assert_eq!(parsed["items"].as_array().map_or(0, Vec::len), 1);
     assert_eq!(parsed["items"][0]["title"], "Completed slice [1/1] [100%]");
-    assert_eq!(
-        parsed["items"][0]["target"],
-        ".cache/agent/org/archives/completed.org"
-    );
+    assert_eq!(parsed["items"][0]["target"], archive_target);
 }
 
 #[cfg(feature = "orgize-agent-read-model")]
@@ -523,10 +540,11 @@ fn assert_archive_apply(root: &Path, fixture: &ArchiveFixture) {
         "stdout: {}",
         apply.stdout
     );
+    let archive_target = archive_rel_path(root, "completed.org");
     assert!(
         apply
             .stdout
-            .contains("- target: .cache/agent/org/archives/completed.org"),
+            .contains(&format!("- target: {archive_target}")),
         "stdout: {}",
         apply.stdout
     );

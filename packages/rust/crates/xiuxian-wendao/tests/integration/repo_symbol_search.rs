@@ -42,7 +42,7 @@ fn modelica_plugin_symbol_search_matches_external_symbols() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-symbol-search]
+            r#"[sources.projects.modelica-symbol-search]
 root = "{}"
 plugins = ["modelica"]
 "#,
