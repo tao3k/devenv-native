@@ -10,15 +10,24 @@ default-run = "wendao"
 
 [features]
 default = []
-studio = [
+studio-shell = [
   "contracts",
   "openapi-artifacts",
   "http-router",
+]
+studio = [
+  "studio-shell",
+]
+studio-flight-transport = [
+  "studio",
   "flight-transport",
+]
+studio-local-runtime = [
+  "studio-flight-transport",
   "local-runtime",
 ]
 zhenfa-router = [
-  "studio",
+  "http-router",
   "xiuxian-db-store/artifact-cache",
   "xiuxian-wendao/zhenfa-router",
   "xiuxian-zhenfa/gateway",
@@ -107,16 +116,18 @@ julia = [
   "xiuxian-wendao/julia",
 ]
 performance = [
-  "studio",
+  "studio-local-runtime",
   "dep:criterion",
   "xiuxian-wendao/performance",
 ]
 performance-stress = ["performance"]
 test-support = [
-  "local-runtime",
+  "studio-local-runtime",
+  "zhenfa-router",
   "xiuxian-wendao/test-support",
 ]
 cli-bin-support = [
+  "studio-local-runtime",
   "zhenfa-router",
   "postgres-auth",
   "dep:clap",
@@ -125,6 +136,7 @@ cli-bin-support = [
   "xiuxian-wendao-client/semantic-sql",
 ]
 flight-server-bin-support = [
+  "studio-local-runtime",
   "zhenfa-router",
 ]
 document-extract-pdf-source-range = [
@@ -148,7 +160,8 @@ document-extract-legacy-office = [
   "xiuxian-wendao-attachments/legacy-office",
 ]
 document-extract-audio-shards = [
-  "studio",
+  "studio-flight-transport",
+  "dep:futures",
   "dep:sha2",
   "dep:xiuxian-qianji",
   "dep:xiuxian-wendao-attachments",
@@ -264,7 +277,7 @@ walkdir = { workspace = true, optional = true }
 insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
-xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false }
 
 [build-dependencies]
 xiuxian-rust-workspace-harness = { workspace = true }

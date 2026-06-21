@@ -67,13 +67,6 @@ impl From<SourceSymbolHit> for domain::SourceSymbolHit {
     }
 }
 
-#[cfg(all(test, feature = "zhenfa-router"))]
-pub(crate) fn domain_source_symbol_hits_for_search_plane(
-    hits: Vec<SourceSymbolHit>,
-) -> Vec<domain::SourceSymbolHit> {
-    hits.into_iter().map(Into::into).collect()
-}
-
 impl From<domain::DefinitionSearchHit> for DefinitionSearchHit {
     fn from(value: domain::DefinitionSearchHit) -> Self {
         Self {
@@ -97,6 +90,13 @@ impl From<domain::DefinitionSearchHit> for DefinitionSearchHit {
                 .collect(),
         }
     }
+}
+
+#[cfg(all(test, feature = "zhenfa-router"))]
+pub(crate) fn domain_source_symbol_hits_for_search_plane(
+    hits: Vec<SourceSymbolHit>,
+) -> Vec<domain::SourceSymbolHit> {
+    hits.into_iter().map(Into::into).collect()
 }
 
 impl From<domain::ObservationHint> for ObservationHint {

@@ -9,13 +9,18 @@ pub use crate::contracts::{
     IntentSearchHit, KnowledgeSearchHit, MarkdownAnalysisDocumentLink,
     MarkdownAnalysisDocumentLinkKind, MarkdownAnalysisDocumentMetadata, MarkdownAnalysisResponse,
     MarkdownRetrievalAtom, MermaidProjection, MermaidViewKind, ObservationHint, ReferenceSearchHit,
-    ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem,
-    SearchCorpusIndexStatus, SearchHit, SearchIndexMaintenanceStatus, SearchIndexPhase,
-    SearchIndexStatusResponse, SearchResponse, SourceSymbolHit, StudioNavigationTarget,
-    SymbolSearchHit, SymbolSearchResponse, Topology3dPayload, TopologyCluster, TopologyLink,
-    TopologyNode, UiCapabilities, UiCodeSearchContract, UiCodeSearchContractExample,
-    UiCodeSearchRoutes, UiConfig, UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind,
-    UiProjectConfig, UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig,
-    UiSearchContract, UiSearchContractAlias, VfsCategory, VfsContentResponse, VfsEntry,
-    VfsScanEntry, VfsScanResult, studio_frontend_type_collection, studio_type_collection,
+    ReferenceSearchResponse, RetrievalChunk, RetrievalChunkSurface, SearchBacklinkItem, SearchHit,
+    SearchResponse, SourceSymbolHit, StudioNavigationTarget, SymbolSearchHit, SymbolSearchResponse,
+    Topology3dPayload, TopologyCluster, TopologyLink, TopologyNode, UiCapabilities,
+    UiCodeSearchContract, UiCodeSearchContractExample, UiCodeSearchRoutes, UiConfig,
+    UiPluginArtifact, UiPluginLaunchSpec, UiPluginTransportKind, UiProjectConfig,
+    UiRepoDiscoveryContract, UiRepoDiscoverySurfaceContract, UiRepoProjectConfig, UiSearchContract,
+    UiSearchContractAlias, VfsCategory, VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
+    studio_frontend_type_collection, studio_type_collection,
+};
+
+#[cfg(feature = "local-runtime")]
+pub use crate::contracts::{
+    SearchCorpusIndexStatus, SearchIndexMaintenanceStatus, SearchIndexPhase,
+    SearchIndexStatusResponse,
 };

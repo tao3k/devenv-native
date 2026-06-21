@@ -27,6 +27,8 @@ use super::{
     search_strategy_flow_candidate_input_batch_from_repo_search,
     search_strategy_flow_probe_action_route,
     search_strategy_flow_registry_authority_candidate_input_batch,
+    wendaograph_profile_graph_projection, wendaograph_readiness_graph_projection,
+    wendaograph_schedule_graph_projection,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -41,6 +43,7 @@ const RUN_WENDAOGRAPH_SEARCH_STRATEGY_FLOW_LIVE_REPLAY_TEST_ENV: &str =
 const WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS_ENV: &str =
     "WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS";
 
+mod graph_projection;
 mod live_probes;
 mod ontology_read_model;
 mod relationship_search;

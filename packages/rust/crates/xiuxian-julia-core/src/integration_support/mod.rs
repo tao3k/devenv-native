@@ -119,7 +119,8 @@ pub use wendaograph::{
     run_wendaograph_search_strategy_flow_json_with_flight_materialization,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_branch_judgements,
     run_wendaograph_search_strategy_flow_json_with_flight_materialization_and_side_tables,
-    search_strategy_flow_probe_action_route,
+    search_strategy_flow_probe_action_route, wendaograph_profile_graph_projection,
+    wendaograph_readiness_graph_projection, wendaograph_schedule_graph_projection,
 };
 pub use wendaograph_gnn::{
     WendaoGraphGnnBackendLoadDiagnostics, WendaoGraphGnnHostProbeReport,

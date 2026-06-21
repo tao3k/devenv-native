@@ -23,6 +23,7 @@ blake3 = { workspace = true }
 inventory = { workspace = true }
 tonic = { workspace = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
+xiuxian-graph-core = { path = "../xiuxian-graph-core" }
 xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"] }
 xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"] }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
@@ -41,6 +42,7 @@ tokio-stream = { workspace = true }
 serde_yaml = { workspace = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
+xiuxian-graph-core = { path = "../xiuxian-graph-core", features = ["mermaid"] }
 
 [lints]
 workspace = true

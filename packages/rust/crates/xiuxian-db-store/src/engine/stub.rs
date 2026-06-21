@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use crate::{EngineRecordBatch, LanceRecordBatch, VectorStoreError};
+use crate::{LanceRecordBatch, VectorStoreError};
 
 /// Metadata returned by vector-store compaction in explicit vector builds.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,38 +109,6 @@ impl VectorStore {
         vector_store_stub_checkpoint().await;
         Err(vector_store_disabled_error())
     }
-}
-
-/// Convert a legacy Lance-named batch into an engine batch.
-///
-/// The engine-only build uses the same Arrow batch type behind both names.
-#[must_use]
-pub fn lance_batch_to_engine_batch(batch: &LanceRecordBatch) -> EngineRecordBatch {
-    batch.clone()
-}
-
-/// Convert legacy Lance-named batches into engine batches.
-///
-/// The engine-only build uses the same Arrow batch type behind both names.
-#[must_use]
-pub fn lance_batches_to_engine_batches(batches: &[LanceRecordBatch]) -> Vec<EngineRecordBatch> {
-    batches.to_vec()
-}
-
-/// Convert an engine batch into a legacy Lance-named batch.
-///
-/// The engine-only build uses the same Arrow batch type behind both names.
-#[must_use]
-pub fn engine_batch_to_lance_batch(batch: &EngineRecordBatch) -> LanceRecordBatch {
-    batch.clone()
-}
-
-/// Convert engine batches into legacy Lance-named batches.
-///
-/// The engine-only build uses the same Arrow batch type behind both names.
-#[must_use]
-pub fn engine_batches_to_lance_batches(batches: &[EngineRecordBatch]) -> Vec<LanceRecordBatch> {
-    batches.to_vec()
 }
 
 async fn vector_store_stub_checkpoint() {

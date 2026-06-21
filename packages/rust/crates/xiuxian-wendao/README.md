@@ -10,11 +10,15 @@
 
 **Wendao** is a next-generation knowledge management engine. While tools like Obsidian revolutionized human note-taking, **Wendao** is designed for the era of Autonomous Agents, providing a high-performance, programmable substrate for structured reasoning and massive-scale retrieval.
 
-Default Wendao builds do not depend on `xiuxian-vector`, `xiuxian-lance`, or
-LanceDB. SQL, document parsing, and Arrow Flight surfaces use the lightweight
-`xiuxian-db-store/engine` boundary; Lance-backed storage remains available only
-through the explicit `vector-store` feature for vector or retrieval-storage
-paths.
+Default Wendao builds are the lightweight product core and do not enable the
+local DuckDB cache, DataFusion query engine, Tantivy lexical index, Arrow Flight
+transport, Zhenfa gateway router, Julia bridge, or builtin plugin bundle. Use
+the explicit `full` feature to recover the previous all-in-one runtime surface,
+or enable narrower features such as `search-runtime`, `duckdb`,
+`zhenfa-router`, `julia`, `repo-lexical-index`, `builtin-plugins`, and
+`vector-store` only where those capabilities are needed. Lance-backed storage
+remains available only through the explicit `vector-store` feature for vector or
+retrieval-storage paths.
 
 ## Package Position In The Split
 

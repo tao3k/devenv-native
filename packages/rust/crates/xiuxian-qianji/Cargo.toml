@@ -109,7 +109,7 @@ xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, opt
 xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false }
 xiuxian-qianji-client = { path = "../xiuxian-qianji-client" }
 xiuxian-macros = { path = "../xiuxian-macros" }
-xiuxian-zhenfa = { path = "../xiuxian-zhenfa", optional = true }
+xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, features = ["contract-validation", "streaming"], optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
 xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }

@@ -3,6 +3,7 @@
 #[path = "../wendaograph_batch_replay.rs"]
 mod batch_replay;
 mod constants;
+mod graph_projection;
 mod host;
 pub mod ontology_read_model;
 #[path = "../wendaograph_persistent_host_report.rs"]
@@ -38,6 +39,10 @@ pub(crate) use constants::{
     WENDAO_GRAPH_PAGE_INDEX_HOST_FIXTURE_ENV, WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_ACTIONS_ENV,
     WENDAO_GRAPH_PAGE_INDEX_HOST_PROBE_WARM_SAMPLES_ENV, WENDAOGRAPH_JULIA_PROJECT_ENV,
     WENDAOGRAPH_PACKAGE_DIR_ENV,
+};
+pub use graph_projection::{
+    wendaograph_profile_graph_projection, wendaograph_readiness_graph_projection,
+    wendaograph_schedule_graph_projection,
 };
 pub(crate) use host::validate_search_strategy_flow_intent;
 pub use host::{

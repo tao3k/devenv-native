@@ -133,7 +133,7 @@ lance-linalg = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e3
 # Arrow IPC for analytics and DataFusion execution
 arrow = { version = "58", features = ["ffi"] }
 arrow-array = { version = "58", features = ["ffi"] }
-arrow-flight = { version = "58", features = ["flight-sql"] }
+arrow-flight = "58"
 arrow-ipc = "58"
 arrow-schema = { version = "58", features = ["ffi"] }
 arrow-string = "58"

@@ -472,6 +472,13 @@ needs a feature-gated second plugin bundle for these languages.
 
 - `xiuxian-wendao-runtime` owns the reusable Arrow Flight runtime client and negotiation seam.
 - `xiuxian-julia-core` owns Julia-specific interpretation of repository plugin options and translates them into the runtime-owned Flight binding.
+- `xiuxian-julia-core` also owns the `WendaoGraph.jl` adapters that project
+  Julia readiness and schedule facts into
+  [`xiuxian-graph-core`](../xiuxian-graph-core/README.md) graphs. The
+  graph-core crate stays generic; Julia-specific profile, readiness,
+  accelerator, and schedule semantics stay here. Adapter node ids are
+  Mermaid-safe; original profile, action, and evidence values stay in node
+  labels.
 - `xiuxian-julia-core` also owns the Modelica repo-intelligence plugin and
   its native parser-summary transport. Rust no longer keeps a standalone
   Modelica crate or a second Modelica AST implementation surface.

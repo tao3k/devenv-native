@@ -19,13 +19,14 @@ transport = [
     "dep:arrow-flight",
     "dep:arrow-schema",
     "dep:async-trait",
-    "dep:datafusion",
     "dep:futures",
+    "dep:sqlparser",
     "dep:tokio",
     "dep:tokio-stream",
     "dep:tonic",
+    "dep:xiuxian-db-store",
+    "xiuxian-db-store/arrow-codec",
     "xiuxian-wendao-core/arrow-transport",
-    "xiuxian-db-store/engine",
 ]
 vector-store = ["transport", "xiuxian-db-store/vector-store"]
 
@@ -41,8 +42,8 @@ arrow-array = { workspace = true, optional = true }
 arrow-schema = { workspace = true, optional = true }
 include_dir = { workspace = true }
 async-trait = { workspace = true, optional = true }
-datafusion = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
+sqlparser = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
