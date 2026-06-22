@@ -6,6 +6,7 @@ pub use super::check::{
 pub use super::detect::looks_like_workdir_dir;
 pub use super::load::load_workdir_manifest;
 pub use super::parse::parse_workdir_manifest;
+#[cfg(feature = "wendao-integration")]
 pub use super::query::{
     WorkdirCheckFollowUpQuery, build_workdir_check_follow_up_query,
     query_workdir_check_follow_up_payload, query_workdir_markdown_payload,
@@ -14,6 +15,7 @@ pub(crate) use super::runtime_state::{
     WorkdirAllowedNextIssue, WorkdirCurrentNodeIssue, WorkdirRuntimeNode, WorkdirRuntimeState,
     expected_next_labels, load_workdir_runtime_state, resolve_runtime_node,
 };
+#[cfg(feature = "wendao-integration")]
 pub use super::semantic_scope::{
     WorkdirSemanticEvidenceStatus, WorkdirSemanticProjectionPolicySummary,
     WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,

@@ -1,6 +1,9 @@
 use crate::link_graph::index::LinkGraphIndex;
+use arrow::ipc::reader::StreamReader;
 use std::fs;
+use std::io::Cursor;
 use std::path::Path;
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
 
 fn write_note(root: &Path, relative: &str, content: &str) {
     let path = root.join(relative);
@@ -13,7 +16,7 @@ fn write_note(root: &Path, relative: &str, content: &str) {
 fn assert_arrow_cache_payloads_exist(cache_path: &Path) {
     let connection = duckdb::Connection::open(cache_path)
         .unwrap_or_else(|error| panic!("open DuckDB cache for shape assertion: {error}"));
-    let payload_sizes = connection
+    let payloads = connection
         .query_row(
             "SELECT docs_ipc, sections_ipc, edges_ipc, aliases_ipc, page_index_json
              FROM link_graph_index_cache",
@@ -24,21 +27,25 @@ fn assert_arrow_cache_payloads_exist(cache_path: &Path) {
                 let edges = row.get::<_, Vec<u8>>(2)?;
                 let aliases = row.get::<_, Vec<u8>>(3)?;
                 let page_index = row.get::<_, String>(4)?;
-                Ok((
-                    docs.len(),
-                    sections.len(),
-                    edges.len(),
-                    aliases.len(),
-                    page_index.len(),
-                ))
+                Ok((docs, sections, edges, aliases, page_index))
             },
         )
         .unwrap_or_else(|error| panic!("read DuckDB cache Arrow payloads: {error}"));
-    assert!(payload_sizes.0 > 0, "docs Arrow IPC payload is empty");
-    assert!(payload_sizes.1 > 0, "sections Arrow IPC payload is empty");
-    assert!(payload_sizes.2 > 0, "edges Arrow IPC payload is empty");
-    assert!(payload_sizes.3 > 0, "aliases Arrow IPC payload is empty");
-    assert!(payload_sizes.4 > 0, "page-index residual payload is empty");
+    assert!(!payloads.0.is_empty(), "docs Arrow IPC payload is empty");
+    assert!(
+        !payloads.1.is_empty(),
+        "sections Arrow IPC payload is empty"
+    );
+    assert!(!payloads.2.is_empty(), "edges Arrow IPC payload is empty");
+    assert!(!payloads.3.is_empty(), "aliases Arrow IPC payload is empty");
+    assert!(
+        !payloads.4.is_empty(),
+        "page-index residual payload is empty"
+    );
+    assert_ipc_table_metadata(&payloads.0, "link_graph_snapshot_docs");
+    assert_ipc_table_metadata(&payloads.1, "link_graph_snapshot_sections");
+    assert_ipc_table_metadata(&payloads.2, "link_graph_snapshot_edges");
+    assert_ipc_table_metadata(&payloads.3, "link_graph_snapshot_aliases");
 
     let legacy_payload_columns = connection
         .query_row(
@@ -50,6 +57,23 @@ fn assert_arrow_cache_payloads_exist(cache_path: &Path) {
         )
         .unwrap_or_else(|error| panic!("inspect DuckDB cache table columns: {error}"));
     assert_eq!(legacy_payload_columns, 0);
+}
+
+fn assert_ipc_table_metadata(payload: &[u8], expected_table: &str) {
+    let mut reader = StreamReader::try_new(Cursor::new(payload), None)
+        .unwrap_or_else(|error| panic!("decode Arrow IPC stream: {error}"));
+    let Some(batch_result) = reader.next() else {
+        panic!("Arrow IPC stream must contain one batch");
+    };
+    let batch = batch_result.unwrap_or_else(|error| panic!("decode Arrow IPC batch: {error}"));
+    assert_eq!(
+        batch
+            .schema()
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some(expected_table)
+    );
 }
 
 fn write_incompatible_cache_table(cache_path: &Path) {

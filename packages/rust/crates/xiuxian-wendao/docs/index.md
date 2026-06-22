@@ -98,10 +98,10 @@ Standardized documentation repository for the Wendao DocOS Kernel, leveraging AS
 - [[06_roadmap/412_core_runtime_plugin_program|Wendao Core Runtime Plugin Program]]: Program-level execution entrypoint for the overall core/runtime/plugin migration.
 - [[06_roadmap/413_m2_core_extraction_package_list|M2 Core Extraction Package List]]: First package list for the physical `xiuxian-wendao-core` extraction.
 - [[06_roadmap/414_m3_runtime_extraction_package_list|M3 Runtime Extraction Package List]]: First package list for the physical `xiuxian-wendao-runtime` extraction.
-- [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]]: First package list for Julia ownership externalization into `xiuxian-wendao-julia`.
+- [[06_roadmap/415_m4_julia_externalization_package_list|M4 Julia Externalization Package List]]: First package list for Julia ownership externalization into `xiuxian-julia-core`.
 - [[06_roadmap/416_compatibility_retirement_ledger|Compatibility Retirement Ledger]]: Program ledger for compatibility surface retirement order, unlock phases, and target end states.
 - [[06_roadmap/417_wendao_package_boundary_matrix|Wendao Package Boundary Matrix]]: Contributor-facing boundary matrix for `xiuxian-wendao-core`, `xiuxian-wendao-runtime`, and `xiuxian-wendao`.
-- [[06_roadmap/418_julia_plugin_first_rollout|Julia Plugin-First Rollout]]: Julia-first plugin rollout for keeping thick Julia implementation inside `xiuxian-wendao-julia`.
+- [[06_roadmap/418_julia_plugin_first_rollout|Julia Plugin-First Rollout]]: Julia-first plugin rollout for keeping thick Julia implementation inside `xiuxian-julia-core`.
 - `src/compatibility/`: Explicit crate-root compatibility namespace for compat-first and legacy Julia migration paths.
 - `docs/rfcs/2026-03-27-wendao-arrow-plugin-flight-rfc.md`: Arrow-first plugin protocol with Flight-first transport and Arrow IPC fallback.
 - `docs/rfcs/2026-03-27-wendao-core-runtime-plugin-migration-rfc.md`: Complete migration path from monolithic Wendao ownership toward `core`, `runtime`, and independently published plugin packages.

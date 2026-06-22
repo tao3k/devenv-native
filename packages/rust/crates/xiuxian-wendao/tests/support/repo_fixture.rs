@@ -1,6 +1,9 @@
+use std::collections::{BTreeMap, hash_map::DefaultHasher};
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::{Mutex, OnceLock};
 
 use super::linked_parser_summary::ensure_linked_modelica_parser_summary_service;
 
@@ -11,12 +14,54 @@ const TEST_GIT_AUTHOR_NAME: &str = "Xiuxian Test";
 const TEST_GIT_AUTHOR_EMAIL: &str = "test@example.com";
 const TEST_GIT_COMMIT_TIME: &str = "1700000000 +0000";
 
-pub fn create_sample_julia_repo(
-    base: &Path,
+static CACHED_SAMPLE_JULIA_REPOS: OnceLock<Mutex<BTreeMap<String, PathBuf>>> = OnceLock::new();
+
+fn cached_sample_julia_repo_store() -> &'static Mutex<BTreeMap<String, PathBuf>> {
+    CACHED_SAMPLE_JULIA_REPOS.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn sample_julia_repo_fixture_root() -> PathBuf {
+    std::env::var_os("PRJ_CACHE_HOME")
+        .map_or_else(|| PathBuf::from("/tmp"), PathBuf::from)
+        .join("xiuxian-wendao")
+        .join("tests")
+        .join("fixtures")
+        .join("sample-julia-repos")
+}
+
+fn sanitize_fixture_name(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| match ch {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '.' | '_' | '-' => ch,
+            _ => '_',
+        })
+        .collect()
+}
+
+fn cached_sample_julia_repo_key(
+    fixture_name: &str,
     package_name: &str,
     expected_root: bool,
-) -> TestResultPath {
-    let repo_dir = base.join(package_name.to_ascii_lowercase());
+    extra_files: &[(&str, &str)],
+) -> String {
+    let mut hasher = DefaultHasher::new();
+    fixture_name.hash(&mut hasher);
+    package_name.hash(&mut hasher);
+    expected_root.hash(&mut hasher);
+    extra_files.hash(&mut hasher);
+    format!(
+        "{}-{:016x}",
+        sanitize_fixture_name(fixture_name),
+        hasher.finish()
+    )
+}
+
+fn create_sample_julia_repo_at(
+    repo_dir: &Path,
+    package_name: &str,
+    expected_root: bool,
+) -> TestResult {
     fs::create_dir_all(repo_dir.join("src"))?;
     fs::create_dir_all(repo_dir.join("src").join("nested"))?;
     fs::create_dir_all(repo_dir.join("examples"))?;
@@ -109,13 +154,59 @@ end
     fs::write(repo_dir.join("README.md"), "# Sample\n")?;
     fs::write(repo_dir.join("docs").join("guide.md"), "# Guide\n")?;
     initialize_git_repository(
-        &repo_dir,
+        repo_dir,
         &format!(
             "https://example.invalid/{}/{}.git",
             "xiuxian-wendao",
             package_name.to_ascii_lowercase()
         ),
     )?;
+    Ok(())
+}
+
+pub fn create_cached_sample_julia_repo(
+    fixture_name: &str,
+    package_name: &str,
+    expected_root: bool,
+    extra_files: &[(&str, &str)],
+) -> TestResultPath {
+    let key = cached_sample_julia_repo_key(fixture_name, package_name, expected_root, extra_files);
+    let mut cache = cached_sample_julia_repo_store().lock().map_err(|error| {
+        std::io::Error::other(format!("sample julia fixture cache lock failed: {error}"))
+    })?;
+
+    if let Some(repo_dir) = cache.get(&key) {
+        return Ok(repo_dir.clone());
+    }
+
+    let repo_dir = sample_julia_repo_fixture_root().join(&key);
+    if !repo_dir.exists() {
+        create_sample_julia_repo_at(&repo_dir, package_name, expected_root)?;
+
+        for (relative_path, contents) in extra_files {
+            let target = repo_dir.join(relative_path);
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(&target, contents)?;
+        }
+
+        if !extra_files.is_empty() {
+            commit_all(&repo_dir, "extend cached fixture")?;
+        }
+    }
+
+    cache.insert(key, repo_dir.clone());
+    Ok(repo_dir)
+}
+
+pub fn create_sample_julia_repo(
+    base: &Path,
+    package_name: &str,
+    expected_root: bool,
+) -> TestResultPath {
+    let repo_dir = base.join(package_name.to_ascii_lowercase());
+    create_sample_julia_repo_at(&repo_dir, package_name, expected_root)?;
     Ok(repo_dir)
 }
 

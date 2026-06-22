@@ -9,18 +9,19 @@ pub(super) use crate::{
 pub(super) use crate::{
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowInstancesRequest,
     QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowTaskClaimPayload,
-    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteRequest,
-    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
-    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
-    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
+    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteBatchRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleasePayload,
+    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter,
 };
-pub(super) use qianji_bpmn_engine::BpmnAdvanceOutcome;
-#[cfg(feature = "duckdb")]
-pub(super) use qianji_bpmn_engine::EventPollOutcome;
 pub(super) use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
 pub(super) use tempfile::TempDir;
+pub(super) use xiuxian_qianji_bpmn_engine::BpmnAdvanceOutcome;
+#[cfg(feature = "duckdb")]
+pub(super) use xiuxian_qianji_bpmn_engine::EventPollOutcome;
 
 pub(super) fn write_linear_bundle(temp_dir: &TempDir) -> PathBuf {
     let bpmn_path = temp_dir.path().join("linear.bpmn");

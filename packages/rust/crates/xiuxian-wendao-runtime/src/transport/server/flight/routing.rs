@@ -5,25 +5,24 @@ use std::sync::Arc;
 use tonic::Status;
 
 use crate::transport::query_contract::{
-    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
-    ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE,
-    ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE,
-    ANALYSIS_REPO_OVERVIEW_ROUTE, ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE,
-    ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE, ANALYSIS_REPO_SYNC_ROUTE,
-    GRAPH_NEIGHBORS_ROUTE, ONTOLOGY_DATASET_MATERIALIZE_ROUTE, QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE,
-    SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE,
-    TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
+    ANALYSIS_DOCUMENT_EXTRACT_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE,
+    ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REFINE_DOC_ROUTE, ANALYSIS_REPO_DOC_COVERAGE_ROUTE,
+    ANALYSIS_REPO_INDEX_ROUTE, ANALYSIS_REPO_INDEX_STATUS_ROUTE, ANALYSIS_REPO_OVERVIEW_ROUTE,
+    ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
+    ANALYSIS_REPO_SYNC_ROUTE, GRAPH_NEIGHBORS_ROUTE, ONTOLOGY_DATASET_MATERIALIZE_ROUTE,
+    QUERY_SQL_ROUTE, REPO_SEARCH_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE,
+    SEARCH_DEFINITION_ROUTE, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE,
+    VFS_SCAN_ROUTE,
 };
 
 use crate::transport::server::{
     is_search_family_route, join_sorted_set, validate_attachment_search_request_metadata,
-    validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
-    validate_dataset_ontology_materialize_request_metadata, validate_definition_request_metadata,
-    validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
-    validate_graph_neighbors_request_metadata, validate_markdown_analysis_request_metadata,
-    validate_refine_doc_request_metadata, validate_repo_doc_coverage_request_metadata,
-    validate_repo_index_request_metadata, validate_repo_index_status_request_metadata,
-    validate_repo_overview_request_metadata,
+    validate_autocomplete_request_metadata, validate_dataset_ontology_materialize_request_metadata,
+    validate_definition_request_metadata, validate_document_extract_request_metadata,
+    validate_document_extract_status_request_metadata, validate_graph_neighbors_request_metadata,
+    validate_markdown_analysis_request_metadata, validate_refine_doc_request_metadata,
+    validate_repo_doc_coverage_request_metadata, validate_repo_index_request_metadata,
+    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
     validate_repo_projected_page_index_tree_request_metadata,
     validate_repo_projected_retrieval_context_request_metadata,
     validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
@@ -38,16 +37,36 @@ fn document_extract_cache_key(
     route: &str,
     metadata: &tonic::metadata::MetadataMap,
 ) -> Result<String, Status> {
+    document_extract_cache_key_with_force_override(route, metadata, None)
+}
+
+fn document_extract_cache_key_with_force_override(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+    force_override: Option<bool>,
+) -> Result<String, Status> {
     let request = validate_document_extract_request_metadata(metadata)?;
+    let force = force_override.unwrap_or(request.force);
     Ok(format!(
         "{route}|{:?}|{:?}|{}|{}|{:?}|{}",
         request.source_path,
         request.output_dir,
-        request.force,
+        force,
         request.error_row,
         request.mode,
         request.wait_ms
     ))
+}
+
+fn document_extract_force_refresh_non_force_cache_alias_key(
+    route: &str,
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<Option<String>, Status> {
+    let request = validate_document_extract_request_metadata(metadata)?;
+    if !request.force {
+        return Ok(None);
+    }
+    document_extract_cache_key_with_force_override(route, metadata, Some(false)).map(Some)
 }
 
 fn document_extract_status_cache_key(
@@ -150,8 +169,6 @@ impl WendaoFlightService {
             repo_search_cache_key(route, metadata)
         } else if route == SEARCH_ATTACHMENTS_ROUTE {
             attachment_search_cache_key(route, metadata)
-        } else if route == SEARCH_AST_ROUTE {
-            generic_search_cache_key(route, metadata)
         } else if route == SEARCH_DEFINITION_ROUTE {
             let (query_text, source_path, source_line) =
                 validate_definition_request_metadata(metadata)?;
@@ -181,9 +198,6 @@ impl WendaoFlightService {
         } else if route == ANALYSIS_MARKDOWN_ROUTE {
             let path = validate_markdown_analysis_request_metadata(metadata)?;
             Ok(format!("{route}|{path:?}"))
-        } else if route == ANALYSIS_CODE_AST_ROUTE {
-            let (path, repo_id, line_hint) = validate_code_ast_analysis_request_metadata(metadata)?;
-            Ok(format!("{route}|{path:?}|{repo_id:?}|{line_hint:?}"))
         } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
             let repo_id = validate_repo_overview_request_metadata(metadata)?;
             Ok(format!("{route}|{repo_id:?}"))
@@ -219,6 +233,16 @@ impl WendaoFlightService {
         }
     }
 
+    pub(super) fn route_request_cache_alias_key(
+        route: &str,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<Option<String>, Status> {
+        if route == ANALYSIS_DOCUMENT_EXTRACT_ROUTE {
+            return document_extract_force_refresh_non_force_cache_alias_key(route, metadata);
+        }
+        Ok(None)
+    }
+
     pub(super) async fn read_route_payload(
         &self,
         route: &str,
@@ -228,8 +252,6 @@ impl WendaoFlightService {
             self.read_repo_search_payload(metadata).await
         } else if route == SEARCH_ATTACHMENTS_ROUTE {
             self.read_attachment_search_payload(route, metadata).await
-        } else if route == SEARCH_AST_ROUTE {
-            self.read_ast_search_payload(route, metadata).await
         } else if route == SEARCH_DEFINITION_ROUTE {
             self.read_definition_payload(route, metadata).await
         } else if route == SEARCH_AUTOCOMPLETE_ROUTE {
@@ -248,8 +270,6 @@ impl WendaoFlightService {
             self.read_topology_3d_payload(route).await
         } else if route == ANALYSIS_MARKDOWN_ROUTE {
             self.read_markdown_analysis_payload(route, metadata).await
-        } else if route == ANALYSIS_CODE_AST_ROUTE {
-            self.read_code_ast_analysis_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_OVERVIEW_ROUTE {
             self.read_repo_overview_payload(route, metadata).await
         } else if route == ANALYSIS_REPO_INDEX_ROUTE {
@@ -317,26 +337,6 @@ impl WendaoFlightService {
                 &kind_filters,
                 case_sensitive,
             )
-            .await
-            .map_err(Status::internal)
-            .and_then(|response| {
-                FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
-            })
-    }
-
-    async fn read_ast_search_payload(
-        &self,
-        route: &str,
-        metadata: &tonic::metadata::MetadataMap,
-    ) -> Result<FlightRoutePayload, Status> {
-        let (query_text, limit, _intent, _repo_hint) = validate_search_request_metadata(metadata)?;
-        let provider = self.ast_search_provider.as_ref().ok_or_else(|| {
-            Status::unimplemented(format!(
-                "AST-search Flight route `{route}` is not configured for this runtime host"
-            ))
-        })?;
-        provider
-            .ast_search_batch(query_text.as_str(), limit)
             .await
             .map_err(Status::internal)
             .and_then(|response| {
@@ -497,26 +497,6 @@ impl WendaoFlightService {
         })?;
         provider
             .markdown_analysis_batch(path.as_str())
-            .await
-            .map_err(Status::internal)
-            .and_then(|response| {
-                FlightRoutePayload::try_with_app_metadata(response.batch, response.app_metadata)
-            })
-    }
-
-    async fn read_code_ast_analysis_payload(
-        &self,
-        route: &str,
-        metadata: &tonic::metadata::MetadataMap,
-    ) -> Result<FlightRoutePayload, Status> {
-        let (path, repo_id, line_hint) = validate_code_ast_analysis_request_metadata(metadata)?;
-        let provider = self.code_ast_analysis_provider.as_ref().ok_or_else(|| {
-            Status::unimplemented(format!(
-                "code-AST analysis Flight route `{route}` is not configured for this runtime host"
-            ))
-        })?;
-        provider
-            .code_ast_analysis_batch(path.as_str(), repo_id.as_str(), line_hint)
             .await
             .map_err(Status::internal)
             .and_then(|response| {

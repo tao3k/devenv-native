@@ -76,7 +76,7 @@ async fn docs_page_endpoint_executes_over_external_modelica_plugin_path() -> Tes
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-page]
+            r#"[sources.projects.modelica-gateway-page]
 root = "{}"
 plugins = ["modelica"]
 "#,

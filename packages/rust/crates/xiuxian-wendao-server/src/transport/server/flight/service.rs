@@ -30,6 +30,18 @@ use super::routing::route_payload_cacheable;
 
 const ANALYSIS_ROUTE_PREFIX: &str = "/analysis/";
 
+impl WendaoFlightService {
+    fn verify_internal_security(
+        &self,
+        metadata: &tonic::metadata::MetadataMap,
+    ) -> Result<(), Status> {
+        let Some(security) = self.internal_security.as_ref() else {
+            return Ok(());
+        };
+        security.verify_metadata(metadata)
+    }
+}
+
 #[async_trait]
 impl FlightService for WendaoFlightService {
     type HandshakeStream = HandshakeStream;
@@ -62,6 +74,7 @@ impl FlightService for WendaoFlightService {
         &self,
         request: Request<FlightDescriptor>,
     ) -> Result<Response<FlightInfo>, Status> {
+        self.verify_internal_security(request.metadata())?;
         validate_schema_version(request.metadata(), self.expected_schema_version.as_str())?;
         let metadata = request.metadata().clone();
         let descriptor = request.into_inner();
@@ -70,6 +83,11 @@ impl FlightService for WendaoFlightService {
         let route_payload = self
             .cached_route_payload(route.as_str(), &metadata, &cache_key)
             .await?;
+        if let Some(alias_key) = Self::route_request_cache_alias_key(route.as_str(), &metadata)? {
+            self.route_payload_cache
+                .insert_alias(alias_key, Arc::clone(&route_payload))
+                .await;
+        }
         if !route_payload_cacheable(route.as_str()) {
             self.route_payload_cache
                 .insert_handoff(cache_key, Arc::clone(&route_payload))
@@ -115,6 +133,7 @@ impl FlightService for WendaoFlightService {
         &self,
         request: Request<Ticket>,
     ) -> Result<Response<Self::DoGetStream>, Status> {
+        self.verify_internal_security(request.metadata())?;
         validate_schema_version(request.metadata(), self.expected_schema_version.as_str())?;
         let metadata = request.metadata().clone();
         let ticket = request.into_inner();
@@ -153,6 +172,7 @@ impl FlightService for WendaoFlightService {
         &self,
         request: Request<tonic::Streaming<FlightData>>,
     ) -> Result<Response<Self::DoExchangeStream>, Status> {
+        self.verify_internal_security(request.metadata())?;
         validate_schema_version(request.metadata(), self.expected_schema_version.as_str())?;
         let expected_dimension = validate_rerank_dimension_header(request.metadata())?;
         let top_k = validate_rerank_top_k_header(request.metadata())?;

@@ -3,16 +3,18 @@ use super::support::{
     sample_package,
 };
 use crate::qianji_bpmn::QianjiBpmnDataStoreError;
-use qianji_bpmn_engine::BpmnCheckpointEnvelope;
 use serde_json::{Value, json};
 use std::path::Path;
+use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
+use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
 const BENCH_SLACK_ENV: &str = "QIANJI_DUCKDB_WORKFLOW_STATE_BENCH_SLACK_FACTOR";
 const DEFAULT_BENCH_SLACK_FACTOR: f64 = 2.0;
 const REUSED_STORE_WORKFLOW_STATE_COUNT: usize = 1_000;
 const OPEN_PER_OPERATION_WORKFLOW_STATE_COUNT: usize = 128;
+static DUCKDB_WORKFLOW_STATE_PERF_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Clone, Copy)]
 struct TimingSummary {
@@ -64,6 +66,7 @@ impl TimingSummary {
 
 #[test]
 fn duckdb_workflow_state_codec_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let checkpoints = sample_checkpoints("wf_duckdb_codec", REUSED_STORE_WORKFLOW_STATE_COUNT, 1);
     let mut encoded_payloads = Vec::with_capacity(checkpoints.len());
     let encode = measure_store_ops(REUSED_STORE_WORKFLOW_STATE_COUNT, |index| {
@@ -121,6 +124,7 @@ fn duckdb_workflow_state_codec_probe_reports_timing() {
 
 #[test]
 fn duckdb_workflow_state_append_log_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
     let store = open_file_store(&temp_dir, "workflow-state-append-log-perf.duckdb");
     let first = sample_checkpoints("wf_duckdb_append_log", REUSED_STORE_WORKFLOW_STATE_COUNT, 1);
@@ -190,6 +194,7 @@ fn duckdb_workflow_state_append_log_probe_reports_timing() {
 
 #[test]
 fn duckdb_workflow_state_compacted_latest_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
     let store = open_file_store(&temp_dir, "workflow-state-compacted-latest-perf.duckdb");
     let first = sample_checkpoints(
@@ -295,6 +300,7 @@ fn duckdb_workflow_state_compacted_latest_probe_reports_timing() {
 
 #[test]
 fn duckdb_workflow_state_point_append_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
     let store = open_file_store(&temp_dir, "workflow-state-point-append-perf.duckdb");
     let first = sample_checkpoints(
@@ -368,6 +374,7 @@ fn duckdb_workflow_state_point_append_probe_reports_timing() {
 
 #[test]
 fn duckdb_workflow_state_reused_store_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
     let store = open_file_store(&temp_dir, "workflow-state-reused-perf.duckdb");
     let first = sample_checkpoints("wf_duckdb_reused", REUSED_STORE_WORKFLOW_STATE_COUNT, 1);
@@ -456,6 +463,7 @@ fn duckdb_workflow_state_reused_store_probe_reports_timing() {
 
 #[test]
 fn duckdb_workflow_state_latest_table_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
     let store = open_file_store(&temp_dir, "workflow-state-latest-table-perf.duckdb");
     let first = sample_checkpoints(
@@ -529,6 +537,7 @@ fn duckdb_workflow_state_latest_table_probe_reports_timing() {
 
 #[test]
 fn duckdb_workflow_state_open_per_operation_probe_reports_timing() {
+    let _guard = workflow_state_perf_probe_guard();
     let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
     let database_path = temp_dir
         .path()
@@ -722,6 +731,12 @@ fn benchmark_slack_factor() -> f64 {
         .and_then(|raw| raw.parse::<f64>().ok())
         .filter(|factor| factor.is_finite() && *factor >= 1.0)
         .unwrap_or(DEFAULT_BENCH_SLACK_FACTOR)
+}
+
+fn workflow_state_perf_probe_guard() -> MutexGuard<'static, ()> {
+    DUCKDB_WORKFLOW_STATE_PERF_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 fn assert_within_budget(label: &str, elapsed: Duration, budget: Duration) {

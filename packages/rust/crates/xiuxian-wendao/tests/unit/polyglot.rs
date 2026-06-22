@@ -1,13 +1,12 @@
-use super::wendao_polyglot_control_snapshot_from_parts;
-use xiuxian_polyglot_orchestrator::{
-    AdmissionDecision, ContractOwner, PolyglotLane, PressureLevel, ReadinessState, RejectionReason,
-    SnapshotInvariantError,
+use super::{
+    LINK_GRAPH_LEGACY_RERANK_ROUTE_ENV, LINK_GRAPH_LEGACY_RERANK_ROUTE_KEY,
+    resolve_optional_setting_or_env_with_lookup, wendao_polyglot_control_snapshot_from_parts,
 };
-use xiuxian_wendao_julia::compatibility::link_graph::LinkGraphJuliaRerankRuntimeConfig;
-use xiuxian_wendao_julia::memory::MemoryJuliaComputeProfile;
-use xiuxian_wendao_julia::polyglot::{
-    WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID, WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID,
-    WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID,
+use xiuxian_polyglot_orchestrator::{
+    AdmissionDecision, ContractOwner, MemoryJuliaComputeProfile, PolyglotLane, PressureLevel,
+    ReadinessState, RejectionReason, SnapshotInvariantError, WENDAO_GRAPH_LINK_EVIDENCE_PROFILE_ID,
+    WENDAOSEARCH_LEGACY_RERANK_PROFILE_ID, WENDAOSEARCH_STRUCTURAL_RERANK_PROFILE_ID,
+    WendaoSearchLegacyRerankProfileRefInput,
 };
 use xiuxian_wendao_runtime::config::MemoryJuliaComputeRuntimeConfig;
 use xiuxian_wendao_runtime::transport::ANALYSIS_DOCUMENT_EXTRACT_ROUTE;
@@ -20,15 +19,14 @@ fn host_snapshot_combines_document_memory_and_graph_refs() -> Result<(), Snapsho
         max_in_flight_requests: 6,
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
-    let link_graph_julia_runtime = LinkGraphJuliaRerankRuntimeConfig {
-        route: Some("/custom/rerank".to_string().into()),
-        schema_version: Some("v2".to_string().into()),
-        ..LinkGraphJuliaRerankRuntimeConfig::default()
+    let legacy_rerank = WendaoSearchLegacyRerankProfileRefInput {
+        route: Some("/custom/rerank"),
+        schema_version: Some("v2"),
     };
 
     let snapshot = wendao_polyglot_control_snapshot_from_parts(
         &memory_runtime,
-        &link_graph_julia_runtime,
+        legacy_rerank,
         2,
         1,
         ReadinessState::Ready,
@@ -86,11 +84,9 @@ fn host_snapshot_uses_runtime_admission_fallback_state() -> Result<(), SnapshotI
         max_in_flight_requests: 0,
         ..MemoryJuliaComputeRuntimeConfig::default()
     };
-    let link_graph_julia_runtime = LinkGraphJuliaRerankRuntimeConfig::default();
-
     let snapshot = wendao_polyglot_control_snapshot_from_parts(
         &memory_runtime,
-        &link_graph_julia_runtime,
+        WendaoSearchLegacyRerankProfileRefInput::default(),
         0,
         0,
         ReadinessState::Disabled,
@@ -109,4 +105,52 @@ fn host_snapshot_uses_runtime_admission_fallback_state() -> Result<(), SnapshotI
         }
     );
     Ok(())
+}
+
+#[test]
+fn legacy_rerank_ref_resolution_prefers_settings_before_env() {
+    let settings = match serde_yaml::from_str::<serde_yaml::Value>(
+        r#"
+link_graph:
+  retrieval:
+    julia_rerank:
+      route: " /settings/rerank "
+"#,
+    ) {
+        Ok(settings) => settings,
+        Err(error) => panic!("valid settings fixture: {error}"),
+    };
+
+    let route = resolve_optional_setting_or_env_with_lookup(
+        &settings,
+        LINK_GRAPH_LEGACY_RERANK_ROUTE_KEY,
+        LINK_GRAPH_LEGACY_RERANK_ROUTE_ENV,
+        |_| Some("/env/rerank".to_string()),
+    );
+
+    assert_eq!(route.as_deref(), Some("/settings/rerank"));
+}
+
+#[test]
+fn legacy_rerank_ref_resolution_falls_back_to_env_when_setting_is_blank() {
+    let settings = match serde_yaml::from_str::<serde_yaml::Value>(
+        r#"
+link_graph:
+  retrieval:
+    julia_rerank:
+      route: "   "
+"#,
+    ) {
+        Ok(settings) => settings,
+        Err(error) => panic!("valid settings fixture: {error}"),
+    };
+
+    let route = resolve_optional_setting_or_env_with_lookup(
+        &settings,
+        LINK_GRAPH_LEGACY_RERANK_ROUTE_KEY,
+        LINK_GRAPH_LEGACY_RERANK_ROUTE_ENV,
+        |_| Some(" /env/rerank ".to_string()),
+    );
+
+    assert_eq!(route.as_deref(), Some("/env/rerank"));
 }

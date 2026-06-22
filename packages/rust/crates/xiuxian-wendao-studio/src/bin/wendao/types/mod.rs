@@ -8,16 +8,33 @@ mod commands;
 mod enums;
 
 pub(crate) use cli::Cli;
+#[cfg(feature = "episteme-foyer-artifact-cache")]
+pub(crate) use commands::EpistemeBootstrapArtifactCacheModeArg;
 pub(crate) use commands::{
     AgenticCommand, AuditArgs, Command, DocsCommand, DocsContextArgs, DocsNavigationArgs,
     DocsNodeArgs, DocsPageArgs, DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs,
-    DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs, EpistemeCommand,
+    DocsSearchPageIndexArgs, DocsSegmentArgs, DocsTocArgs, DocsTreeArgs,
+    EpistemeApplyOntologySourcePatchArgs, EpistemeBootstrapPipelineArgs, EpistemeCommand,
     EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
-    EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
-    EpistemeSourceContractCommand, EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
-    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs, FixArgs, HmasCommand,
-    SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
+    EpistemeEvidenceSelectionValidationModeArg, EpistemeGenerateOntologyCandidatesArgs,
+    EpistemeImportQianjiReviewCandidatesArgs, EpistemeInspectOntologyCandidatesArgs,
+    EpistemePlanExtractionRunArgs, EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs,
+    EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
+    EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand,
+    EpistemeStructuralFactsValidationModeArg, EpistemeStructureCommand,
+    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
+    EpistemeWriteOntologyPromotionApplyPlanArgs, EpistemeWriteOntologyPromotionReviewArgs,
+    EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteOntologySourcePatchApplyPlanArgs,
+    EpistemeWriteOntologySourcePatchApplyPreviewArgs, EpistemeWriteOntologySourcePatchDraftArgs,
+    EpistemeWriteOntologySourcePatchPreflightArgs,
+    EpistemeWriteOntologySourcePatchRdfReadModelArgs,
+    EpistemeWriteOntologySourcePatchReviewPacketArgs,
+    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralFactsArgs,
+    EpistemeWriteStructuralFactsReasoningFillPlanArgs,
+    EpistemeWriteStructuralFactsReasoningLedgerSeedArgs,
+    EpistemeWriteStructuralFactsReasoningPacketArgs,
+    EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs, EpistemeWriteStructureTocArgs,
+    FixArgs, HmasCommand, SaliencyCommand, SentinelArgs, SentinelCommand, SentinelWatchArgs,
 };
 #[cfg(feature = "zhenfa-router")]
 pub(crate) use commands::{

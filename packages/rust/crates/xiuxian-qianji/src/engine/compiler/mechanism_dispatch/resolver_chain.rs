@@ -1,4 +1,5 @@
 use crate::contracts::{NodeDefinition, QianjiMechanism};
+#[cfg(feature = "wendao-integration")]
 use crate::engine::compiler_api::QianjiCompiler;
 use crate::error::QianjiError;
 use std::sync::Arc;
@@ -8,6 +9,7 @@ use crate::engine::compiler::TaskType;
 #[derive(Clone, Copy)]
 pub(super) struct DispatchContext<'a> {
     pub(super) task_type: TaskType,
+    #[cfg(feature = "wendao-integration")]
     pub(super) compiler: &'a QianjiCompiler,
     pub(super) node_def: &'a NodeDefinition,
 }

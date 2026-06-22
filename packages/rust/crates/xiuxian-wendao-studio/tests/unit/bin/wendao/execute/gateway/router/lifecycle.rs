@@ -1,4 +1,4 @@
-#[cfg(feature = "julia")]
+#[cfg(feature = "zhenfa-router")]
 use super::GATEWAY_FLIGHT_SERVICE_AXUM_PATH;
 use super::{
     Body, CONTENT_TYPE, Request, Router, ServiceExt, SocketAddr, StatusCode, app_state,
@@ -25,7 +25,7 @@ async fn test_gateway_server_bind() {
     let _ = app;
 }
 
-#[cfg(feature = "julia")]
+#[cfg(feature = "zhenfa-router")]
 #[tokio::test]
 async fn test_gateway_router_mounts_flight_service_on_same_listener() {
     let router = build_gateway_router(

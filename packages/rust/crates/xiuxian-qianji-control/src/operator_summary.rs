@@ -36,6 +36,19 @@ pub struct RunOperatorSummary {
     pub recovery: RunRecoveryPlanSummary,
 }
 
+/// Operator-facing diagnostics assembled from one durable history replay.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct RunOperatorDiagnostics {
+    /// Run id.
+    pub run_id: RunId,
+    /// Observation time used for time-dependent recovery counters.
+    pub observed_at_ms: u64,
+    /// Compact management summary.
+    pub summary: RunOperatorSummary,
+    /// Recovery snapshot with ordered actions.
+    pub recovery: RunRecoverySnapshot,
+}
+
 impl RunOperatorSummary {
     /// Builds a compact operator summary from one loaded event stream.
     ///
@@ -50,7 +63,15 @@ impl RunOperatorSummary {
     ) -> ControlResult<Self> {
         let event_count = records.len();
         let view = replay_run_view(records.to_owned())?;
-        Self::from_parts(run_id, event_count, records, &view, observed_at_ms)
+        let recovery = RunRecoverySnapshot::from_view(view.recovery_view(observed_at_ms)?);
+        Ok(Self::from_parts(
+            run_id,
+            event_count,
+            records,
+            &view,
+            observed_at_ms,
+            recovery.summary,
+        ))
     }
 
     fn from_parts(
@@ -59,19 +80,19 @@ impl RunOperatorSummary {
         records: &[ControlEventRecord],
         view: &RunView,
         observed_at_ms: u64,
-    ) -> ControlResult<Self> {
+        recovery: RunRecoveryPlanSummary,
+    ) -> Self {
         let activities = ActivityQueueProjection::from_view(view, None).summary;
         let timers = TimerInventoryProjection::from_view(view).summary;
         let signals = SignalInventoryProjection::from_records(run_id.clone(), records).summary;
         let costs = CostInventoryProjection::from_records(run_id.clone(), records).summary;
-        let recovery = RunRecoverySnapshot::from_view(view.recovery_view(observed_at_ms)?).summary;
         let active_leases = view
             .steps
             .values()
             .filter(|step| step.active_lease.is_some())
             .count();
 
-        Ok(Self {
+        Self {
             run_id,
             observed_at_ms,
             event_count,
@@ -83,6 +104,38 @@ impl RunOperatorSummary {
             timers,
             signals,
             costs,
+            recovery,
+        }
+    }
+}
+
+impl RunOperatorDiagnostics {
+    /// Builds an operator diagnostics package from one loaded event stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns a control error when the event stream cannot be replayed or the
+    /// recovery view cannot be projected.
+    pub fn from_records(
+        run_id: RunId,
+        records: &[ControlEventRecord],
+        observed_at_ms: u64,
+    ) -> ControlResult<Self> {
+        let event_count = records.len();
+        let view = replay_run_view(records.to_owned())?;
+        let recovery = RunRecoverySnapshot::from_view(view.recovery_view(observed_at_ms)?);
+        let summary = RunOperatorSummary::from_parts(
+            run_id.clone(),
+            event_count,
+            records,
+            &view,
+            observed_at_ms,
+            recovery.summary.clone(),
+        );
+        Ok(Self {
+            run_id,
+            observed_at_ms,
+            summary,
             recovery,
         })
     }

@@ -35,15 +35,29 @@ pub const WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER: &str = "x-wendao-document-extra
 pub const WENDAO_PDF_OCR_WORKERS_HEADER: &str = "x-wendao-pdf-ocr-workers";
 /// Internal audio worker budget header for Python audio shard requests.
 pub const WENDAO_AUDIO_WORKERS_HEADER: &str = "x-wendao-audio-workers";
+/// Internal audio worker selector header for Python audio shard requests.
+pub const WENDAO_AUDIO_WORKER_HEADER: &str = "x-wendao-audio-worker";
+/// Internal hosted audio provider override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_PROVIDER_HEADER: &str = "x-wendao-audio-hosted-provider";
+/// Internal hosted audio base URL override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_BASE_URL_HEADER: &str = "x-wendao-audio-hosted-base-url";
+/// Internal hosted audio endpoint-kind override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER: &str = "x-wendao-audio-hosted-endpoint";
+/// Internal hosted audio model override header for Python audio shard requests.
+pub const WENDAO_AUDIO_HOSTED_MODEL_HEADER: &str = "x-wendao-audio-hosted-model";
 
 /// Full Docling document extraction profile.
 pub const DOCUMENT_EXTRACT_FULL_PROFILE: &str = "full";
 /// Lightweight text-first document extraction profile for chat attachments.
 pub const DOCUMENT_EXTRACT_FAST_TEXT_PROFILE: &str = "fast-text";
+/// Hosted VLM document extraction profile for standalone image attachments.
+pub const DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE: &str = "hosted-vlm-image-extract-v1";
 
 /// Document extraction execution mode decoded from Flight metadata.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocumentExtractMode {
+    /// Let the Gateway choose the execution mode from source facts and config.
+    Auto,
     /// Run the conversion synchronously through the Python Arrow Flight worker.
     Sync,
     /// Queue first-time conversion in the Rust provider and return job state.
@@ -60,11 +74,12 @@ impl DocumentExtractMode {
     ///
     /// # Errors
     ///
-    /// Returns an error for values outside `sync`, `async`,
+    /// Returns an error for values outside `auto`, `sync`, `async`,
     /// `hybrid-page-ocr`, and `audio-shards`.
     pub fn parse(value: &str) -> Result<Self, String> {
         match value.trim().to_ascii_lowercase().as_str() {
-            "" | "sync" => Ok(Self::Sync),
+            "" | "auto" => Ok(Self::Auto),
+            "sync" => Ok(Self::Sync),
             "async" => Ok(Self::Async),
             "hybrid-page-ocr" | "hybrid_page_ocr" => Ok(Self::HybridPageOcr),
             "audio-shards" | "audio_shards" => Ok(Self::AudioShards),
@@ -73,11 +88,78 @@ impl DocumentExtractMode {
     }
 }
 
+macro_rules! string_token {
+    ($name:ident, $doc:literal) => {
+        #[doc = $doc]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Build a normalized token from validated Flight metadata.
+            #[must_use]
+            pub fn new(value: impl Into<String>) -> Self {
+                Self(value.into())
+            }
+
+            /// Borrow the token as a string slice.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                self.0.as_str()
+            }
+
+            /// Return the owned token string.
+            #[must_use]
+            pub fn into_string(self) -> String {
+                self.0
+            }
+        }
+
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                self.as_str()
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str(self.as_str())
+            }
+        }
+    };
+}
+
+string_token!(
+    DocumentExtractSourcePath,
+    "Validated document source path decoded from Flight metadata."
+);
+string_token!(
+    HostedAudioBaseUrl,
+    "Validated hosted-audio base URL decoded from Flight metadata."
+);
+
+/// Async wait budget for document extraction requests, in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DocumentExtractWaitBudgetMs(u64);
+
+impl DocumentExtractWaitBudgetMs {
+    /// Build an async wait budget from validated Flight metadata.
+    #[must_use]
+    pub const fn from_millis(value: u64) -> Self {
+        Self(value)
+    }
+
+    /// Return the wait budget in milliseconds.
+    #[must_use]
+    pub const fn as_millis(self) -> u64 {
+        self.0
+    }
+}
+
 /// Transport-owned document extraction request decoded from Flight metadata.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentExtractFlightRequest {
     /// Source document path.
-    pub source_path: String,
+    pub source_path: DocumentExtractSourcePath,
     /// Output directory for extracted resources.
     pub output_dir: String,
     /// Force reconversion even when cache artifacts exist.
@@ -89,7 +171,17 @@ pub struct DocumentExtractFlightRequest {
     /// Execution mode for the Rust provider.
     pub mode: DocumentExtractMode,
     /// Async wait budget in milliseconds.
-    pub wait_ms: u64,
+    pub wait_ms: DocumentExtractWaitBudgetMs,
+    /// Optional audio worker selector for Rust-owned audio shard dispatch.
+    pub audio_worker: Option<String>,
+    /// Optional hosted audio provider override for Rust-owned audio shard dispatch.
+    pub audio_hosted_provider: Option<String>,
+    /// Optional hosted audio base URL override for Rust-owned audio shard dispatch.
+    pub audio_hosted_base_url: Option<HostedAudioBaseUrl>,
+    /// Optional hosted audio endpoint-kind override for Rust-owned audio shard dispatch.
+    pub audio_hosted_endpoint: Option<String>,
+    /// Optional hosted audio model override for Rust-owned audio shard dispatch.
+    pub audio_hosted_model: Option<String>,
 }
 
 /// Validate the stable document extraction request contract.
@@ -163,6 +255,9 @@ pub fn normalize_document_extract_profile(profile: &str) -> Result<&'static str,
         "" | "default" | "docling" | "full" | "full-docling" => Ok(DOCUMENT_EXTRACT_FULL_PROFILE),
         "attachment" | "attachment-fast-text" | "fast" | "fast_text" | "fast-text" | "text" => {
             Ok(DOCUMENT_EXTRACT_FAST_TEXT_PROFILE)
+        }
+        "hosted-vlm-image-extract-v1" | "image-vlm" | "hosted-image-vlm" => {
+            Ok(DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE)
         }
         other => Err(format!("unsupported document extract profile `{other}`")),
     }

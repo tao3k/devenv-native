@@ -1,12 +1,19 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use crate::search::SearchPlaneCache;
 use crate::search::{SearchFileFingerprint, SearchManifestKeyspace};
+
+static CACHE_KEYSPACE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub(super) fn required_cache_key(key: Option<String>, context: &str) -> String {
     key.unwrap_or_else(|| panic!("{context}"))
 }
 
 pub(super) fn cache_for_tests() -> SearchPlaneCache {
-    SearchPlaneCache::for_tests(SearchManifestKeyspace::new("xiuxian:test:search_plane"))
+    let suffix = CACHE_KEYSPACE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    SearchPlaneCache::for_tests(SearchManifestKeyspace::new(format!(
+        "xiuxian:test:search_plane:{suffix}"
+    )))
 }
 
 pub(super) fn sample_file_fingerprint(

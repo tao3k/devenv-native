@@ -20,7 +20,7 @@ fn modelica_plugin_docs_page_index_trees_lookup_resolves_deterministic_tree_set(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-page-index-trees]
+            r#"[sources.projects.modelica-docs-page-index-trees]
 root = "{}"
 plugins = ["modelica"]
 "#,

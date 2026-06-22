@@ -22,7 +22,7 @@ fn modelica_plugin_docs_page_index_tree_search_matches_section_hits() -> TestRes
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-page-index-tree-search]
+            r#"[sources.projects.modelica-docs-page-index-tree-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

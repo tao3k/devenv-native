@@ -445,7 +445,7 @@ parser-summary semantic fingerprints instead of falling back to raw contents
 just because the repository is mixed. Repositories that include unknown plugin
 owners remain on the conservative raw-contents path until a broader capability
 registry lands.
-The next bounded generalization is now present too: `xiuxian-ast` owns a
+The next bounded generalization is now present too: `external language-provider protocol` owns a
 generic structural semantic fingerprint helper for supported languages such as
 Rust, Python, JavaScript, TypeScript, Go, and TOML, and analyzer-cache
 identity now dispatches per file instead of treating every non-Julia/Modelica

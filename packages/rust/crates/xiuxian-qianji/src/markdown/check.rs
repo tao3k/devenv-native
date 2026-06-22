@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
+use crate::template_catalog::EmbeddedTemplateCatalog;
 use serde_json::json;
-use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
 
 const VALIDATION_PASS_TEMPLATE_NAME: &str = "qianji_validation_pass.md.j2";
 const VALIDATION_PASS_TEMPLATE_SOURCE: &str =
@@ -15,24 +15,23 @@ const FOLLOW_UP_QUERY_TEMPLATE_NAME: &str = "qianji_follow_up_query.md.j2";
 const FOLLOW_UP_QUERY_TEMPLATE_SOURCE: &str =
     include_str!("../../resources/templates/control_plane/qianji_follow_up_query.md.j2");
 
-static CHECK_TEMPLATE_CATALOG: EmbeddedManifestationTemplateCatalog =
-    EmbeddedManifestationTemplateCatalog::new(
-        "qianhuan validation markdown renderer",
-        &[
-            (
-                VALIDATION_PASS_TEMPLATE_NAME,
-                VALIDATION_PASS_TEMPLATE_SOURCE,
-            ),
-            (
-                VALIDATION_FAILED_TEMPLATE_NAME,
-                VALIDATION_FAILED_TEMPLATE_SOURCE,
-            ),
-            (
-                FOLLOW_UP_QUERY_TEMPLATE_NAME,
-                FOLLOW_UP_QUERY_TEMPLATE_SOURCE,
-            ),
-        ],
-    );
+static CHECK_TEMPLATE_CATALOG: EmbeddedTemplateCatalog = EmbeddedTemplateCatalog::new(
+    "Qianji validation markdown renderer",
+    &[
+        (
+            VALIDATION_PASS_TEMPLATE_NAME,
+            VALIDATION_PASS_TEMPLATE_SOURCE,
+        ),
+        (
+            VALIDATION_FAILED_TEMPLATE_NAME,
+            VALIDATION_FAILED_TEMPLATE_SOURCE,
+        ),
+        (
+            FOLLOW_UP_QUERY_TEMPLATE_NAME,
+            FOLLOW_UP_QUERY_TEMPLATE_SOURCE,
+        ),
+    ],
+);
 
 /// One diagnostic section rendered in the shared markdown validation surface.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -101,6 +100,7 @@ pub(crate) fn render_validation_failed(
 }
 
 /// Render the shared bounded-repair follow-up SQL section.
+#[cfg(feature = "wendao-integration")]
 #[must_use]
 pub(crate) fn render_follow_up_query_section(surface_names: &[String], query_text: &str) -> String {
     match CHECK_TEMPLATE_CATALOG
@@ -160,6 +160,7 @@ fn render_diagnostic_body_lines(diagnostic: &MarkdownDiagnostic<'_>) -> Vec<Stri
     ]
 }
 
+#[cfg(feature = "wendao-integration")]
 fn render_follow_up_query_section_inline(surface_names: &[String], query_text: &str) -> String {
     format!(
         "## Follow-up Query\nSurfaces: {}\nSQL:\n```sql\n{}\n```",

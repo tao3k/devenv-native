@@ -102,20 +102,23 @@ pub(crate) fn render_activity_queue_projection_text(
         projection.summary.failed
     );
 
-    if !projection.items.is_empty() {
-        output.push_str("\n## Activities\n\n");
-        for item in &projection.items {
-            let task = item.activity.task.as_ref();
-            let activity_type = task.map_or("<unknown>", |task| task.activity_type.as_str());
-            let queue = task.map_or("<unknown>", |task| task.task_queue.as_str());
+    if !projection.worker_tasks.is_empty() {
+        output.push_str("\n## Worker Tasks\n\n");
+        for task in &projection.worker_tasks {
+            let scope = task.step_id.as_ref().map_or_else(
+                || "run".to_string(),
+                |step_id| format!("step:{}", step_id.as_str()),
+            );
             push_fmt(
                 &mut output,
                 format_args!(
-                    "- `{}` [{}] type `{}` queue `{}`\n",
-                    item.activity.activity_id.as_str(),
-                    activity_scope_label(&item.scope),
-                    activity_type,
-                    queue
+                    "- `{}` [{}] type `{}` queue `{}` next_attempt `{}` idempotency `{}`\n",
+                    task.activity_id.as_str(),
+                    scope,
+                    task.activity_type.as_str(),
+                    task.task_queue.as_str(),
+                    task.next_attempt,
+                    task.idempotency_key.as_str()
                 ),
             );
         }

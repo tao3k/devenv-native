@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor
+from errno import EADDRINUSE, EADDRNOTAVAIL, ECONNABORTED, ECONNRESET, ETIMEDOUT
 from typing import TYPE_CHECKING, Any
 
 from .audio_shard_tables import resolve_audio_shard_worker_count
@@ -51,3 +52,20 @@ def short_error_message(error: BaseException) -> str:
     if len(message) <= 240:
         return message
     return f"{message[:237]}..."
+
+
+def is_transient_audio_request_error(error: BaseException) -> bool:
+    """Return whether an audio request error is likely safe to retry."""
+
+    reason = error.reason if isinstance(error, urllib.error.URLError) else error
+    if isinstance(reason, TimeoutError):
+        return True
+    if isinstance(reason, OSError):
+        return reason.errno in {
+            EADDRINUSE,
+            EADDRNOTAVAIL,
+            ECONNABORTED,
+            ECONNRESET,
+            ETIMEDOUT,
+        }
+    return isinstance(error, TimeoutError)

@@ -8,7 +8,6 @@ use crate::studio::analysis::markdown::{
 };
 use crate::studio::analysis::projection;
 use crate::studio::pathing::{normalize_path_like, studio_display_path};
-use crate::studio::types::AnalysisNode;
 use crate::studio::types::MarkdownAnalysisResponse;
 use crate::studio::vfs::resolve_vfs_file_path;
 
@@ -31,10 +30,6 @@ impl std::fmt::Display for AnalysisError {
 }
 
 impl std::error::Error for AnalysisError {}
-
-pub(crate) fn compile_markdown_nodes(path: &str, content: &str) -> Vec<AnalysisNode> {
-    compile_markdown_ir(path, content).nodes
-}
 
 pub(crate) async fn analyze_markdown(
     state: &StudioState,
@@ -63,7 +58,8 @@ pub(crate) async fn analyze_markdown(
         )
     })?;
 
-    let content = std::fs::read_to_string(&full_path)
+    let content = tokio::fs::read_to_string(&full_path)
+        .await
         .map_err(|e| AnalysisError::Vfs(format!("Failed to read file: {e}")))?;
 
     let compiled: CompiledDocument = compile_markdown_ir(path, &content);

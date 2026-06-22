@@ -6,6 +6,39 @@ use xiuxian_polyglot_orchestrator::{
     RouteProfileRef, SnapshotInvariantError, WorkerPressureEvidence,
 };
 
+#[cfg(feature = "audio-shard-arrow")]
+use xiuxian_polyglot_orchestrator::{
+    AudioSchedulePlan, AudioSchedulingInput, WorkerPressureEvidence as AudioWorkerPressureEvidence,
+};
+
+#[cfg(feature = "audio-shard-arrow")]
+use crate::audio::{AUDIO_SHARD_INPUT_SCHEMA_VERSION, AUDIO_SHARD_RESULT_SCHEMA_VERSION};
+
+/// Named audio shard scheduling request for the orchestrator bridge.
+#[cfg(feature = "audio-shard-arrow")]
+pub struct AudioShardScheduleRequest {
+    /// Current pressure evidence for audio shard execution.
+    pub pressure: AudioWorkerPressureEvidence,
+    /// Owner-provided adaptive worker budget.
+    pub adaptive_worker_budget: Option<u32>,
+    /// Benchmark-only worker override.
+    pub diagnostic_worker_override: Option<u32>,
+    /// Upper worker cap for the current host/session.
+    pub max_worker_cap: Option<u32>,
+    /// Number of shards eligible for the current scheduling wave.
+    pub shard_count: u32,
+}
+
+/// Audio Arrow contract version pair.
+#[cfg(feature = "audio-shard-arrow")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AudioShardContractVersions {
+    /// `xiuxian_wendao.audio_shard_input.v1`.
+    pub input_schema_version: &'static str,
+    /// `xiuxian_wendao.audio_shard_result.v1`.
+    pub result_schema_version: &'static str,
+}
+
 #[cfg(feature = "pdf-source-range")]
 use crate::pdf::ocr::{
     PDF_OCR_DEFAULT_PROFILE, PDF_OCR_SHARD_INPUT_SCHEMA_VERSION,
@@ -144,6 +177,47 @@ pub fn pdf_ocr_source_range_shard_schedule_plan(
         .plan()
 }
 
-#[cfg(all(test, feature = "pdf-source-range"))]
+/// Positional boundary for audio shard pressure counters.
+#[cfg(feature = "audio-shard-arrow")]
+#[must_use]
+pub fn audio_shard_pressure_evidence(
+    max_in_flight: Option<u32>,
+    active_in_flight: u32,
+    queued_items: u32,
+    failed_items: u32,
+    retryable_failures: u32,
+    ordering_backlog: u32,
+    fallback_available: bool,
+) -> AudioWorkerPressureEvidence {
+    AudioWorkerPressureEvidence::audio_shard_transcription()
+        .with_worker_budget(max_in_flight, active_in_flight)
+        .with_queue_depth(queued_items)
+        .with_failures(failed_items, retryable_failures)
+        .with_ordering_backlog(ordering_backlog)
+        .with_fallback_available(fallback_available)
+}
+
+/// Returns an inert audio shard scheduling plan from attachment-owned facts.
+#[cfg(feature = "audio-shard-arrow")]
+#[must_use]
+pub fn audio_shard_schedule_plan(request: &AudioShardScheduleRequest) -> AudioSchedulePlan {
+    AudioSchedulingInput::audio_shards(request.pressure)
+        .with_adaptive_worker_budget(request.adaptive_worker_budget)
+        .with_worker_request(request.diagnostic_worker_override, request.max_worker_cap)
+        .with_shard_count(request.shard_count)
+        .plan()
+}
+
+/// Returns true when the audio shard bridge is compiled with Arrow contracts.
+#[cfg(feature = "audio-shard-arrow")]
+#[must_use]
+pub const fn audio_shard_contract_versions() -> AudioShardContractVersions {
+    AudioShardContractVersions {
+        input_schema_version: AUDIO_SHARD_INPUT_SCHEMA_VERSION,
+        result_schema_version: AUDIO_SHARD_RESULT_SCHEMA_VERSION,
+    }
+}
+
+#[cfg(all(test, any(feature = "pdf-source-range", feature = "audio-shard-arrow")))]
 #[path = "../tests/unit/polyglot.rs"]
 mod tests;

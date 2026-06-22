@@ -59,7 +59,7 @@ async fn docs_family_context_endpoint_executes_over_external_modelica_plugin_pat
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-family-context]
+            r#"[sources.projects.modelica-gateway-family-context]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -145,7 +145,7 @@ async fn docs_family_search_endpoint_executes_over_external_modelica_plugin_path
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-family-search]
+            r#"[sources.projects.modelica-gateway-family-search]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -234,7 +234,7 @@ async fn docs_family_cluster_endpoint_executes_over_external_modelica_plugin_pat
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-family-cluster]
+            r#"[sources.projects.modelica-gateway-family-cluster]
 root = "{}"
 plugins = ["modelica"]
 "#,

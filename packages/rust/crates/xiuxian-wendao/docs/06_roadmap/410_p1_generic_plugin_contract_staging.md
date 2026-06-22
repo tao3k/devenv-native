@@ -239,7 +239,7 @@ Should stage toward:
 
 ```toml
 [link_graph.retrieval.rerank]
-provider = "xiuxian-wendao-julia"
+provider = "xiuxian-julia-core"
 contract_version = "v1"
 transport = "arrow_flight"
 
@@ -254,7 +254,7 @@ Provider-owned launch options should move below provider-scoped config rather
 than stay in the capability selector:
 
 ```toml
-[plugins.xiuxian-wendao-julia.launch]
+[plugins.xiuxian-julia-core.launch]
 launcher_path = ".data/WendaoAnalyzer/scripts/run_analyzer_service.sh"
 service_mode = "stream"
 analyzer_strategy = "linear_blend"

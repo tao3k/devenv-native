@@ -13,6 +13,7 @@ DOCUMENT_EXTRACT_FULL_THREADS_ENV = "WENDAO_DOCUMENT_EXTRACT_FULL_THREADS"
 DOCUMENT_EXTRACT_FULL_PROFILE = "full"
 DOCUMENT_EXTRACT_FAST_TEXT_PROFILE = "fast-text"
 DOCUMENT_EXTRACT_STRUCTURE_TEXT_PROFILE = "structure-text"
+DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE = "hosted-vlm-image-extract-v1"
 DOCUMENT_EXTRACT_DEFAULT_PROFILE = DOCUMENT_EXTRACT_FULL_PROFILE
 
 _FAST_TEXT_ALIASES = {
@@ -31,6 +32,11 @@ _STRUCTURE_TEXT_ALIASES = {
     "structure-text",
     "text-structure",
 }
+_HOSTED_VLM_IMAGE_ALIASES = {
+    "hosted-image-vlm",
+    "hosted-vlm-image-extract-v1",
+    "image-vlm",
+}
 
 
 def normalize_document_extract_profile(value: str | None) -> str:
@@ -48,6 +54,8 @@ def normalize_document_extract_profile(value: str | None) -> str:
         return DOCUMENT_EXTRACT_FAST_TEXT_PROFILE
     if normalized in _STRUCTURE_TEXT_ALIASES:
         return DOCUMENT_EXTRACT_STRUCTURE_TEXT_PROFILE
+    if normalized in _HOSTED_VLM_IMAGE_ALIASES:
+        return DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
     raise ValueError(f"unsupported document extract profile `{value}`")
 
 
@@ -75,6 +83,10 @@ def new_docling_converter_for_profile(
             return _new_fast_text_docling_converter()
         case "structure-text":
             return _new_structure_text_docling_converter()
+        case "hosted-vlm-image-extract-v1":
+            raise RuntimeError(
+                "hosted VLM image extraction is handled before Docling converter setup"
+            )
         case _:
             return _new_full_docling_converter()
 
@@ -167,6 +179,7 @@ __all__ = [
     "DOCUMENT_EXTRACT_FAST_TEXT_PROFILE",
     "DOCUMENT_EXTRACT_FULL_PROFILE",
     "DOCUMENT_EXTRACT_FULL_THREADS_ENV",
+    "DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE",
     "DOCUMENT_EXTRACT_PROFILE_ENV",
     "DOCUMENT_EXTRACT_STRUCTURE_TEXT_PROFILE",
     "document_extract_full_threads_from_env",

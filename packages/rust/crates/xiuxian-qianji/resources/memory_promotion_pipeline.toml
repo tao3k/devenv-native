@@ -17,7 +17,7 @@ id = "Promotion_Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "artisan-engineer"
 template_target = "draft_reflection.md"
 

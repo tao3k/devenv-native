@@ -3,12 +3,12 @@ use super::support::sample_audio_reviewed_claim_request;
 use crate::episteme::source_contract::support::decode_single_arrow_batch;
 use crate::episteme::source_contract::support::{string_column, table};
 #[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::build_wendaograph_ontology_read_model_quality_arrow_request;
+#[cfg(feature = "julia")]
 use xiuxian_wendao::episteme::build_episteme_wendaograph_quality_request_batches;
 use xiuxian_wendao::episteme::{
     materialize_episteme_audio_reviewed_claim_seed, validate_episteme_read_model_relation_endpoints,
 };
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::build_wendaograph_ontology_read_model_quality_arrow_request;
 
 #[test]
 fn episteme_audio_reviewed_claim_seed_materializes_promotion_candidate_rows()

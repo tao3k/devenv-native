@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde_json::json;
 use uuid::Uuid;
-use xiuxian_io::PrjDirs;
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_wendao::analyzers::{
     RepoIntelligenceError, RepoOverviewQuery, RepositoryRefreshPolicy,
     analyze_repository_from_config, bootstrap_builtin_registry, load_repo_intelligence_config,
@@ -17,7 +17,6 @@ use crate::support::repo_intelligence::create_sample_modelica_repo;
 use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
-use crate::support::wendao_command;
 use xiuxian_wendao::analyzers::{
     ExampleSearchQuery, ModuleSearchQuery, example_search_from_config, module_search_from_config,
 };
@@ -39,7 +38,7 @@ fn config_parses_relative_repo_paths_against_config_dir() -> TestResult {
     let config_path = config_dir.join("wendao.toml");
     fs::write(
         &config_path,
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "../repos/sample"
 plugins = ["julia-code-parser"]
 "#,
@@ -101,7 +100,7 @@ fn modelica_plugin_builds_repo_overview_and_search_results_from_local_repo() -> 
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-demo]
+            r#"[sources.projects.modelica-demo]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -186,20 +185,13 @@ fn cli_repo_overview_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliPkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-sample")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("overview")
-        .arg("--repo")
-        .arg("cli-sample")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let mut payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let mut payload = serde_json::to_value(repo_overview_from_config(
+        &RepoOverviewQuery {
+            repo_id: "cli-sample".to_string(),
+        },
+        Some(&config_path),
+        temp.path(),
+    )?)?;
     redact_repo_revision(&mut payload);
     assert_repo_json_snapshot("repo_overview_cli_json", payload);
     Ok(())
@@ -408,7 +400,7 @@ fn write_repo_url_config_with_ref(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 url = "{}"
 {}{}plugins = [{plugin}]
 "#,
@@ -443,7 +435,7 @@ fn append_repo_file_and_commit(
 }
 
 fn repo_cache_root(_cwd: &Path) -> std::path::PathBuf {
-    PrjDirs::data_home()
+    ProjectDirs::data_home()
         .join("xiuxian-wendao")
         .join("repo-intelligence")
 }

@@ -7,8 +7,10 @@ use serde_json::Value;
 
 #[path = "scheduler/preflight/context_path.rs"]
 mod context_path;
+#[cfg(feature = "wendao-integration")]
 #[path = "scheduler/preflight/mounts.rs"]
 mod mounts;
+#[cfg(feature = "wendao-integration")]
 #[path = "scheduler/preflight/query.rs"]
 mod query;
 #[path = "scheduler/preflight/semantic.rs"]
@@ -16,6 +18,7 @@ mod semantic;
 #[path = "scheduler/preflight/wendao_uri.rs"]
 mod wendao_uri;
 
+#[cfg(feature = "wendao-integration")]
 pub(crate) use mounts::{RuntimeWendaoMount, with_runtime_wendao_mounts};
 
 #[must_use]

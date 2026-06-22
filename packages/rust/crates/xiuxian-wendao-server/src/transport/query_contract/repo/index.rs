@@ -22,12 +22,6 @@ pub struct RepoIndexRequest {
     pub request_id: String,
 }
 
-impl PartialEq<(Option<String>, bool, String)> for RepoIndexRequest {
-    fn eq(&self, other: &(Option<String>, bool, String)) -> bool {
-        self.repo_id == other.0 && self.refresh == other.1 && self.request_id == other.2
-    }
-}
-
 /// Validate the stable repo index request contract.
 ///
 /// # Errors

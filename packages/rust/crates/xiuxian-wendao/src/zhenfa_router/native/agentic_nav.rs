@@ -6,7 +6,7 @@
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::{
     LinkGraphIndex, LinkGraphPlannedSearchPayload, LinkGraphSearchOptions, QuantumAnchorHit,
@@ -17,7 +17,7 @@ use super::WendaoContextExt;
 
 /// Arguments for the `wendao.agentic_nav` tool.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
-pub(crate) struct WendaoAgenticNavArgs {
+pub struct WendaoAgenticNavArgs {
     /// The task intent or query to navigate.
     pub query: String,
     /// Optional document context to scope the navigation (filters results to this doc).
@@ -47,13 +47,12 @@ fn default_limit() -> usize {
 /// This tool provides "structured GPS" for agents navigating the knowledge graph.
 /// It combines vector similarity search with AST-guided validation to compute
 /// recommended exploration paths based on task intent.
+///
+/// # Errors
+///
+/// Returns [`ZhenfaError`] when request conversion or link graph access fails.
 #[allow(missing_docs)]
 #[allow(clippy::needless_pass_by_value)]
-#[zhenfa_tool(
-    name = "wendao.agentic_nav",
-    description = "Navigate the knowledge graph with reasoning-driven discovery. Combines vector search with AST validation for structured exploration paths.",
-    tool_struct = "WendaoAgenticNavTool"
-)]
 pub fn wendao_agentic_nav(
     ctx: &ZhenfaContext,
     args: WendaoAgenticNavArgs,

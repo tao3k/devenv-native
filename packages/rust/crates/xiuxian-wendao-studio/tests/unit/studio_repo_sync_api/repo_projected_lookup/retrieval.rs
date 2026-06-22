@@ -118,7 +118,7 @@ async fn repo_projected_retrieval_hit_endpoint_executes_over_external_modelica_p
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-projected-retrieval-hit]
+            r#"[sources.projects.modelica-gateway-projected-retrieval-hit]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -223,7 +223,7 @@ async fn repo_projected_retrieval_context_endpoint_executes_over_external_modeli
     fs::write(
         temp.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.modelica-gateway-projected-retrieval-context]
+            r#"[sources.projects.modelica-gateway-projected-retrieval-context]
 root = "{}"
 plugins = ["modelica"]
 "#,

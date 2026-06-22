@@ -137,10 +137,7 @@ def _patch_rejection_reasons(
         reasons.append("char-collapse")
     if char_ratio > options.max_char_ratio:
         reasons.append("char-expansion")
-    if (
-        float(recovery_metrics["maxPartRepeatedNgramRatio"])
-        > options.max_part_repeated_ngram_ratio
-    ):
+    if float(recovery_metrics["maxPartRepeatedNgramRatio"]) > options.max_part_repeated_ngram_ratio:
         reasons.append("part-repeat-too-high")
     return reasons
 
@@ -157,7 +154,7 @@ def _base_metrics(
             "transcriptChars": 0,
             "chineseRatio": 0.0,
             "repeatedNgramRatio": 0.0,
-            "wallSeconds": 0.0,
+            "requestSeconds": 0.0,
         }
     return {
         "present": True,
@@ -166,9 +163,7 @@ def _base_metrics(
         "transcriptChars": _int(quality_row, "transcript_chars"),
         "chineseRatio": _float(quality_row, "chinese_ratio"),
         "repeatedNgramRatio": _float(quality_row, "repeated_ngram_ratio"),
-        "wallSeconds": (
-            0.0 if result_row is None else _float(result_row, "wall_seconds")
-        ),
+        "requestSeconds": (0.0 if result_row is None else _float(result_row, "wall_seconds")),
     }
 
 
@@ -183,9 +178,7 @@ def _recovery_metrics(
         "rows": len(rows),
         "transcriptChars": transcript_chars,
         "charRatio": (
-            0.0
-            if base_transcript_chars <= 0
-            else transcript_chars / base_transcript_chars
+            0.0 if base_transcript_chars <= 0 else transcript_chars / base_transcript_chars
         ),
         "weightedRepeatedNgramRatio": _weighted_average(
             rows, "repeated_ngram_ratio", "transcript_chars"
@@ -194,10 +187,8 @@ def _recovery_metrics(
             (_float(row, "repeated_ngram_ratio") for row in rows),
             default=0.0,
         ),
-        "weightedChineseRatio": _weighted_average(
-            rows, "chinese_ratio", "transcript_chars"
-        ),
-        "wallSeconds": wall_seconds,
+        "weightedChineseRatio": _weighted_average(rows, "chinese_ratio", "transcript_chars"),
+        "requestCumulativeSeconds": wall_seconds,
     }
 
 
@@ -216,9 +207,7 @@ def _group_recovery_rows(
         item["_wallSeconds"] = _float(result_row, "wall_seconds")
         grouped.setdefault(parent_index, []).append(item)
     for rows in grouped.values():
-        rows.sort(
-            key=lambda row: (_float(row, "start_seconds"), _int(row, "chunk_index"))
-        )
+        rows.sort(key=lambda row: (_float(row, "start_seconds"), _int(row, "chunk_index")))
     return grouped
 
 
@@ -278,8 +267,7 @@ def _weighted_average(
     if total_weight <= 0:
         return sum(_float(row, value_key) for row in rows) / len(rows) if rows else 0.0
     return (
-        sum(_float(row, value_key) * max(0, _int(row, weight_key)) for row in rows)
-        / total_weight
+        sum(_float(row, value_key) * max(0, _int(row, weight_key)) for row in rows) / total_weight
     )
 
 

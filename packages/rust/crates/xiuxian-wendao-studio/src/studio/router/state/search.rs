@@ -4,7 +4,7 @@ use std::time::Duration;
 use crate::studio::router::error::StudioApiError;
 use crate::studio::router::state::types::StudioState;
 use crate::studio::types::{
-    AstSearchHit, AttachmentSearchHit, AutocompleteSuggestion, ReferenceSearchHit, SearchHit,
+    AttachmentSearchHit, AutocompleteSuggestion, ReferenceSearchHit, SearchHit, SourceSymbolHit,
 };
 use xiuxian_wendao::link_graph::LinkGraphAttachmentKind;
 use xiuxian_wendao::search::{SearchCorpusKind, SearchPlanePhase};
@@ -215,7 +215,7 @@ impl StudioState {
         if configured_projects.is_empty() {
             return Err(StudioApiError::bad_request(
                 "UI_CONFIG_REQUIRED",
-                "Studio AST search requires configured link_graph.projects",
+                "Studio symbol search requires configured sources.projects",
             ));
         }
         self.ensure_code_search_indexes_started(configured_projects.as_slice(), "symbol_search");
@@ -233,7 +233,7 @@ impl StudioState {
         if configured_projects.is_empty() {
             return Err(StudioApiError::bad_request(
                 "UI_CONFIG_REQUIRED",
-                "Studio knowledge search requires configured link_graph.projects",
+                "Studio knowledge search requires configured sources.projects",
             ));
         }
         self.ensure_note_search_indexes_started(configured_projects.as_slice(), "knowledge_search");
@@ -291,7 +291,7 @@ impl StudioState {
         &self,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<AstSearchHit>, StudioApiError> {
+    ) -> Result<Vec<SourceSymbolHit>, StudioApiError> {
         match self.search_plane.search_local_symbols(query, limit).await {
             Ok(hits) => Ok(hits.into_iter().map(Into::into).collect()),
             Err(xiuxian_wendao::search::LocalSymbolSearchError::NotReady) => {
@@ -332,7 +332,7 @@ impl StudioState {
         if configured_projects.is_empty() {
             return Err(StudioApiError::bad_request(
                 "UI_CONFIG_REQUIRED",
-                "Studio attachment search requires configured link_graph.projects",
+                "Studio attachment search requires configured sources.projects",
             ));
         }
         self.ensure_note_search_indexes_started(
@@ -372,7 +372,7 @@ impl StudioState {
         if configured_projects.is_empty() {
             return Err(StudioApiError::bad_request(
                 "UI_CONFIG_REQUIRED",
-                "Studio reference search requires configured link_graph.projects",
+                "Studio reference search requires configured sources.projects",
             ));
         }
         self.ensure_code_search_indexes_started(configured_projects.as_slice(), "reference_search");

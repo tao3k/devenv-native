@@ -15,13 +15,13 @@ metadata:
 
 > Legacy transition blueprint. Historical references to the older external-tool stack in this document describe an earlier migration stage and are no longer the target end-state.
 
-> Goal: converge execution into a single Rust runtime (`xiuxian-daochang`) by fusing Omega reasoning, Graph planning, ReAct tool execution, and authoritative Xiuxian-Qianhuan injection, then progressively remove Python runtime paths.
+> Goal: converge execution into a single Rust runtime (`xiuxian-daochang`) by fusing Omega reasoning, Graph planning, ReAct tool execution, and authoritative Rust context injection, then progressively remove Python runtime paths.
 >
-> Detailed companion: [Xiuxian-Qianhuan Injection + Memory Self-Evolution + Reflection](../memory/injection-evolution.md)
+> Detailed companion: [Rust Context Injection + Memory Self-Evolution + Reflection](../memory/injection-evolution.md)
 >
 > LinkGraph execution companion (primary core track): [LinkGraph PPR Algorithm Spec](../wendao/ppr-algorithm.md)
 >
-> Execution sequence companion: [Integrated Architecture Audit Checklist (2026)](../../03_features/qianhuan-audit-closure.md)
+> Execution sequence companion: superseded by the Rust context injection and memory-engine package notes.
 
 ## 1. Scope and Boundaries
 
@@ -40,7 +40,7 @@ flowchart LR
   G --> R[Unified Rust Runtime Kernel]
 
   R --> O[Omega Deliberation Engine]
-  O --> I[Xiuxian-Qianhuan Assembler]
+  O --> I[Rust Context Assembler]
   R --> P[Graph Planning Engine]
   R --> X[ReAct Execution Engine]
 
@@ -48,18 +48,15 @@ flowchart LR
   T --> PY[Legacy Python Tool Adapters (compat only)]
   T --> RS[Rust-native Tool Services]
 
-  R --> W[xiuxian-window]
   R --> MM[xiuxian-memory-engine]
   R --> KG[xiuxian-wendao / link-graph]
   R --> SPI[Session Prompt Injection XML]
 
-  W --> I
   MM --> I
   KG --> I
   SPI --> I
   I --> P
   I --> X
-  W --> MM
   MM --> R
   KG --> R
 ```
@@ -68,15 +65,15 @@ flowchart LR
 
 1. Intake:
    - Receive request and resolve `session_id` (channel/chat/thread aware).
-   - Load bounded context from `xiuxian-window`.
+   - Load bounded context through the Rust runtime context assembler.
 2. Omega deliberation:
    - Evaluate complexity and choose execution route (`react` direct vs `graph` first).
    - Produce context policy (what to inject, max size, ordering, role-mix profile, injection mode).
-3. Xiuxian-Qianhuan context assembly (knowledge inject role):
+3. Rust context assembly (knowledge inject role):
    - Assemble typed context blocks from:
      - session prompt injection XML (operator/session scoped),
      - memory recall context (`xiuxian-memory-engine`, MemRL-style),
-     - bounded summaries/window state (`xiuxian-window`),
+     - bounded runtime context summaries,
      - knowledge context (`xiuxian-wendao`, link-graph).
    - Compose scenario-specific mixed-role prompts (for example debug/recovery/architecture reflection packs).
    - Apply deterministic ordering and token budget before execution.
@@ -95,7 +92,7 @@ flowchart LR
 8. Response:
    - Emit user-facing answer plus structured observability events.
 
-## 3.1 Xiuxian-Qianhuan: Architectural Role
+## 3.1 Rust Context Injection: Architectural Role
 
 - Ownership:
   - Owned by Rust runtime, policy decided by Omega.
@@ -115,15 +112,15 @@ flowchart LR
 
 Project progress must be tracked by feature name (not phase/stage labels). Recommended feature names:
 
-| Feature name                             | Definition of done                                                                        |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Unified Rust Execution Kernel**        | One Rust entry for channel/repl/gateway execution; no Python runtime loop on hot path.    |
-| **Graph Planning Engine (Rust)**         | Graph planning API runs inside Rust runtime and produces stable, testable plan contracts. |
-| **Omega Deliberation Engine (Rust)**     | Quality gates and plan-repair logic run in Rust with structured outputs.                  |
-| **ReAct Tool Runtime (Rust)**            | Tool-call loop, retry, budget, and failure policy consolidated in Rust.                   |
-| **Session Window Compression (Rust)**    | Predictable context compression and restore strategy backed by `xiuxian-window`.          |
-| **Memory Self-Evolution Runtime (Rust)** | Outcome feedback and recall adaptation persisted via DB-backed `xiuxian-memory-engine`.   |
-| **Python Runtime Decommissioning**       | Python side is transport/adapter-only; no duplicated runtime loop entrypoints.            |
+| Feature name                             | Definition of done                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Unified Rust Execution Kernel**        | One Rust entry for channel/repl/gateway execution; no Python runtime loop on hot path.            |
+| **Graph Planning Engine (Rust)**         | Graph planning API runs inside Rust runtime and produces stable, testable plan contracts.         |
+| **Omega Deliberation Engine (Rust)**     | Quality gates and plan-repair logic run in Rust with structured outputs.                          |
+| **ReAct Tool Runtime (Rust)**            | Tool-call loop, retry, budget, and failure policy consolidated in Rust.                           |
+| **Session Context Compression (Rust)**   | Predictable context compression and restore strategy owned by the Rust runtime and memory engine. |
+| **Memory Self-Evolution Runtime (Rust)** | Outcome feedback and recall adaptation persisted via DB-backed `xiuxian-memory-engine`.           |
+| **Python Runtime Decommissioning**       | Python side is transport/adapter-only; no duplicated runtime loop entrypoints.                    |
 
 ## 5. Migration Rules
 
@@ -137,7 +134,7 @@ Project progress must be tracked by feature name (not phase/stage labels). Recom
   - Keep any legacy external tool facade thin and compatibility-only.
   - Memory policy must remain in Rust core without duplicated facade logic.
 - Prompt/context authority:
-  - Prompt/knowledge injection authority is Rust `Xiuxian-Qianhuan Assembler`.
+  - Prompt/knowledge injection authority is the Rust context assembler.
   - Python side must not inject hidden runtime prompt context.
 - No dual-loop fallback:
   - Do not keep long-term “Rust loop + Python loop” behavior parity mode.

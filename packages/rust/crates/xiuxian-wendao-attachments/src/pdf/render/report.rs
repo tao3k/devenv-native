@@ -1,5 +1,6 @@
 //! Render operation report assembly and persisted summaries.
 
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -28,6 +29,27 @@ pub fn write_page_render_shard_reports(
         "totalRenderedShards": records.iter().map(|record| record.shard_count).sum::<u32>(),
         "renderedInputs": records.iter().filter(|record| record.status == "rendered").count(),
         "fallbackInputs": records.iter().filter(|record| record.status == "fallback").count(),
+        "artifactCacheBackendCounts": artifact_cache_backend_counts(records),
+        "artifactCacheHitCount": records.iter().map(|record| record.artifact_cache_hit_count).sum::<u64>(),
+        "artifactCacheMissCount": records.iter().map(|record| record.artifact_cache_miss_count).sum::<u64>(),
+        "artifactCacheThrottledCount": records.iter().map(|record| record.artifact_cache_throttled_count).sum::<u64>(),
+        "artifactCacheByteCount": records.iter().map(|record| record.artifact_cache_byte_count).sum::<u64>(),
+        "artifactCachePageRasterHitCount": records.iter().map(|record| record.artifact_cache_page_raster_hit_count).sum::<u64>(),
+        "artifactCachePageRasterMissCount": records.iter().map(|record| record.artifact_cache_page_raster_miss_count).sum::<u64>(),
+        "artifactCachePageRasterThrottledCount": records.iter().map(|record| record.artifact_cache_page_raster_throttled_count).sum::<u64>(),
+        "artifactCachePageRasterByteCount": records.iter().map(|record| record.artifact_cache_page_raster_byte_count).sum::<u64>(),
+        "artifactCacheRegionCropHitCount": records.iter().map(|record| record.artifact_cache_region_crop_hit_count).sum::<u64>(),
+        "artifactCacheRegionCropMissCount": records.iter().map(|record| record.artifact_cache_region_crop_miss_count).sum::<u64>(),
+        "artifactCacheRegionCropThrottledCount": records.iter().map(|record| record.artifact_cache_region_crop_throttled_count).sum::<u64>(),
+        "artifactCacheRegionCropByteCount": records.iter().map(|record| record.artifact_cache_region_crop_byte_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionHitCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_hit_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionMissCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_miss_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionThrottledCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_throttled_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionByteCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_byte_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionRowHitCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_row_hit_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionRowMissCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_row_miss_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionRowThrottledCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_row_throttled_count).sum::<u64>(),
+        "artifactCacheRegionManifestProjectionRowByteCount": records.iter().map(|record| record.artifact_cache_region_manifest_projection_row_byte_count).sum::<u64>(),
         "records": records,
     });
     fs::write(
@@ -68,6 +90,7 @@ impl<'a> RenderShardContext<'a> {
     }
 
     pub(super) fn report(&self, parts: ReportParts) -> PdfPageRenderShardReport {
+        let artifact_cache = parts.artifact_cache.as_deref();
         PdfPageRenderShardReport {
             source_path: self.source_path.clone(),
             output_dir: self.output_dir.to_string_lossy().to_string(),
@@ -88,6 +111,45 @@ impl<'a> RenderShardContext<'a> {
             routing_decision: parts.routing_decision.as_str().to_string(),
             elapsed_ms: self.started.elapsed().as_secs_f64() * 1000.0,
             error_message: parts.error_message,
+            artifact_cache_backend: artifact_cache.map(|stats| stats.backend.clone()),
+            artifact_cache_hit_count: artifact_cache.map_or(0, |stats| stats.hit_count),
+            artifact_cache_miss_count: artifact_cache.map_or(0, |stats| stats.miss_count),
+            artifact_cache_throttled_count: artifact_cache.map_or(0, |stats| stats.throttled_count),
+            artifact_cache_byte_count: artifact_cache.map_or(0, |stats| stats.byte_count),
+            artifact_cache_page_raster_hit_count: artifact_cache
+                .map_or(0, |stats| stats.page_raster_hit_count),
+            artifact_cache_page_raster_miss_count: artifact_cache
+                .map_or(0, |stats| stats.page_raster_miss_count),
+            artifact_cache_page_raster_throttled_count: artifact_cache
+                .map_or(0, |stats| stats.page_raster_throttled_count),
+            artifact_cache_page_raster_byte_count: artifact_cache
+                .map_or(0, |stats| stats.page_raster_byte_count),
+            artifact_cache_region_crop_hit_count: artifact_cache
+                .map_or(0, |stats| stats.region_crop_hit_count),
+            artifact_cache_region_crop_miss_count: artifact_cache
+                .map_or(0, |stats| stats.region_crop_miss_count),
+            artifact_cache_region_crop_throttled_count: artifact_cache
+                .map_or(0, |stats| stats.region_crop_throttled_count),
+            artifact_cache_region_crop_byte_count: artifact_cache
+                .map_or(0, |stats| stats.region_crop_byte_count),
+            artifact_cache_region_manifest_projection_hit_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_hit_count),
+            artifact_cache_region_manifest_projection_miss_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_miss_count),
+            artifact_cache_region_manifest_projection_throttled_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_throttled_count),
+            artifact_cache_region_manifest_projection_byte_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_byte_count),
+            artifact_cache_region_manifest_projection_row_hit_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_row_hit_count),
+            artifact_cache_region_manifest_projection_row_miss_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_row_miss_count),
+            artifact_cache_region_manifest_projection_row_throttled_count: artifact_cache
+                .map_or(0, |stats| {
+                    stats.region_manifest_projection_row_throttled_count
+                }),
+            artifact_cache_region_manifest_projection_row_byte_count: artifact_cache
+                .map_or(0, |stats| stats.region_manifest_projection_row_byte_count),
         }
     }
 
@@ -105,6 +167,31 @@ pub(super) struct ReportParts {
     status: PdfRenderStatus,
     routing_decision: PdfRenderRoutingDecision,
     error_message: Option<String>,
+    artifact_cache: Option<Box<ArtifactCacheReportStats>>,
+}
+
+struct ArtifactCacheReportStats {
+    backend: String,
+    hit_count: u64,
+    miss_count: u64,
+    throttled_count: u64,
+    byte_count: u64,
+    page_raster_hit_count: u64,
+    page_raster_miss_count: u64,
+    page_raster_throttled_count: u64,
+    page_raster_byte_count: u64,
+    region_crop_hit_count: u64,
+    region_crop_miss_count: u64,
+    region_crop_throttled_count: u64,
+    region_crop_byte_count: u64,
+    region_manifest_projection_hit_count: u64,
+    region_manifest_projection_miss_count: u64,
+    region_manifest_projection_throttled_count: u64,
+    region_manifest_projection_byte_count: u64,
+    region_manifest_projection_row_hit_count: u64,
+    region_manifest_projection_row_miss_count: u64,
+    region_manifest_projection_row_throttled_count: u64,
+    region_manifest_projection_row_byte_count: u64,
 }
 
 impl ReportParts {
@@ -123,6 +210,7 @@ impl ReportParts {
             status: PdfRenderStatus::Unsupported,
             routing_decision: PdfRenderRoutingDecision::UnsupportedNonPdf,
             error_message: Some(error_message.to_string()),
+            artifact_cache: None,
         }
     }
 
@@ -136,6 +224,7 @@ impl ReportParts {
             status: PdfRenderStatus::Fallback,
             routing_decision: PdfRenderRoutingDecision::FullDoclingFallback,
             error_message: Some(error_message),
+            artifact_cache: None,
         }
     }
 
@@ -149,6 +238,7 @@ impl ReportParts {
             status: PdfRenderStatus::Fallback,
             routing_decision: PdfRenderRoutingDecision::PreflightFailed,
             error_message: Some(error_message),
+            artifact_cache: None,
         }
     }
 
@@ -166,6 +256,7 @@ impl ReportParts {
             status: PdfRenderStatus::Skipped,
             routing_decision,
             error_message: Some(error_message),
+            artifact_cache: None,
         }
     }
 
@@ -185,26 +276,117 @@ impl ReportParts {
             status: PdfRenderStatus::Rendered,
             routing_decision: PdfRenderRoutingDecision::HybridPageOcrCandidate,
             error_message: None,
+            artifact_cache: None,
         }
     }
+
+    #[cfg(feature = "pdf-render")]
+    pub(super) fn with_artifact_cache_stats(
+        mut self,
+        stats: Option<super::artifact_cache::PdfRenderArtifactCacheStats>,
+    ) -> Self {
+        self.artifact_cache = stats.and_then(|stats| {
+            let backend = stats.backend_name?;
+            Some(Box::new(ArtifactCacheReportStats {
+                backend,
+                hit_count: stats.hit_count,
+                miss_count: stats.miss_count,
+                throttled_count: stats.throttled_count,
+                byte_count: stats.byte_count,
+                page_raster_hit_count: stats.page_raster_hit_count,
+                page_raster_miss_count: stats.page_raster_miss_count,
+                page_raster_throttled_count: stats.page_raster_throttled_count,
+                page_raster_byte_count: stats.page_raster_byte_count,
+                region_crop_hit_count: stats.region_crop_hit_count,
+                region_crop_miss_count: stats.region_crop_miss_count,
+                region_crop_throttled_count: stats.region_crop_throttled_count,
+                region_crop_byte_count: stats.region_crop_byte_count,
+                region_manifest_projection_hit_count: stats.region_manifest_projection_hit_count,
+                region_manifest_projection_miss_count: stats.region_manifest_projection_miss_count,
+                region_manifest_projection_throttled_count: stats
+                    .region_manifest_projection_throttled_count,
+                region_manifest_projection_byte_count: stats.region_manifest_projection_byte_count,
+                region_manifest_projection_row_hit_count: stats
+                    .region_manifest_projection_row_hit_count,
+                region_manifest_projection_row_miss_count: stats
+                    .region_manifest_projection_row_miss_count,
+                region_manifest_projection_row_throttled_count: stats
+                    .region_manifest_projection_row_throttled_count,
+                region_manifest_projection_row_byte_count: stats
+                    .region_manifest_projection_row_byte_count,
+            }))
+        });
+        self
+    }
+
+    #[cfg(feature = "pdf-render")]
+    pub(super) fn with_artifact_cache_stats_from(
+        self,
+        stats: Option<super::artifact_cache::PdfRenderArtifactCacheStats>,
+    ) -> Self {
+        let Some(stats) = stats else {
+            return self;
+        };
+        self.with_artifact_cache_stats(Some(stats))
+    }
 }
+
+fn artifact_cache_backend_counts(records: &[PdfPageRenderShardReport]) -> BTreeMap<String, u64> {
+    let mut counts = BTreeMap::new();
+    for backend in records
+        .iter()
+        .filter_map(|record| record.artifact_cache_backend.as_deref())
+    {
+        *counts.entry(backend.to_string()).or_insert(0) += 1;
+    }
+    counts
+}
+
 fn render_markdown_report(records: &[PdfPageRenderShardReport]) -> String {
     let mut markdown = String::new();
     markdown.push_str("# PDF Page Render Shard Manifest Report\n\n");
-    markdown.push_str("| Source | Status | Decision | Pages | Shards | Elapsed ms | Error |\n");
-    markdown.push_str("| ------ | ------ | -------- | ----: | -----: | ---------: | ----- |\n");
+    markdown.push_str(
+        "| Source | Status | Decision | Pages | Shards | Artifact cache | Elapsed ms | Error |\n",
+    );
+    markdown.push_str(
+        "| ------ | ------ | -------- | ----: | -----: | -------------- | ---------: | ----- |\n",
+    );
     for record in records {
         let _ = writeln!(
             markdown,
-            "| `{}` | `{}` | `{}` | {} | {} | {:.3} | {} |",
+            "| `{}` | `{}` | `{}` | {} | {} | {} | {:.3} | {} |",
             record.source_path,
             record.status,
             record.routing_decision,
             record.page_count,
             record.shard_count,
+            artifact_cache_markdown_cell(record),
             record.elapsed_ms,
             record.error_message.as_deref().unwrap_or("")
         );
     }
     markdown
+}
+
+fn artifact_cache_markdown_cell(record: &PdfPageRenderShardReport) -> String {
+    record
+        .artifact_cache_backend
+        .as_ref()
+        .map_or_else(String::new, |backend| {
+            format!(
+                "`{backend}` H:{} M:{} T:{} B:{} | page:{}:{} crop:{}:{} proj:{}:{} row:{}:{}",
+                record.artifact_cache_hit_count,
+                record.artifact_cache_miss_count,
+                record.artifact_cache_throttled_count,
+                record.artifact_cache_byte_count,
+                record.artifact_cache_page_raster_hit_count,
+                record.artifact_cache_page_raster_miss_count,
+                record.artifact_cache_region_crop_hit_count,
+                record.artifact_cache_region_crop_miss_count,
+                record.artifact_cache_region_manifest_projection_hit_count,
+                record.artifact_cache_region_manifest_projection_miss_count,
+                record.artifact_cache_region_manifest_projection_row_hit_count,
+                record.artifact_cache_region_manifest_projection_row_miss_count
+            )
+        })
 }

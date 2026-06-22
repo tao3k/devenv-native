@@ -2,9 +2,11 @@ use super::{
     BTreeMap, DocumentExtractFlightRequest, HYBRID_PAGE_OCR_FALLBACK_REPORT_NAME,
     HYBRID_PAGE_OCR_TIMING_REPORT_NAME, HybridDocumentResourceBatch,
     Ocr2RegionMaterializationStats, PageRangeDoclingFallbackChunkTiming, Path,
-    PdfOcrShardSchedulerTrace, failed_page_recovery_mode_label, is_hosted_vlm_direct_profile, json,
+    PdfOcrShardSchedulerTrace, failed_page_recovery_mode_label, is_hosted_vlm_direct_profile,
     ocr2_region_pipeline_mode_label, ocr2_region_render_chunk_mode_label,
 };
+use serde::Serialize;
+use serde_json::{Map, Value, json};
 
 pub(super) async fn write_hybrid_page_ocr_fallback_report(
     request: &DocumentExtractFlightRequest,
@@ -13,7 +15,7 @@ pub(super) async fn write_hybrid_page_ocr_fallback_report(
 ) {
     let report = json!({
         "schema": "xiuxian_wendao.hybrid_page_ocr_fallback.v1",
-        "sourcePath": request.source_path,
+        "sourcePath": request.source_path.as_str(),
         "outputDir": output.to_string_lossy(),
         "reason": reason,
         "fullDoclingFallbackCount": 1,
@@ -187,53 +189,114 @@ pub(super) async fn write_hybrid_page_ocr_timing_report(
     scheduler_trace: &[PdfOcrShardSchedulerTrace],
     total_elapsed_ms: f64,
 ) {
-    let report = json!({
-        "schema": "xiuxian_wendao.hybrid_page_ocr_timing.v1",
-        "sourcePath": source.to_string_lossy(),
-        "outputDir": output.to_string_lossy(),
-        "pageCount": resource_batch.page_count,
-        "ocrShardCount": resource_batch.ocr_inputs.len(),
-        "ocr2RegionShardCount": resource_batch
+    let mut report = Map::new();
+    insert_report_value(
+        &mut report,
+        "schema",
+        "xiuxian_wendao.hybrid_page_ocr_timing.v1",
+    );
+    insert_report_value(
+        &mut report,
+        "sourcePath",
+        source.to_string_lossy().to_string(),
+    );
+    insert_report_value(
+        &mut report,
+        "outputDir",
+        output.to_string_lossy().to_string(),
+    );
+    insert_report_value(&mut report, "pageCount", resource_batch.page_count);
+    insert_report_value(
+        &mut report,
+        "ocrShardCount",
+        resource_batch.ocr_inputs.len(),
+    );
+    insert_report_value(
+        &mut report,
+        "ocr2RegionShardCount",
+        resource_batch
             .ocr_inputs
             .iter()
-            .filter(|input| input.shard_type == "region"
-                && is_hosted_vlm_direct_profile(input.ocr_profile.as_str()))
+            .filter(|input| {
+                input.shard_type == "region"
+                    && is_hosted_vlm_direct_profile(input.ocr_profile.as_str())
+            })
             .count(),
-        "ocr2RegionRequestCount": region_materialization_stats.requested_region_count,
-        "ocr2RegionRenderedShardCount": region_materialization_stats.rendered_region_count,
-        "ocr2RegionRenderCacheHitCount": region_materialization_stats.render_cache_hit_count,
-        "ocr2RegionRenderCacheMissCount": region_materialization_stats.render_cache_miss_count,
-        "ocr2RegionRenderReportedElapsedMs": region_materialization_stats.render_reported_elapsed_ms,
-        "ocr2RegionPipelineRenderChunkCount": region_materialization_stats.pipeline_render_chunk_count,
-        "ocr2RegionPipelineRegionDispatchCount": region_materialization_stats.pipeline_region_dispatch_count,
-        "ocr2RegionPipelineBaseResultCount": region_materialization_stats.pipeline_base_result_count,
-        "ocr2RegionPipelineBaseResultShardCount": region_materialization_stats.pipeline_base_result_shard_count,
-        "ocr2RegionPipelineRegionResultCount": region_materialization_stats.pipeline_region_result_count,
-        "ocr2RegionPipelineRegionResultShardCount": region_materialization_stats.pipeline_region_result_shard_count,
-        "ocr2RegionPipelineMode": ocr2_region_pipeline_mode_label(),
-        "ocr2RegionRenderChunkMode": ocr2_region_render_chunk_mode_label(),
-        "failedPageRecoveryMode": failed_page_recovery_mode_label(),
-        "structureAuthorityPages": docling_centered_structure_authority_page_count(resource_batch),
-        "textShortcutPages": docling_centered_text_shortcut_page_count(resource_batch),
-        "ocrPatchRegions": docling_centered_ocr_patch_region_count(resource_batch),
-        "pageRangeDoclingFallbackPages": resource_batch.page_range_docling_fallback_pages.len(),
-        "pageRangeDoclingFallbackChunkCount": resource_batch.page_range_docling_fallback_chunks.len(),
-        "pageRangeDoclingFallbackPlan": resource_batch.page_range_docling_fallback_plan,
-        "pageRangeDoclingFallbackChunks": resource_batch.page_range_docling_fallback_chunks,
-        "pageRangeDoclingFallbackChunkSummary": page_range_docling_fallback_chunk_summary(
+    );
+    insert_region_materialization_stats(&mut report, region_materialization_stats);
+    insert_report_value(
+        &mut report,
+        "ocr2RegionPipelineMode",
+        ocr2_region_pipeline_mode_label(),
+    );
+    insert_report_value(
+        &mut report,
+        "ocr2RegionRenderChunkMode",
+        ocr2_region_render_chunk_mode_label(),
+    );
+    insert_report_value(
+        &mut report,
+        "failedPageRecoveryMode",
+        failed_page_recovery_mode_label(),
+    );
+    insert_report_value(
+        &mut report,
+        "structureAuthorityPages",
+        docling_centered_structure_authority_page_count(resource_batch),
+    );
+    insert_report_value(
+        &mut report,
+        "textShortcutPages",
+        docling_centered_text_shortcut_page_count(resource_batch),
+    );
+    insert_report_value(
+        &mut report,
+        "ocrPatchRegions",
+        docling_centered_ocr_patch_region_count(resource_batch),
+    );
+    insert_report_value(
+        &mut report,
+        "pageRangeDoclingFallbackPages",
+        resource_batch.page_range_docling_fallback_pages.len(),
+    );
+    insert_report_value(
+        &mut report,
+        "pageRangeDoclingFallbackChunkCount",
+        resource_batch.page_range_docling_fallback_chunks.len(),
+    );
+    insert_report_value(
+        &mut report,
+        "pageRangeDoclingFallbackPlan",
+        &resource_batch.page_range_docling_fallback_plan,
+    );
+    insert_report_value(
+        &mut report,
+        "pageRangeDoclingFallbackChunks",
+        &resource_batch.page_range_docling_fallback_chunks,
+    );
+    report.insert(
+        "pageRangeDoclingFallbackChunkSummary".to_string(),
+        page_range_docling_fallback_chunk_summary(
             resource_batch.page_range_docling_fallback_chunks.as_slice(),
         ),
-        "fullDoclingFallbackCount": 0,
-        "failedPageRecoveryHostedVlmPageShardCount": resource_batch
+    );
+    insert_report_value(&mut report, "fullDoclingFallbackCount", 0);
+    insert_report_value(
+        &mut report,
+        "failedPageRecoveryHostedVlmPageShardCount",
+        resource_batch
             .ocr_inputs
             .iter()
-            .filter(|input| input.shard_type == "page"
-                && is_hosted_vlm_direct_profile(input.ocr_profile.as_str()))
+            .filter(|input| {
+                input.shard_type == "page"
+                    && is_hosted_vlm_direct_profile(input.ocr_profile.as_str())
+            })
             .count(),
-        "ocrSchedulerTrace": scheduler_trace,
-        "totalElapsedMs": total_elapsed_ms,
-        "phaseElapsedMs": phase_elapsed_ms,
-    });
+    );
+    insert_report_value(&mut report, "ocrSchedulerTrace", scheduler_trace);
+    insert_report_value(&mut report, "totalElapsedMs", total_elapsed_ms);
+    insert_report_value(&mut report, "phaseElapsedMs", phase_elapsed_ms);
+    let report = Value::Object(report);
     let path = output.join(HYBRID_PAGE_OCR_TIMING_REPORT_NAME);
     match serde_json::to_vec_pretty(&report) {
         Ok(bytes) => {
@@ -246,6 +309,209 @@ pub(super) async fn write_hybrid_page_ocr_timing_report(
         }
         Err(error) => {
             log::warn!("failed to serialize hybrid PDF OCR timing report: {error}");
+        }
+    }
+}
+
+fn insert_region_materialization_stats(
+    report: &mut Map<String, Value>,
+    stats: &Ocr2RegionMaterializationStats,
+) {
+    insert_report_value(
+        report,
+        "ocr2RegionRequestCount",
+        stats.requested_region_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderedShardCount",
+        stats.rendered_region_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderCacheHitCount",
+        stats.render_cache_hit_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderCacheMissCount",
+        stats.render_cache_miss_count,
+    );
+    insert_artifact_cache_stats(report, stats);
+    insert_report_value(
+        report,
+        "ocr2RegionRenderReportedElapsedMs",
+        stats.render_reported_elapsed_ms,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelinePlannedRenderChunkCount",
+        stats.pipeline_planned_render_chunk_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineEndpointCount",
+        stats.pipeline_endpoint_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineRenderAheadLimit",
+        stats.pipeline_render_ahead_limit,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineRenderSpawnCount",
+        stats.pipeline_render_spawn_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineRenderChunkCount",
+        stats.pipeline_render_chunk_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineRegionDispatchCount",
+        stats.pipeline_region_dispatch_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineBaseResultCount",
+        stats.pipeline_base_result_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineBaseResultShardCount",
+        stats.pipeline_base_result_shard_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineRegionResultCount",
+        stats.pipeline_region_result_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionPipelineRegionResultShardCount",
+        stats.pipeline_region_result_shard_count,
+    );
+}
+
+fn insert_artifact_cache_stats(
+    report: &mut Map<String, Value>,
+    stats: &Ocr2RegionMaterializationStats,
+) {
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheHitCount",
+        stats.render_artifact_cache_hit_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheMissCount",
+        stats.render_artifact_cache_miss_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheThrottledCount",
+        stats.render_artifact_cache_throttled_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheByteCount",
+        stats.render_artifact_cache_byte_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCachePageRasterHitCount",
+        stats.render_artifact_cache_page_raster_hit_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCachePageRasterMissCount",
+        stats.render_artifact_cache_page_raster_miss_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCachePageRasterThrottledCount",
+        stats.render_artifact_cache_page_raster_throttled_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCachePageRasterByteCount",
+        stats.render_artifact_cache_page_raster_byte_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionCropHitCount",
+        stats.render_artifact_cache_region_crop_hit_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionCropMissCount",
+        stats.render_artifact_cache_region_crop_miss_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionCropThrottledCount",
+        stats.render_artifact_cache_region_crop_throttled_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionCropByteCount",
+        stats.render_artifact_cache_region_crop_byte_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionHitCount",
+        stats.render_artifact_cache_region_manifest_projection_hit_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionMissCount",
+        stats.render_artifact_cache_region_manifest_projection_miss_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionThrottledCount",
+        stats.render_artifact_cache_region_manifest_projection_throttled_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionByteCount",
+        stats.render_artifact_cache_region_manifest_projection_byte_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowHitCount",
+        stats.render_artifact_cache_region_manifest_projection_row_hit_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowMissCount",
+        stats.render_artifact_cache_region_manifest_projection_row_miss_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowThrottledCount",
+        stats.render_artifact_cache_region_manifest_projection_row_throttled_count,
+    );
+    insert_report_value(
+        report,
+        "ocr2RegionRenderArtifactCacheRegionManifestProjectionRowByteCount",
+        stats.render_artifact_cache_region_manifest_projection_row_byte_count,
+    );
+}
+
+fn insert_report_value<T>(report: &mut Map<String, Value>, key: &'static str, value: T)
+where
+    T: Serialize,
+{
+    match serde_json::to_value(value) {
+        Ok(value) => {
+            report.insert(key.to_string(), value);
+        }
+        Err(error) => {
+            log::warn!("failed to serialize hybrid PDF OCR timing report field `{key}`: {error}");
+            report.insert(key.to_string(), Value::Null);
         }
     }
 }

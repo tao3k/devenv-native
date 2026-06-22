@@ -16,6 +16,7 @@ mod command;
 mod formal_audit;
 #[path = "../executors_http_call.rs"]
 mod http_call;
+#[cfg(feature = "wendao-integration")]
 #[path = "../executors_knowledge.rs"]
 mod knowledge;
 #[path = "../executors_mock.rs"]
@@ -26,32 +27,29 @@ mod router;
 mod security_scan;
 #[path = "../executors_suspend.rs"]
 mod suspend;
+#[cfg(feature = "wendao-integration")]
 #[path = "../executors_wendao_ingester.rs"]
 mod wendao_ingester;
+#[cfg(feature = "wendao-integration")]
 #[path = "../executors_wendao_refresh.rs"]
 mod wendao_refresh;
+#[cfg(feature = "wendao-integration")]
 #[path = "../executors_wendao_sql.rs"]
 mod wendao_sql;
 #[path = "../executors_write_file.rs"]
 mod write_file;
 
-#[cfg(feature = "llm")]
-#[path = "../executors_llm.rs"]
-mod llm;
-
 pub use self::api::{
-    CliCallMechanism, ContextAnnotator, FormalAuditMechanism, HttpCallMechanism, KnowledgeSeeker,
-    MockMechanism, ProbabilisticRouter, QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan,
+    CliCallMechanism, ContextAnnotator, FormalAuditMechanism, HttpCallMechanism, MockMechanism,
+    ProbabilisticRouter, QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan,
     QianjiAdvisoryRolePlan, SecurityScanMechanism, ShellMechanism, SuspendMechanism,
-    SynapseCalibrator, WendaoIngesterMechanism, WendaoRefreshMechanism, WendaoSqlDiscoverMechanism,
-    WendaoSqlExecuteMechanism, WendaoSqlValidateMechanism, WriteFileMechanism,
+    SynapseCalibrator, WriteFileMechanism,
 };
-#[cfg(feature = "llm")]
+#[cfg(feature = "wendao-integration")]
 pub use self::api::{
-    LlmAnalyzer, LlmAugmentedAuditMechanism, OutputFlags, PipelineFlags,
-    QianjiLlmAdvisoryAuditExecutor, StreamingLlmAnalyzer, StreamingLlmAnalyzerBuilder,
-    StreamingPipelineSettings,
+    KnowledgeSeeker, WendaoIngesterMechanism, WendaoRefreshMechanism, WendaoSqlDiscoverMechanism,
+    WendaoSqlExecuteMechanism, WendaoSqlValidateMechanism,
 };
-
 #[cfg(test)]
+#[cfg(feature = "wendao-integration")]
 pub(crate) use self::api::{parse_sql_author_spec_xml, parse_surface_bundle_xml};

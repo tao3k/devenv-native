@@ -92,11 +92,6 @@ fn sample_region_manifest() -> Result<PdfPageShardManifest, String> {
     })
 }
 
-use super::{
-    RenderPageSelection, resolve_page_selection, save_region_crop_image, shard_element_id,
-    write_shard_artifact_batches,
-};
-
 mod arrows;
 mod artifacts;
 mod geometry;

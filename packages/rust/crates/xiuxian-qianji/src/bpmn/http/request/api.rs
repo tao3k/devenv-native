@@ -5,13 +5,15 @@ use crate::bpmn::control::{
     QianjiBpmnWorkflowEventPollRequest, QianjiBpmnWorkflowResumeRequest,
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusRequest,
     QianjiBpmnWorkflowTaskClaimPayload, QianjiBpmnWorkflowTaskClaimRequest,
-    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
-    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleasePayload,
-    QianjiBpmnWorkflowTaskReleaseRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
 };
 use crate::bpmn::http_transport::error_api::QianjiBpmnWorkflowHttpError;
+use crate::bpmn::http_transport::source_authoring::QianjiControlWorkflowSourceAuthoringMediaType;
 use crate::bpmn::identity::{
-    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnWorkflowInstanceId,
+    QianjiBpmnActivityId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
+    QianjiBpmnWorkflowInstanceId,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -27,7 +29,9 @@ pub enum QianjiBpmnWorkflowHttpCheckpointBackend {
 }
 
 impl QianjiBpmnWorkflowHttpCheckpointBackend {
-    fn into_control_backend(self) -> QianjiBpmnWorkflowCheckpointBackend {
+    pub(in crate::bpmn::http_transport) fn into_control_backend(
+        self,
+    ) -> QianjiBpmnWorkflowCheckpointBackend {
         match self {
             Self::RuntimeValkey => QianjiBpmnWorkflowCheckpointBackend::RuntimeValkey,
         }
@@ -49,10 +53,59 @@ pub struct QianjiBpmnWorkflowStartHttpRequest {
     /// Optional initial variables for a fresh run.
     #[serde(default)]
     pub initial_variables: Option<Value>,
+    /// Optional BPMN node id for a fresh synthetic start-at run.
+    #[serde(default)]
+    pub start_at_node_id: Option<QianjiBpmnStartAtNodeId>,
     /// Optional checkpoint backend to use for this bounded run. HTTP service
     /// mode defaults to runtime-configured Valkey when omitted.
     #[serde(default)]
     pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+}
+
+/// JSON body for admitting one server-owned BPMN source candidate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlBpmnSourceAdmissionHttpRequest {
+    /// Stable source identifier supplied by the authoring caller.
+    pub source_id: String,
+    /// Expected BPMN process identifier.
+    pub process_id: QianjiBpmnProcessId,
+    /// Candidate BPMN XML. The server lints and parses this before writing it.
+    pub bpmn_xml: String,
+}
+
+/// JSON body for admitting one server-owned workflow authoring source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlWorkflowSourceAdmissionHttpRequest {
+    /// Stable source identifier supplied by the authoring caller.
+    pub source_id: String,
+    /// Expected BPMN process identifier after source compilation.
+    pub process_id: QianjiBpmnProcessId,
+    /// Authoring source media type, for example `text/markdown`.
+    pub source_media_type: QianjiControlWorkflowSourceAuthoringMediaType,
+    /// Authoring source body. This is not executable until qianji-server
+    /// admits a linted BPMN source derived from it.
+    pub source_text: String,
+    /// Human-readable workflow name used in the admitted BPMN process.
+    pub workflow_name: String,
+    /// Optional workflow goal or description used in task documentation.
+    #[serde(default)]
+    pub workflow_description: String,
+    /// Compiler mode requested for authoring-source admission.
+    #[serde(default)]
+    pub compiler_mode: QianjiControlWorkflowSourceCompilerMode,
+}
+
+/// Server-owned compiler mode for workflow authoring source admission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum QianjiControlWorkflowSourceCompilerMode {
+    /// Deterministic Markdown compiler that requires explicit `## Step N`
+    /// sections and never calls a model.
+    #[default]
+    DeterministicMarkdownStep,
+    /// Future model-assisted server repair compiler. The route exposes this
+    /// mode as a stable contract before provider execution is enabled.
+    ServerRepair,
 }
 
 impl QianjiBpmnWorkflowStartHttpRequest {
@@ -65,7 +118,7 @@ impl QianjiBpmnWorkflowStartHttpRequest {
             process_id: self.process_id,
             instance_id: self.instance_id,
             initial_variables: self.initial_variables,
-            start_at_node_id: None,
+            start_at_node_id: self.start_at_node_id,
             checkpoint_backend: Some(self.checkpoint_backend.into_control_backend()),
         }
     }
@@ -121,10 +174,40 @@ impl QianjiBpmnWorkflowActionHttpRequest {
     }
 }
 
+/// JSON body for explicitly applying a control-ledger recovery plan.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlRecoveryApplyHttpRequest {
+    /// Event timestamp supplied by the caller.
+    pub occurred_at_ms: u64,
+    /// Recovery attempt number.
+    pub attempt: u32,
+    /// Human-readable reason for this recovery attempt.
+    pub reason: String,
+    /// Maximum attempts permitted by the recovery policy.
+    pub max_attempts: u32,
+    /// Backoff attached to retryable activity recovery.
+    #[serde(default)]
+    pub backoff_ms: u64,
+    /// Whether the recovery policy requires human approval.
+    #[serde(default)]
+    pub require_human_approval: bool,
+    /// Queue priority for applied retry work.
+    #[serde(default)]
+    pub priority: i64,
+}
+
 /// JSON host-work result kind accepted by explicit task completion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QianjiBpmnWorkflowTaskCompletionHttpKind {
+    /// Complete a BPMN `task`.
+    Task,
+    /// Complete a BPMN `sendTask`.
+    Send,
+    /// Complete a BPMN `serviceTask`.
+    Service,
+    /// Complete a BPMN `scriptTask`.
+    Script,
     /// Complete a BPMN `userTask`.
     User,
     /// Complete a BPMN `manualTask`.
@@ -142,7 +225,8 @@ pub struct QianjiBpmnWorkflowTaskCompletionHttpPayload {
     pub activity_id: QianjiBpmnActivityId,
     /// Pending host-work result kind.
     pub kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
-    /// User- or operator-supplied payload merged into workflow variables.
+    /// Worker-, user-, or operator-supplied payload merged into workflow
+    /// variables.
     pub data: Value,
     /// Optional claimant supplied by the host when completing claimed human
     /// work.
@@ -180,18 +264,138 @@ impl QianjiBpmnWorkflowTaskCompleteHttpRequest {
                 token_id: self.completion.token_id,
                 process_id: self.completion.process_id,
                 activity_id: self.completion.activity_id,
-                kind: match self.completion.kind {
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::User => {
-                        QianjiBpmnWorkflowTaskCompletionKind::User
-                    }
-                    QianjiBpmnWorkflowTaskCompletionHttpKind::Manual => {
-                        QianjiBpmnWorkflowTaskCompletionKind::Manual
-                    }
-                },
+                kind: http_completion_kind_into_control(self.completion.kind),
                 data: self.completion.data,
                 claimant: self.completion.claimant,
             },
             continue_until_human_boundary: false,
+        }
+    }
+}
+
+/// JSON body for checkpoint-backed BPMN task-completion batches.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskCompleteBatchHttpRequest {
+    /// Filesystem path to the BPMN source.
+    pub bpmn_path: PathBuf,
+    /// Optional DMN sources loaded alongside the BPMN package.
+    #[serde(default)]
+    pub dmn_paths: Vec<PathBuf>,
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit completion payloads for pending host tasks.
+    pub completions: Vec<QianjiBpmnWorkflowTaskCompletionHttpPayload>,
+}
+
+impl QianjiBpmnWorkflowTaskCompleteBatchHttpRequest {
+    pub(in crate::bpmn::http_transport) fn into_task_complete_batch_request(
+        self,
+        instance_id: String,
+    ) -> Result<QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowHttpError> {
+        if self.completions.is_empty() {
+            return Err(QianjiBpmnWorkflowHttpError::bad_request(
+                "empty_task_completion_batch",
+                "completions must contain at least one task completion",
+            ));
+        }
+
+        Ok(QianjiBpmnWorkflowTaskCompleteBatchRequest {
+            bpmn_path: self.bpmn_path,
+            dmn_paths: self.dmn_paths,
+            instance_id: QianjiBpmnWorkflowInstanceId::from(instance_id),
+            checkpoint_backend: self.checkpoint_backend.into_control_backend(),
+            completions: self
+                .completions
+                .into_iter()
+                .map(|completion| QianjiBpmnWorkflowTaskCompletionPayload {
+                    token_id: completion.token_id,
+                    process_id: completion.process_id,
+                    activity_id: completion.activity_id,
+                    kind: http_completion_kind_into_control(completion.kind),
+                    data: completion.data,
+                    claimant: completion.claimant,
+                })
+                .collect(),
+        })
+    }
+}
+
+/// JSON payload for recording one failed pending host-work attempt.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskFailureHttpPayload {
+    /// Runtime token identifier for the pending host work.
+    pub token_id: u64,
+    /// BPMN process identifier expected for the pending host work.
+    pub process_id: QianjiBpmnProcessId,
+    /// BPMN activity identifier expected for the pending host work.
+    pub activity_id: QianjiBpmnActivityId,
+    /// Pending host-work kind.
+    pub kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
+    /// Stable failure code for the durable `ActivityTask` event.
+    pub error_code: String,
+    /// Human-readable failure message.
+    pub message: String,
+    /// Whether the failure may be retried by a later recovery slice.
+    #[serde(default)]
+    pub retryable: bool,
+    /// Optional caller-supplied audit metadata.
+    #[serde(default)]
+    pub metadata: Value,
+}
+
+/// JSON body for checkpoint-backed BPMN task failure evidence.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct QianjiBpmnWorkflowTaskFailHttpRequest {
+    /// Filesystem path to the BPMN source.
+    pub bpmn_path: PathBuf,
+    /// Optional DMN sources loaded alongside the BPMN package.
+    #[serde(default)]
+    pub dmn_paths: Vec<PathBuf>,
+    /// Checkpoint backend that already owns persisted workflow state. HTTP
+    /// service mode defaults to runtime-configured Valkey when omitted.
+    #[serde(default)]
+    pub checkpoint_backend: QianjiBpmnWorkflowHttpCheckpointBackend,
+    /// Explicit failure payload for the pending host task.
+    pub failure: QianjiBpmnWorkflowTaskFailureHttpPayload,
+}
+
+impl QianjiBpmnWorkflowTaskFailHttpRequest {
+    pub(in crate::bpmn::http_transport) fn workflow_resume_request(
+        &self,
+        instance_id: QianjiBpmnWorkflowInstanceId,
+    ) -> QianjiBpmnWorkflowResumeRequest {
+        QianjiBpmnWorkflowResumeRequest {
+            bpmn_path: self.bpmn_path.clone(),
+            dmn_paths: self.dmn_paths.clone(),
+            instance_id,
+            checkpoint_backend: self.checkpoint_backend.clone().into_control_backend(),
+        }
+    }
+}
+
+fn http_completion_kind_into_control(
+    kind: QianjiBpmnWorkflowTaskCompletionHttpKind,
+) -> QianjiBpmnWorkflowTaskCompletionKind {
+    match kind {
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Task => {
+            QianjiBpmnWorkflowTaskCompletionKind::Task
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Send => {
+            QianjiBpmnWorkflowTaskCompletionKind::Send
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Service => {
+            QianjiBpmnWorkflowTaskCompletionKind::Service
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Script => {
+            QianjiBpmnWorkflowTaskCompletionKind::Script
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::User => {
+            QianjiBpmnWorkflowTaskCompletionKind::User
+        }
+        QianjiBpmnWorkflowTaskCompletionHttpKind::Manual => {
+            QianjiBpmnWorkflowTaskCompletionKind::Manual
         }
     }
 }
@@ -288,6 +492,14 @@ pub struct QianjiBpmnWorkflowStatusHttpQuery {
     /// `runtime_valkey` and defaults to it when omitted.
     #[serde(default)]
     pub checkpoint_backend: Option<String>,
+}
+
+/// Query parameters for the durable control run-stream projection.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct QianjiControlRunStreamHttpQuery {
+    /// Return only rows with a sequence greater than this cursor.
+    #[serde(default)]
+    pub after_sequence: Option<u64>,
 }
 
 impl QianjiBpmnWorkflowStatusHttpQuery {

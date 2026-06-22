@@ -9,12 +9,9 @@ use std::collections::BTreeMap;
 use crate::search::real_repo_precision::frontier::score::saturating_usize_to_u32;
 #[cfg(feature = "julia")]
 use xiuxian_polyglot_orchestrator::{
-    BenchmarkState, JuliaRuntimeStats, JuliaScheduleAction, JuliaSchedulePlan, JuliaScheduleReason,
-    LaneCapability, WarmupState,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::polyglot::{
-    JuliaProfileSchedulingFacts, WendaoGraphAlgorithmWorkload, wendaograph_frontier_algorithm_ref,
+    BenchmarkState, JuliaProfileSchedulingFacts, JuliaRuntimeStats, JuliaScheduleAction,
+    JuliaSchedulePlan, JuliaScheduleReason, LaneCapability, WarmupState,
+    WendaoGraphAlgorithmWorkload, wendaograph_frontier_algorithm_ref,
     wendaograph_frontier_schedule_plan,
 };
 
@@ -176,6 +173,7 @@ fn lane_capability_id(capability: LaneCapability) -> &'static str {
     match capability {
         LaneCapability::DocumentExtraction => "document_extraction",
         LaneCapability::OcrShardExtraction => "ocr_shard_extraction",
+        LaneCapability::AudioShardTranscription => "audio_shard_transcription",
         LaneCapability::GraphEvidenceCompute => "graph_evidence_compute",
         LaneCapability::GraphSearchCompute => "graph_search_compute",
         LaneCapability::ScientificCompute => "scientific_compute",

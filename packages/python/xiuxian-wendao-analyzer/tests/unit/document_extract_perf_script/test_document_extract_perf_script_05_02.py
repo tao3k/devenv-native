@@ -53,6 +53,12 @@ def test_artifact_summary_carries_audio_timeline_metrics() -> None:
                 "audioTranscriptChars": 128,
                 "audioTranscriptTimelineMarkerCount": 3,
                 "audioTranscriptTimelineMarkedRows": 1,
+                "audioTranscriptAdmissionReportBytes": 128,
+                "audioTranscriptAdmissionEnabled": True,
+                "audioTranscriptAdmissionHitCount": 2,
+                "audioTranscriptAdmissionMissCount": 1,
+                "audioTranscriptAdmissionStoredCount": 1,
+                "audioTranscriptAdmissionStaleCount": 0,
             }
         ]
     )
@@ -60,6 +66,12 @@ def test_artifact_summary_carries_audio_timeline_metrics() -> None:
     assert summary["audioTranscriptChars"] == 128
     assert summary["audioTranscriptTimelineMarkerCount"] == 3
     assert summary["audioTranscriptTimelineMarkedRows"] == 1
+    assert summary["audioTranscriptAdmissionReportExists"] is True
+    assert summary["audioTranscriptAdmissionEnabled"] is True
+    assert summary["audioTranscriptAdmissionHitCount"] == 2
+    assert summary["audioTranscriptAdmissionMissCount"] == 1
+    assert summary["audioTranscriptAdmissionStoredCount"] == 1
+    assert summary["audioTranscriptAdmissionStaleCount"] == 0
 
 
 def test_audio_transcript_org_export_reads_resource_arrow(tmp_path: Path) -> None:
@@ -129,8 +141,7 @@ def test_audio_transcript_reference_draft_export_splits_timeline_segments(
     )
 
     rows = [
-        benchmark.json.loads(line)
-        for line in jsonl_path.read_text(encoding="utf-8").splitlines()
+        benchmark.json.loads(line) for line in jsonl_path.read_text(encoding="utf-8").splitlines()
     ]
     assert report["rows"] == 2
     assert rows[0]["source"] == "sample.mp3"
@@ -142,6 +153,112 @@ def test_audio_transcript_reference_draft_export_splits_timeline_segments(
     assert rows[0]["text"] == "first line\ncontinued first line"
     assert rows[1]["chunkIndex"] == 1
     assert tsv_path.read_text(encoding="utf-8").startswith("source\tsourceId\t")
+
+
+def test_hosted_audio_trace_summary_reads_worker_logs(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    trace_path = tmp_path / "python-worker.hosted-audio.jsonl"
+    trace_path.write_text(
+        "\n".join(
+            [
+                benchmark.json.dumps(
+                    {
+                        "status": "succeeded",
+                        "startedUnixMs": 1000,
+                        "endedUnixMs": 2200,
+                        "latencyMs": 1200.0,
+                        "provider": "openrouter",
+                        "model": "qwen/qwen3-asr-flash-2026-02-10",
+                        "endpointKind": "audio-transcriptions",
+                        "requestKind": "audio-shard",
+                        "httpAttemptCount": 1,
+                        "shardElementId": "audio-shard-0",
+                        "readingOrderKey": "000000.000000000000",
+                        "backendProfile": "hosted-audio-transcript-v1",
+                        "shardProfile": "audio-shards-v1",
+                        "audioFormat": "wav",
+                        "sampleRateHz": 16000,
+                        "channels": 1,
+                        "mediaStartMs": 0,
+                        "durationMs": 30000,
+                        "mediaDurationMs": 30000,
+                        "textChars": 62,
+                    }
+                ),
+                benchmark.json.dumps(
+                    {
+                        "status": "succeeded",
+                        "startedUnixMs": 1100,
+                        "endedUnixMs": 2900,
+                        "latencyMs": 1800.0,
+                        "provider": "openrouter",
+                        "model": "qwen/qwen3-asr-flash-2026-02-10",
+                        "endpointKind": "audio-transcriptions",
+                        "requestKind": "audio-shard",
+                        "httpAttemptCount": 1,
+                        "shardElementId": "audio-shard-1",
+                        "shardProfile": "audio-shards-v1",
+                        "audioFormat": "wav",
+                        "sampleRateHz": 16000,
+                        "channels": 1,
+                        "mediaStartMs": 30000,
+                        "durationMs": 30000,
+                        "mediaDurationMs": 30000,
+                        "textChars": 64,
+                    }
+                ),
+                benchmark.json.dumps(
+                    {
+                        "status": "succeeded",
+                        "startedUnixMs": 3000,
+                        "endedUnixMs": 3600,
+                        "latencyMs": 600.0,
+                        "provider": "openrouter",
+                        "model": "qwen/qwen3-asr-flash-2026-02-10",
+                        "endpointKind": "audio-transcriptions",
+                        "requestKind": "audio-shard",
+                        "httpAttemptCount": 1,
+                        "shardElementId": "audio-shard-0",
+                        "shardProfile": "audio-shards-v1",
+                        "audioFormat": "wav",
+                        "sampleRateHz": 16000,
+                        "channels": 1,
+                        "mediaStartMs": 0,
+                        "durationMs": 30000,
+                        "mediaDurationMs": 30000,
+                        "textChars": 62,
+                    }
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    summary = benchmark.summarize_hosted_audio_request_traces(tmp_path)
+
+    assert summary["traceFileCount"] == 1
+    assert summary["requestCount"] == 3
+    assert summary["successCount"] == 3
+    assert summary["failureCount"] == 0
+    assert summary["latencyMsP50"] == 1200.0
+    assert summary["latencyMsP95"] == 1800.0
+    assert summary["requestWallSpanMs"] == 2600
+    assert summary["requestLatencyOverlapRatio"] == 1.385
+    assert summary["textCharCountTotal"] == 188
+    assert summary["durationMsTotal"] == 90000
+    assert summary["endpointKindCounts"] == {"audio-transcriptions": 3}
+    assert summary["audioFormatCounts"] == {"wav": 3}
+    assert summary["shardProfileCounts"] == {"audio-shards-v1": 3}
+    assert summary["uniqueShardElementIdCount"] == 2
+    assert summary["duplicateShardElementIdCount"] == 1
+    assert summary["duplicateShardElementIdExtraCount"] == 1
+    assert summary["duplicateShardElementIdCounts"] == {"audio-shard-0": 2}
+    assert summary["uniqueMediaStartMsCount"] == 2
+    assert summary["duplicateMediaStartMsCount"] == 1
+    assert summary["duplicateMediaStartMsExtraCount"] == 1
+    assert summary["duplicateMediaStartMsCounts"] == {"0": 2}
+    assert summary["slowestRequests"][0]["shardElementId"] == "audio-shard-1"
+    assert summary["slowestRequests"][0]["shardProfile"] == "audio-shards-v1"
 
 
 def test_run_fixture_probe_exports_audio_transcript_org(
@@ -219,11 +336,15 @@ def test_run_fixture_probe_exports_audio_transcript_org(
     assert result["audioTranscriptOrgRows"] == 1
     assert result["audioTranscriptOrgTimelineMarkerCount"] == 1
     assert org_path.exists()
-    draft_path = (
-        tmp_path / "report" / "audio-transcripts" / "meeting.reference_draft.jsonl"
-    )
+    draft_path = tmp_path / "report" / "audio-transcripts" / "meeting.reference_draft.jsonl"
     assert result["audioTranscriptReferenceDraftJsonlPath"] == str(draft_path)
     assert result["audioTranscriptReferenceDraftRows"] == 1
+    assert result["audioTranscriptReferenceDraftChars"] == 7
+    assert result["audioTranscriptReferenceDraftEmptyRows"] == 0
+    assert result["audioTranscriptReferenceDraftMinChars"] == 7
+    assert result["audioTranscriptReferenceDraftMaxChars"] == 7
+    assert result["audioTranscriptReferenceDraftDuplicateTextHashCount"] == 0
+    assert result["audioTranscriptReferenceDraftUniqueTextHashCount"] == 1
     assert draft_path.exists()
 
 
@@ -286,9 +407,7 @@ def test_cargo_perf_probe_adds_pdf_source_range_for_hybrid_page_ocr(
         commands.append(command)
         assert check
         assert env["WENDAO_DOCUMENT_EXTRACT_PERF_MODE"] == "hybrid-page-ocr"
-        assert env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE"] == (
-            "structure-text"
-        )
+        assert env["WENDAO_DOCUMENT_EXTRACT_PDF_DOCLING_PAGE_RANGE_PROFILE"] == ("structure-text")
         report_path.write_text(
             '{"latenciesMs":[1.0],"requestCount":1,"rowCount":1,'
             '"batchCount":1,"arrowIpcBytes":1,"errorRowCount":0,'

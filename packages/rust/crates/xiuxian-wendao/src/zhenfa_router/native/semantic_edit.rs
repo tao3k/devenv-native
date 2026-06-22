@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::{Address, ModificationError, replace_byte_range, resolve_node};
 use crate::parsers::markdown::section_create;
@@ -49,12 +49,6 @@ pub struct WendaoSemanticEditArgs {
 /// resolved, the file cannot be read or written, or the byte-range edit fails validation.
 #[allow(clippy::needless_pass_by_value)]
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.semantic_edit",
-    description = "Edit a section in a document using semantic addressing with atomic byte-range modification.",
-    tool_struct = "WendaoSemanticEditTool",
-    mutation_scope = "wendao.semantic_edit"
-)]
 pub fn wendao_semantic_edit(
     ctx: &ZhenfaContext,
     args: WendaoSemanticEditArgs,

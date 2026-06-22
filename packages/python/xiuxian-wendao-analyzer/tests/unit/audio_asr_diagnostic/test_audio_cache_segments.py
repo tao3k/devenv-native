@@ -14,7 +14,7 @@ from xiuxian_wendao_analyzer import (
 from .support import Path, _load_audio_asr_diagnostic
 
 
-def test_audio_result_cache_reuses_successful_backend_result(
+def test_audio_admissions_reuses_successful_backend_result(
     tmp_path: Path, monkeypatch
 ) -> None:
     diagnostic = _load_audio_asr_diagnostic()
@@ -28,12 +28,12 @@ def test_audio_result_cache_reuses_successful_backend_result(
         shard_id="shard",
         cache_key="audio-shards-v1:shard",
     )
-    cache_key = diagnostic.audio_result_cache_key(
+    cache_key = diagnostic.audio_task_admission_key(
         shard_cache_key=chunk.cache_key,
         task_profile="transcription",
-        backend_id="openrouter-chat-audio",
+        backend_id="openrouter-audio",
         backend_config_hash=diagnostic.backend_config_hash(
-            "openrouter-chat-audio",
+            "openrouter-audio",
             openrouter_model="xiaomi/mimo-v2.5",
             openrouter_base_url=diagnostic.DEFAULT_OPENROUTER_URL,
             local_asr_model=diagnostic.DEFAULT_LOCAL_ASR_MODEL,
@@ -45,10 +45,10 @@ def test_audio_result_cache_reuses_successful_backend_result(
             audio_format="wav",
         ),
     )
-    diagnostic.write_result_cache(
+    diagnostic.write_admitted_transcript(
         tmp_path / "cache",
-        result_cache_key=cache_key,
-        backend="openrouter-chat-audio",
+        task_admission_key=cache_key,
+        backend="openrouter-audio",
         model="xiaomi/mimo-v2.5",
         transcript="缓存文本",
     )
@@ -61,7 +61,7 @@ def test_audio_result_cache_reuses_successful_backend_result(
     )
 
     result = diagnostic.run_backend(
-        "openrouter-chat-audio",
+        "openrouter-audio",
         chunk,
         output_dir=tmp_path / "out",
         openrouter_api_key="key",
@@ -74,12 +74,12 @@ def test_audio_result_cache_reuses_successful_backend_result(
         max_tokens=128,
         temperature=0.0,
         timeout_seconds=10,
-        result_cache_dir=tmp_path / "cache",
+        admission_cache_dir=tmp_path / "cache",
     )
 
     assert result.status == "ok"
     assert result.transcript_chars == 4
-    assert result.result_cache_key == cache_key
+    assert result.task_admission_key == cache_key
     assert Path(result.transcript_path).read_text(encoding="utf-8") == "缓存文本"
 
 
@@ -127,7 +127,7 @@ def test_openai_compatible_backend_writes_segment_timeline(
         max_tokens=128,
         temperature=0.0,
         timeout_seconds=10,
-        result_cache_dir=tmp_path / "cache",
+        admission_cache_dir=tmp_path / "cache",
     )
 
     assert result.status == "ok"

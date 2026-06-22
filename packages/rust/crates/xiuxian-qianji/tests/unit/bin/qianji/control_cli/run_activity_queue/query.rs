@@ -43,6 +43,7 @@ fn run_control_activity_queue_renders_json_without_appending() -> Result<(), Str
     assert_eq!(json["run_id"], "run-control-cli");
     assert_eq!(json["task_queue"], "llm.openai");
     assert_eq!(json["items"].as_array().map(Vec::len), Some(1));
+    assert_eq!(json["worker_tasks"].as_array().map(Vec::len), Some(1));
     assert_eq!(json["summary"]["total"], 2);
     assert_eq!(json["summary"]["scheduled"], 1);
     assert_eq!(json["summary"]["in_flight"], 1);
@@ -51,6 +52,17 @@ fn run_control_activity_queue_renders_json_without_appending() -> Result<(), Str
     assert_eq!(
         json["items"][0]["activity"]["activity_id"],
         "activity-run-scheduled"
+    );
+    assert_eq!(
+        json["worker_tasks"][0]["activity_id"],
+        "activity-run-scheduled"
+    );
+    assert_eq!(json["worker_tasks"][0]["run_id"], "run-control-cli");
+    assert_eq!(json["worker_tasks"][0]["task_queue"], "llm.openai");
+    assert_eq!(json["worker_tasks"][0]["next_attempt"], 1);
+    assert_eq!(
+        json["worker_tasks"][0]["idempotency_key"],
+        "activity-idempotency-key"
     );
     assert_eq!(before_count, after_count);
     Ok(())
@@ -84,11 +96,14 @@ fn run_control_activity_queue_renders_text_summary() -> Result<(), String> {
     assert!(output.rendered.contains(
         "- Activities: total `3`, scheduled `2`, in-flight `1`, completed `0`, failed `0`"
     ));
-    assert!(output.rendered.contains("`activity-run-scheduled` [run]"));
+    assert!(output.rendered.contains("## Worker Tasks"));
+    assert!(output.rendered.contains(
+        "`activity-run-scheduled` [run] type `llm.plan` queue `llm.openai` next_attempt `1`"
+    ));
     assert!(
         output
             .rendered
-            .contains("`activity-step-scheduled` [step:run-control-step]")
+            .contains("`activity-step-scheduled` [step:run-control-step] type `tool.github` queue `tool.github` next_attempt `1`")
     );
     Ok(())
 }

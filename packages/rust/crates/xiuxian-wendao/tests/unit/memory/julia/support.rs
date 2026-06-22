@@ -15,7 +15,7 @@ use tokio::net::TcpListener;
 use tokio_stream::{Stream, StreamExt, wrappers::TcpListenerStream};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use xiuxian_wendao_julia::memory::{
+use xiuxian_julia_runtime::wendao::memory::{
     memory_julia_calibration_response_schema, memory_julia_episodic_recall_response_schema,
     memory_julia_gate_score_response_schema, memory_julia_plan_tuning_response_schema,
 };

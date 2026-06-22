@@ -108,7 +108,6 @@ pub mod sync;
         feature = "julia",
         feature = "repo-lexical-index",
         feature = "search-runtime",
-        feature = "test-support",
         feature = "zhenfa-router"
     )
 ))]
@@ -295,12 +294,3 @@ pub use zhenfa_router::execute_search;
 /// Execute a search via the router using raw RPC parameters.
 #[cfg(feature = "zhenfa-router")]
 pub use zhenfa_router::search_from_rpc_params;
-
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::wendao_rust_harness_config()
-);

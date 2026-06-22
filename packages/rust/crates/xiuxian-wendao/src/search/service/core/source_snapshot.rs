@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
 use super::types::SearchPlaneService;
-use crate::parsers::markdown::is_supported_note;
-use crate::search::contracts::ast_search_lang;
 use crate::search::{
     ProjectScannedFile, SourceSnapshotEntry, build_source_snapshot_entry,
     source_snapshot_entry_cache_key,
@@ -15,12 +13,9 @@ impl SearchPlaneService {
         project_root: &std::path::Path,
         file: &ProjectScannedFile,
     ) -> Arc<SourceSnapshotEntry> {
-        if is_supported_note(file.absolute_path.as_path())
-            || ast_search_lang(std::path::Path::new(file.normalized_path.as_str())).is_none()
-        {
+        if crate::parsers::markdown::is_supported_note(file.absolute_path.as_path()) {
             return Arc::new(SourceSnapshotEntry {
                 content: String::new(),
-                ast_hits: Vec::new(),
             });
         }
 
@@ -64,7 +59,7 @@ impl SearchPlaneService {
             );
             self.record_repeat_work_file(
                 "source_snapshot",
-                "read_ast_extract",
+                "read_content",
                 file.normalized_path.as_str(),
             );
         } else {

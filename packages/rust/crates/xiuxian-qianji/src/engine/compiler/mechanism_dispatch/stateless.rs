@@ -1,25 +1,36 @@
+#[cfg(feature = "wendao-integration")]
 use crate::executors::KnowledgeSeeker;
+#[cfg(feature = "wendao-integration")]
 use std::sync::Arc;
 
 use super::resolver_chain;
 use crate::engine::compiler::{stateful_mechanisms, task_type};
+use crate::error::QianjiError;
 
 pub(super) fn build(
     context: resolver_chain::DispatchContext<'_>,
 ) -> Option<resolver_chain::ResolveOutcome> {
+    #[cfg(feature = "wendao-integration")]
     let resolver_chain::DispatchContext {
         task_type,
         compiler,
         node_def,
     } = context;
+    #[cfg(not(feature = "wendao-integration"))]
+    let resolver_chain::DispatchContext {
+        task_type,
+        node_def,
+        ..
+    } = context;
     match task_type {
+        #[cfg(feature = "wendao-integration")]
         task_type::TaskType::Knowledge => Some(Ok(Arc::new(KnowledgeSeeker {
             index: compiler.index.clone(),
         }))),
-        task_type::TaskType::Annotation => Some(Ok(stateful_mechanisms::annotation(
-            &compiler.orchestrator,
-            &compiler.registry,
-            node_def,
+        task_type::TaskType::Annotation => Some(Ok(stateful_mechanisms::annotation(node_def))),
+        task_type::TaskType::Llm => Some(Err(QianjiError::Topology(
+            "Task type `llm` requires external LLM execution; local Qianji LLM execution is retired, use marlin-agent-core."
+                .to_string(),
         ))),
         _ => None,
     }

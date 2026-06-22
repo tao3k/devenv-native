@@ -1,55 +1,103 @@
-* TODO Task title [0/6] [0%] :agent:
+#+TITLE: Task title
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:
+#+DATE: YYYY-MM-DD Day HH:MM:SS
+
+* TODO Task title [0/7] [0%] :agent:
 :PROPERTIES:
 :SDD: <sdd-path-or-none>
-:EXECPLAN: <execplan-path>
 :STABLE_REF: <repo-relative-stable-reference>
 :PACKAGE: <package-or-subsystem>
 :SLICE: <slice-slug>
-:STATUS: active
+:COMMAND_POLICY: RTK.md
 :COOKIE_DATA: direct
 :NEXT_ACTION: <next-action>
-:RESUME_QUERY: <resume-query>
-:ARCHIVE_TARGET: <archive-target-path>
+:GRAPH: flowchart LR;T["task:<org-id>"]-->N0["sdd:<sdd-path>"]
 :EVIDENCE: <evidence-summary-or-path>
 :END:
 SCHEDULED: <YYYY-MM-DD Day>
 
 - [ ] Scope and recovery anchor confirmed.
+- [ ] RTK command policy confirmed.
 - [ ] Task-local research complete.
 - [ ] Implementation complete.
 - [ ] Validation complete.
-- [ ] Evidence and archive state updated.
+- [ ] Related package or canonical docs synced or explicitly judged unchanged.
+- [ ] Evidence, reflection questions, and archive readiness updated.
 
 ** Context
 
-** TODO Task Checklist [0/5] [0%]
+** Task Checklist [0/7] [0%]
 :PROPERTIES:
 :COOKIE_DATA: direct
 :END:
 
 - [ ] Scope and recovery anchor confirmed.
+- [ ] RTK command policy confirmed.
 - [ ] Task-local research complete.
 - [ ] Implementation complete.
 - [ ] Validation complete.
-- [ ] Evidence and archive state updated.
+- [ ] Related package or canonical docs synced or explicitly judged unchanged.
+- [ ] Evidence, reflection questions, and archive readiness updated.
 
 ** Checkpoints
 
 ** Validation
 
+- [ ] Shell commands follow =RTK.md=: project-scoped commands use =direnv exec . rtk <filtered-command>= only when RTK has a real wrapper; high-volume validation should use =direnv exec . rtk --ultra-compact <filtered-command>= when summaries are enough; raw =direnv exec .= exceptions are recorded.
+- [ ] Use project RTK wrappers when they apply: =direnv exec . rtk --ultra-compact cargo test/check/clippy=, =direnv exec . rtk --ultra-compact npm run <script>=, =direnv exec . rtk --ultra-compact pytest -q=, and =direnv exec . rtk --ultra-compact ruff check <path>=.
+- [ ] Use lightweight direct RTK outside the project environment for small inspections: =rtk git status --short=, =rtk git diff -- <paths>=, =rtk read <path>=, and =rtk ls <path>=.
+- [ ] Do not force RTK for commands without filtered wrappers, including =wendao-client=, Julia checks, artifact-producing commands, exact parser output, and machine-parsed output.
 - [ ] Targeted tests or lint checks passed.
 - [ ] Tracking surfaces pass Org lint.
 - [ ] Recovery query returns the expected task state.
 
 ** Evidence
 
+** Sync Docs
+
+Record the package or canonical documentation checked for this slice. If no
+durable doc update is needed, write the reason so future recovery can tell the
+docs were intentionally left unchanged.
+
+- Checked:
+- Updated:
+- Unchanged rationale:
+
+** Reflection Questions
+
+Complete this table before a completed task is archived. Add, remove, or rename
+questions when the slice needs different reflection probes; lint only requires
+that every row with a =Question= has a non-empty =Value= answer.
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | |
+| Did the task meet its expected outcome and validation target? | |
+| Did the final implementation differ from the starting task, plan, or user intent? | |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | |
+| Does this task improve future =task-probe=, =orgid-show=, SDD graph, or agent recovery understanding? | |
+| What should the next agent query, verify, or avoid? | |
+
 ** Recovery
 
 Use this heading as the task-local recovery anchor. At turn start, query active
-work with:
+work with the lowest-token query that matches the agent's memory state:
 
-#+begin_src text
-wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
+#+begin_src bash
+wendao-client orgize task-probe --cached --text '<remembered title-or-file-key>' $PRJ_CACHE_HOME/agent/org
+wendao-client orgize orgid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-recover --cached $PRJ_CACHE_HOME/agent/org
 #+end_src
 
 ** Notes
+
+Lifecycle contract for agent-owned task headings:
+
+- Keep a new planned task as =TODO= while no implementation work has started and progress remains =0%=.
+- When an agent begins the task and the heading progress cookie moves above =0%=, change the heading keyword from =TODO= to =DOING=.
+- When the heading reaches =100%=, change =DOING= to =DONE=, add an inactive =CLOSED: [YYYY-MM-DD Day]= timestamp after validation/evidence is recorded, and complete the =Reflection Questions= table.
+- Archive readiness requires all closure signals: =DONE= + =100%= + =CLOSED= + non-empty =Value= cells for every =Reflection Questions= table row that has a =Question= value.
+- After archive readiness is reached, move the task to the default archive path derived from the task source filename so completed work does not pollute active memory recovery.
+- =wendao-client orgize lint= warns when these lifecycle/progress states drift.

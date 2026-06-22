@@ -7,7 +7,7 @@ use crate::{
     AgentProposal, AgentProposalId, ArtifactRef, Budget, ControlError, ControlEventKind,
     ControlEventRecord, ControlResult, CostObservation, EvidenceRef, GateResult, RecoveryAttempt,
     RunId, RunStatus, SignalRecord, StepId, StepLease, StepStatus, TimerId, TimerRecord,
-    VersionKey, VersionPin, WaitReason, WorkerId,
+    VersionKey, VersionPin, WaitReason, WorkerHeartbeat, WorkerId,
 };
 
 /// Current replayed view of one run.
@@ -50,6 +50,9 @@ pub struct RunView {
     /// Run-scoped deterministic version pins.
     #[serde(default)]
     pub version_pins: BTreeMap<VersionKey, VersionPin>,
+    /// Run-scoped worker heartbeat observations.
+    #[serde(default)]
+    pub worker_heartbeats: Vec<WorkerHeartbeat>,
     /// Last update timestamp.
     #[serde(default)]
     pub updated_at_ms: u64,
@@ -206,6 +209,9 @@ pub struct StepView {
     /// Step-scoped deterministic version pins.
     #[serde(default)]
     pub version_pins: BTreeMap<VersionKey, VersionPin>,
+    /// Step-scoped worker heartbeat observations.
+    #[serde(default)]
+    pub worker_heartbeats: Vec<WorkerHeartbeat>,
     /// Gate results.
     #[serde(default)]
     pub gate_results: Vec<GateResult>,
@@ -239,6 +245,7 @@ impl StepView {
             signals: Vec::new(),
             timers: BTreeMap::new(),
             version_pins: BTreeMap::new(),
+            worker_heartbeats: Vec::new(),
             gate_results: Vec::new(),
             recovery_attempts: Vec::new(),
             last_error: None,
@@ -283,6 +290,7 @@ impl RunView {
             signals: Vec::new(),
             timers: BTreeMap::new(),
             version_pins: BTreeMap::new(),
+            worker_heartbeats: Vec::new(),
             updated_at_ms: 0,
         }
     }
@@ -405,6 +413,9 @@ fn apply_run_event(view: &mut RunView, kind: ControlEventKind) -> ControlResult<
         ControlEventKind::VersionPinned { pin } => {
             view.version_pins.insert(pin.version_key.clone(), pin);
         }
+        ControlEventKind::WorkerHeartbeatObserved { heartbeat } => {
+            view.worker_heartbeats.push(heartbeat);
+        }
         ControlEventKind::ArtifactAttached { artifact } => view.artifacts.push(artifact),
         ControlEventKind::CostObserved { observation } => view.cost_observations.push(observation),
         ControlEventKind::RecoveryStarted { .. } => view.status = RunStatus::Recovering,
@@ -496,23 +507,22 @@ fn apply_step_event(step: &mut StepView, kind: ControlEventKind) {
         ControlEventKind::VersionPinned { pin } => {
             step.version_pins.insert(pin.version_key.clone(), pin);
         }
+        ControlEventKind::WorkerHeartbeatObserved { heartbeat } => {
+            step.worker_heartbeats.push(heartbeat);
+        }
         ControlEventKind::GateEvaluated { result } => step.gate_results.push(result),
         ControlEventKind::RecoveryStarted { attempt } => apply_step_recovery_started(step, attempt),
         ControlEventKind::StepSucceeded => step.status = StepStatus::Succeeded,
         ControlEventKind::StepFailed { message, .. } => {
-            step.last_error = Some(message);
-            step.status = StepStatus::Failed;
+            apply_step_error_status(step, message, StepStatus::Failed);
         }
         ControlEventKind::StepBlocked { reason } => {
-            step.last_error = Some(reason);
-            step.status = StepStatus::Blocked;
+            apply_step_error_status(step, reason, StepStatus::Blocked);
         }
         ControlEventKind::StepCancelled { reason } => {
-            step.last_error = Some(reason);
-            step.status = StepStatus::Cancelled;
+            apply_step_error_status(step, reason, StepStatus::Cancelled);
         }
         ControlEventKind::ToolCallRecorded { .. }
-        | ControlEventKind::WorkerHeartbeatObserved { .. }
         | ControlEventKind::RunCreated { .. }
         | ControlEventKind::RunAdmitted
         | ControlEventKind::PlanRecorded { .. }
@@ -526,6 +536,11 @@ fn apply_step_event(step: &mut StepView, kind: ControlEventKind) {
 fn apply_step_waiting(step: &mut StepView, reason: WaitReason) {
     step.wait_reason = Some(reason);
     step.status = StepStatus::Waiting;
+}
+
+fn apply_step_error_status(step: &mut StepView, message: String, status: StepStatus) {
+    step.last_error = Some(message);
+    step.status = status;
 }
 
 fn record_step_agent_proposal(step: &mut StepView, proposal: AgentProposal) {

@@ -62,7 +62,7 @@ fn modelica_plugin_projected_page_family_cluster_resolves_how_to_cluster_for_ref
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-family-cluster]
+            r#"[sources.projects.modelica-family-cluster]
 root = "{}"
 plugins = ["modelica"]
 "#,

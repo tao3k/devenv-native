@@ -20,7 +20,7 @@ fn modelica_plugin_docs_markdown_documents_resolve_projected_markdown_documents(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-markdown-documents]
+            r#"[sources.projects.modelica-docs-markdown-documents]
 root = "{}"
 plugins = ["modelica"]
 "#,

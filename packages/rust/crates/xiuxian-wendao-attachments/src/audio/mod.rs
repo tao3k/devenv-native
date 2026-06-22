@@ -1,8 +1,7 @@
-//! Model-agnostic audio shard planning and cache identity contracts.
+//! Model-agnostic audio shard planning and admission identity contracts.
 
 #[cfg(feature = "audio-shard-arrow")]
 mod batches;
-mod cache;
 mod identity;
 mod materialize;
 mod merge;
@@ -12,6 +11,8 @@ mod plan;
 mod recovery_patch;
 mod recovery_select;
 mod speech_segments;
+mod task_admission;
+mod transcript_admission;
 mod types;
 
 #[cfg(feature = "audio-shard-arrow")]
@@ -19,8 +20,7 @@ pub use batches::{
     build_audio_shard_input_batch, build_audio_shard_inputs, build_audio_shard_result_batch,
     decode_audio_shard_result_batch, decode_audio_shard_result_batches,
 };
-pub use cache::audio_result_cache_key;
-pub use materialize::materialize_audio_shards;
+pub use materialize::{materialize_audio_shard_manifests, materialize_audio_shards};
 pub use merge::{AudioShardMergeReport, merge_audio_shard_results};
 pub use org_ledger::{
     AUDIO_TRANSCRIPT_ORG_LEDGER_SCHEMA, AudioTranscriptOrgLedgerOptions,
@@ -52,12 +52,20 @@ pub use recovery_select::{
     select_audio_risk_parent_shards,
 };
 pub use speech_segments::parse_audio_speech_segments_sidecar;
+pub use task_admission::audio_task_admission_key;
+pub use transcript_admission::{
+    AudioPlannedTranscriptAdmissionLookup, AudioTranscriptAdmissionLookup,
+    AudioTranscriptAdmissionOptions, AudioTranscriptAdmissionStats, audio_transcript_admission_key,
+    audio_transcript_admission_path, combine_admitted_and_fresh_audio_transcripts,
+    lookup_audio_transcript_admission, lookup_planned_audio_transcript_admission,
+    persist_audio_transcript_admission,
+};
 pub use types::{
     AUDIO_SHARD_INPUT_SCHEMA_VERSION, AUDIO_SHARD_MANIFEST_SCHEMA,
-    AUDIO_SHARD_RESULT_SCHEMA_VERSION, AudioResultCacheInput, AudioShardInput,
-    AudioShardManifestItem, AudioShardMaterializationInput, AudioShardMaterializedItem,
+    AUDIO_SHARD_RESULT_SCHEMA_VERSION, AudioShardInput, AudioShardManifestItem,
+    AudioShardMaterializationInput, AudioShardMaterializationSource, AudioShardMaterializedItem,
     AudioShardPlan, AudioShardPlannerInput, AudioShardResult, AudioShardResultStatus,
     AudioShardStrategy, AudioShardTextMimeType, AudioShardWorkerProfile, AudioSourceIdentity,
-    AudioSpeechSegment, AudioSpeechWindowPlannerInput, DEFAULT_AUDIO_SHARD_PROFILE,
-    DEFAULT_AUDIO_TASK_PROFILE,
+    AudioSpeechSegment, AudioSpeechWindowPlannerInput, AudioTaskAdmissionInput,
+    DEFAULT_AUDIO_SHARD_PROFILE, DEFAULT_AUDIO_TASK_PROFILE,
 };

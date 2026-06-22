@@ -11,7 +11,7 @@ fn test_suggested_link_log_rejects_invalid_payload() {
             relation: "related_to".to_string(),
             confidence: 0.4,
             evidence: "test".to_string(),
-            agent_id: "qianhuan-architect".to_string(),
+            agent_id: "wendao-agentic-architect".to_string(),
             created_at_unix: None,
         },
         TEST_VALKEY_URL,

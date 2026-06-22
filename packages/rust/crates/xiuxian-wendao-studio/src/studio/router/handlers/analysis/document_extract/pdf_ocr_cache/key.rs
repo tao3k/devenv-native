@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
+use xiuxian_db_store::artifact_cache::{ArtifactKey, ArtifactKeyParts, ArtifactKind};
 use xiuxian_wendao_attachments::pdf::ocr::PdfOcrShardInput;
 
 pub(crate) fn ocr_shard_cache_key(input: &PdfOcrShardInput) -> String {
@@ -11,6 +12,17 @@ pub(crate) fn ocr_shard_cache_key(input: &PdfOcrShardInput) -> String {
         hasher.update([0]);
     }
     format!("{:x}", hasher.finalize())
+}
+
+pub(crate) fn ocr_shard_artifact_key(input: &PdfOcrShardInput) -> Result<ArtifactKey, String> {
+    ArtifactKey::from_parts(ArtifactKeyParts {
+        namespace: "wendao-pdf-ocr-shard".to_string(),
+        kind: ArtifactKind::ArrowIpcBatch,
+        source_digest: digest_component([input.source_content_hash.as_str()]),
+        profile_digest: digest_component(ocr_shard_profile_fragments(input)),
+        shard_digest: ocr_shard_cache_key(input),
+    })
+    .map_err(|error| error.to_string())
 }
 
 pub(super) fn temporary_cache_path(path: &Path) -> PathBuf {
@@ -23,6 +35,25 @@ pub(super) fn temporary_cache_path(path: &Path) -> PathBuf {
         .and_then(|name| name.to_str())
         .unwrap_or("ocr-shard.arrow");
     path.with_file_name(format!(".{file_name}.{}.{}.tmp", std::process::id(), nanos))
+}
+
+fn digest_component<'a>(fragments: impl IntoIterator<Item = &'a str>) -> String {
+    let mut hasher = Sha256::new();
+    for fragment in fragments {
+        hasher.update(fragment.as_bytes());
+        hasher.update([0]);
+    }
+    format!("{:x}", hasher.finalize())
+}
+
+fn ocr_shard_profile_fragments(input: &PdfOcrShardInput) -> [&str; 5] {
+    [
+        input.render_profile.as_str(),
+        input.ocr_profile.as_str(),
+        input.ocr_engine.as_str(),
+        input.image_mime_type.as_str(),
+        input.contract_version.as_str(),
+    ]
 }
 
 fn ocr_shard_cache_fragments(input: &PdfOcrShardInput) -> Vec<String> {

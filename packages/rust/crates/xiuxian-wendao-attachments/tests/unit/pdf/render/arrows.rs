@@ -2,6 +2,7 @@ use super::{
     assert_close, float64_column, int32_column, sample_manifest, sample_region_manifest,
     string_column,
 };
+use crate::pdf::render::batches::shard_manifests_from_batch;
 use crate::pdf::render::{build_ocr_pending_resource_batch, build_shard_manifest_batch};
 
 #[test]
@@ -39,6 +40,16 @@ fn document_extract_pdf_render_builds_region_manifest_arrow_batch() -> Result<()
         int32_column(&batch, "sourcePagePixelBottom")?.value(0),
         2325
     );
+    Ok(())
+}
+
+#[test]
+fn document_extract_pdf_render_decodes_region_manifest_arrow_batch() -> Result<(), String> {
+    let manifest = sample_region_manifest()?;
+    let batch = build_shard_manifest_batch(std::slice::from_ref(&manifest))?;
+    let restored = shard_manifests_from_batch(&batch)?;
+
+    assert_eq!(restored, vec![manifest]);
     Ok(())
 }
 

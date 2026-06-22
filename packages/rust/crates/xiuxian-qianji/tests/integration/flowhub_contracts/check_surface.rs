@@ -1,6 +1,7 @@
 use super::{
     assert_common_diagnostic_shape, check_flowhub, create_flowhub_with_disconnected_mermaid_case,
-    create_flowhub_with_invalid_mermaid_case, create_flowhub_with_leaf_local_mermaid_case,
+    create_flowhub_with_invalid_bpmn_source_pair, create_flowhub_with_invalid_mermaid_case,
+    create_flowhub_with_leaf_local_mermaid_case,
     create_flowhub_with_mermaid_presentation_directives_case,
     create_flowhub_with_topology_mismatch_case, create_flowhub_with_undeclared_mermaid_nodes_case,
     create_flowhub_with_unregistered_top_level_dir, create_invalid_flowhub,
@@ -80,6 +81,22 @@ fn check_flowhub_accepts_leaf_local_mermaid_case() {
     assert!(report.is_valid());
     let rendered = render_flowhub_check_markdown(&report);
     assert!(rendered.contains("# Validation Passed"));
+}
+
+#[test]
+fn check_flowhub_reports_invalid_required_bpmn_source_pair() {
+    let temp_dir =
+        TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
+    let root = create_flowhub_with_invalid_bpmn_source_pair(&temp_dir);
+
+    let report = check_flowhub(&root)
+        .unwrap_or_else(|error| panic!("invalid BPMN source pair should still report: {error}"));
+
+    assert!(!report.is_valid());
+    let rendered = render_flowhub_check_markdown(&report);
+    assert_common_diagnostic_shape(&rendered);
+    assert!(rendered.contains("Invalid Flowhub BPMN scenario source"));
+    assert!(rendered.contains("docs-search.bpmn"));
 }
 
 #[test]

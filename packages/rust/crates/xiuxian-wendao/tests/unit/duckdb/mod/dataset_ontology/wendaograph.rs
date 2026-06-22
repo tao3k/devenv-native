@@ -6,7 +6,7 @@ use crate::duckdb::{
     summarize_dataset_ontology_wendaograph_extension_proof_response,
     summarize_dataset_ontology_wendaograph_quality_response,
 };
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     build_wendaograph_ontology_extension_proof_arrow_request,
     build_wendaograph_ontology_extension_proof_flight_request_batch,
 };

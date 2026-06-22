@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .support import (
+    DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME,
     DOCUMENT_RESOURCE_FIELDS,
     DOCUMENT_RESOURCE_SCHEMA,
@@ -48,9 +49,7 @@ def test_extract_document_resources_writes_markdown_and_arrow_cache(
             elementId="_main",
         )
     ]
-    assert (output_dir / "handbook.md").read_text(
-        encoding="utf-8"
-    ) == "# Handbook\n\nText\n"
+    assert (output_dir / "handbook.md").read_text(encoding="utf-8") == "# Handbook\n\nText\n"
     assert (output_dir / DOCUMENT_RESOURCE_ARROW_CACHE_NAME).exists()
     assert not (output_dir / "_metadata.json").exists()
     assert (output_dir / "_complete.marker").exists()
@@ -95,6 +94,106 @@ def test_extract_document_resources_writes_timing_sidecar(tmp_path: Path) -> Non
     assert total["elapsedMs"] >= 0.0
 
 
+def test_extract_document_resources_routes_image_profile_to_hosted_vlm(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "scan.PNG"
+    source.write_bytes(b"png bytes")
+    output_dir = tmp_path / "scan-output"
+    observed: dict[str, object] = {}
+
+    def fake_completion_request(
+        *,
+        completion_url: str,
+        headers: dict[str, str],
+        timeout_seconds: float,
+        payload: dict[str, object],
+    ) -> tuple[int, dict[str, object]]:
+        observed["completion_url"] = completion_url
+        observed["headers"] = headers
+        observed["timeout_seconds"] = timeout_seconds
+        observed["payload"] = payload
+        return 200, {"choices": [{"message": {"content": "# Scan\n\nVisible text"}}]}
+
+    monkeypatch.setenv("WENDAO_HOSTED_VLM_OCR_BASE_URL", "https://example.test/v1")
+    monkeypatch.setenv("WENDAO_HOSTED_VLM_OCR_MODEL", "vision-test-model")
+    monkeypatch.setenv("WENDAO_HOSTED_VLM_OCR_API_KEY", "test-key")
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.document_image_extract.send_completion_request",
+        fake_completion_request,
+    )
+
+    rows = extract_document_resources(
+        source,
+        output_dir,
+        profile=DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
+    )
+
+    assert rows == [
+        DocumentResourceRow(
+            sourcePath=str(source),
+            resourceType="document",
+            resourcePath=str(output_dir / "scan.md"),
+            pageIndex=0,
+            caption="",
+            content="# Scan\n\nVisible text",
+            mimeType="text/markdown",
+            status="ok",
+            elementId="_main",
+        )
+    ]
+    assert observed["completion_url"] == "https://example.test/v1/chat/completions"
+    headers = observed["headers"]
+    assert isinstance(headers, dict)
+    assert headers["Authorization"] == "Bearer test-key"
+    payload = observed["payload"]
+    assert isinstance(payload, dict)
+    assert payload["model"] == "vision-test-model"
+    content = payload["messages"][0]["content"]
+    assert content[1]["image_url"]["url"].startswith("data:image/png;base64,")
+    assert (output_dir / DOCUMENT_RESOURCE_ARROW_CACHE_NAME).exists()
+    assert (output_dir / DOCUMENT_STRUCTURE_ARROW_CACHE_NAME).exists()
+    with documents.pa.ipc.open_file(output_dir / DOCUMENT_STRUCTURE_ARROW_CACHE_NAME) as reader:
+        structure_rows = reader.read_all().to_pylist()
+    assert structure_rows[0]["blockType"] == "image_text"
+    assert structure_rows[0]["engine"] == DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE
+
+
+def test_extract_document_resources_image_profile_empty_response_returns_error_row(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "empty.png"
+    source.write_bytes(b"png bytes")
+
+    def fake_completion_request(
+        *,
+        completion_url: str,
+        headers: dict[str, str],
+        timeout_seconds: float,
+        payload: dict[str, object],
+    ) -> tuple[int, dict[str, object]]:
+        _ = completion_url, headers, timeout_seconds, payload
+        return 200, {"choices": [{"message": {"content": "  "}}]}
+
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.document_image_extract.send_completion_request",
+        fake_completion_request,
+    )
+
+    rows = extract_document_resources(
+        source,
+        tmp_path / "empty-output",
+        profile=DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
+        error_row=True,
+    )
+
+    assert rows[0].resourceType == "error"
+    assert rows[0].status == "error"
+    assert "empty text" in rows[0].content
+
+
 def test_extract_document_resources_uses_fresh_cache(tmp_path: Path) -> None:
     source = tmp_path / "notes.docx"
     source.write_bytes(b"docx fixture")
@@ -105,9 +204,7 @@ def test_extract_document_resources_uses_fresh_cache(tmp_path: Path) -> None:
         output_dir,
         converter=DocumentsFakeDoclingConverter("# Notes\n"),
     )
-    cached_rows = extract_document_resources(
-        source, output_dir, converter=FailingConverter()
-    )
+    cached_rows = extract_document_resources(source, output_dir, converter=FailingConverter())
 
     assert cached_rows == first_rows
 
@@ -116,9 +213,7 @@ def test_extract_document_table_uses_resource_schema(tmp_path: Path) -> None:
     source = tmp_path / "report.xlsx"
     source.write_bytes(b"xlsx fixture")
 
-    table = extract_document_table(
-        source, converter=DocumentsFakeDoclingConverter("# Workbook\n")
-    )
+    table = extract_document_table(source, converter=DocumentsFakeDoclingConverter("# Workbook\n"))
 
     assert table.schema == DOCUMENT_RESOURCE_SCHEMA
     assert table.column_names == list(DOCUMENT_RESOURCE_FIELDS)
@@ -159,9 +254,7 @@ def test_extract_document_resources_emits_structured_docling_rows(
     rows = extract_document_resources(
         source,
         output_dir,
-        converter=DocumentsFakeDoclingConverter(
-            document=FakeStructuredDoclingDocument()
-        ),
+        converter=DocumentsFakeDoclingConverter(document=FakeStructuredDoclingDocument()),
     )
 
     row_by_type = {row.resourceType: row for row in rows}

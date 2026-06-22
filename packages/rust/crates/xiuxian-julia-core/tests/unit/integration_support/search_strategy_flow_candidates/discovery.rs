@@ -1,0 +1,219 @@
+use std::fs;
+
+use super::{
+    MARKDOWN_HEADING_CANDIDATE_SOURCE, MAX_CANDIDATES,
+    discover_search_strategy_flow_candidate_inputs,
+    discover_search_strategy_flow_candidate_inputs_with_limit,
+    search_strategy_flow_candidate_input_batch_from_markdown,
+};
+
+#[test]
+fn discovers_heading_sections_from_real_markdown_shape() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    let docs_dir = temp_dir.path().join("docs");
+    fs::create_dir_all(&docs_dir)?;
+    fs::write(
+        docs_dir.join("search.md"),
+        "# Search Strategy Flow\n\nIntro.\n\n## Query Understanding\n\nReasoning tree page index links.\n\n## Other\n\nOther text.\n",
+    )?;
+    fs::write(
+        docs_dir.join("unrelated.md"),
+        "# Unrelated\n\nDeployment notes only.\n",
+    )?;
+
+    let candidates = discover_search_strategy_flow_candidate_inputs(
+        "query understanding reasoning tree",
+        temp_dir.path(),
+    )?;
+
+    let Some(first) = candidates.first() else {
+        panic!("expected first candidate");
+    };
+    assert_eq!(first.relative_path, "docs/search.md");
+    assert_eq!(first.heading_anchor, "query-understanding");
+    assert!(first.evidence_coverage > 0.8);
+    assert!(first.context_cost > 0);
+    assert!(first.edge_kinds.contains(&"rust-discovered".to_owned()));
+    Ok(())
+}
+
+#[test]
+fn discovery_preserves_route_diverse_candidates_before_julia_pruning()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    let search_dir = temp_dir.path().join("docs/30_search_strategy");
+    let page_index_dir = temp_dir.path().join("docs/20_page_index");
+    let graph_dir = temp_dir.path().join("docs/10_graph_compute");
+    fs::create_dir_all(&search_dir)?;
+    fs::create_dir_all(&page_index_dir)?;
+    fs::create_dir_all(&graph_dir)?;
+
+    for index in 0..16 {
+        fs::write(
+            search_dir.join(format!("search_{index:02}.md")),
+            format!(
+                "# SearchStrategyFlow Query Understanding {index}\n\nSearchStrategyFlow intent strategy flow query understanding branch pruning.\n",
+            ),
+        )?;
+    }
+    fs::write(
+        page_index_dir.join("reasoning_tree.md"),
+        "# PageIndex Parent Child Evidence\n\nPageIndex reasoning tree parent child section spans and disclosure frontier.\n",
+    )?;
+    fs::write(
+        graph_dir.join("link_graph.md"),
+        "# LinkGraph Relation Fanout\n\nLinkGraph relation fanout connects section anchors and provenance edges.\n",
+    )?;
+    fs::write(
+        temp_dir.path().join("docs/index.md"),
+        "# Documentation Index\n\nSearchStrategyFlow PageIndex LinkGraph relation path index.\n",
+    )?;
+
+    let candidates = discover_search_strategy_flow_candidate_inputs(
+        "SearchStrategyFlow PageIndex LinkGraph relation path",
+        temp_dir.path(),
+    )?;
+
+    assert_eq!(candidates.len(), MAX_CANDIDATES);
+    assert!(candidates.iter().any(|candidate| {
+        candidate
+            .relative_path
+            .starts_with("docs/30_search_strategy/")
+    }));
+    assert!(
+        candidates
+            .iter()
+            .any(|candidate| candidate.relative_path.starts_with("docs/20_page_index/"))
+    );
+    assert!(candidates.iter().any(|candidate| {
+        candidate
+            .relative_path
+            .starts_with("docs/10_graph_compute/")
+    }));
+    Ok(())
+}
+
+#[test]
+fn discovery_promotes_canonical_authority_and_validation_markdown()
+-> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    let rfc_dir = temp_dir.path().join("docs/rfcs");
+    let testing_dir = temp_dir.path().join("docs/testing");
+    let feature_dir = temp_dir
+        .path()
+        .join("packages/rust/crates/xiuxian-wendao/docs/03_features");
+    fs::create_dir_all(&rfc_dir)?;
+    fs::create_dir_all(&testing_dir)?;
+    fs::create_dir_all(&feature_dir)?;
+
+    fs::write(
+        rfc_dir.join("2026-03-26-wendao-query-engine-rfc.md"),
+        "# RFC: Wendao Query Engine\n\n## Ownership Boundary\n\nThe query engine ownership boundary and source authority are defined here.\n",
+    )?;
+    fs::write(
+        rfc_dir
+            .join("2026-05-11-wendao-pragmatic-ontology-extensibility-and-sql-validation-rfc.md"),
+        "# SQL Validation RFC\n\n## Pragmatic ontology extensibility and SQL-driven validation\n\nValidation support text.\n",
+    )?;
+    fs::write(
+        testing_dir.join("README.md"),
+        "# Testing\n\n## Default validation path\n\nBoth local validation and CI test proof are recorded here.\n",
+    )?;
+    fs::write(
+        feature_dir.join("210_search_queries_architecture.md"),
+        "# Search Queries Architecture\n\n## Current ownership matrix\n\nSearch query engine authority matrix.\n",
+    )?;
+
+    let authority_candidates = discover_search_strategy_flow_candidate_inputs(
+        "Find the RFC Markdown section that establishes the Wendao query engine ownership boundary and source authority.",
+        temp_dir.path(),
+    )?;
+    assert!(authority_candidates.iter().any(|candidate| {
+        candidate.relative_path == "docs/rfcs/2026-03-26-wendao-query-engine-rfc.md"
+    }));
+
+    let validation_candidates = discover_search_strategy_flow_candidate_inputs(
+        "Find the Markdown validation path that explains local validation and CI test proof.",
+        temp_dir.path(),
+    )?;
+    assert!(validation_candidates.iter().any(|candidate| {
+        candidate.relative_path == "docs/testing/README.md"
+            && candidate.heading_anchor == "default-validation-path"
+    }));
+    Ok(())
+}
+
+#[test]
+fn discovery_authority_seed_follows_query_domain() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    let rfc_dir = temp_dir.path().join("docs/rfcs");
+    fs::create_dir_all(&rfc_dir)?;
+
+    fs::write(
+        rfc_dir.join("2026-03-26-wendao-query-engine-rfc.md"),
+        "# RFC: Wendao Query Engine\n\n## Boundary\n\nQuery engine source authority.\n",
+    )?;
+    fs::write(
+        rfc_dir.join("2026-05-04-polyglot-compute-orchestrator-audit.md"),
+        "# Audit: Polyglot Compute Orchestrator\n\n## Boundary Calibration\n\nPolyglot compute orchestrator evidence calibration.\n",
+    )?;
+
+    let query_engine_candidates = discover_search_strategy_flow_candidate_inputs_with_limit(
+        "Find the RFC Markdown section that establishes the Wendao query engine ownership boundary and source authority.",
+        temp_dir.path(),
+        1,
+    )?;
+    assert_eq!(
+        query_engine_candidates
+            .first()
+            .map(|candidate| candidate.relative_path.as_str()),
+        Some("docs/rfcs/2026-03-26-wendao-query-engine-rfc.md")
+    );
+
+    let polyglot_candidates = discover_search_strategy_flow_candidate_inputs_with_limit(
+        "Find the Markdown RFC and audit for the polyglot compute orchestrator boundary calibration.",
+        temp_dir.path(),
+        1,
+    )?;
+    assert_eq!(
+        polyglot_candidates
+            .first()
+            .map(|candidate| candidate.relative_path.as_str()),
+        Some("docs/rfcs/2026-05-04-polyglot-compute-orchestrator-audit.md")
+    );
+    Ok(())
+}
+
+#[test]
+fn arrow_snapshot_preserves_candidate_boundaries() -> Result<(), Box<dyn std::error::Error>> {
+    let temp_dir = tempfile::tempdir()?;
+    fs::write(
+        temp_dir.path().join("doc.md"),
+        "# Query\tUnderstanding\n\nLine one.\nLine two.\n",
+    )?;
+
+    let batch = search_strategy_flow_candidate_input_batch_from_markdown(
+        "query understanding",
+        temp_dir.path(),
+    )?;
+
+    assert_eq!(batch.source, MARKDOWN_HEADING_CANDIDATE_SOURCE);
+    assert_eq!(batch.row_count, 1);
+    assert!(batch.candidate_input_arrow_snapshot().contains("doc.md"));
+    assert!(
+        batch
+            .candidate_input_arrow_snapshot()
+            .contains("Query\\tUnderstanding")
+    );
+    assert_eq!(batch.candidate_input_arrow_snapshot().lines().count(), 1);
+    let receipt: serde_json::Value = serde_json::from_str(&batch.discovery_receipt_json)?;
+    assert_eq!(
+        receipt.get("transport"),
+        Some(&serde_json::json!("local-markdown-scan"))
+    );
+    assert_eq!(
+        receipt.get("candidateInputCount"),
+        Some(&serde_json::json!(1))
+    );
+    Ok(())
+}

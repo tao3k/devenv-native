@@ -1,6 +1,8 @@
 use super::context_path::{context_value_to_text, lookup_context_path};
+#[cfg(feature = "wendao-integration")]
 use super::query::resolve_dynamic_query_with_uri_expansion;
 use super::wendao_uri::resolve_wendao_uri_with_zhenfa;
+#[cfg(feature = "wendao-integration")]
 use crate::workdir::{
     WorkdirSemanticScopeGuardStatus, WorkdirSemanticScopeGuardTrace,
     trace_workdir_semantic_scope_json, workdir_semantic_scope_guard_trace_json,
@@ -8,7 +10,9 @@ use crate::workdir::{
 use serde_json::{Map, Value};
 
 const SEMANTIC_SCOPE_METADATA_KEYS: &[&str] = &["semanticScopeMetadata", "semantic_scope_metadata"];
+#[cfg(feature = "wendao-integration")]
 const SEMANTIC_SCOPE_GUARD_TRACE_KEY: &str = "semanticScopeGuardTrace";
+#[cfg(feature = "wendao-integration")]
 const SEMANTIC_SCOPE_GUARD_ROUTE_KEY: &str = "semanticScopeGuardRoute";
 const SEMANTIC_SCOPE_GUARD_POLICY_KEYS: &[&str] =
     &["semanticScopeGuardPolicy", "semantic_scope_guard_policy"];
@@ -30,6 +34,7 @@ enum SemanticResolutionMode {
     Reference,
 }
 
+#[cfg(feature = "wendao-integration")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SemanticScopeGuardPolicy {
     Advisory,
@@ -37,6 +42,7 @@ enum SemanticScopeGuardPolicy {
     BlockOnReviewRequired,
 }
 
+#[cfg(feature = "wendao-integration")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SemanticScopeGuardRecommendedAction {
     Continue,
@@ -44,6 +50,7 @@ enum SemanticScopeGuardRecommendedAction {
     Blocked,
 }
 
+#[cfg(feature = "wendao-integration")]
 impl SemanticScopeGuardPolicy {
     fn as_str(self) -> &'static str {
         match self {
@@ -54,6 +61,7 @@ impl SemanticScopeGuardPolicy {
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 impl SemanticScopeGuardRecommendedAction {
     fn as_str(self) -> &'static str {
         match self {
@@ -117,6 +125,7 @@ fn resolve_string(
 
     match mode {
         SemanticResolutionMode::Content => {
+            #[cfg(feature = "wendao-integration")]
             if let Some(expanded) = resolve_dynamic_query_with_uri_expansion(token)? {
                 return Ok(expanded);
             }
@@ -156,6 +165,7 @@ pub(crate) fn resolve_semantic_reference(raw: &str, context: &Value) -> Result<S
     resolve_string(raw, context, SemanticResolutionMode::Reference)
 }
 
+#[cfg(feature = "wendao-integration")]
 fn inject_semantic_scope_guard_trace(value: Value) -> Result<Value, String> {
     let Value::Object(mut object) = value else {
         return Ok(value);
@@ -184,6 +194,26 @@ fn inject_semantic_scope_guard_trace(value: Value) -> Result<Value, String> {
     Ok(Value::Object(object))
 }
 
+#[cfg(not(feature = "wendao-integration"))]
+fn inject_semantic_scope_guard_trace(value: Value) -> Result<Value, String> {
+    let Value::Object(object) = &value else {
+        return Ok(value);
+    };
+    let has_metadata = SEMANTIC_SCOPE_METADATA_KEYS
+        .iter()
+        .any(|key| object.contains_key(*key));
+    let has_policy = SEMANTIC_SCOPE_GUARD_POLICY_KEYS
+        .iter()
+        .any(|key| object.contains_key(*key));
+    if has_metadata || has_policy {
+        return Err(
+            "semantic-scope guard metadata requires the `wendao-integration` feature".to_string(),
+        );
+    }
+    Ok(value)
+}
+
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_guard_route_json(
     policy: SemanticScopeGuardPolicy,
     trace: &WorkdirSemanticScopeGuardTrace,
@@ -212,6 +242,7 @@ fn semantic_scope_guard_route_json(
     Value::Object(route)
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_metadata_json(object: &Map<String, Value>) -> Result<Option<String>, String> {
     let Some((key, value)) = SEMANTIC_SCOPE_METADATA_KEYS
         .iter()
@@ -230,6 +261,7 @@ fn semantic_scope_metadata_json(object: &Map<String, Value>) -> Result<Option<St
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_guard_policy(
     object: &Map<String, Value>,
 ) -> Result<SemanticScopeGuardPolicy, String> {
@@ -251,6 +283,7 @@ fn semantic_scope_guard_policy(
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_guard_policy_from_str(raw: &str) -> Option<SemanticScopeGuardPolicy> {
     let normalized = raw.trim().replace('-', "_").to_ascii_lowercase();
     match normalized.as_str() {
@@ -263,6 +296,7 @@ fn semantic_scope_guard_policy_from_str(raw: &str) -> Option<SemanticScopeGuardP
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 fn enforce_semantic_scope_guard_policy(
     policy: SemanticScopeGuardPolicy,
     trace: &WorkdirSemanticScopeGuardTrace,
@@ -282,6 +316,7 @@ fn enforce_semantic_scope_guard_policy(
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_guard_policy_error(
     policy: SemanticScopeGuardPolicy,
     trace: &WorkdirSemanticScopeGuardTrace,
@@ -299,6 +334,7 @@ fn semantic_scope_guard_policy_error(
     )
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_guard_status_token(status: WorkdirSemanticScopeGuardStatus) -> &'static str {
     match status {
         WorkdirSemanticScopeGuardStatus::Ready => "ready",
@@ -307,6 +343,7 @@ fn semantic_scope_guard_status_token(status: WorkdirSemanticScopeGuardStatus) ->
     }
 }
 
+#[cfg(feature = "wendao-integration")]
 fn semantic_scope_guard_recommended_action(
     status: WorkdirSemanticScopeGuardStatus,
 ) -> SemanticScopeGuardRecommendedAction {

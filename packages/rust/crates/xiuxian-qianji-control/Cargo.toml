@@ -10,21 +10,24 @@ publish = false
 [features]
 default = []
 duckdb = ["dep:duckdb"]
-valkey = ["dep:redis", "dep:tokio"]
+valkey = ["dep:tokio", "dep:xiuxian-db-store", "xiuxian-db-store/valkey"]
 
 [dependencies]
 async-trait = { workspace = true }
 duckdb = { workspace = true, optional = true }
-redis = { workspace = true, features = ["tokio-comp"], optional = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["sync"], optional = true }
+tokio = { workspace = true, optional = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [lints]
 workspace = true

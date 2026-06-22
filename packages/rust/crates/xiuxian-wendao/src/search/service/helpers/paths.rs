@@ -1,12 +1,12 @@
 //! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
 use std::path::{Path, PathBuf};
 
-use xiuxian_io::PrjDirs;
+use xiuxian_config_core::ProjectDirs;
 
 use crate::search::SearchManifestKeyspace;
 
 pub(crate) fn default_storage_root(project_root: &Path) -> PathBuf {
-    PrjDirs::data_home()
+    ProjectDirs::data_home()
         .join("wendao")
         .join("search_plane")
         .join(project_hash(project_root))

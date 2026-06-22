@@ -11,6 +11,7 @@ mod runtime;
 #[path = "../../../tests/unit/search/cache/mod.rs"]
 mod tests;
 mod types;
+mod valkey_connection;
 mod writes;
 
 #[cfg(any(test, feature = "test-support"))]

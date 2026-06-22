@@ -3,9 +3,9 @@ use std::collections::BTreeMap;
 use crate::contract_feedback::{
     AdvisoryAuditRequest, ArtifactKind, ContractFinding, EvidenceKind, FindingEvidence,
 };
-use xiuxian_qianhuan::RoleMixProfile;
 
 use super::QianjiAdvisoryRolePlan;
+use super::prompt_context::RoleMixProfile;
 
 pub(super) fn primary_finding(findings: &[ContractFinding]) -> Option<ContractFinding> {
     findings

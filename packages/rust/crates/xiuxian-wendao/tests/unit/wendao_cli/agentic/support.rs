@@ -48,7 +48,7 @@ pub(crate) fn run_agentic_log_default(
             "--evidence",
             "bridge found",
             "--agent-id",
-            "qianhuan-architect",
+            "wendao-agentic-architect",
             "--created-at-unix",
             "1700000300",
         ],

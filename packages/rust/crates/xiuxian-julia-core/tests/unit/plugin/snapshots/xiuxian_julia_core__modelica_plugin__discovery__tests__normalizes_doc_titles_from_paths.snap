@@ -1,0 +1,23 @@
+---
+source: packages/rust/crates/xiuxian-julia-core/src/modelica_plugin/discovery/../../../tests/unit/plugin/discovery/doc_titles.rs
+assertion_line: 148
+expression: payload
+---
+[
+  {
+    "path": "README.md",
+    "title": "README"
+  },
+  {
+    "path": "UsersGuide/package.mo",
+    "title": "UsersGuide"
+  },
+  {
+    "path": "UsersGuide/Overview.mo",
+    "title": "Overview"
+  },
+  {
+    "path": "UsersGuide/Guide.md",
+    "title": "Guide"
+  }
+]

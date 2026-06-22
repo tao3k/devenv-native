@@ -1,6 +1,7 @@
 #+TITLE: ExecPlan Title
 #+AUTHOR: CyberXiuXian Artisan workshop
 #+FILETAGS: :agent:execplan:
+#+DATE: YYYY-MM-DD Day HH:MM:SS
 
 * TODO ExecPlan Title [0/11] [0%] :execplan:
 :PROPERTIES:
@@ -9,7 +10,7 @@
 :STABLE_REFS: <repo-relative-stable-reference>
 :PACKAGE: <package-or-subsystem>
 :SLICE: <slice-slug>
-:STATUS: draft
+:COMMAND_POLICY: RTK.md
 :COOKIE_DATA: direct
 :NEXT_ACTION: <next-action>
 :RESUME_QUERY: <resume-query>
@@ -36,6 +37,17 @@ SCHEDULED: <YYYY-MM-DD Day>
 
 - [ ] List exact validation and inspection commands.
 
+*** RTK Project Command Guide
+
+- Rust focused checks: =direnv exec . rtk --ultra-compact cargo test -p <crate> <filter> --lib=.
+- Rust compile/lint gates: =direnv exec . rtk --ultra-compact cargo check -p <crate>= and =direnv exec . rtk --ultra-compact cargo clippy --all-targets --all-features -- -D warnings=.
+- TypeScript/package checks: =direnv exec . rtk --ultra-compact npm run check=, =direnv exec . rtk --ultra-compact npm run build=, or the package-specific =npm run <script>=.
+- Python checks: =direnv exec . rtk --ultra-compact pytest -q= and =direnv exec . rtk --ultra-compact ruff check <path>= when the wrapper applies.
+- Git and small inspections outside the project environment: =rtk git status --short=, =rtk git diff -- <paths>=, =rtk read <path>=, and =rtk ls <path>=.
+- Search policy: prefer raw =rg= for fast repository search; use RTK wrappers only when they provide useful filtering for the command being run.
+- Org recovery and lint: use the installed =wendao-client= directly. Prefer =wendao-client orgize task-probe --cached --text '<remembered text>' <path>= when the agent has memory, =wendao-client orgize orgid-show --cached --id <org-section-id> <path>= when it knows the section ID, and =wendao-client orgize task-recover --cached <path>= only when it has no useful memory.
+- Julia, artifact-producing, parser-output, or exact-transcript commands: use raw =direnv exec .= unless =rtk rewrite <command>= shows a real filtered wrapper.
+
 *** Expected Outputs
 
 - [ ] Define concrete implementation, documentation, and evidence outputs.
@@ -44,14 +56,15 @@ SCHEDULED: <YYYY-MM-DD Day>
 
 - [ ] Define conditions that should stop implementation or require replanning.
 
-** TODO Plan Self Check [0/8] [0%]
+** TODO Plan Self Check [0/9] [0%]
 :PROPERTIES:
 :COOKIE_DATA: direct
 :END:
 
 - [ ] Scope matches the request and risk level.
 - [ ] Files or dirs to read are complete and minimal.
-- [ ] Commands or tools to run are complete and safe.
+- [ ] Commands or tools to run follow =RTK.md=: use =direnv exec . rtk <filtered-command>= for project-scoped commands with a real RTK wrapper, prefer =direnv exec . rtk --ultra-compact <filtered-command>= for high-volume validation gates, and record exceptions.
+- [ ] High-volume Rust, Python, and TypeScript checks use the project command guide above when summaries are sufficient.
 - [ ] Expected outputs are concrete and testable.
 - [ ] Stop conditions are clear.
 - [ ] Dependencies and constraints are recorded.
@@ -73,13 +86,14 @@ SCHEDULED: <YYYY-MM-DD Day>
 - [ ] Targeted validation passed.
 - [ ] Progress, decisions, and recovery notes updated.
 
-** TODO Validation and Acceptance [0/4] [0%]
+** TODO Validation and Acceptance [0/5] [0%]
 :PROPERTIES:
 :COOKIE_DATA: direct
 :END:
 
 - [ ] Functional acceptance criteria satisfied.
 - [ ] Regression tests or equivalent focused checks passed.
+- [ ] Shell-command evidence follows =RTK.md=; high-volume checks use =--ultra-compact= when summaries are enough, and =rtk proxy= / =rtk run= are used only as passthrough exceptions, not token-saving wrappers.
 - [ ] Documentation or tracking surfaces updated.
 - [ ] Hidden-path Markdown link scan considered when canonical docs changed.
 
@@ -126,6 +140,7 @@ remain queryable after archival.
 ** Recovery Commands
 
 #+begin_src text
-wendao-client orgize task-list --text '<lane-or-package>' $PRJ_CACHE_HOME/agent/org
+wendao-client orgize task-probe --cached --text '<remembered text>' $PRJ_CACHE_HOME/agent/org
+wendao-client orgize orgid-show --cached --id <org-section-id> $PRJ_CACHE_HOME/agent/org
 wendao-client orgize agent-planning --date YYYY-MM-DD $PRJ_CACHE_HOME/agent/org
 #+end_src

@@ -457,7 +457,7 @@ fn source_span_for_headline(content: &str, headline: &Headline) -> OrgOntologySo
 }
 
 fn extract_section_tables(content: &str, headline: &Headline) -> Vec<OrgOntologyAuthoringTable> {
-    let lines = immediate_section_lines(content, headline);
+    let lines = section_body_lines(content, headline);
     let mut tables = Vec::new();
     let mut index = 0usize;
     while index < lines.len() {
@@ -484,7 +484,7 @@ fn extract_section_embedded_artifacts(
     content: &str,
     headline: &Headline,
 ) -> Vec<OrgOntologyEmbeddedArtifact> {
-    let lines = immediate_section_lines(content, headline);
+    let lines = section_body_lines(content, headline);
     let mut artifacts = Vec::new();
     let mut index = 0usize;
     while index < lines.len() {
@@ -566,7 +566,7 @@ fn compile_table(
     })
 }
 
-fn immediate_section_lines(content: &str, headline: &Headline) -> Vec<(usize, String)> {
+fn section_body_lines(content: &str, headline: &Headline) -> Vec<(usize, String)> {
     let start = usize::from(headline.start()).min(content.len());
     let end = usize::from(headline.end()).min(content.len()).max(start);
     let start_line = line_column_for_byte(content, start).0;
@@ -574,7 +574,7 @@ fn immediate_section_lines(content: &str, headline: &Headline) -> Vec<(usize, St
     let mut lines = Vec::new();
     for (offset, line) in section.lines().enumerate().skip(1) {
         if is_headline_line(line) {
-            break;
+            continue;
         }
         lines.push((start_line + offset, line.to_string()));
     }
@@ -604,6 +604,10 @@ fn table_name_for_kind(kind: &str) -> String {
         "object_mapping" => "Object Mapping",
         "link_mapping" => "Link Mapping",
         "mapping_evidence" => "Mapping Evidence",
+        "candidate_review" => "Candidate Review",
+        "promotion_review" => "Promotion Review",
+        "object_instance_review" => "Object Instance Review",
+        "instance_relation_review" => "Instance Relation Review",
         other => other,
     }
     .to_string()
@@ -618,6 +622,27 @@ fn table_kind_for_columns(columns: &[String]) -> OrgOntologyTableKind {
         || normalized.contains(&"rdf_class".to_string())
     {
         "object_mapping"
+    } else if normalized.contains(&"object_id".to_string())
+        && normalized.contains(&"object_type".to_string())
+        && normalized.contains(&"label".to_string())
+        && normalized.contains(&"evidence_id".to_string())
+    {
+        "object_instance_review"
+    } else if normalized.contains(&"relation_id".to_string())
+        && normalized.contains(&"source_object_id".to_string())
+        && normalized.contains(&"predicate".to_string())
+        && normalized.contains(&"target_object_id".to_string())
+        && normalized.contains(&"evidence_id".to_string())
+    {
+        "instance_relation_review"
+    } else if normalized.contains(&"promotion_decision".to_string())
+        && normalized.contains(&"reviewer_id".to_string())
+    {
+        "promotion_review"
+    } else if normalized.contains(&"review_decision".to_string())
+        && normalized.contains(&"promotion_precondition_met".to_string())
+    {
+        "candidate_review"
     } else if normalized.contains(&"predicate".to_string())
         || normalized.contains(&"rdf_property".to_string())
     {

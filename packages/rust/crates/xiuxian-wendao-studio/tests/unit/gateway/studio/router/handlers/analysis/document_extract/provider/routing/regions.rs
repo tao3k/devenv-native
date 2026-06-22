@@ -5,14 +5,17 @@ use std::path::Path;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use super::{
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV,
     DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV,
     HybridPdfOcr2RegionPlanner, assert_close,
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup, has_ocr2_recovery_page_candidates,
     hybrid_page_ocr_region_context_ratio_with_lookup,
     hybrid_page_ocr_region_requests_for_source_with_lookup,
-    hybrid_page_ocr2_region_planner_with_lookup, sample_ocr_input,
+    hybrid_page_ocr2_region_patch_sizing_with_lookup, hybrid_page_ocr2_region_planner_with_lookup,
+    sample_ocr_input,
 };
 
 #[cfg(feature = "document-extract-pdf-source-range")]
@@ -124,6 +127,24 @@ fn hybrid_page_ocr2_region_planner_accepts_profile_risk_window() {
         hybrid_page_ocr2_region_planner_with_lookup(&|_key| None),
         HybridPdfOcr2RegionPlanner::Disabled
     );
+}
+
+#[cfg(feature = "document-extract-pdf-source-range")]
+#[test]
+fn hybrid_page_ocr2_region_patch_sizing_accepts_target_pixels_and_max_slices() {
+    let default_sizing = hybrid_page_ocr2_region_patch_sizing_with_lookup(&|_key| None);
+    assert_close(default_sizing.target_pixels, 2_250_000.0);
+    assert_eq!(default_sizing.max_slices, 3);
+
+    let sizing = hybrid_page_ocr2_region_patch_sizing_with_lookup(&|key| {
+        if key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV {
+            Some("750000".to_string())
+        } else {
+            (key == DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV).then(|| "4".to_string())
+        }
+    });
+    assert_close(sizing.target_pixels, 750_000.0);
+    assert_eq!(sizing.max_slices, 4);
 }
 
 #[cfg(feature = "document-extract-pdf-source-range")]

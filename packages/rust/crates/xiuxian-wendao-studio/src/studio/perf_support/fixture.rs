@@ -7,7 +7,7 @@ use std::sync::Arc;
 use anyhow::{Result, anyhow};
 use axum::Router;
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     JuliaServiceGuard, spawn_wendaosearch_julia_parser_summary_service_with_attempts,
 };
 

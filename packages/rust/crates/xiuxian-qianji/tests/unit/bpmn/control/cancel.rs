@@ -59,7 +59,7 @@ async fn workflow_control_service_cancels_checkpointed_session_from_duckdb_store
     );
     assert!(matches!(
         cancel_report.instance.lifecycle,
-        qianji_bpmn_engine::InstanceLifecycle::Waiting
+        xiuxian_qianji_bpmn_engine::InstanceLifecycle::Waiting
     ));
 
     let checkpoint = ok_of(
@@ -198,7 +198,7 @@ async fn workflow_control_service_runtime_valkey_cancel_deletes_checkpoint_and_r
     assert_eq!(cancel_report.instance.instance_id.as_ref(), instance_id);
     assert!(matches!(
         cancel_report.instance.lifecycle,
-        qianji_bpmn_engine::InstanceLifecycle::Waiting
+        xiuxian_qianji_bpmn_engine::InstanceLifecycle::Waiting
     ));
 
     let checkpoint = ok_of(

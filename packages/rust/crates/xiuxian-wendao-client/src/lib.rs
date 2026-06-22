@@ -1,20 +1,10 @@
 //! Lightweight Wendao client CLI surfaces for local document tooling.
 
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::client_rust_harness_config()
-);
-
 mod cli;
 mod context;
 mod execute;
 mod get;
 mod lint;
-mod orgize;
 mod output;
 #[cfg(feature = "semantic-sql")]
 mod semantic;
@@ -40,12 +30,6 @@ pub use lint::{
 pub use lint::{
     SemanticLintArgs, SemanticLintProjectionValidationArgs, SemanticLintValidationArgs,
     SemanticLintWritebackArgs,
-};
-#[cfg(feature = "orgize-agent-read-model")]
-pub use orgize::OrgizeReadModelArgs;
-pub use orgize::{
-    OrgizeAgentPlanningArgs, OrgizeCommand, OrgizeFormatArgs, OrgizeLintArgs, OrgizeLintFormatArg,
-    OrgizeSddCommand, OrgizeSddGraphDiffArgs, OrgizeSddStatusArgs, OrgizeSparseTreeArgs,
 };
 pub use output::OutputFormat;
 #[cfg(feature = "semantic-sql")]

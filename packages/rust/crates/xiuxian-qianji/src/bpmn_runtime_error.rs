@@ -5,12 +5,12 @@ use crate::bpmn::identity::{
     QianjiBpmnLeaseOwnerToken, QianjiBpmnPackageId, QianjiBpmnProcessId, QianjiBpmnStartAtNodeId,
     QianjiBpmnWorkflowInstanceId,
 };
-use qianji_bpmn_engine::{BpmnEngineError, BpmnPendingHostWorkIdentityMismatch};
 use std::fmt;
 use std::io;
 use std::path::PathBuf;
 #[cfg(feature = "duckdb")]
 use xiuxian_db_store::qianji_bpmn::QianjiBpmnDataStoreError;
+use xiuxian_qianji_bpmn_engine::{BpmnEngineError, BpmnPendingHostWorkIdentityMismatch};
 
 /// Typed BPMN node-kind label for unsupported start-at requests.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -179,6 +179,14 @@ pub enum BpmnOrchestrationError {
     CheckpointListUnsupportedBackend {
         /// Human-readable backend name.
         backend: String,
+    },
+    /// Returned when a checkpoint backend was selected but its Cargo feature is disabled.
+    #[error("BPMN checkpoint backend '{backend}' requires the `{feature}` feature")]
+    CheckpointBackendFeatureDisabled {
+        /// Human-readable backend name.
+        backend: String,
+        /// Required Cargo feature name.
+        feature: &'static str,
     },
     /// Returned when another scheduler owner already holds the BPMN checkpoint
     /// lease for the same instance.

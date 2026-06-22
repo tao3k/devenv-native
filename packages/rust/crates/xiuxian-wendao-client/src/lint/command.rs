@@ -17,7 +17,7 @@ pub enum LintCommand {
 #[derive(Args, Debug)]
 pub struct MarkdownLintArgs {
     /// File or directory roots to inspect. When omitted, lint walks
-    /// `link_graph.projects.*.root` from `wendao.toml` before falling back to
+    /// `sources.projects.*.root` from `wendao.toml` before falling back to
     /// the configured `--root`.
     #[arg(value_name = "PATH")]
     pub paths: Vec<PathBuf>,

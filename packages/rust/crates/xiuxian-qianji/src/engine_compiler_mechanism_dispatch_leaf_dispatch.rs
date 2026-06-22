@@ -10,14 +10,23 @@ mod io_control;
 mod quality_guard;
 #[path = "engine/compiler/mechanism_dispatch/leaf_dispatch/wendao_router.rs"]
 mod wendao_router;
+#[cfg(feature = "wendao-integration")]
 #[path = "engine/compiler/mechanism_dispatch/leaf_dispatch/wendao_sql.rs"]
 mod wendao_sql;
 
+#[cfg(feature = "wendao-integration")]
 const LEAF_RESOLVERS: [resolver_chain::ResolverFn; 4] = [
     io_control::build,
     quality_guard::build,
     wendao_router::build,
     wendao_sql::build,
+];
+
+#[cfg(not(feature = "wendao-integration"))]
+const LEAF_RESOLVERS: [resolver_chain::ResolverFn; 3] = [
+    io_control::build,
+    quality_guard::build,
+    wendao_router::build,
 ];
 
 pub(super) fn build(

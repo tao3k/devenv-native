@@ -2,7 +2,7 @@
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use super::shared::{require_non_empty_argument, serialize_payload};
 use crate::zhenfa_router::native::resolve_docs_tool_runtime;
@@ -24,11 +24,6 @@ pub struct WendaoDocsGetDocumentNodeArgs {
 /// service is missing from the native context, or the underlying docs lookup
 /// fails.
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.docs.get_document_node",
-    description = "Open one docs-facing page-index node and return its serialized payload.",
-    tool_struct = "WendaoDocsGetDocumentNodeTool"
-)]
 pub fn wendao_docs_get_document_node(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetDocumentNodeArgs,

@@ -1,0 +1,33 @@
+[package]
+name = "xiuxian-qianji-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Qianji durable workflow runtime adapters"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = []
+valkey = ["xiuxian-qianji-bpmn-engine/valkey"]
+
+[dependencies]
+async-trait = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false }
+xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+tokio = { workspace = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+name = "xiuxian_qianji_runtime"
+path = "src/lib.rs"

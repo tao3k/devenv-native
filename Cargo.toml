@@ -5,10 +5,7 @@ resolver = "2"
 members = [
   "packages/rust/bindings/python",
   "packages/rust/crates/xiuxian-config-core",
-  "packages/rust/crates/xiuxian-ast",
-  "packages/rust/crates/xiuxian-edit",
-  "packages/rust/crates/xiuxian-event",
-  "packages/rust/crates/xiuxian-io",
+  "packages/rust/crates/xiuxian-graph-core",
   "packages/rust/crates/xiuxian-git-repo",
   "packages/rust/crates/xiuxian-wendao-attachments",
   "packages/rust/crates/xiuxian-wendao-parsers",
@@ -22,26 +19,21 @@ members = [
   "packages/rust/crates/xiuxian-wendao-server",
   "packages/rust/crates/xiuxian-lance",
   "packages/rust/crates/xiuxian-macros",
-  "packages/rust/crates/xiuxian-memory-engine",
   "packages/rust/crates/xiuxian-logging",
+  "packages/rust/crates/xiuxian-rust-workspace-harness",
   "packages/rust/crates/xiuxian-security",
-  "packages/rust/crates/xiuxian-sandbox",
-  "packages/rust/crates/xiuxian-code-intelligence",
-  "packages/rust/crates/xiuxian-tokenizer",
   "packages/rust/crates/xiuxian-types",
   "packages/rust/crates/xiuxian-vector",
   "packages/rust/crates/xiuxian-db-store",
-  "packages/rust/crates/xiuxian-qianhuan",
-  "packages/rust/crates/qianji-bpmn-engine",
-  "packages/rust/crates/xiuxian-llm",
+  "packages/rust/crates/xiuxian-qianji-bpmn-engine",
+  "packages/rust/crates/xiuxian-julia-core",
+  "packages/rust/crates/xiuxian-julia-runtime",
   "packages/rust/crates/xiuxian-polyglot-orchestrator",
   "packages/rust/crates/xiuxian-wendao-client",
-  "packages/rust/crates/xiuxian-wendao-julia",
-  "packages/rust/crates/xiuxian-window",
   "packages/rust/crates/xiuxian-qianji-control",
+  "packages/rust/crates/xiuxian-qianji-runtime",
+  "packages/rust/crates/xiuxian-qianji-client",
   "packages/rust/crates/xiuxian-qianji",
-  "packages/rust/crates/xiuxian-memory",
-  "packages/rust/crates/xiuxian-zhixing",
   "packages/rust/crates/xiuxian-zhenfa",
 ]
 
@@ -57,8 +49,8 @@ description = "CyberXiuXian Artisan Workshop - High-performance Agentic OS with 
 # Unified dependency management
 [workspace.dependencies]
 # Core dependencies
-tokio = { version = "1.49.0", features = ["full"] }
-serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.49.0", features = ["rt", "rt-multi-thread", "macros", "io-util", "fs", "net", "time", "sync"] }
+serde = { version = "1.0.228", features = ["derive", "rc"] }
 serde_json = "1.0.149"
 serde_yaml = "0.9"
 toml = "0.8"
@@ -66,8 +58,8 @@ anyhow = "1.0.100"
 ariadne = "0.6.0"
 thiserror = "2.0.17"
 walkdir = "2.5.0"
-uuid = { version = "1.11", features = ["v4"] }
-chrono = { version = "0.4.38", default-features = false }
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4.38", default-features = false, features = ["clock", "serde", "std"] }
 chrono-tz = "0.10.4"
 tracing = "0.1"
 tracing-log = "0.2"
@@ -75,8 +67,10 @@ globset = "0.4"
 include_dir = "0.7.4"
 rand = "0.8"
 futures = "0.3.32"
-tokio-util = "0.7.18"
+foyer = { version = "0.22.3", default-features = false, features = ["runtime-tokio"] }
+tokio-util = { version = "0.7.18", features = ["rt"] }
 tokio-stream = { version = "0.1", features = ["net"] }
+tokio-postgres = "0.7"
 flate2 = "1.1.9"
 tar = "0.4.45"
 md5 = "0.8.0"
@@ -84,54 +78,48 @@ regex = "1"
 blake3 = "1"
 inventory = "0.3"
 comrak = { version = "0.50.0", default-features = false }
-orgize = { git = "https://github.com/tao3k/orgize", rev = "f9f0d2fce8e09c6d5e3fa8ffd40756566b758483" }
+orgize = { git = "https://github.com/tao3k/orgize", rev = "69b5326b0ba04bbfe6ad3a0d1c5cf77d4292df34" }
 pulldown-cmark = "0.12"
-quick-xml = "0.39.2"
+quick-xml = { version = "0.39.2", features = ["serialize"] }
 petgraph = "0.7"
 async-trait = "0.1"
 num-traits = "0.2"
 url = "2.5.7"
-tower = "0.5"
+tower = { version = "0.5", features = ["limit", "load-shed", "timeout", "util"] }
+tower-http = { version = "0.6", features = ["limit"] }
 proc-macro2 = "1"
 syn = { version = "2.0", features = ["full"] }
 quote = "1"
-ast-grep-core = "0.40.5"
-ast-grep-language = "0.40.5"
-ast-grep-config = "0.40.5"
 tera = "1"
 aho-corasick = "1.1"
 ignore = "0.4"
 similar = "2.7"
 unicode-normalization = "0.1"
 xxhash-rust = "0.8"
-tree-sitter = "0.26.5"
-tree-sitter-python = "0.25.0"
 graphql-parser = "0.4"
-merman-core = "0.4"
+merman-core = "0.5.0"
 image = "0.25"
 imageproc = "0.25"
 duckdb = { version = "=1.10502.0", default-features = false, features = ["bundled", "appender-arrow", "parquet"] }
 
 # Git operations
-gix = "0.81.0"
+gix = { version = "0.81.0", features = ["blocking-http-transport-reqwest-rust-tls"] }
 
 # Python bindings - Python 3.13 support via PyO3 0.27+
 pyo3 = { version = "0.27.2", features = ["extension-module"] }
 pyo3-build-config = "0.27.2"
 pyo3-asyncio = { version = "0.27", features = ["tokio"] }
 
-# Safe I/O & Tokenization
-tiktoken-rs = "0.9.1"
+# Safe I/O
 memchr = "2.7.6"
 tempfile = "3.24"
 sha2 = "0.10"
 hex = "0.4"
 base64 = "0.22"
-tokenizers = "0.22.2"
 
 # JSON Schema generation for Schema Singularity (SSOT)
 schemars = "1.2.0"
-jsonschema = "0.18.3"
+jsonschema = { version = "0.18.3", default-features = false, features = [] }
 specta = { version = "2.0.0-rc.23", features = ["derive"] }
 specta-typescript = "0.0.10"
 
@@ -143,18 +131,18 @@ lance-index = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33
 lance-linalg = { git = "https://github.com/lancedb/lance.git", rev = "ad05eae9e33eee8ef4f40b06f2843a907b6d6eb3" }
 
 # Arrow IPC for analytics and DataFusion execution
-arrow = { version = "58.1.0", features = ["ffi"] }
-arrow-array = { version = "58.1.0", features = ["ffi"] }
-arrow-flight = "58.1.0"
-arrow-ipc = "58.1.0"
-arrow-schema = { version = "58.1.0", features = ["ffi"] }
-arrow-string = "58.1.0"
-parquet = "58.1.0"
+arrow = { version = "58", features = ["ffi"] }
+arrow-array = { version = "58", features = ["ffi"] }
+arrow-flight = "58"
+arrow-ipc = "58"
+arrow-schema = { version = "58", features = ["ffi"] }
+arrow-string = "58"
+parquet = "58"
 datafusion = "53.0.0"
 sqlparser = "0.61.0"
 
 # Redis cache and session backend
-redis = { version = "1.0.3", default-features = false }
+redis = { version = "1.0.3", default-features = false, features = ["tokio-comp", "connection-manager"] }
 
 # Logging
 log = "0.4"
@@ -163,8 +151,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 # Parallel processing
 rayon = "1.11"
 
-reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
-litellm-rs = { git = "https://github.com/tao3k/litellm-rs", branch = "xiuxian", default-features = false }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "gzip", "brotli", "deflate", "zstd", "http2"] }
 
 # CLI and HTTP
 clap = { version = "4.5", features = ["derive"] }
@@ -180,20 +167,145 @@ insta = { version = "1.46.3", features = ["json", "redactions"] }
 serial_test = { version = "3", features = ["file_locks"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 hdrhistogram = "7.5"
-rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "acf9295ef9ef03caeb7ffa85c5e0b2389abe7d67" }
+rust-lang-project-harness = { git = "https://github.com/tao3k/rust-lang-project-harness", rev = "6dea4b1afc46bec0b4b480b9ab99b9d471d045ee" }
+xiuxian-rust-workspace-harness = { path = "packages/rust/crates/xiuxian-rust-workspace-harness" }
 
-
-# Performance optimization - Thin LTO for reduced memory
+# Release profile optimizations for better performance
 [profile.release]
-opt-level = 3
+# "thin" LTO: cross-crate inlining without the full monolithic link pass.
+# Cuts CI build time vs lto=true while keeping most optimizations.
 lto = "thin"
-strip = true
+opt-level = 3
+# Parallel code generation; faster link than codegen-units=1.
+codegen-units = 4
 panic = "abort"
+strip = true
 
+# Development profile - faster builds.
 [profile.dev]
+incremental = true
+# Minimal debug info for faster builds while preserving useful backtraces.
 debug = 1
+# Split debuginfo for faster linking on macOS.
 split-debuginfo = "unpacked"
+# Match Cargo's fast incremental default explicitly so future edits do not
+# accidentally trade edit-build latency for local-crate code quality.
+codegen-units = 256
 
+# No debug info for external dependencies; local crates still use profile.dev.
+[profile.dev.package."*"]
+debug = false
+
+# Build scripts and proc macros run during compilation, so keep them lightly
+# optimized without carrying debug info.
+[profile.dev.build-override]
+opt-level = 1
+debug = false
+codegen-units = 256
+
+# Hot-path crates that still get optimized in dev because their inner loops are
+# user-perceivable: parsing, image processing, hashing, diffing, regex, file
+# walking, fuzzy matching, parallelism, and compression.
+[profile.dev.package.image]
+opt-level = 2
+
+[profile.dev.package.png]
+opt-level = 2
+
+[profile.dev.package.zune-jpeg]
+opt-level = 2
+
+[profile.dev.package.blake3]
+opt-level = 2
+
+[profile.dev.package.xxhash-rust]
+opt-level = 2
+
+[profile.dev.package.sha2]
+opt-level = 2
+
+[profile.dev.package.similar]
+opt-level = 2
+
+[profile.dev.package.regex]
+opt-level = 2
+
+[profile.dev.package.regex-automata]
+opt-level = 2
+
+[profile.dev.package.memchr]
+opt-level = 2
+
+[profile.dev.package.rayon]
+opt-level = 2
+
+[profile.dev.package.rayon-core]
+opt-level = 2
+
+[profile.dev.package.flate2]
+opt-level = 2
+
+[profile.dev.package.miniz_oxide]
+opt-level = 2
+
+[profile.dev.package.zstd-safe]
+opt-level = 2
+
+[profile.dev.package.zstd-sys]
+opt-level = 2
+
+[profile.dev.package.zip]
+opt-level = 2
+
+[profile.dev.package.ignore]
+opt-level = 2
+
+[profile.dev.package.globset]
+opt-level = 2
+
+[profile.dev.package.aho-corasick]
+opt-level = 2
+
+[profile.dev.package.tantivy]
+opt-level = 2
+
+[profile.dev.package.arrow-array]
+opt-level = 2
+
+[profile.dev.package.arrow-buffer]
+opt-level = 2
+
+[profile.dev.package.arrow-data]
+opt-level = 2
+
+[profile.dev.package.arrow-ipc]
+opt-level = 2
+
+[profile.dev.package.arrow-string]
+opt-level = 2
+
+[profile.dev.package.parquet]
+opt-level = 2
+
+# Fast test build: produces optimized-enough artifacts without release LTO.
+[profile.dev-build]
+inherits = "dev"
+opt-level = 1
+debug = false
+strip = true
+
+# Explicit maximum-runtime profile for benchmark evidence and final local
+# performance gates. Do not use as the default CI release profile.
+[profile.release-max]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+
+# Release-equivalent runtime with symbols preserved enough for profilers.
+[profile.profiling]
+inherits = "release"
+debug = "line-tables-only"
+strip = "none"
 
 [workspace.lints.rust]
 unsafe_code = "deny" # Default deny unsafe unless explicitly allowed

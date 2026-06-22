@@ -3,23 +3,23 @@ use std::sync::Arc;
 use super::{
     build_autocomplete_response, build_definition_response, build_knowledge_search_response,
     load_attachment_search_response_from_studio, load_intent_search_response_with_metadata,
-    load_reference_search_response, load_symbol_search_response, search_ast,
+    load_reference_search_response, load_symbol_search_response,
 };
 use crate::contracts::{UiConfig, UiProjectConfig, UiRepoProjectConfig};
-use crate::studio::build_ast_index;
+use crate::studio::search::build_source_symbol_hits;
 use crate::studio::search::handlers::code_search::{
     CODE_CONTENT_EXCLUDE_GLOBS, is_supported_code_extension, parse_content_search_line,
     path_matches_language_filters, repo_navigation_target, truncate_content_search_snippet,
 };
 use crate::studio::search::handlers::knowledge::ensure_intent_indices;
 use crate::studio::search::handlers::queries::{
-    AstSearchQuery, AttachmentSearchQuery, ReferenceSearchQuery, SearchQuery, SymbolSearchQuery,
+    AttachmentSearchQuery, ReferenceSearchQuery, SearchQuery, SymbolSearchQuery,
 };
 use crate::studio::search::handlers::status::search_index_status;
 use crate::studio::search::strip_option;
 use crate::studio::test_support::{assert_studio_json_snapshot, round_f64};
 use crate::studio::{GatewayState, StudioState};
-use axum::extract::{Query, State};
+use axum::extract::State;
 use serde_json::json;
 use tempfile::tempdir;
 use xiuxian_wendao::analyzers::{
@@ -31,7 +31,6 @@ use xiuxian_wendao::repo_index::{
 };
 use xiuxian_wendao::search::SearchPlaneService;
 
-mod ast;
 mod attachments;
 mod autocomplete;
 mod code_search_intent;
@@ -392,7 +391,7 @@ fn search_index_status_payload_view(payload: &serde_json::Value) -> serde_json::
 
 async fn publish_local_symbol_index(state: &Arc<GatewayState>) {
     let projects = state.studio.configured_projects();
-    let hits = build_ast_index(
+    let hits = build_source_symbol_hits(
         state.studio.project_root.as_path(),
         state.studio.config_root.as_path(),
         &projects,
@@ -410,7 +409,7 @@ async fn publish_local_symbol_index(state: &Arc<GatewayState>) {
         )
         .to_hex()
     );
-    let hits = crate::contracts::domain_ast_hits_for_search_plane(hits);
+    let hits = crate::contracts::domain_source_symbol_hits_for_search_plane(hits);
     ok_or_panic(
         state
             .studio

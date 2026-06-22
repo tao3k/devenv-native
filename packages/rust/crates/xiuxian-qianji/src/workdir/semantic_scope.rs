@@ -6,9 +6,10 @@
 use std::fmt::Write as _;
 
 use serde::Serialize;
-use xiuxian_wendao_parsers::semantic_ssot::{
-    SemanticObjectKind, SemanticProjectionFreshnessPolicyReport, SemanticProjectionStaleness,
-    SemanticScopeBundle, SemanticStatus, parse_semantic_scope_metadata_envelope_json,
+use xiuxian_wendao_core::{
+    SemanticProjectionFreshnessPolicyReport, SemanticScopeBundle, SemanticScopeObjectKind,
+    SemanticScopeProjectionStaleness, SemanticScopeStatus,
+    parse_semantic_scope_metadata_envelope_json,
 };
 
 use crate::error::QianjiError;
@@ -181,7 +182,7 @@ pub fn trace_workdir_semantic_scope_bundle_with_evidence(
             bundle.unresolved_ids.join(", ")
         ));
     }
-    if bundle.projection_staleness == Some(SemanticProjectionStaleness::Stale) {
+    if semantic_projection_is_stale(bundle.projection_staleness.as_ref()) {
         issues.push(
             "semantic projection is stale and must be refreshed or reviewed before relying on it"
                 .to_string(),
@@ -206,7 +207,7 @@ pub fn trace_workdir_semantic_scope_bundle_with_evidence(
 
     let status = if bundle.objects.is_empty() || !bundle.unresolved_ids.is_empty() {
         WorkdirSemanticScopeGuardStatus::Blocked
-    } else if bundle.projection_staleness == Some(SemanticProjectionStaleness::Stale)
+    } else if semantic_projection_is_stale(bundle.projection_staleness.as_ref())
         || sql_guard_evidence
             .iter()
             .any(|guard| guard.status != "passed")
@@ -535,29 +536,18 @@ fn semantic_projection_policy_summaries_from_report(
         .unwrap_or_default()
 }
 
-fn semantic_kind_token(kind: &SemanticObjectKind) -> &'static str {
-    match kind {
-        SemanticObjectKind::Component => "component",
-        SemanticObjectKind::Decision => "decision",
-        SemanticObjectKind::Invariant => "invariant",
-        SemanticObjectKind::Task => "task",
-    }
+fn semantic_kind_token(kind: &SemanticScopeObjectKind) -> &str {
+    kind.as_str()
 }
 
-fn semantic_status_token(status: &SemanticStatus) -> &'static str {
-    match status {
-        SemanticStatus::Draft => "draft",
-        SemanticStatus::Candidate => "candidate",
-        SemanticStatus::Active => "active",
-        SemanticStatus::Superseded => "superseded",
-        SemanticStatus::Deprecated => "deprecated",
-        SemanticStatus::Retired => "retired",
-    }
+fn semantic_status_token(status: &SemanticScopeStatus) -> &str {
+    status.as_str()
 }
 
-fn semantic_projection_staleness_token(staleness: &SemanticProjectionStaleness) -> &'static str {
-    match staleness {
-        SemanticProjectionStaleness::Fresh => "fresh",
-        SemanticProjectionStaleness::Stale => "stale",
-    }
+fn semantic_projection_staleness_token(staleness: &SemanticScopeProjectionStaleness) -> &str {
+    staleness.as_str()
+}
+
+fn semantic_projection_is_stale(staleness: Option<&SemanticScopeProjectionStaleness>) -> bool {
+    staleness.is_some_and(|staleness| staleness.as_str().eq_ignore_ascii_case("stale"))
 }

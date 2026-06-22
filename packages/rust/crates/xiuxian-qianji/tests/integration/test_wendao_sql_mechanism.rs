@@ -1,5 +1,7 @@
 //! Integration tests for bounded Wendao SQL authoring mechanisms.
 
+#![cfg(feature = "wendao-integration")]
+
 use axum::Json;
 use axum::Router;
 use axum::extract::State;

@@ -22,7 +22,7 @@ fn modelica_plugin_docs_projected_gap_report_executes_over_external_plugin_path(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-projected-gap-report]
+            r#"[sources.projects.modelica-docs-projected-gap-report]
 root = "{}"
 plugins = ["modelica"]
 "#,

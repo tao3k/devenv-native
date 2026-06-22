@@ -62,10 +62,10 @@ impl ZhenfaError {
         }
     }
 
-    /// Returns one LLM-safe semantic summary without exposing internal runtime
+    /// Returns one caller-safe semantic summary without exposing internal runtime
     /// details such as local paths, backend internals, or transport traces.
     #[must_use]
-    pub fn llm_safe_message(&self) -> &'static str {
+    pub fn caller_safe_message(&self) -> &'static str {
         match self {
             Self::NotFound { .. } => "requested tool is unavailable in the current runtime",
             Self::InvalidArguments { .. } => {

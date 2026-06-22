@@ -2,7 +2,7 @@
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::{
     LinkGraphCcsAudit, LinkGraphPlannedSearchPayload, LinkGraphRelatedFilter,
@@ -52,12 +52,6 @@ pub struct WendaoSearchArgs {
 /// Returns a [`ZhenfaError`] when the query is invalid, the root argument is malformed,
 /// or the graph index cannot execute the requested search.
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.search",
-    description = "Search the Wendao graph index and return stripped XML-Lite <hit> records.",
-    tool_struct = "WendaoSearchTool",
-    mutation_scope = "wendao.search"
-)]
 /// # Errors
 /// Returns a [`ZhenfaError`] when validation fails or planner execution fails.
 pub fn wendao_search(ctx: &ZhenfaContext, args: WendaoSearchArgs) -> Result<String, ZhenfaError> {

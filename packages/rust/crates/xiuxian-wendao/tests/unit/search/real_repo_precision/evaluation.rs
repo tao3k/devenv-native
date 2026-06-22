@@ -27,10 +27,6 @@ fn sync_mode_parser_defaults_to_status() {
         RealRepoGoldQueryKind::parse_filter(Some("link_graph")),
         Some(RealRepoGoldQueryKind::LinkGraph)
     );
-    assert_eq!(
-        RealRepoGoldQueryKind::parse_filter(Some("REPO_AST")),
-        Some(RealRepoGoldQueryKind::RepoAst)
-    );
     assert_eq!(RealRepoGoldQueryKind::parse_filter(Some("all")), None);
 }
 

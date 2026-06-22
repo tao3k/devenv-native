@@ -151,7 +151,6 @@ That lane does not exist as the primary workload today.
 Other crates already use Valkey for their own domains:
 
 - `xiuxian-memory-engine`
-- `xiuxian-memory`
 - `xiuxian-daochang`
 
 That strengthens the boundary decision: Valkey is a cross-cutting runtime

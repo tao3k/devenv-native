@@ -123,6 +123,13 @@ impl ZhenfaGatewayBuilder {
         if let (Some(rx), Some(config)) = (self.signal_rx, self.webhook_config) {
             let client = self.http_client.unwrap_or_else(|| {
                 reqwest::Client::builder()
+                    .brotli(true)
+                    .deflate(true)
+                    .gzip(true)
+                    .zstd(true)
+                    .pool_idle_timeout(std::time::Duration::from_mins(2))
+                    .pool_max_idle_per_host(32)
+                    .connect_timeout(std::time::Duration::from_secs(5))
                     .timeout(std::time::Duration::from_secs(config.timeout_secs))
                     .build()
                     .unwrap_or_else(|_| reqwest::Client::new())

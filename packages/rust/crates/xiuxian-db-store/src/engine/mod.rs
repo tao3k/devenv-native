@@ -15,7 +15,4 @@ pub use query_support::{
     payload_fetch_record_batch, retrieval_result_columns, retrieval_result_schema,
     retrieval_rows_from_record_batch, retrieval_rows_to_record_batch,
 };
-pub use stub::{
-    ColumnarScanOptions, TableInfo, VectorStore, engine_batch_to_lance_batch,
-    engine_batches_to_lance_batches, lance_batch_to_engine_batch, lance_batches_to_engine_batches,
-};
+pub use stub::{ColumnarScanOptions, TableInfo, VectorStore};

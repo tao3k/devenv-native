@@ -18,12 +18,6 @@ pub struct RepoDocCoverageRequest {
     pub module_id: Option<String>,
 }
 
-impl PartialEq<(String, Option<String>)> for RepoDocCoverageRequest {
-    fn eq(&self, other: &(String, Option<String>)) -> bool {
-        self.repo_id == other.0 && self.module_id == other.1
-    }
-}
-
 /// Validate the stable repo doc-coverage request contract.
 ///
 /// # Errors

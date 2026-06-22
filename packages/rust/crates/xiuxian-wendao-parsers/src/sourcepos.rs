@@ -25,12 +25,6 @@ impl SourceByteRange {
     }
 }
 
-impl PartialEq<(usize, usize)> for SourceByteRange {
-    fn eq(&self, other: &(usize, usize)) -> bool {
-        self.start == other.0 && self.end == other.1
-    }
-}
-
 /// Parser-owned inclusive line/column span.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LineColumnSpan {

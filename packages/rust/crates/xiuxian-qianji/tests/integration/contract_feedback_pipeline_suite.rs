@@ -1,14 +1,14 @@
 //! Integration coverage for the Qianji contract-feedback pipeline.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use anyhow::Result;
 #[path = "support/workspace.rs"]
 mod workspace;
 use serde_json::json;
-use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::contract_feedback::{
     AdvisoryAuditPolicy, ArtifactKind, CollectedArtifact, CollectedArtifacts, CollectionContext,
     ContractExecutionMode, ContractFinding, ContractRunConfig, ContractSuite, EvidenceKind,
@@ -170,13 +170,7 @@ async fn contract_feedback_flow_exports_deterministic_report_to_wendao_entries()
 
 #[tokio::test]
 async fn contract_feedback_flow_keeps_advisory_exports_unique_and_wendao_ready() {
-    let executor = QianjiAdvisoryAuditExecutor::new(
-        Arc::new(ThousandFacesOrchestrator::new(
-            "Contract Kernel".to_string(),
-            None,
-        )),
-        Arc::new(PersonaRegistry::with_builtins()),
-    );
+    let executor = QianjiAdvisoryAuditExecutor::new();
     let mut config = base_config();
     config.set_advisory_policy_for_pack(
         "rest_docs",

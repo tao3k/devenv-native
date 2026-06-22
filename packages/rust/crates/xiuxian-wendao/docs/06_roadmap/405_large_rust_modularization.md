@@ -157,7 +157,7 @@ Priority override:
 - [DONE] `zhenfa_router/native/audit/fix.rs` is split into `zhenfa_router/native/audit/fix/` with interface-only `mod.rs`, `batch.rs`, `format.rs`, `hashing.rs`, `preview.rs`, `report.rs`, and `tests.rs`, while preserving `AtomicFixBatch`, `FixPreview`, `FixReport`, `format_fix_preview`, and the audit-fix write-back semantics.
 - [DONE] `zhenfa_router/native/semantic_check/docs_governance/tests.rs` is split into `zhenfa_router/native/semantic_check/docs_governance/tests/` with interface-only `mod.rs`, `doc_identity.rs`, `fixes.rs`, `index_links.rs`, `package_docs.rs`, `scope.rs`, `standard_sections.rs`, and `workspace.rs`, while preserving the docs-governance test coverage and the existing `run_audit_core` / surgical-fix assertions.
 - [DONE] `zhenfa_router/native/semantic_check/docs_governance/tests/index_links.rs` is split into `zhenfa_router/native/semantic_check/docs_governance/tests/index_links/` with interface-only `mod.rs`, plus `section_links.rs`, `relations.rs`, and `footer.rs`, while preserving the docs-governance index-link coverage and the existing `run_audit_core` assertions.
-- [DONE] `skill_runtime/zhixing/resources.rs` is split into `skill_runtime/zhixing/resources/` with interface-only `mod.rs`, `paths.rs`, `mounts.rs`, `text.rs`, `registry.rs`, `discovery.rs`, and `tests.rs`, preserving the embedded skill-resource registry and discovery surface. The embedded `zhixing` tree is vendored under `packages/rust/crates/xiuxian-wendao/resources/zhixing` and injected through `build.rs`, so downstream builds no longer depend on the sibling `xiuxian-zhixing` crate path.
+- [DONE] `skill_runtime/zhixing/resources.rs` is split into `skill_runtime/zhixing/resources/` with interface-only `mod.rs`, `paths.rs`, `mounts.rs`, `text.rs`, `registry.rs`, `discovery.rs`, and `tests.rs`, preserving the embedded skill-resource registry and discovery surface. The embedded `zhixing` tree is vendored under `packages/rust/crates/xiuxian-wendao/resources/zhixing` and injected through `build.rs`, so downstream builds no longer depend on the sibling `retired Zhixing crate` crate path.
 - [DONE] `analyzers/projection/builder.rs` is split into `analyzers/projection/builder/` with interface-only `mod.rs`, `anchors.rs`, `sources.rs`, `kinds.rs`, `assemble.rs`, `helpers.rs`, and `tests.rs`, preserving `build_projection_inputs` and the builder test surface.
 - [DONE] `analyzers/projection/search.rs` is split into `analyzers/projection/search/` with interface-only `mod.rs`, `indexed.rs`, `heuristic.rs`, `lexical.rs`, `mapping.rs`, `ranking.rs`, `sort.rs`, `options.rs`, and `tests.rs`, preserving the projected-page search API and `scored_projected_page_matches`.
 - [DONE] `search_plane/repo_entity/query.rs` is split into `search_plane/repo_entity/query/` with interface-only `mod.rs`, `types.rs`, `scan.rs`, `scoring.rs`, `search.rs`, and `tests.rs`, preserving the repo-entity query, ranking, hydration, and test surface.
@@ -171,7 +171,7 @@ Priority override:
 
 ## Local Constraints
 
-- The governing execution-plan policy lives at `.agent/PLANS.md`.
+- The governing execution-plan policy lives at `.agent/PLANS.org`.
 - The workspace now contains the semantic-addressing blueprint again.
 - The refactor should therefore follow that blueprint together with the
   current code topology and stable public API paths, while the exact

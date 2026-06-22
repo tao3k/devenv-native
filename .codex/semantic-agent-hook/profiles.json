@@ -1,0 +1,338 @@
+{
+  "profiles": [
+    {
+      "binary": "rs-harness",
+      "commands": {
+        "checkChanged": {
+          "argv": [
+            "rs-harness",
+            "check",
+            "--changed",
+            "."
+          ]
+        },
+        "guide": {
+          "argv": [
+            "rs-harness",
+            "agent",
+            "guide",
+            "."
+          ]
+        },
+        "ingest": {
+          "argv": [
+            "rs-harness",
+            "search",
+            "ingest",
+            "items",
+            "tests",
+            "--view",
+            "seeds",
+            "."
+          ],
+          "stdinMode": "pipe-candidates"
+        },
+        "owner": {
+          "argv": [
+            "rs-harness",
+            "query",
+            "--from-hook",
+            "direct-source-read",
+            "--selector",
+            "{path}",
+            "."
+          ]
+        },
+        "prime": {
+          "argv": [
+            "rs-harness",
+            "search",
+            "prime",
+            "--view",
+            "seeds",
+            "."
+          ]
+        },
+        "text": {
+          "argv": [
+            "rs-harness",
+            "search",
+            "text",
+            "{query}",
+            "tests",
+            "--view",
+            "seeds",
+            "."
+          ]
+        }
+      },
+      "configFiles": [
+        "Cargo.toml",
+        "Cargo.lock"
+      ],
+      "ignoredPathPrefixes": [
+        ".cache",
+        ".direnv",
+        ".git",
+        ".idea",
+        ".jj",
+        ".run",
+        ".vscode",
+        "node_modules",
+        "target",
+        ".codex/harness-state",
+        ".codex/rs-harness"
+      ],
+      "languageId": "rust",
+      "namespace": "agent.semantic-protocols.languages.rust.rs-harness",
+      "policy": {
+        "agentSearchJson": "block",
+        "blockAgentSearchJson": true,
+        "blockBroadRawSearch": true,
+        "blockDirectRead": true,
+        "bulkSourceDump": "block",
+        "directSourceRead": "block",
+        "rawSourceSearch": "block",
+        "requirePrimeBeforeEdit": true
+      },
+      "providerId": "rs-harness",
+      "sourceExtensions": [
+        ".rs"
+      ],
+      "sourceRoots": [
+        "src",
+        "tests",
+        "crates",
+        "examples",
+        "benches",
+        "languages/rust-lang-project-harness/src",
+        "languages/rust-lang-project-harness/tests"
+      ]
+    },
+    {
+      "binary": "ts-harness",
+      "commands": {
+        "checkChanged": {
+          "argv": [
+            "ts-harness",
+            "check",
+            "--changed",
+            "."
+          ]
+        },
+        "guide": {
+          "argv": [
+            "ts-harness",
+            "agent",
+            "guide",
+            "."
+          ]
+        },
+        "ingest": {
+          "argv": [
+            "ts-harness",
+            "search",
+            "ingest",
+            "owner",
+            "tests",
+            "--view",
+            "seeds",
+            "."
+          ],
+          "stdinMode": "pipe-candidates"
+        },
+        "owner": {
+          "argv": [
+            "ts-harness",
+            "search",
+            "owner",
+            "{path}",
+            "items",
+            "--query",
+            "{query}",
+            "."
+          ]
+        },
+        "prime": {
+          "argv": [
+            "ts-harness",
+            "search",
+            "prime",
+            "."
+          ]
+        },
+        "query": {
+          "argv": [
+            "ts-harness",
+            "search",
+            "query",
+            "--from-hook",
+            "direct-source-read",
+            "--selector",
+            "{selector}",
+            "{termArgs}",
+            "--surface",
+            "owner,tests",
+            "--view",
+            "seeds",
+            "."
+          ]
+        },
+        "text": {
+          "argv": [
+            "ts-harness",
+            "search",
+            "text",
+            "{query}",
+            "owner",
+            "tests",
+            "--view",
+            "seeds",
+            "."
+          ]
+        }
+      },
+      "configFiles": [
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.base.json"
+      ],
+      "ignoredPathPrefixes": [
+        "node_modules",
+        "dist",
+        "build",
+        "coverage",
+        ".git"
+      ],
+      "languageId": "typescript",
+      "namespace": "agent.semantic-protocols.languages.typescript.ts-harness",
+      "policy": {
+        "agentSearchJson": "block",
+        "blockAgentSearchJson": true,
+        "blockBroadRawSearch": true,
+        "blockDirectRead": true,
+        "bulkSourceDump": "block",
+        "directSourceRead": "block",
+        "rawSourceSearch": "block",
+        "requirePrimeBeforeEdit": true
+      },
+      "providerId": "ts-harness",
+      "sourceExtensions": [
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs"
+      ],
+      "sourceRoots": [
+        "src",
+        "test",
+        "tests",
+        "__tests__",
+        "packages",
+        "apps",
+        "lib",
+        "languages/typescript-lang-project-harness/src",
+        "languages/typescript-lang-project-harness/tests"
+      ]
+    },
+    {
+      "binary": "py-harness",
+      "commands": {
+        "checkChanged": {
+          "argv": [
+            "py-harness",
+            "check",
+            "--changed",
+            "."
+          ]
+        },
+        "guide": {
+          "argv": [
+            "py-harness",
+            "agent",
+            "guide",
+            "."
+          ]
+        },
+        "ingest": {
+          "argv": [
+            "py-harness",
+            "search",
+            "ingest",
+            "."
+          ],
+          "stdinMode": "pipe-candidates"
+        },
+        "owner": {
+          "argv": [
+            "py-harness",
+            "search",
+            "owner",
+            "{path}",
+            "."
+          ]
+        },
+        "prime": {
+          "argv": [
+            "py-harness",
+            "search",
+            "prime",
+            "."
+          ]
+        },
+        "text": {
+          "argv": [
+            "py-harness",
+            "search",
+            "text",
+            "{query}",
+            "owner",
+            "tests",
+            "--view",
+            "seeds",
+            "."
+          ]
+        }
+      },
+      "configFiles": [
+        "pyproject.toml",
+        "setup.cfg",
+        "setup.py"
+      ],
+      "ignoredPathPrefixes": [
+        ".venv",
+        "__pycache__",
+        ".git",
+        ".pytest_cache"
+      ],
+      "languageId": "python",
+      "namespace": "agent.semantic-protocols.languages.python.py-harness",
+      "policy": {
+        "blockAgentSearchJson": true,
+        "blockBroadRawSearch": true,
+        "blockDirectRead": true,
+        "requirePrimeBeforeEdit": true
+      },
+      "providerId": "py-harness",
+      "sourceExtensions": [
+        ".py",
+        ".pyi"
+      ],
+      "sourceRoots": [
+        "src",
+        "test",
+        "tests",
+        "packages"
+      ]
+    }
+  ],
+  "projectRoot": ".",
+  "protocolId": "agent.semantic-protocols.agent-hooks",
+  "protocolVersion": "1",
+  "schemaId": "agent.semantic-protocols.semantic-agent-hook-profile-registry",
+  "schemaVersion": "1"
+}

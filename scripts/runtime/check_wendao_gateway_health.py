@@ -8,10 +8,12 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 GATEWAY_PROCESS_ID_HEADER = "x-wendao-process-id"
 EXPECTED_HEALTH_STATUS = 200
@@ -84,14 +86,19 @@ def log_reports_flight_business_plane_ready(logfile: Path) -> bool:
     return False
 
 
-def _parse_health_payload(raw_payload: bytes) -> tuple[bool, str, str]:
+def _health_payload_reports_flight_ready(payload: dict[str, Any]) -> bool:
+    planes = payload.get("planes")
+    return isinstance(planes, dict) and planes.get("flight") == "mounted"
+
+
+def _parse_health_payload(raw_payload: bytes) -> tuple[bool, str, str, bool]:
     try:
         payload = json.loads(raw_payload.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        return False, f"health endpoint returned invalid json: {error}", ""
+        return False, f"health endpoint returned invalid json: {error}", "", False
 
     if not isinstance(payload, dict):
-        return False, "health endpoint returned a non-object payload", ""
+        return False, "health endpoint returned a non-object payload", "", False
 
     if payload.get("service") != EXPECTED_HEALTH_SERVICE:
         return (
@@ -99,13 +106,19 @@ def _parse_health_payload(raw_payload: bytes) -> tuple[bool, str, str]:
             "health endpoint reported an unexpected service "
             f"({payload.get('service')!r} != {EXPECTED_HEALTH_SERVICE!r})",
             "",
+            False,
         )
 
     if payload.get("ready") is not True:
-        return False, f"health endpoint did not report ready=true: {payload!r}", ""
+        return (
+            False,
+            f"health endpoint did not report ready=true: {payload!r}",
+            "",
+            False,
+        )
 
     process_id = _normalize_process_id(str(payload.get("processId", "")))
-    return True, "ok", process_id
+    return True, "ok", process_id, _health_payload_reports_flight_ready(payload)
 
 
 def is_gateway_healthy(
@@ -140,7 +153,12 @@ def is_gateway_healthy(
     if health_status != EXPECTED_HEALTH_STATUS:
         return False, f"health endpoint returned HTTP {health_status}: {health_url}"
 
-    payload_ok, payload_message, payload_process_id = _parse_health_payload(raw_payload)
+    (
+        payload_ok,
+        payload_message,
+        payload_process_id,
+        payload_reports_flight_ready,
+    ) = _parse_health_payload(raw_payload)
     if not payload_ok:
         return False, payload_message
 
@@ -169,13 +187,67 @@ def is_gateway_healthy(
     if command and not is_wendao_gateway_command(command):
         return False, f"wendao-gateway process {candidate_pid} is unexpected: {command}"
 
-    if not log_reports_flight_business_plane_ready(logfile):
+    if (
+        not payload_reports_flight_ready
+        and not log_reports_flight_business_plane_ready(logfile)
+    ):
         return (
             False,
-            f"gateway log has not reported the Flight business plane yet: {logfile}",
+            "gateway health payload and log have not reported the "
+            f"Flight business plane yet: {logfile}",
         )
 
     return True, "healthy"
+
+
+def is_transient_healthcheck_failure(message: str) -> bool:
+    if "health endpoint unreachable" not in message:
+        return False
+    transient_markers = (
+        "Can't assign requested address",
+        "Connection refused",
+        "Operation timed out",
+        "timed out",
+        "Temporary failure",
+    )
+    return any(marker in message for marker in transient_markers)
+
+
+def is_gateway_healthy_with_retries(
+    *,
+    host: str,
+    port: int,
+    pidfile: Path,
+    logfile: Path,
+    timeout_secs: float,
+    attempts: int,
+    retry_delay_secs: float,
+    opener: Opener = urllib.request.urlopen,
+    pid_exists: ProcessExists = process_exists,
+    process_command_for_pid: ProcessCommand = process_command,
+    sleeper: Callable[[float], None] = time.sleep,
+) -> tuple[bool, str]:
+    normalized_attempts = max(1, attempts)
+    for attempt_index in range(normalized_attempts):
+        healthy, message = is_gateway_healthy(
+            host=host,
+            port=port,
+            pidfile=pidfile,
+            logfile=logfile,
+            timeout_secs=timeout_secs,
+            opener=opener,
+            pid_exists=pid_exists,
+            process_command_for_pid=process_command_for_pid,
+        )
+        if (
+            healthy
+            or attempt_index + 1 >= normalized_attempts
+            or not is_transient_healthcheck_failure(message)
+        ):
+            return healthy, message
+        sleeper(max(0.0, retry_delay_secs))
+
+    return False, "gateway healthcheck retry loop ended unexpectedly"
 
 
 def main() -> int:
@@ -202,14 +274,28 @@ def main() -> int:
         default=2.0,
         help="Per-request timeout in seconds",
     )
+    parser.add_argument(
+        "--attempts",
+        type=int,
+        default=1,
+        help="Health request attempts inside one process-compose probe",
+    )
+    parser.add_argument(
+        "--retry-delay-secs",
+        type=float,
+        default=0.2,
+        help="Delay between transient health request failures",
+    )
     args = parser.parse_args()
 
-    healthy, message = is_gateway_healthy(
+    healthy, message = is_gateway_healthy_with_retries(
         host=args.host,
         port=args.port,
         pidfile=args.pidfile,
         logfile=args.logfile,
         timeout_secs=args.timeout_secs,
+        attempts=args.attempts,
+        retry_delay_secs=args.retry_delay_secs,
     )
     if healthy:
         print(message)

@@ -8,7 +8,7 @@ use arrow::record_batch::RecordBatch;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::WendaoGraphOntologyReadModelQualityRequestBatches;
+use xiuxian_julia_core::integration_support::WendaoGraphOntologyReadModelQualityRequestBatches;
 use xiuxian_wendao_parsers::{EpistemeExtractionQueueRow, EpistemeFileRow, EpistemeSourceManifest};
 
 use crate::episteme::source_contract::facade::{
@@ -20,6 +20,8 @@ use crate::episteme::source_contract::facade::{
 
 #[path = "audio/mod.rs"]
 mod audio;
+#[path = "registry_snapshot.rs"]
+mod registry_snapshot;
 #[path = "tables.rs"]
 mod tables;
 
@@ -29,6 +31,10 @@ pub use audio::{
     EpistemeAudioReviewedClaimReadModelRequest, EpistemeAudioReviewedClaimRow,
     materialize_episteme_audio_evidence_review_seed,
     materialize_episteme_audio_reviewed_claim_seed,
+};
+pub use registry_snapshot::{
+    admit_and_materialize_episteme_ontology_registry_snapshot_read_model_seed,
+    materialize_episteme_ontology_registry_snapshot_read_model_seed,
 };
 
 use tables::{

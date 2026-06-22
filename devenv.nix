@@ -1,8 +1,9 @@
-{ pkgs
-, lib
-, config
-, inputs
-, ...
+{
+  pkgs,
+  lib,
+  config,
+  inputs,
+  ...
 }:
 
 let
@@ -47,7 +48,7 @@ let
 in
 {
   imports = [
-    nixosModules.claude
+    # nixosModules.claude
     nixosModules.flake-parts.omnibus
     nixosModules.files
     nixosModules.prek
@@ -87,6 +88,7 @@ in
     pkgs.nodejs
     pkgs.tree
     pkgs.duckdb
+    pkgs.postgresql
     pkgs.asciinema
     pkgs.ffmpeg
     nixpkgs-latest.jujutsu
@@ -144,13 +146,13 @@ in
 
   # https://devenv.sh/pre-commit-hooks/
   git-hooks.hooks = {
-    black.enable = true;
+    nixfmt.enable = true;
+    ruff.enable = true;
     rustfmt.enable = true;
-    clippy.enable = true;
-    prettier.enable = true;
-    clippy.packageOverrides.cargo = config.languages.rust.toolchainPackage;
-    clippy.packageOverrides.clippy = config.languages.rust.toolchainPackage;
-    clippy.settings.allFeatures = true;
+    prettier = {
+      enable = true;
+      excludes = [ "\\.(js|jsx|ts|tsx)$" ];
+    };
     oxlint.enable = true;
     oxfmt.enable = true;
   };

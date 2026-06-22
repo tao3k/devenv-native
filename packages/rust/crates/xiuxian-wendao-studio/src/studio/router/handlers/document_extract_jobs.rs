@@ -148,6 +148,7 @@ impl From<RegistryDocumentExtractJobStatus> for DocumentExtractJobStatus {
 impl From<DocumentExtractRuntimeSnapshot> for DocumentExtractJobsStatus {
     fn from(snapshot: DocumentExtractRuntimeSnapshot) -> Self {
         let pdf_ocr = pdf_ocr_runtime_status_fields(&snapshot);
+        let audio = audio_shard_runtime_status_fields(&snapshot);
         Self {
             max_running_conversions: snapshot.max_running_conversions,
             available_conversion_permits: snapshot.available_conversion_permits,
@@ -169,6 +170,11 @@ impl From<DocumentExtractRuntimeSnapshot> for DocumentExtractJobsStatus {
             pdf_ocr_rendered_region_shards: pdf_ocr.rendered_region_shards,
             pdf_ocr_budget_increase_events: pdf_ocr.budget_increase_events,
             pdf_ocr_budget_decrease_events: pdf_ocr.budget_decrease_events,
+            max_audio_shard_workers: audio.max_workers,
+            current_audio_shard_worker_budget: audio.current_worker_budget,
+            audio_shard_healthy_streak: audio.healthy_streak,
+            audio_shard_budget_increase_events: audio.budget_increase_events,
+            audio_shard_budget_decrease_events: audio.budget_decrease_events,
             in_process_scheduled_jobs: snapshot.in_process_scheduled_jobs,
             total_jobs: snapshot.registry.total_jobs,
             queued_jobs: snapshot.registry.queued_jobs,
@@ -186,6 +192,40 @@ impl From<DocumentExtractRuntimeSnapshot> for DocumentExtractJobsStatus {
                 .max_conversion_duration_ms
                 .map(Into::into),
         }
+    }
+}
+
+struct AudioShardRuntimeStatusFields {
+    max_workers: usize,
+    current_worker_budget: usize,
+    healthy_streak: usize,
+    budget_increase_events: u64,
+    budget_decrease_events: u64,
+}
+
+#[cfg(feature = "document-extract-audio-shards")]
+fn audio_shard_runtime_status_fields(
+    snapshot: &DocumentExtractRuntimeSnapshot,
+) -> AudioShardRuntimeStatusFields {
+    AudioShardRuntimeStatusFields {
+        max_workers: snapshot.max_audio_shard_workers,
+        current_worker_budget: snapshot.current_audio_shard_worker_budget,
+        healthy_streak: snapshot.audio_shard_healthy_streak,
+        budget_increase_events: snapshot.audio_shard_budget_increase_events,
+        budget_decrease_events: snapshot.audio_shard_budget_decrease_events,
+    }
+}
+
+#[cfg(not(feature = "document-extract-audio-shards"))]
+fn audio_shard_runtime_status_fields(
+    _snapshot: &DocumentExtractRuntimeSnapshot,
+) -> AudioShardRuntimeStatusFields {
+    AudioShardRuntimeStatusFields {
+        max_workers: 0,
+        current_worker_budget: 0,
+        healthy_streak: 0,
+        budget_increase_events: 0,
+        budget_decrease_events: 0,
     }
 }
 

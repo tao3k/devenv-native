@@ -5,12 +5,14 @@ use std::time::Duration;
 use crate::studio::startup_health::types::{
     GatewayStartupDependencyCheck, GatewayStartupHealthReport,
 };
+use xiuxian_db_store::artifact_cache::ArtifactBlobCacheBackendConfig;
 use xiuxian_wendao::analyzers::PluginRegistry;
 use xiuxian_wendao::link_graph::runtime_config::resolve_link_graph_cache_runtime;
 use xiuxian_wendao::search::resolve_search_plane_cache_connection_target;
 use xiuxian_wendao::valkey_common::{open_client, ping_client, ping_valkey_url};
 
 const BUILTIN_PLUGIN_REGISTRY_DEPENDENCY: &str = "builtin_plugin_registry";
+const ARTIFACT_CACHE_DEPENDENCY: &str = "artifact_cache";
 const SEARCH_CACHE_VALKEY_DEPENDENCY: &str = "search_cache_valkey";
 const LINK_GRAPH_CACHE_VALKEY_DEPENDENCY: &str = "link_graph_cache_valkey";
 const STARTUP_VALKEY_CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
@@ -23,6 +25,7 @@ pub fn probe_gateway_startup_health(
 ) -> GatewayStartupHealthReport {
     GatewayStartupHealthReport::new(vec![
         probe_plugin_registry(plugin_registry),
+        probe_artifact_cache(),
         probe_search_cache_valkey(),
         probe_link_graph_cache_valkey(),
     ])
@@ -69,6 +72,59 @@ where
     GatewayStartupDependencyCheck::connected(
         BUILTIN_PLUGIN_REGISTRY_DEPENDENCY,
         format!("plugins={}", plugin_ids.join(",")),
+    )
+}
+
+fn probe_artifact_cache() -> GatewayStartupDependencyCheck {
+    probe_artifact_cache_with(&|key| std::env::var(key).ok())
+}
+
+fn probe_artifact_cache_with(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> GatewayStartupDependencyCheck {
+    let config = match ArtifactBlobCacheBackendConfig::from_lookup(lookup) {
+        Ok(config) => config,
+        Err(error) => {
+            return GatewayStartupDependencyCheck::failed(
+                ARTIFACT_CACHE_DEPENDENCY,
+                error.to_string(),
+            );
+        }
+    };
+    let backend = match config.build() {
+        Ok(backend) => backend,
+        Err(error) => {
+            return GatewayStartupDependencyCheck::failed(
+                ARTIFACT_CACHE_DEPENDENCY,
+                error.to_string(),
+            );
+        }
+    };
+    if let Err(error) = backend.close() {
+        return GatewayStartupDependencyCheck::failed(ARTIFACT_CACHE_DEPENDENCY, error.to_string());
+    }
+
+    GatewayStartupDependencyCheck::connected(
+        ARTIFACT_CACHE_DEPENDENCY,
+        format!(
+            "backend={} root={} memory_bytes={} storage_bytes={} runtime_workers={} memory_shards={} recover_concurrency={} flushers={} reclaimers={} memory_weighter={} policy={} block_size_bytes={}",
+            backend.backend_name(),
+            config.root().to_string_lossy(),
+            config.memory_capacity_bytes(),
+            config.storage_capacity_bytes(),
+            config.runtime_worker_threads(),
+            config.memory_shards(),
+            config.recover_concurrency(),
+            config.flushers(),
+            config.reclaimers(),
+            config
+                .foyer_memory_weighter_name()
+                .unwrap_or("not-applicable"),
+            config.foyer_cache_policy_name().unwrap_or("not-applicable"),
+            config
+                .foyer_block_size_bytes()
+                .map_or_else(|| "not-applicable".to_owned(), |bytes| bytes.to_string()),
+        ),
     )
 }
 

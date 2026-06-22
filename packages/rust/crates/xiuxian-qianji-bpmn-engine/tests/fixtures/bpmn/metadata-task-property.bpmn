@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_task_property"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="task_property_metadata">
+    <bpmn:startEvent id="start" />
+    <bpmn:dataObject id="DataObject_Source" />
+    <bpmn:dataObjectReference id="DataObjectReference_Source" dataObjectRef="DataObject_Source" />
+    <bpmn:sendTask id="notify">
+      <bpmn:property id="Property_Target" name="target" />
+      <bpmn:dataInputAssociation id="DataInputAssociation_Target">
+        <bpmn:sourceRef>DataObjectReference_Source</bpmn:sourceRef>
+        <bpmn:targetRef>Property_Target</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:sendTask>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="notify" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="notify" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

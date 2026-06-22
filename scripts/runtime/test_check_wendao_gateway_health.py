@@ -6,6 +6,7 @@ import subprocess
 import sys
 from email.message import Message
 from pathlib import Path
+from urllib.error import URLError
 
 
 class _FakeResponse:
@@ -65,6 +66,42 @@ def test_is_gateway_healthy_accepts_matching_health_payload(tmp_path) -> None:
         assert request_or_url == "http://127.0.0.1:9517/api/health"
         assert timeout == 2.0
         return _FakeResponse(200, {"x-wendao-process-id": "4321"})
+
+    healthy, message = module.is_gateway_healthy(
+        host="127.0.0.1",
+        port=9517,
+        pidfile=pidfile,
+        logfile=logfile,
+        timeout_secs=2.0,
+        opener=_fake_open,
+        pid_exists=lambda pid: pid == 4321,
+        process_command_for_pid=(
+            lambda pid: "target/debug/wendao --conf /tmp/wendao.toml gateway start"
+        ),
+    )
+
+    assert healthy is True
+    assert message == "healthy"
+
+
+def test_is_gateway_healthy_accepts_health_payload_flight_plane_without_log(
+    tmp_path,
+) -> None:
+    module = _load_module()
+    pidfile = tmp_path / "wendao.pid"
+    logfile = tmp_path / "wendao-gateway.stderr.log"
+    pidfile.write_text("4321\n", encoding="utf-8")
+    logfile.write_text("", encoding="utf-8")
+
+    def _fake_open(request_or_url, timeout: float):
+        assert request_or_url == "http://127.0.0.1:9517/api/health"
+        assert timeout == 2.0
+        return _FakeResponse(
+            200,
+            {"x-wendao-process-id": "4321"},
+            b'{"service":"wendao-gateway","ready":true,'
+            b'"planes":{"flight":"mounted","http":"ready"}}',
+        )
 
     healthy, message = module.is_gateway_healthy(
         host="127.0.0.1",
@@ -263,6 +300,85 @@ def test_is_gateway_healthy_rejects_missing_flight_ready_marker(tmp_path) -> Non
 
     assert healthy is False
     assert "Flight business plane" in message
+    assert "health payload" in message
+
+
+def test_gateway_health_retries_transient_local_socket_failure(tmp_path) -> None:
+    module = _load_module()
+    pidfile = tmp_path / "wendao.pid"
+    logfile = tmp_path / "wendao-gateway.stderr.log"
+    pidfile.write_text("4321\n", encoding="utf-8")
+    _write_flight_ready_log(logfile)
+    calls = 0
+    sleep_delays: list[float] = []
+
+    def _fake_open(request_or_url, timeout: float):
+        nonlocal calls
+        calls += 1
+        assert request_or_url == "http://127.0.0.1:9517/api/health"
+        assert timeout == 0.5
+        if calls == 1:
+            raise URLError(OSError(49, "Can't assign requested address"))
+        return _FakeResponse(200, {"x-wendao-process-id": "4321"})
+
+    healthy, message = module.is_gateway_healthy_with_retries(
+        host="127.0.0.1",
+        port=9517,
+        pidfile=pidfile,
+        logfile=logfile,
+        timeout_secs=0.5,
+        attempts=3,
+        retry_delay_secs=0.2,
+        opener=_fake_open,
+        pid_exists=lambda pid: pid == 4321,
+        process_command_for_pid=(
+            lambda pid: "target/debug/wendao --conf /tmp/wendao.toml gateway start"
+        ),
+        sleeper=sleep_delays.append,
+    )
+
+    assert healthy is True
+    assert message == "healthy"
+    assert calls == 2
+    assert sleep_delays == [0.2]
+
+
+def test_gateway_health_does_not_retry_semantic_not_ready_payload(tmp_path) -> None:
+    module = _load_module()
+    pidfile = tmp_path / "wendao.pid"
+    logfile = tmp_path / "wendao-gateway.stderr.log"
+    pidfile.write_text("4321\n", encoding="utf-8")
+    _write_flight_ready_log(logfile)
+    calls = 0
+
+    def _fake_open(request_or_url, timeout: float):
+        nonlocal calls
+        calls += 1
+        return _FakeResponse(
+            200,
+            {"x-wendao-process-id": "4321"},
+            b'{"service":"wendao-gateway","ready":false}',
+        )
+
+    healthy, message = module.is_gateway_healthy_with_retries(
+        host="127.0.0.1",
+        port=9517,
+        pidfile=pidfile,
+        logfile=logfile,
+        timeout_secs=0.5,
+        attempts=3,
+        retry_delay_secs=0.2,
+        opener=_fake_open,
+        pid_exists=lambda pid: pid == 4321,
+        process_command_for_pid=(
+            lambda pid: "target/debug/wendao --conf /tmp/wendao.toml gateway start"
+        ),
+        sleeper=lambda delay: None,
+    )
+
+    assert healthy is False
+    assert "ready=true" in message
+    assert calls == 1
 
 
 def test_gateway_healthcheck_shell_prefers_pyo3_python(tmp_path) -> None:
@@ -316,3 +432,5 @@ def test_gateway_healthcheck_shell_prefers_pyo3_python(tmp_path) -> None:
     assert any("resolve_wendao_gateway_port.py" in line for line in calls)
     assert any("check_wendao_gateway_health.py" in line for line in calls)
     assert any("--logfile" in line for line in calls)
+    assert any("--attempts" in line for line in calls)
+    assert any("--retry-delay-secs" in line for line in calls)

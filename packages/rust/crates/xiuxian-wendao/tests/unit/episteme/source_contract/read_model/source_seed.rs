@@ -5,16 +5,17 @@ use crate::episteme::source_contract::support::decode_single_arrow_batch;
 use crate::episteme::source_contract::support::{
     EpistemeFixture, i64_column, string_column, table,
 };
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
+#[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::{
+    build_wendaograph_ontology_read_model_quality_arrow_request,
+    build_wendaograph_ontology_read_model_quality_flight_request_batch,
+};
 #[cfg(feature = "julia")]
 use xiuxian_wendao::episteme::build_episteme_wendaograph_quality_request_batches;
 use xiuxian_wendao::episteme::{
     EpistemeReadModelRequest, materialize_episteme_read_model_seed,
     validate_episteme_read_model_relation_endpoints,
-};
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
-    build_wendaograph_ontology_read_model_quality_arrow_request,
-    build_wendaograph_ontology_read_model_quality_flight_request_batch,
 };
 
 #[test]
@@ -55,6 +56,7 @@ fn episteme_source_contract_materializes_read_model_seed() -> Result<(), Box<dyn
     );
 
     let objects = table(&materialization, "semantic_objects");
+    assert_table_metadata(objects, "semantic_objects");
     assert_eq!(string_column(objects, "id").value(0), "episteme.file.a");
     assert_eq!(
         string_column(objects, "kind").value(0),
@@ -74,6 +76,7 @@ fn episteme_source_contract_materializes_read_model_seed() -> Result<(), Box<dyn
     );
 
     let relations = table(&materialization, "semantic_relations");
+    assert_table_metadata(relations, "semantic_relations");
     assert_eq!(
         string_column(relations, "source").value(0),
         "episteme.extract.a"
@@ -88,6 +91,7 @@ fn episteme_source_contract_materializes_read_model_seed() -> Result<(), Box<dyn
     );
 
     let projection = table(&materialization, "semantic_projection_state");
+    assert_table_metadata(projection, "semantic_projection_state");
     assert_eq!(
         string_column(projection, "projection").value(0),
         "episteme_source_contract.source_contract_read_model_seed.v1"
@@ -95,6 +99,17 @@ fn episteme_source_contract_materializes_read_model_seed() -> Result<(), Box<dyn
     assert_eq!(i64_column(projection, "source_object_count").value(0), 4);
 
     Ok(())
+}
+
+fn assert_table_metadata(batch: &arrow::record_batch::RecordBatch, expected_table: &str) {
+    assert_eq!(
+        batch
+            .schema()
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some(expected_table)
+    );
 }
 
 #[test]

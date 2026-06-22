@@ -18,7 +18,7 @@ use tokio::sync::oneshot;
 use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
-use xiuxian_wendao_julia::JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION;
+use xiuxian_julia_core::JULIA_GRAPH_STRUCTURAL_SCHEMA_VERSION;
 use xiuxian_wendao_runtime::transport::WENDAO_SCHEMA_VERSION_HEADER;
 
 use super::response::response_batch;

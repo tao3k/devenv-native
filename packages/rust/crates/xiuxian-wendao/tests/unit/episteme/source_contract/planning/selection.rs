@@ -52,6 +52,17 @@ fn episteme_selection_driven_extraction_plan_uses_selected_file_ids()
     )?;
 
     assert_eq!(report.selected_count, 2);
+    assert_eq!(report.total_queue_rows, 2);
+    assert_eq!(report.route_counts.get("document_text_evidence"), Some(&1));
+    assert_eq!(report.route_counts.get("image_ocr_evidence"), Some(&1));
+    assert_eq!(
+        report.category_counts.get("synthetic_policy_category"),
+        Some(&1)
+    );
+    assert_eq!(
+        report.category_counts.get("synthetic_case_category"),
+        Some(&1)
+    );
     let tasks = fs::read_to_string(&report.tasks_path)?;
     assert!(tasks.contains("episteme.extract.b\tepisteme.file.b\timages/b.jpg"));
     assert!(tasks.contains("episteme.extract.a\tepisteme.file.a\tdocs/a.txt"));

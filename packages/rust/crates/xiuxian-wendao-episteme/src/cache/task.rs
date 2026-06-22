@@ -1,6 +1,6 @@
 //! Shared extraction-run task DTOs for cache materializers.
 
-use std::{fs, path::Path};
+use std::{collections::BTreeSet, fs, path::Path};
 
 use anyhow::{Context, Result};
 use serde::Serialize;
@@ -111,11 +111,13 @@ pub(crate) fn read_tasks_tsv(path: &Path, label: &str) -> Result<Vec<EpistemeCac
         anyhow::bail!("{label} tasks TSV header mismatch in `{}`", path.display());
     }
 
-    lines
+    let tasks = lines
         .enumerate()
         .filter(|(_, line)| !line.trim().is_empty())
         .map(|(index, line)| parse_task_line(path, index + 2, line, label))
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    reject_duplicate_queue_ids(path, label, &tasks)?;
+    Ok(tasks)
 }
 
 fn parse_task_line(
@@ -160,4 +162,18 @@ pub(crate) fn task_extension(task: &EpistemeCacheTask) -> String {
         .and_then(|extension| extension.to_str())
         .unwrap_or_default()
         .to_ascii_lowercase()
+}
+
+fn reject_duplicate_queue_ids(path: &Path, label: &str, tasks: &[EpistemeCacheTask]) -> Result<()> {
+    let mut seen = BTreeSet::new();
+    let duplicate = tasks
+        .iter()
+        .find_map(|task| (!seen.insert(task.queue_id.as_str())).then_some(task.queue_id.as_str()));
+    if let Some(queue_id) = duplicate {
+        anyhow::bail!(
+            "{label} tasks TSV in `{}` contains duplicate queue_id `{queue_id}`",
+            path.display()
+        );
+    }
+    Ok(())
 }

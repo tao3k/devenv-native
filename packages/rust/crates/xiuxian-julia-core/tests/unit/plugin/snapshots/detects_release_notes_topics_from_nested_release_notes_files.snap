@@ -1,0 +1,22 @@
+---
+source: packages/rust/crates/xiuxian-julia-core/src/plugin/../../tests/unit/plugin/common.rs
+assertion_line: 140
+expression: payload
+---
+{
+  "generic_page": [],
+  "release_notes": [
+    {
+      "format": "modelica_users_guide_release_notes_version_management",
+      "title": "VersionManagement"
+    },
+    {
+      "format": "modelica_users_guide_release_notes_version",
+      "title": "Version_4_1_0"
+    },
+    {
+      "format": "modelica_users_guide_release_notes_version",
+      "title": "Version_4_0_0"
+    }
+  ]
+}

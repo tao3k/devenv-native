@@ -12,6 +12,9 @@ pub(crate) use load::load_document_extract_endpoint_from_wendao_toml;
 pub(crate) use load::load_episteme_registry_from_wendao_toml;
 #[cfg(feature = "cli-bin-support")]
 pub(crate) use load::load_episteme_registry_from_wendao_toml_path;
+#[cfg(test)]
+pub(crate) use load::load_model_routing_config_from_wendao_toml;
+#[cfg(any(test, feature = "julia"))]
 pub(crate) use load::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 pub use load::{load_ui_config_from_wendao_toml, load_ui_config_from_wendao_toml_path};
 pub use paths::{

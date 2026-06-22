@@ -3,7 +3,7 @@
 ## 1. Unified Streaming Parser
 
 - **Abstract Layer**: Collapses Claude (NDJSON), Gemini (SSE), and Codex protocols into a single `ZhenfaStreamingEvent`.
-- **Thought Separation**: Extracts LLM thinking process for cognitive auditing before text reaches the UI.
+- **Thought Separation**: Extracts agent reasoning output for cognitive auditing before text reaches the UI.
 
 ## 2. Logic Gate (Incremental XSD)
 

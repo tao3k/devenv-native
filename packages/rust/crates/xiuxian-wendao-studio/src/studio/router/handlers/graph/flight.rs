@@ -40,20 +40,20 @@ impl std::fmt::Debug for StudioGraphNeighborsFlightRouteProvider {
 impl GraphNeighborsFlightRouteProvider for StudioGraphNeighborsFlightRouteProvider {
     async fn graph_neighbors_batch(
         &self,
-        node_id: &str,
+        node_key: &str,
         direction: &str,
         hops: usize,
         limit: usize,
     ) -> Result<GraphNeighborsFlightRouteResponse, Status> {
         load_graph_neighbors_flight_response(
             Arc::clone(&self.state),
-            node_id,
+            node_key,
             direction,
             hops,
             limit,
         )
         .await
-        .map_err(studio_api_error_to_tonic_status)
+        .map_err(|error| studio_api_error_to_tonic_status(&error))
     }
 }
 
@@ -285,12 +285,22 @@ fn usize_to_i32(value: usize) -> Result<i32, String> {
         .map_err(|error| format!("failed to represent graph-neighbors position: {error}"))
 }
 
-fn studio_api_error_to_tonic_status(error: StudioApiError) -> Status {
+fn studio_api_error_to_tonic_status(error: &StudioApiError) -> Status {
+    let message = tonic_status_message(error);
     match error.status() {
-        axum::http::StatusCode::BAD_REQUEST => Status::invalid_argument(error.error.message),
-        axum::http::StatusCode::NOT_FOUND => Status::not_found(error.error.message),
-        axum::http::StatusCode::CONFLICT => Status::failed_precondition(error.error.message),
-        _ => Status::internal(error.error.message),
+        axum::http::StatusCode::BAD_REQUEST => Status::invalid_argument(message),
+        axum::http::StatusCode::NOT_FOUND => Status::not_found(message),
+        axum::http::StatusCode::CONFLICT => Status::failed_precondition(message),
+        _ => Status::internal(message),
+    }
+}
+
+fn tonic_status_message(error: &StudioApiError) -> String {
+    match error.error.details.as_deref().map(str::trim) {
+        Some(details) if !details.is_empty() => {
+            format!("{} [{}]: {details}", error.error.message, error.code())
+        }
+        _ => format!("{} [{}]", error.error.message, error.code()),
     }
 }
 

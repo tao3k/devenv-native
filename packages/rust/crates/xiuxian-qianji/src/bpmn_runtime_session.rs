@@ -1,16 +1,17 @@
 //! Bpmn runtime session surface for `xiuxian-qianji`.
 
 use super::backend::QianjiBpmnCheckpointStore;
+use super::driver::QianjiBpmnPendingHostCompletion;
 use super::error::{BpmnOrchestrationError, BpmnUnsupportedStartNodeKind};
 use crate::bpmn::{resolve_pending_host_work, resolve_waiting_external_event};
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge,
     BpmnInstanceInit, BpmnInstanceState, BpmnNodeKind, BpmnPackage, InstanceLifecycle,
     NodeRuntimeStatus, PendingHostWork, PendingHostWorkApplyInput, PendingHostWorkKind,
     PendingHostWorkResult, SuspendReason, TokenRecord, advance_instance,
     apply_pending_host_work_result, create_instance,
 };
-use std::sync::Arc;
 
 /// Host-owned BPMN runtime session that keeps one immutable BPMN package and
 /// one mutable instance state together.
@@ -192,7 +193,7 @@ impl QianjiBpmnSession {
     /// Advances the BPMN runtime until the next stable non-host-blocked
     /// outcome.
     ///
-    /// This facade keeps pure BPMN semantics inside `qianji-bpmn-engine` while
+    /// This facade keeps pure BPMN semantics inside `xiuxian-qianji-bpmn-engine` while
     /// allowing the host crate to consume one higher-level runtime entrypoint.
     ///
     /// # Errors
@@ -327,6 +328,55 @@ impl QianjiBpmnSession {
             result,
             completed_at_ms: completed_at_ms.into(),
         })?;
+        loop {
+            match outcome {
+                BpmnAdvanceOutcome::Advanced => {
+                    outcome =
+                        advance_instance(self.package.as_ref(), &mut self.instance, host).await?;
+                }
+                BpmnAdvanceOutcome::BlockedOnHost(_)
+                | BpmnAdvanceOutcome::WaitingExternalEvent
+                | BpmnAdvanceOutcome::Suspended(_)
+                | BpmnAdvanceOutcome::Completed
+                | BpmnAdvanceOutcome::Failed(_) => return Ok(outcome),
+            }
+        }
+    }
+
+    /// Applies explicit host-work results from the same blocked boundary, then
+    /// advances until the next host boundary or terminal outcome.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when any completion identity is not
+    /// part of the current pending host-work set, when the engine rejects a
+    /// result, or when advancing the instance fails.
+    pub async fn complete_pending_host_work_batch_until_host_boundary<H: BpmnHostBridge>(
+        &mut self,
+        completions: Vec<QianjiBpmnPendingHostCompletion>,
+        host: &H,
+    ) -> Result<BpmnAdvanceOutcome, BpmnOrchestrationError> {
+        for completion in &completions {
+            validate_pending_host_work_identity(
+                self.package.as_ref(),
+                &self.instance,
+                completion.token_id,
+                completion.process_id.as_str(),
+                completion.activity_id.as_str(),
+            )?;
+        }
+
+        let completed_at_ms = self.instance.updated_at_ms;
+        let mut outcome = BpmnAdvanceOutcome::Advanced;
+        for completion in completions {
+            outcome = apply_pending_host_work_result(PendingHostWorkApplyInput {
+                package: self.package.as_ref(),
+                instance: &mut self.instance,
+                token_id: completion.token_id.into(),
+                result: completion.result,
+                completed_at_ms: completed_at_ms.into(),
+            })?;
+        }
         loop {
             match outcome {
                 BpmnAdvanceOutcome::Advanced => {
@@ -601,12 +651,12 @@ fn validate_pending_host_work_identity(
         .pending_host_work
         .iter()
         .find(|work| work.token_id == token_id)
-        .ok_or_else(
-            || qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
+        .ok_or_else(|| {
+            xiuxian_qianji_bpmn_engine::BpmnEngineError::MissingPendingHostWorkToken {
                 instance_id: instance.instance_id.to_string().into(),
                 token_id: token_id.into(),
-            },
-        )?;
+            }
+        })?;
 
     let actual_process_id = pending
         .process_id
@@ -642,7 +692,8 @@ fn validate_pending_host_work_identity(
 fn start_at_node_kind_is_supported(kind: &BpmnNodeKind) -> bool {
     matches!(
         kind,
-        BpmnNodeKind::SendTask
+        BpmnNodeKind::Task
+            | BpmnNodeKind::SendTask
             | BpmnNodeKind::ServiceTask
             | BpmnNodeKind::ScriptTask
             | BpmnNodeKind::UserTask
@@ -658,6 +709,7 @@ fn start_at_node_kind_label(kind: &BpmnNodeKind) -> &'static str {
         BpmnNodeKind::IntermediateThrowEvent => "intermediate_throw_event",
         BpmnNodeKind::IntermediateCatchEvent => "intermediate_catch_event",
         BpmnNodeKind::BoundaryEvent => "boundary_event",
+        BpmnNodeKind::Task => "task",
         BpmnNodeKind::SendTask => "send_task",
         BpmnNodeKind::ServiceTask => "service_task",
         BpmnNodeKind::ScriptTask => "script_task",

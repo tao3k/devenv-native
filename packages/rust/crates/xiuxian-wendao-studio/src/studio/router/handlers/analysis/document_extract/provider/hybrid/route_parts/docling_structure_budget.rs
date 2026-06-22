@@ -30,7 +30,7 @@ fn docling_page_range_structure_cost_budget_with_lookup(
         .filter(|value| *value > 0)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "document-extract-pdf-render"))]
 pub(super) fn structure_cost_budgeted_docling_page_range_fallback_ranges(
     ranges: &[(u32, u32)],
     profiles: &[PdfSourcePageProfile],

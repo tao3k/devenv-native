@@ -70,9 +70,9 @@ fn uses_configured_project_roots_when_paths_are_omitted() -> Result<()> {
     std::fs::write(
         temp.path().join("wendao.toml"),
         concat!(
-            "[link_graph.projects.frontend]\n",
+            "[sources.projects.frontend]\n",
             "root = \"frontend\"\n\n",
-            "[link_graph.projects.backend]\n",
+            "[sources.projects.backend]\n",
             "root = \"backend\"\n",
         ),
     )?;
@@ -103,9 +103,9 @@ fn explicit_paths_override_configured_project_roots() -> Result<()> {
     std::fs::write(
         temp.path().join("wendao.toml"),
         concat!(
-            "[link_graph.projects.frontend]\n",
+            "[sources.projects.frontend]\n",
             "root = \"frontend\"\n\n",
-            "[link_graph.projects.backend]\n",
+            "[sources.projects.backend]\n",
             "root = \"backend\"\n",
         ),
     )?;
@@ -133,9 +133,9 @@ fn omits_managed_remote_projects_from_default_configured_roots() -> Result<()> {
     std::fs::write(
         temp.path().join("wendao.toml"),
         concat!(
-            "[link_graph.projects.frontend]\n",
+            "[sources.projects.frontend]\n",
             "root = \"frontend\"\n\n",
-            "[link_graph.projects.readonly]\n",
+            "[sources.projects.readonly]\n",
             "root = \"readonly-mirror\"\n",
             "url = \"https://example.com/repo.git\"\n",
         ),
@@ -164,9 +164,9 @@ fn omits_explicit_read_only_projects_from_default_configured_roots() -> Result<(
     std::fs::write(
         temp.path().join("wendao.toml"),
         concat!(
-            "[link_graph.projects.frontend]\n",
+            "[sources.projects.frontend]\n",
             "root = \"frontend\"\n\n",
-            "[link_graph.projects.readonly]\n",
+            "[sources.projects.readonly]\n",
             "root = \"readonly-local\"\n",
             "read_only = true\n",
         ),
@@ -195,9 +195,9 @@ fn explicit_read_only_false_overrides_managed_remote_inference() -> Result<()> {
     std::fs::write(
         temp.path().join("wendao.toml"),
         concat!(
-            "[link_graph.projects.frontend]\n",
+            "[sources.projects.frontend]\n",
             "root = \"frontend\"\n\n",
-            "[link_graph.projects.mirror]\n",
+            "[sources.projects.mirror]\n",
             "root = \"mirror\"\n",
             "url = \"https://example.com/repo.git\"\n",
             "read_only = false\n",

@@ -48,6 +48,23 @@ def test_python_worker_env_forwards_explicit_docling_threads() -> None:
     assert env["WENDAO_DOCUMENT_EXTRACT_FULL_THREADS"] == "3"
 
 
+def test_python_worker_env_forwards_fast_text_source_converter() -> None:
+    benchmark = _load_benchmark_module()
+
+    default_env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(pdf_ocr_fast_text_source_converter="default")
+    )
+    backend_table_env = benchmark.hosted_vlm_ocr_process_env(
+        benchmark.argparse.Namespace(pdf_ocr_fast_text_source_converter="backend-table")
+    )
+
+    assert "WENDAO_PDF_OCR_FAST_TEXT_SOURCE_CONVERTER" not in default_env
+    assert (
+        backend_table_env["WENDAO_PDF_OCR_FAST_TEXT_SOURCE_CONVERTER"]
+        == "backend-table"
+    )
+
+
 def test_python_worker_env_forwards_document_extract_prewarm() -> None:
     benchmark = _load_benchmark_module()
 

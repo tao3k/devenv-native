@@ -1,6 +1,6 @@
 ---
 type: knowledge
-title: "Design Note: qianji-bpmn-engine Runtime State and Checkpoint Storage Model"
+title: "Design Note: xiuxian-qianji-bpmn-engine Runtime State and Checkpoint Storage Model"
 category: "research"
 status: "draft"
 authors:
@@ -15,15 +15,15 @@ tags:
   - design
 ---
 
-# Design Note: qianji-bpmn-engine Runtime State and Checkpoint Storage Model
+# Design Note: xiuxian-qianji-bpmn-engine Runtime State and Checkpoint Storage Model
 
 ## 1. Purpose
 
 This note narrows the planning lane opened in
-[Research Plan: qianji-bpmn-engine Architecture and xiuxian-qianji Integration](2026-04-18-bpmn-engine-research-plan.md)
+[Research Plan: xiuxian-qianji-bpmn-engine Architecture and xiuxian-qianji Integration](2026-04-18-bpmn-engine-research-plan.md)
 to one concrete question:
 
-How should `qianji-bpmn-engine` represent runtime state and persist checkpoint
+How should `xiuxian-qianji-bpmn-engine` represent runtime state and persist checkpoint
 state without compromising hot-path performance, while keeping Valkey as the
 distributed default and leaving room for one lightweight local SQL option?
 
@@ -35,9 +35,9 @@ audit.
 
 The current design constraints are:
 
-1. `qianji-bpmn-engine` is a standalone crate.
+1. `xiuxian-qianji-bpmn-engine` is a standalone crate.
 2. `xiuxian-qianji` depends on it through thin host adapters.
-3. BPMN runtime semantics stay inside `qianji-bpmn-engine`.
+3. BPMN runtime semantics stay inside `xiuxian-qianji-bpmn-engine`.
 4. Valkey remains the distributed/default checkpoint path for v1.
 5. One feature-gated local SQL path is acceptable for lightweight client-side
    persistence when distributed writer ownership is not required.
@@ -337,7 +337,7 @@ Current implemented status:
 
 1. the workspace storage facade is now `xiuxian-db-store`
 2. the facade keeps the existing heavy `vector-store` surface feature-gated
-3. `qianji-bpmn-engine` now keeps Valkey as the distributed/default checkpoint
+3. `xiuxian-qianji-bpmn-engine` now keeps Valkey as the distributed/default checkpoint
    path
 4. `xiuxian-qianji` local no-server workflow-state snapshots now use DuckDB
    through `xiuxian-db-store`

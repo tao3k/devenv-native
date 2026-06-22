@@ -5,8 +5,7 @@ from __future__ import annotations
 from xiuxian_wendao_analyzer.audio_diagnostic_reference_inputs import (
     REFERENCE_STATUS_CANDIDATE_DRAFT,
     REFERENCE_STATUS_CURATED,
-    curated_reference_rows_from_draft,
-    curated_reference_rows_from_tsv,
+    curated_reference_rows_from_org,
     load_reference_transcripts,
     load_term_list,
     prompt_with_domain_terms,
@@ -24,8 +23,7 @@ from xiuxian_wendao_analyzer.audio_language import (
 __all__ = [
     "REFERENCE_STATUS_CANDIDATE_DRAFT",
     "REFERENCE_STATUS_CURATED",
-    "curated_reference_rows_from_draft",
-    "curated_reference_rows_from_tsv",
+    "curated_reference_rows_from_org",
     "load_reference_transcripts",
     "load_term_list",
     "normalize_primary_language",

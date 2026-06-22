@@ -4,26 +4,21 @@ use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
 use serde::{Deserialize, Serialize};
 
+use crate::arrow_contract::ArrowTableContract;
+use crate::semantic_read_model::{
+    semantic_objects_contract, semantic_projection_state_contract, semantic_relations_contract,
+};
 use crate::{LocalRelationEngine, LocalRelationRegistrationHint};
 
+use super::schema::{
+    DATASET_ONTOLOGY_ENTITY_TABLE_NAME, DATASET_ONTOLOGY_EVIDENCE_TABLE_NAME,
+    DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME, DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME,
+    DATASET_ONTOLOGY_RELATION_TABLE_NAME, DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
+    DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
+    DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME, entity_contract, evidence_contract,
+    link_observation_contract, object_observation_contract, relation_contract,
+};
 use super::sql::validate_dataset_ontology_select_only_sql;
-
-/// Canonical object observation table name.
-pub const DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME: &str = "ontology_object_observation";
-/// Canonical link observation table name.
-pub const DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME: &str = "ontology_link_observation";
-/// Canonical evidence table name.
-pub const DATASET_ONTOLOGY_EVIDENCE_TABLE_NAME: &str = "ontology_evidence";
-/// Compatibility entity table name used by ontology validation SQL.
-pub const DATASET_ONTOLOGY_ENTITY_TABLE_NAME: &str = "ontology_entity";
-/// Compatibility relation table name used by ontology validation SQL.
-pub const DATASET_ONTOLOGY_RELATION_TABLE_NAME: &str = "ontology_relation";
-/// Semantic object read-model table name.
-pub const DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME: &str = "semantic_objects";
-/// Semantic relation read-model table name.
-pub const DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME: &str = "semantic_relations";
-/// Semantic projection-state read-model table name.
-pub const DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME: &str = "semantic_projection_state";
 
 const ENTITY_COMPATIBILITY_SQL: &str =
     "select object_id as entity_id, rdf_class as class_iri from ontology_object_observation";
@@ -215,6 +210,26 @@ pub async fn materialize_dataset_ontology_with_engine(
     source_tables: &[DatasetOntologySourceTable],
     mapping_sql: &DatasetOntologyMappingSql,
 ) -> Result<DatasetOntologyMaterializationReport, String> {
+    let source_table_counts = register_dataset_ontology_source_tables(query_engine, source_tables)?;
+    let observation_tables = materialize_observation_tables(query_engine, mapping_sql).await?;
+    let semantic_read_model_tables =
+        materialize_semantic_read_model_tables(query_engine, mapping_sql).await?;
+    let validation_failures =
+        collect_dataset_ontology_validation_failures(query_engine, mapping_sql).await?;
+
+    Ok(DatasetOntologyMaterializationReport {
+        execution_engine: query_engine.kind().as_str().to_string(),
+        source_tables: source_table_counts,
+        observation_tables,
+        semantic_read_model_tables,
+        validation_failures,
+    })
+}
+
+fn register_dataset_ontology_source_tables(
+    query_engine: &impl LocalRelationEngine,
+    source_tables: &[DatasetOntologySourceTable],
+) -> Result<Vec<DatasetOntologyMaterializedTableCount>, String> {
     let mut source_table_counts = Vec::with_capacity(source_tables.len());
     for source_table in source_tables {
         query_engine.register_record_batches_with_hint(
@@ -225,57 +240,102 @@ pub async fn materialize_dataset_ontology_with_engine(
         )?;
         source_table_counts.push(table_count(source_table.name(), source_table.row_count()));
     }
+    Ok(source_table_counts)
+}
 
+async fn materialize_observation_tables(
+    query_engine: &impl LocalRelationEngine,
+    mapping_sql: &DatasetOntologyMappingSql,
+) -> Result<Vec<DatasetOntologyMaterializedTableCount>, String> {
     let object_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME,
         mapping_sql.object_observations.as_str(),
+        Some(object_observation_contract()),
     )
     .await?;
     let link_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME,
         mapping_sql.link_observations.as_str(),
+        Some(link_observation_contract()),
     )
     .await?;
     let evidence_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_EVIDENCE_TABLE_NAME,
         mapping_sql.evidence.as_str(),
+        Some(evidence_contract()),
     )
     .await?;
     let entity_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_ENTITY_TABLE_NAME,
         ENTITY_COMPATIBILITY_SQL,
+        Some(entity_contract()),
     )
     .await?;
     let relation_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_RELATION_TABLE_NAME,
         RELATION_COMPATIBILITY_SQL,
+        Some(relation_contract()),
     )
     .await?;
+    Ok(vec![
+        table_count(DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME, object_count),
+        table_count(DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME, link_count),
+        table_count(DATASET_ONTOLOGY_EVIDENCE_TABLE_NAME, evidence_count),
+        table_count(DATASET_ONTOLOGY_ENTITY_TABLE_NAME, entity_count),
+        table_count(DATASET_ONTOLOGY_RELATION_TABLE_NAME, relation_count),
+    ])
+}
 
+async fn materialize_semantic_read_model_tables(
+    query_engine: &impl LocalRelationEngine,
+    mapping_sql: &DatasetOntologyMappingSql,
+) -> Result<Vec<DatasetOntologyMaterializedTableCount>, String> {
     let semantic_objects_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
         mapping_sql.semantic_objects.as_str(),
+        Some(semantic_objects_contract()),
     )
     .await?;
     let semantic_relations_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME,
         mapping_sql.semantic_relations.as_str(),
+        Some(semantic_relations_contract()),
     )
     .await?;
     let semantic_projection_state_count = query_and_register(
         query_engine,
         DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
         mapping_sql.semantic_projection_state.as_str(),
+        Some(semantic_projection_state_contract()),
     )
     .await?;
+    Ok(vec![
+        table_count(
+            DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
+            semantic_objects_count,
+        ),
+        table_count(
+            DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME,
+            semantic_relations_count,
+        ),
+        table_count(
+            DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
+            semantic_projection_state_count,
+        ),
+    ])
+}
 
+async fn collect_dataset_ontology_validation_failures(
+    query_engine: &impl LocalRelationEngine,
+    mapping_sql: &DatasetOntologyMappingSql,
+) -> Result<Vec<DatasetOntologyValidationFailure>, String> {
     let mut validation_failures = Vec::new();
     for rule in &mapping_sql.validation_rules {
         validate_dataset_ontology_select_only_sql(&rule.sql)?;
@@ -288,39 +348,14 @@ pub async fn materialize_dataset_ontology_with_engine(
             });
         }
     }
-
-    Ok(DatasetOntologyMaterializationReport {
-        execution_engine: query_engine.kind().as_str().to_string(),
-        source_tables: source_table_counts,
-        observation_tables: vec![
-            table_count(DATASET_ONTOLOGY_OBJECT_OBSERVATION_TABLE_NAME, object_count),
-            table_count(DATASET_ONTOLOGY_LINK_OBSERVATION_TABLE_NAME, link_count),
-            table_count(DATASET_ONTOLOGY_EVIDENCE_TABLE_NAME, evidence_count),
-            table_count(DATASET_ONTOLOGY_ENTITY_TABLE_NAME, entity_count),
-            table_count(DATASET_ONTOLOGY_RELATION_TABLE_NAME, relation_count),
-        ],
-        semantic_read_model_tables: vec![
-            table_count(
-                DATASET_ONTOLOGY_SEMANTIC_OBJECTS_TABLE_NAME,
-                semantic_objects_count,
-            ),
-            table_count(
-                DATASET_ONTOLOGY_SEMANTIC_RELATIONS_TABLE_NAME,
-                semantic_relations_count,
-            ),
-            table_count(
-                DATASET_ONTOLOGY_SEMANTIC_PROJECTION_STATE_TABLE_NAME,
-                semantic_projection_state_count,
-            ),
-        ],
-        validation_failures,
-    })
+    Ok(validation_failures)
 }
 
 async fn query_and_register(
     query_engine: &impl LocalRelationEngine,
     table_name: &str,
     sql: &str,
+    expected_contract: Option<ArrowTableContract>,
 ) -> Result<usize, String> {
     validate_dataset_ontology_select_only_sql(sql)?;
     let batches = query_engine.query_batches(sql).await?;
@@ -328,6 +363,9 @@ async fn query_and_register(
         .first()
         .map(RecordBatch::schema)
         .ok_or_else(|| format!("dataset ontology query for `{table_name}` returned no batches"))?;
+    if let Some(contract) = expected_contract {
+        validate_dataset_ontology_output_contract(table_name, contract, &batches)?;
+    }
     let row_count = record_batch_row_count(&batches);
     query_engine.register_record_batches_with_hint(
         table_name,
@@ -336,6 +374,25 @@ async fn query_and_register(
         LocalRelationRegistrationHint::RepeatedUse,
     )?;
     Ok(row_count)
+}
+
+fn validate_dataset_ontology_output_contract(
+    table_name: &str,
+    contract: ArrowTableContract,
+    batches: &[RecordBatch],
+) -> Result<(), String> {
+    if contract.table_name() != table_name {
+        return Err(format!(
+            "dataset ontology table `{table_name}` cannot use Arrow contract `{}`",
+            contract.table_name()
+        ));
+    }
+    for batch in batches {
+        contract
+            .validate_compatible_schema(batch.schema().as_ref())
+            .map_err(|error| format!("dataset ontology `{table_name}` output schema: {error}"))?;
+    }
+    Ok(())
 }
 
 fn table_count(table_name: &str, row_count: usize) -> DatasetOntologyMaterializedTableCount {

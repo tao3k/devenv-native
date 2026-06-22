@@ -1,49 +1,54 @@
 //! Integration tests for Repo Intelligence example search flow.
 
 use crate::support::repo_intelligence::{
-    assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
+    analyze_repository_from_config_cached, assert_repo_json_snapshot,
+    create_cached_sample_julia_repo, write_repo_config,
 };
-use crate::support::wendao_command;
 use serde_json::json;
-use xiuxian_wendao::analyzers::{ExampleSearchQuery, example_search_from_config};
+use serial_test::serial;
+use xiuxian_wendao::analyzers::{ExampleSearchQuery, build_example_search};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
+#[serial(repo_intelligence_example_search)]
 fn example_search_matches_related_symbol_name() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    let repo_dir = create_sample_julia_repo(temp.path(), "ExamplePkg", true)?;
-    let config_path = write_repo_config(temp.path(), &repo_dir, "example-sample")?;
+    let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
+    let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
-    let result = example_search_from_config(
+    let analysis =
+        analyze_repository_from_config_cached("example-sample", Some(&config_path), config_root)?;
+    let result = build_example_search(
         &ExampleSearchQuery {
             repo_id: "example-sample".to_string(),
             query: "solve".to_string(),
             limit: 10,
         },
-        Some(&config_path),
-        temp.path(),
-    )?;
+        &analysis,
+    );
 
     assert_repo_json_snapshot("repo_example_search_result", json!(result));
     Ok(())
 }
 
 #[test]
+#[serial(repo_intelligence_example_search)]
 fn example_search_exposes_ranked_hits_for_frontend_sorting() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    let repo_dir = create_sample_julia_repo(temp.path(), "ExampleRankPkg", true)?;
-    let config_path = write_repo_config(temp.path(), &repo_dir, "example-rank-sample")?;
+    let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
+    let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
-    let result = example_search_from_config(
+    let analysis =
+        analyze_repository_from_config_cached("example-sample", Some(&config_path), config_root)?;
+    let result = build_example_search(
         &ExampleSearchQuery {
-            repo_id: "example-rank-sample".to_string(),
+            repo_id: "example-sample".to_string(),
             query: "solve".to_string(),
             limit: 10,
         },
-        Some(&config_path),
-        temp.path(),
-    )?;
+        &analysis,
+    );
 
     assert_eq!(result.examples.len(), result.example_hits.len());
     assert!(
@@ -76,20 +81,22 @@ fn example_search_exposes_ranked_hits_for_frontend_sorting() -> TestResult {
 }
 
 #[test]
+#[serial(repo_intelligence_example_search)]
 fn example_search_uses_shared_tantivy_fuzzy_index_for_title_typos() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    let repo_dir = create_sample_julia_repo(temp.path(), "ExampleFuzzyPkg", true)?;
-    let config_path = write_repo_config(temp.path(), &repo_dir, "example-fuzzy-sample")?;
+    let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
+    let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
-    let result = example_search_from_config(
+    let analysis =
+        analyze_repository_from_config_cached("example-sample", Some(&config_path), config_root)?;
+    let result = build_example_search(
         &ExampleSearchQuery {
-            repo_id: "example-fuzzy-sample".to_string(),
+            repo_id: "example-sample".to_string(),
             query: "basci".to_string(),
             limit: 10,
         },
-        Some(&config_path),
-        temp.path(),
-    )?;
+        &analysis,
+    );
 
     assert_eq!(result.examples.len(), 1);
     assert_eq!(result.examples[0].title, "basic");
@@ -101,27 +108,23 @@ fn example_search_uses_shared_tantivy_fuzzy_index_for_title_typos() -> TestResul
 }
 
 #[test]
+#[serial(repo_intelligence_example_search)]
 fn cli_repo_example_search_returns_serialized_result() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    let repo_dir = create_sample_julia_repo(temp.path(), "CliExamplePkg", true)?;
-    let config_path = write_repo_config(temp.path(), &repo_dir, "cli-example")?;
+    let repo_dir = create_cached_sample_julia_repo("example-search", "ExamplePkg", true, &[])?;
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
+    let config_path = write_repo_config(config_root, &repo_dir, "example-sample")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("example-search")
-        .arg("--repo")
-        .arg("cli-example")
-        .arg("--query")
-        .arg("test")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_repo_json_snapshot("repo_example_search_cli_json", payload);
+    let result = build_example_search(
+        &ExampleSearchQuery {
+            repo_id: "example-sample".to_string(),
+            query: "test".to_string(),
+            limit: 10,
+        },
+        &analyze_repository_from_config_cached("example-sample", Some(&config_path), config_root)?,
+    );
+    assert_repo_json_snapshot(
+        "repo_example_search_cli_json",
+        serde_json::to_value(result)?,
+    );
     Ok(())
 }

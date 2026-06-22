@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
+use crate::search::contracts::{SourceSymbolHit, StudioNavigationTarget};
 use crate::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
 #[cfg(feature = "duckdb")]
 use crate::set_link_graph_wendao_config_override;
@@ -27,8 +27,8 @@ pub(super) fn write_search_duckdb_runtime_override(
     Ok(temp)
 }
 
-pub(super) fn sample_hit(name: &str, path: &str, line_start: usize) -> AstSearchHit {
-    AstSearchHit {
+pub(super) fn sample_hit(name: &str, path: &str, line_start: usize) -> SourceSymbolHit {
+    SourceSymbolHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
         path: path.to_string(),
@@ -57,8 +57,8 @@ pub(super) fn sample_markdown_hit(
     name: &str,
     node_kind: Option<&str>,
     owner_title: Option<&str>,
-) -> AstSearchHit {
-    AstSearchHit {
+) -> SourceSymbolHit {
+    SourceSymbolHit {
         name: name.to_string(),
         signature: format!("## {name}"),
         path: "docs/alpha.md".to_string(),
@@ -86,7 +86,7 @@ pub(super) fn sample_markdown_hit(
 pub(super) async fn publish_local_symbol_hits(
     service: &SearchPlaneService,
     build_id: &str,
-    hits: &[AstSearchHit],
+    hits: &[SourceSymbolHit],
 ) {
     crate::search::local_symbol::build::publish_local_symbol_hits(service, build_id, hits)
         .await

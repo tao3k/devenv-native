@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 pub(super) use crate::analyzers::RepositoryAnalysisOutput;
 use crate::analyzers::{ExampleRecord, ModuleRecord, RepoSymbolKind, SymbolRecord};
 pub(super) use crate::repo_index::{RepoCodeDocument, RepoIndexEntryStatus, RepoIndexPhase};
-pub(super) use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
+pub(super) use crate::search::contracts::{SourceSymbolHit, StudioNavigationTarget};
 pub(super) use crate::search::{
     SearchCorpusIssueSummary, SearchCorpusKind, SearchCorpusStatus, SearchCorpusStatusAction,
     SearchCorpusStatusReasonCode, SearchCorpusStatusSeverity, SearchManifestKeyspace,
@@ -91,8 +91,8 @@ pub(super) async fn publish_repo_bundle(
     );
 }
 
-pub(super) fn sample_hit() -> AstSearchHit {
-    AstSearchHit {
+pub(super) fn sample_hit() -> SourceSymbolHit {
+    SourceSymbolHit {
         name: "AlphaSymbol".to_string(),
         signature: "fn AlphaSymbol()".to_string(),
         path: "src/lib.rs".to_string(),

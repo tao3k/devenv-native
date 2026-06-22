@@ -14,8 +14,8 @@ use crate::bpmn::driver::QianjiBpmnExecutionRequest;
 use crate::bpmn::loader::load_bpmn_package_from_files;
 use crate::bpmn::session::QianjiBpmnSession;
 use crate::telemetry::unix_millis_now;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
 use std::io;
+use xiuxian_qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
 
 pub(crate) async fn prepare_resume_workflow(
     service: &QianjiBpmnWorkflowControlService,
@@ -144,11 +144,6 @@ pub(crate) async fn poll_workflow_events<H: BpmnHostBridge>(
     request: &QianjiBpmnWorkflowEventPollRequest,
     host: &H,
 ) -> Result<QianjiBpmnWorkflowEventPollReport, QianjiBpmnWorkflowControlError> {
-    let resume_request = QianjiBpmnWorkflowResumeRequest {
-        bpmn_path: request.bpmn_path.clone(),
-        dmn_paths: request.dmn_paths.clone(),
-        instance_id: request.instance_id.clone(),
-        checkpoint_backend: request.checkpoint_backend.clone(),
-    };
+    let resume_request = request.workflow_resume_request();
     resume_workflow(service, &resume_request, host).await
 }

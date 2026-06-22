@@ -24,6 +24,7 @@ bind_addr = "127.0.0.1:38131"
     });
 
     assert_eq!(cfg.bind_addr, "127.0.0.1:38131");
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38131"));
     assert!(!cfg.require_valkey_ready);
 }
 
@@ -56,6 +57,7 @@ bind_addr = "127.0.0.1:38132"
     });
 
     assert_eq!(cfg.bind_addr, "127.0.0.1:38132");
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38131"));
     assert!(!cfg.require_valkey_ready);
 }
 
@@ -85,6 +87,7 @@ bind_addr = "127.0.0.1:38131"
     });
 
     assert_eq!(cfg.bind_addr, "127.0.0.1:38131");
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38131"));
     assert!(!cfg.require_valkey_ready);
 }
 
@@ -106,6 +109,7 @@ fn runtime_server_config_uses_env_fallback_when_toml_missing() {
     });
 
     assert_eq!(cfg.bind_addr, "127.0.0.1:38134");
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38131"));
     assert!(!cfg.require_valkey_ready);
 }
 
@@ -132,6 +136,7 @@ bind_addr = "127.0.0.1:38131"
     });
 
     assert_eq!(cfg.bind_addr, "127.0.0.1:38135");
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38131"));
     assert!(!cfg.require_valkey_ready);
 }
 
@@ -158,6 +163,7 @@ require_valkey_ready = true
     });
 
     assert_eq!(cfg.bind_addr, "127.0.0.1:38131");
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38131"));
     assert!(cfg.require_valkey_ready);
 }
 
@@ -204,4 +210,28 @@ require_valkey_ready = true
     });
 
     assert!(!cfg.require_valkey_ready);
+}
+
+#[test]
+fn runtime_server_config_reads_flight_bind_addr_from_qianji_toml() {
+    let tmp = TempDir::new()
+        .unwrap_or_else(|err| panic!("failed to create temp dir for runtime config test: {err}"));
+    let project_root = tmp.path().join("project");
+    let config_home = project_root.join(".config");
+
+    write_file(
+        &project_root.join("packages/rust/crates/xiuxian-qianji/resources/config/qianji.toml"),
+        r#"
+[server]
+flight_bind_addr = "127.0.0.1:38136"
+"#,
+    );
+
+    let cfg = resolve_server(&QianjiRuntimeEnv {
+        prj_root: Some(project_root),
+        prj_config_home: Some(config_home),
+        ..QianjiRuntimeEnv::default()
+    });
+
+    assert_eq!(cfg.flight_bind_addr.as_deref(), Some("127.0.0.1:38136"));
 }

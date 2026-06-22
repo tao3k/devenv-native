@@ -3,12 +3,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::{LinkGraphIndex, PageIndexNode, RegistryIndex};
 use crate::parsers::docs_governance::is_package_local_crate_doc;
 use crate::zhenfa_router::native::WendaoContextExt;
-use crate::zhenfa_router::native::audit::{SourceFile, resolve_source_files};
+use crate::zhenfa_router::native::audit::{CodeLanguageId, SourceFile, resolve_source_files};
 
 use super::checks::{
     check_code_observations, check_contracts, check_dead_links, check_deprecated_refs,
@@ -25,14 +25,8 @@ use super::types::{CheckType, SemanticCheckResult, SemanticIssue, WendaoSemantic
 ///
 /// Returns `ZhenfaError` when the link graph index cannot be loaded or when the
 /// underlying audit core cannot complete.
-#[allow(clippy::needless_pass_by_value)] // The tool macro keeps owned args for tool invocation wiring.
+#[allow(clippy::needless_pass_by_value)]
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.semantic_check",
-    description = "Perform semantic consistency check on the knowledge base (dead links, deprecated refs, contract violations).",
-    tool_struct = "WendaoSemanticCheckTool",
-    mutation_scope = "wendao.semantic_check"
-)]
 pub fn wendao_semantic_check(
     ctx: &ZhenfaContext,
     args: WendaoSemanticCheckArgs,
@@ -162,13 +156,13 @@ fn resolved_source_files(args: &WendaoSemanticCheckArgs) -> Vec<SourceFile> {
         .collect()
 }
 
-fn audit_source_language_ids() -> [xiuxian_code_intelligence::CodeLanguageId; 5] {
+fn audit_source_language_ids() -> [CodeLanguageId; 5] {
     [
-        xiuxian_code_intelligence::CodeLanguageId::from("rust"),
-        xiuxian_code_intelligence::CodeLanguageId::from("python"),
-        xiuxian_code_intelligence::CodeLanguageId::from("typescript"),
-        xiuxian_code_intelligence::CodeLanguageId::from("javascript"),
-        xiuxian_code_intelligence::CodeLanguageId::from("go"),
+        CodeLanguageId::from("rust"),
+        CodeLanguageId::from("python"),
+        CodeLanguageId::from("typescript"),
+        CodeLanguageId::from("javascript"),
+        CodeLanguageId::from("go"),
     ]
 }
 

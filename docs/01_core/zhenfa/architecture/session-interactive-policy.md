@@ -45,7 +45,7 @@ Configurable via `daily_reset_hour`. Ensures the agent starts every morning with
 For tools marked as `restricted: true` or when `send_policy: "deny"` is active:
 
 1. Agent generates a "Proposed Action" (e.g., `rm -rf ./tmp`).
-2. `ZhenfaOrchestrator` intercepts and creates a **Pending Approval** record in Valkey.
+2. The runtime policy layer intercepts and creates a **Pending Approval** record in Valkey.
 3. Telegram/Discord sends a message with **[Approve]** and **[Deny]** buttons.
 4. Logic remains suspended until a callback is received.
 

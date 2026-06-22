@@ -3,8 +3,8 @@ use std::path::Path;
 use crate::contracts::StudioNavigationTarget;
 use crate::studio::search::{DefinitionResolveOptions, resolve_best_definition};
 
-fn ast_hit(name: &str) -> crate::contracts::AstSearchHit {
-    crate::contracts::AstSearchHit {
+fn source_symbol_hit(name: &str) -> crate::contracts::SourceSymbolHit {
+    crate::contracts::SourceSymbolHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
         path: "src/lib.rs".to_string(),
@@ -31,7 +31,7 @@ fn ast_hit(name: &str) -> crate::contracts::AstSearchHit {
 
 #[test]
 fn resolve_best_definition_uses_lexical_fallback_for_typos() {
-    let hits = vec![ast_hit("spawn_local")];
+    let hits = vec![source_symbol_hit("spawn_local")];
 
     let result = resolve_best_definition(
         "spwan_local",

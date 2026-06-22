@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -12,6 +13,10 @@ from xiuxian_wendao_analyzer.document_service_cli import (
     build_document_extract_argument_parser,
     resolve_audio_backend_action,
     resolve_ocr2_backend_action,
+)
+from xiuxian_wendao_analyzer.document_service_startup_log import (
+    document_extract_startup_log_payload,
+    write_document_extract_startup_log,
 )
 from xiuxian_wendao_analyzer.ocr2_backend import manager_launch
 from xiuxian_wendao_analyzer.ocr2_backend.manager import (
@@ -34,8 +39,7 @@ def test_ocr2_justfile_recipes_delegate_to_analyzer_cli() -> None:
     justfile = (_project_root() / "justfile").read_text(encoding="utf-8")
 
     assert (
-        "uv run --package xiuxian-wendao-analyzer wendao-document-extract "
-        "--ocr2-fetch-models"
+        "uv run --package xiuxian-wendao-analyzer wendao-document-extract --ocr2-fetch-models"
     ) in justfile
     assert "--ocr2-start-backend" in justfile
     assert "--ocr2-install-vllm-metal" in justfile
@@ -114,6 +118,82 @@ def test_audio_backend_cli_flags_parse_as_actions() -> None:
     assert start_args.audio_backend_model_path == "Qwen/Qwen3-ASR-1.7B"
 
 
+def test_document_extract_startup_log_reports_redacted_runtime_config(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("WENDAO_AUDIO_HOSTED_PROVIDER", "openrouter")
+    monkeypatch.setenv("WENDAO_AUDIO_HOSTED_MODEL", "qwen/qwen3-asr-flash")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "secret-token")
+    monkeypatch.setenv("WENDAO_HOSTED_VLM_OCR_PROVIDER", "openrouter")
+    monkeypatch.setenv("WENDAO_OPENROUTER_MODEL", "baidu/qianfan-ocr-fast")
+    monkeypatch.setenv("WENDAO_HOSTED_VLM_OCR_TRACE_PATH", "/tmp/ocr-trace.jsonl")
+    args = build_document_extract_argument_parser().parse_args(
+        [
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "50051",
+            "--pdf-ocr-worker",
+            "docling",
+            "--pdf-ocr-workers",
+            "auto",
+            "--audio-worker",
+            "hosted",
+            "--audio-workers",
+            "auto",
+        ]
+    )
+
+    payload = document_extract_startup_log_payload(
+        args,
+        location="grpc://127.0.0.1:50051",
+        prewarmed_converter_ready=False,
+    )
+
+    assert payload["schema"] == "xiuxian_wendao.analyzer_document_extract_startup.v1"
+    assert payload["location"] == "grpc://127.0.0.1:50051"
+    assert payload["pdfOcr"]["worker"] == "docling"
+    assert payload["pdfOcr"]["hostedVlm"]["provider"] == "openrouter"
+    assert payload["pdfOcr"]["hostedVlm"]["openRouterModel"] == "baidu/qianfan-ocr-fast"
+    assert payload["pdfOcr"]["hostedVlm"]["apiKeyConfigured"] is True
+    assert payload["pdfOcr"]["hostedVlm"]["tracePathConfigured"] is True
+    assert payload["audio"]["worker"] == "hosted-audio-transcript-v1"
+    assert payload["audio"]["hosted"]["active"] is True
+    assert payload["audio"]["hosted"]["provider"] == "openrouter"
+    assert payload["audio"]["hosted"]["model"] == "qwen/qwen3-asr-flash"
+    assert payload["audio"]["hosted"]["apiKeyConfigured"] is True
+    assert "secret-token" not in json.dumps(payload)
+
+
+def test_document_extract_startup_log_writes_single_parseable_line() -> None:
+    class Buffer:
+        def __init__(self) -> None:
+            self.text = ""
+            self.flushed = False
+
+        def write(self, value: str) -> None:
+            self.text += value
+
+        def flush(self) -> None:
+            self.flushed = True
+
+    buffer = Buffer()
+    args = build_document_extract_argument_parser().parse_args([])
+
+    write_document_extract_startup_log(
+        buffer,
+        args,
+        location="grpc://0.0.0.0:50051",
+        prewarmed_converter_ready=True,
+    )
+
+    prefix, payload = buffer.text.strip().split(" ", 1)
+    assert prefix == "WENDAO_ANALYZER_STARTUP"
+    decoded = json.loads(payload)
+    assert decoded["prewarm"]["converterReady"] is True
+    assert buffer.flushed is True
+
+
 def test_audio_backend_launch_uses_qwen3_asr_adapter_on_macos(monkeypatch) -> None:
     monkeypatch.setattr(audio_manager, "is_macos_apple_silicon", lambda: True)
     monkeypatch.setattr(audio_manager.shutil, "which", lambda name: "/usr/bin/ffmpeg")
@@ -133,9 +213,7 @@ def test_audio_backend_launch_uses_qwen3_asr_adapter_on_macos(monkeypatch) -> No
     assert "qwen3_asr_mlx_openai_adapter.py" in command
     assert launch.env_updates["WENDAO_AUDIO_LOCAL_DEVICE"] == "metal"
     assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL"] == "qwen3-asr-1.7b-mlx"
-    assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL_PATH"] == (
-        "Qwen/Qwen3-ASR-1.7B"
-    )
+    assert launch.env_updates["WENDAO_AUDIO_LOCAL_MODEL_PATH"] == ("Qwen/Qwen3-ASR-1.7B")
 
 
 def test_audio_backend_launch_requires_ffmpeg_for_qwen3_asr_mlx(
@@ -157,9 +235,7 @@ def test_audio_backend_launch_requires_ffmpeg_for_qwen3_asr_mlx(
 
 def test_audio_backend_rejects_firered_as_metal_runner() -> None:
     try:
-        audio_manager.build_start_backend_launch(
-            AudioBackendOptions(backend_runner="fireredasr2s")
-        )
+        audio_manager.build_start_backend_launch(AudioBackendOptions(backend_runner="fireredasr2s"))
     except audio_manager.AudioBackendError as exc:
         assert "CUDA-only" in str(exc)
     else:
@@ -266,10 +342,7 @@ def test_ocr2_manager_keeps_backend_contract_defaults(monkeypatch) -> None:
     assert "--trust-remote-code" in launch.command
     assert "--quantization" in launch.command
     assert "awq" in launch.command
-    assert (
-        "vllm.model_executor.models.deepseek_ocr:NGramPerReqLogitsProcessor"
-        in launch.command
-    )
+    assert "vllm.model_executor.models.deepseek_ocr:NGramPerReqLogitsProcessor" in launch.command
     assert "--no-enable-prefix-caching" in launch.command
     assert "--mm-processor-cache-gb" in launch.command
 
@@ -286,12 +359,8 @@ def test_ocr2_backend_modules_replace_root_scripts() -> None:
     assert (package_dir / "mlx_vlm_openai_adapter.py").is_file()
     assert (package_dir / "official_vllm_openai_adapter.py").is_file()
 
-    mlx_adapter = (package_dir / "mlx_vlm_openai_adapter.py").read_text(
-        encoding="utf-8"
-    )
-    official_adapter = (package_dir / "official_vllm_openai_adapter.py").read_text(
-        encoding="utf-8"
-    )
+    mlx_adapter = (package_dir / "mlx_vlm_openai_adapter.py").read_text(encoding="utf-8")
+    official_adapter = (package_dir / "official_vllm_openai_adapter.py").read_text(encoding="utf-8")
     manager_source = (package_dir / "manager.py").read_text(encoding="utf-8")
     launch_source = (package_dir / "manager_launch.py").read_text(encoding="utf-8")
 

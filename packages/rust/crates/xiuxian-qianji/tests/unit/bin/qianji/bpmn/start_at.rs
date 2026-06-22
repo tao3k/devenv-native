@@ -6,10 +6,10 @@ use super::{
 };
 use crate::qianji_cli::bpmn_cli::render_bpmn_pending_host_work_stream_lines;
 use crate::{QianjiBpmnHostBridge, QianjiBpmnSession, load_bpmn_package_from_files};
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnInstanceInit, NodeRuntimeStatus,
 };
-use std::sync::Arc;
 
 #[cfg(feature = "duckdb")]
 #[tokio::test(flavor = "current_thread")]
@@ -77,7 +77,7 @@ async fn run_bpmn_start_at_user_task_saves_waiting_checkpoint() {
     assert_eq!(checkpoint.state.pending_host_work.len(), 1);
     assert_eq!(
         checkpoint.state.pending_host_work[0].kind,
-        qianji_bpmn_engine::PendingHostWorkKind::User
+        xiuxian_qianji_bpmn_engine::PendingHostWorkKind::User
     );
 
     let collision = run_bpmn_start_at_command_with_runtime_env(
@@ -202,7 +202,7 @@ async fn pending_host_work_stream_includes_human_task_form_contract() {
         "form manual task package should load",
     );
     let mut instance = must_ok(
-        qianji_bpmn_engine::create_instance(
+        xiuxian_qianji_bpmn_engine::create_instance(
             Arc::clone(&package),
             "question_flow",
             BpmnInstanceInit::new(
@@ -217,7 +217,7 @@ async fn pending_host_work_stream_includes_human_task_form_contract() {
         "form manual task instance should seed",
     );
     let outcome = must_ok(
-        qianji_bpmn_engine::advance_instance(
+        xiuxian_qianji_bpmn_engine::advance_instance(
             package.as_ref(),
             &mut instance,
             &QianjiBpmnHostBridge::default(),
@@ -275,7 +275,7 @@ async fn pending_host_work_stream_preserves_runtime_host_loop_identity_contract(
         "gateway user-task package should load",
     );
     let mut instance = must_ok(
-        qianji_bpmn_engine::create_instance(
+        xiuxian_qianji_bpmn_engine::create_instance(
             Arc::clone(&package),
             "host_loop_stream",
             BpmnInstanceInit::new(
@@ -290,7 +290,7 @@ async fn pending_host_work_stream_preserves_runtime_host_loop_identity_contract(
         "gateway user-task instance should seed",
     );
     let outcome = must_ok(
-        qianji_bpmn_engine::advance_instance(
+        xiuxian_qianji_bpmn_engine::advance_instance(
             package.as_ref(),
             &mut instance,
             &QianjiBpmnHostBridge::default(),

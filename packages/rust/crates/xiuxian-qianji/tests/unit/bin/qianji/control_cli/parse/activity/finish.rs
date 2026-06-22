@@ -44,6 +44,42 @@ fn parse_control_activity_complete_command() {
 }
 
 #[test]
+fn parse_control_activity_complete_worker_task_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity-complete",
+                    "--ledger",
+                    "control.duckdb",
+                    "--worker-task-json",
+                    "{\"run_id\":\"run-control\"}",
+                    "--completed-at-ms",
+                    "23456",
+                    "--output-hash",
+                    "sha256:activity-output",
+                    "--metadata",
+                    "{\"rows\":3}",
+                    "--json",
+                ])),
+                "control activity-complete worker-task parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::ActivityCompleteWorkerTask {
+            ledger_path: "control.duckdb".into(),
+            worker_task_json: "{\"run_id\":\"run-control\"}".to_string(),
+            completed_at_ms: 23_456,
+            output_hash: Some("sha256:activity-output".to_string()),
+            metadata: Some("{\"rows\":3}".to_string()),
+            json: true,
+        },
+    );
+}
+
+#[test]
 fn parse_control_activity_fail_command() {
     assert_eq!(
         must_some(
@@ -91,6 +127,46 @@ fn parse_control_activity_fail_command() {
 }
 
 #[test]
+fn parse_control_activity_fail_worker_task_command() {
+    assert_eq!(
+        must_some(
+            must_ok(
+                parse_control_command(&to_args(&[
+                    "qianji",
+                    "control",
+                    "activity-fail",
+                    "--ledger",
+                    "control.duckdb",
+                    "--worker-task-json",
+                    "{\"run_id\":\"run-control\"}",
+                    "--failed-at-ms",
+                    "34567",
+                    "--error-code",
+                    "rate_limited",
+                    "--message",
+                    "provider rejected request",
+                    "--retryable",
+                    "true",
+                    "--json",
+                ])),
+                "control activity-fail worker-task parse should succeed",
+            ),
+            "control command should be detected",
+        ),
+        ControlCliCommand::ActivityFailWorkerTask {
+            ledger_path: "control.duckdb".into(),
+            worker_task_json: "{\"run_id\":\"run-control\"}".to_string(),
+            failed_at_ms: 34_567,
+            error_code: "rate_limited".to_string(),
+            message: "provider rejected request".to_string(),
+            retryable: true,
+            metadata: None,
+            json: true,
+        },
+    );
+}
+
+#[test]
 fn parse_control_activity_fail_rejects_missing_retryable() {
     let result = parse_control_command(&to_args(&[
         "qianji",
@@ -120,6 +196,40 @@ fn parse_control_activity_fail_rejects_missing_retryable() {
         error
             .to_string()
             .contains("missing `--retryable <true|false>` for `control activity-fail`"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn parse_control_activity_fail_worker_task_rejects_attempt_conflict() {
+    let result = parse_control_command(&to_args(&[
+        "qianji",
+        "control",
+        "activity-fail",
+        "--ledger",
+        "control.duckdb",
+        "--worker-task-json",
+        "{\"run_id\":\"run-control\"}",
+        "--failed-at-ms",
+        "34567",
+        "--error-code",
+        "rate_limited",
+        "--message",
+        "provider rejected request",
+        "--retryable",
+        "true",
+        "--attempt",
+        "2",
+    ]));
+    let error = match result {
+        Ok(value) => panic!("conflicting worker-task activity-fail should fail, got {value:?}"),
+        Err(error) => error,
+    };
+
+    assert!(
+        error
+            .to_string()
+            .contains("cannot be combined with `--run-id`"),
         "unexpected error: {error}"
     );
 }

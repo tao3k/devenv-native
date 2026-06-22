@@ -5,13 +5,19 @@ use serde::{Deserialize, Serialize};
 use super::{identity::sha256_hex, org_ledger::AUDIO_TRANSCRIPT_ORG_LEDGER_SCHEMA};
 
 #[cfg(feature = "audio-shard-arrow")]
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 #[cfg(feature = "audio-shard-arrow")]
 use arrow::{
     array::{ArrayRef, Float64Array, Int32Array, Int64Array, StringArray},
-    datatypes::{DataType, Field, Schema, SchemaRef},
     record_batch::RecordBatch,
+};
+
+#[cfg(feature = "audio-shard-arrow")]
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
 };
 
 /// Stable schema marker for audio Org evidence source rows.
@@ -20,6 +26,11 @@ pub const AUDIO_ORG_EVIDENCE_SOURCE_SCHEMA_VERSION: &str =
 /// Stable schema marker for audio Org evidence segment rows.
 pub const AUDIO_ORG_EVIDENCE_SEGMENT_SCHEMA_VERSION: &str =
     "xiuxian_wendao.audio_org_evidence_segment.v1";
+
+#[cfg(feature = "audio-shard-arrow")]
+const AUDIO_ORG_EVIDENCE_SOURCE_TABLE: &str = "audio_org_evidence_source";
+#[cfg(feature = "audio-shard-arrow")]
+const AUDIO_ORG_EVIDENCE_SEGMENT_TABLE: &str = "audio_org_evidence_segment";
 
 /// Typed ledger kind emitted by generated audio transcript Org ledgers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -261,8 +272,8 @@ fn sort_projected_segments(segments: &mut [AudioOrgEvidenceSegment]) {
 pub fn build_audio_org_evidence_source_batch(
     sources: &[AudioOrgEvidenceSource],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        audio_org_evidence_source_schema(),
+    record_batch(
+        &audio_org_evidence_source_contract(),
         vec![
             source_string_column(sources, |row| row.contract_version.clone()),
             source_string_column(sources, |row| row.evidence_source_id.clone()),
@@ -276,8 +287,8 @@ pub fn build_audio_org_evidence_source_batch(
             source_string_column(sources, |row| row.ledger_sha256.clone()),
             source_i64_column(sources, |row| i64::from(row.segment_count)),
         ],
+        "build audio Org evidence source Arrow batch",
     )
-    .map_err(|error| format!("build audio Org evidence source Arrow batch: {error}"))
 }
 
 #[cfg(feature = "audio-shard-arrow")]
@@ -289,8 +300,8 @@ pub fn build_audio_org_evidence_source_batch(
 pub fn build_audio_org_evidence_segment_batch(
     segments: &[AudioOrgEvidenceSegment],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        audio_org_evidence_segment_schema(),
+    record_batch(
+        &audio_org_evidence_segment_contract(),
         vec![
             segment_string_column(segments, |row| row.contract_version.clone()),
             segment_string_column(segments, |row| row.evidence_source_id.clone()),
@@ -324,8 +335,8 @@ pub fn build_audio_org_evidence_segment_batch(
             segment_string_column(segments, |row| row.transcript_sha256.clone()),
             segment_string_column(segments, |row| row.transcript_text.clone()),
         ],
+        "build audio Org evidence segment Arrow batch",
     )
-    .map_err(|error| format!("build audio Org evidence segment Arrow batch: {error}"))
 }
 
 #[derive(Debug)]
@@ -576,52 +587,106 @@ impl OrgEntryBuilder {
 }
 
 #[cfg(feature = "audio-shard-arrow")]
-fn audio_org_evidence_source_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        field_utf8("contractVersion", false),
-        field_utf8("evidenceSourceId", false),
-        field_utf8("ledgerSchema", false),
-        field_utf8("ledgerKind", false),
-        field_utf8("sourcePath", false),
-        field_utf8("sourceSha256", false),
-        field_utf8("shardProfile", false),
-        field_utf8("taskProfile", false),
-        field_utf8("backendProfile", false),
-        field_utf8("ledgerSha256", false),
-        Field::new("segmentCount", DataType::Int64, false),
-    ]))
+fn audio_org_evidence_source_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        AUDIO_ORG_EVIDENCE_SOURCE_TABLE,
+        true,
+        vec![
+            utf8_contract_column("contractVersion"),
+            utf8_contract_column("evidenceSourceId"),
+            utf8_contract_column("ledgerSchema"),
+            utf8_contract_column("ledgerKind"),
+            utf8_contract_column("sourcePath"),
+            utf8_contract_column("sourceSha256"),
+            utf8_contract_column("shardProfile"),
+            utf8_contract_column("taskProfile"),
+            utf8_contract_column("backendProfile"),
+            utf8_contract_column("ledgerSha256"),
+            int64_contract_column("segmentCount"),
+        ],
+    )
 }
 
 #[cfg(feature = "audio-shard-arrow")]
-fn audio_org_evidence_segment_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        field_utf8("contractVersion", false),
-        field_utf8("evidenceSourceId", false),
-        field_utf8("evidenceSegmentId", false),
-        field_utf8("shardElementId", false),
-        field_utf8("resultElementId", false),
-        field_utf8("sourceName", false),
-        Field::new("chunkIndex", DataType::Int64, false),
-        Field::new("startMs", DataType::Int64, false),
-        Field::new("durationMs", DataType::Int64, false),
-        Field::new("endMs", DataType::Int64, false),
-        field_utf8("sourceSha256", false),
-        field_utf8("shardSha256", false),
-        field_utf8("readingOrderKey", false),
-        Field::new("mediaStartMs", DataType::Int64, false),
-        Field::new("mediaDurationMs", DataType::Int64, false),
-        Field::new("sampleRateHz", DataType::Int64, false),
-        Field::new("channels", DataType::Int32, false),
-        field_utf8("audioFormat", false),
-        Field::new("confidence", DataType::Float64, true),
-        field_utf8("transcriptSha256", false),
-        field_utf8("transcriptText", false),
-    ]))
+fn audio_org_evidence_segment_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        AUDIO_ORG_EVIDENCE_SEGMENT_TABLE,
+        true,
+        vec![
+            utf8_contract_column("contractVersion"),
+            utf8_contract_column("evidenceSourceId"),
+            utf8_contract_column("evidenceSegmentId"),
+            utf8_contract_column("shardElementId"),
+            utf8_contract_column("resultElementId"),
+            utf8_contract_column("sourceName"),
+            int64_contract_column("chunkIndex"),
+            int64_contract_column("startMs"),
+            int64_contract_column("durationMs"),
+            int64_contract_column("endMs"),
+            utf8_contract_column("sourceSha256"),
+            utf8_contract_column("shardSha256"),
+            utf8_contract_column("readingOrderKey"),
+            int64_contract_column("mediaStartMs"),
+            int64_contract_column("mediaDurationMs"),
+            int64_contract_column("sampleRateHz"),
+            int32_contract_column("channels"),
+            utf8_contract_column("audioFormat"),
+            nullable_float64_contract_column("confidence"),
+            utf8_contract_column("transcriptSha256"),
+            utf8_contract_column("transcriptText"),
+        ],
+    )
 }
 
 #[cfg(feature = "audio-shard-arrow")]
-fn field_utf8(name: &str, nullable: bool) -> Field {
-    Field::new(name, DataType::Utf8, nullable)
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    context: &'static str,
+) -> Result<RecordBatch, String> {
+    let batch = RecordBatch::try_new(schema_ref(contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_record_batch_schema_with_options(&batch, contract, exact_schema_options())
+        .map_err(|error| format!("{context}: {error}"))?;
+    Ok(batch)
+}
+
+#[cfg(feature = "audio-shard-arrow")]
+fn schema_ref(contract: &ArrowSchemaContract) -> Arc<arrow::datatypes::Schema> {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_owned(),
+            contract.table_name().to_owned(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+#[cfg(feature = "audio-shard-arrow")]
+const fn exact_schema_options() -> ArrowSchemaValidationOptions {
+    ArrowSchemaValidationOptions::new().with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact)
+}
+
+#[cfg(feature = "audio-shard-arrow")]
+const fn utf8_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+#[cfg(feature = "audio-shard-arrow")]
+const fn int32_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int32)
+}
+
+#[cfg(feature = "audio-shard-arrow")]
+const fn int64_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int64)
+}
+
+#[cfg(feature = "audio-shard-arrow")]
+const fn nullable_float64_contract_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Float64)
 }
 
 #[cfg(feature = "audio-shard-arrow")]

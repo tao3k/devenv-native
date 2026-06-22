@@ -2,7 +2,7 @@ pub use super::model::{
     QianjiRuntimeCheckpointConfig, QianjiRuntimeEnv, QianjiRuntimeLlmConfig,
     QianjiRuntimeServerConfig, QianjiRuntimeWendaoIngesterConfig, QianjiRuntimeWorkflowStateConfig,
 };
-#[cfg(feature = "qianji-full")]
+#[cfg(feature = "wendao-integration")]
 pub(crate) use super::pathing::{
     resolve_process_env_path, resolve_process_project_root, resolve_process_project_root_from_cwd,
 };

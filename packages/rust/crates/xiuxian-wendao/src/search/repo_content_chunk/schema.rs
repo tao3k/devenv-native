@@ -1,16 +1,21 @@
-use std::sync::Arc;
+//! Arrow and Lance schema contracts for repo content chunks.
 
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use std::{collections::HashMap, sync::Arc};
+
+use arrow::datatypes::SchemaRef;
 use xiuxian_db_store::{
-    LanceDataType, LanceField, LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array,
-    VectorStoreError,
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, LanceDataType, LanceField, LanceRecordBatch, LanceSchema,
+    LanceStringArray, LanceUInt64Array, VectorStoreError, WENDAO_TABLE_METADATA_KEY,
+    build_arrow_schema, validate_record_batch_schema_with_options,
 };
 
 use crate::repo_index::RepoCodeDocument;
 
 const CHUNK_SIZE: usize = 2_000;
 
-const COLUMN_ID: &str = "id";
+/// Stable row identifier column name for repo content chunks.
+pub const COLUMN_ID: &str = "id";
 const COLUMN_PATH: &str = "path";
 const COLUMN_PATH_FOLDED: &str = "path_folded";
 const COLUMN_LANGUAGE: &str = "language";
@@ -42,17 +47,49 @@ pub(crate) fn repo_content_chunk_schema() -> Arc<LanceSchema> {
     ]))
 }
 
-pub(crate) fn repo_content_chunk_engine_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new(COLUMN_ID, DataType::Utf8, false),
-        Field::new(COLUMN_PATH, DataType::Utf8, false),
-        Field::new(COLUMN_PATH_FOLDED, DataType::Utf8, false),
-        Field::new(COLUMN_LANGUAGE, DataType::Utf8, false),
-        Field::new(COLUMN_LINE_NUMBER, DataType::UInt64, false),
-        Field::new(COLUMN_LINE_TEXT, DataType::Utf8, false),
-        Field::new(COLUMN_LINE_TEXT_FOLDED, DataType::Utf8, false),
-        Field::new(COLUMN_SEARCH_TEXT, DataType::Utf8, false),
-    ]))
+/// Build the Arrow engine schema for repo content chunk rows.
+#[must_use]
+pub fn repo_content_chunk_engine_schema() -> SchemaRef {
+    let contract = repo_content_chunk_engine_contract();
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        WENDAO_TABLE_METADATA_KEY.to_string(),
+        contract.table_name().to_string(),
+    );
+    Arc::new(build_arrow_schema(&contract, metadata))
+}
+
+pub(super) fn validate_repo_content_chunk_engine_batch(
+    batch: &arrow::record_batch::RecordBatch,
+) -> Result<(), VectorStoreError> {
+    validate_record_batch_schema_with_options(
+        batch,
+        &repo_content_chunk_engine_contract(),
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| {
+        VectorStoreError::General(format!(
+            "validate repo-content chunk engine schema contract: {error}"
+        ))
+    })
+}
+
+fn repo_content_chunk_engine_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        "repo_content_chunk",
+        true,
+        vec![
+            utf8_column(COLUMN_ID),
+            utf8_column(COLUMN_PATH),
+            utf8_column(COLUMN_PATH_FOLDED),
+            utf8_column(COLUMN_LANGUAGE),
+            uint64_column(COLUMN_LINE_NUMBER),
+            utf8_column(COLUMN_LINE_TEXT),
+            utf8_column(COLUMN_LINE_TEXT_FOLDED),
+            utf8_column(COLUMN_SEARCH_TEXT),
+        ],
+    )
 }
 
 pub(super) fn rows_from_documents(documents: &[RepoCodeDocument]) -> Vec<RepoContentChunkRow> {
@@ -131,6 +168,14 @@ fn batch_from_rows(rows: &[RepoContentChunkRow]) -> Result<LanceRecordBatch, Vec
         ],
     )
     .map_err(VectorStoreError::Arrow)
+}
+
+fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+fn uint64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::UInt64)
 }
 
 pub(super) const fn projected_columns() -> [&'static str; 5] {

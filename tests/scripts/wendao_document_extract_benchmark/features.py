@@ -23,9 +23,7 @@ def cargo_features_for_studio_pdf_render_audit(features: str) -> str:
 
 
 def cargo_features_with_pdf_source_range(features: str) -> str:
-    return cargo_features_with_pdf_feature(
-        features, "document-extract-pdf-source-range"
-    )
+    return cargo_features_with_pdf_feature(features, "document-extract-pdf-source-range")
 
 
 def cargo_features_for_flight_mode(features: str, flight_mode: str) -> str:
@@ -40,9 +38,7 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
         return cargo_features_with_feature(features, "document-extract-audio-shards")
     if flight_mode != "hybrid-page-ocr":
         return features
-    profile_planner = str(getattr(args, "rust_pdf_ocr_profile_planner", "")).replace(
-        "_", "-"
-    )
+    profile_planner = str(getattr(args, "rust_pdf_ocr_profile_planner", "")).replace("_", "-")
     if profile_planner in {
         "hosted-vlm-all",
         "hosted-vlm-risk-window",
@@ -50,9 +46,7 @@ def cargo_features_for_provider_mode(features: str, args: argparse.Namespace) ->
         "docling-structure-recovery",
     }:
         return cargo_features_with_pdf_render(features)
-    failed_page_recovery = str(
-        getattr(args, "rust_pdf_failed_page_recovery", "")
-    ).replace("_", "-")
+    failed_page_recovery = str(getattr(args, "rust_pdf_failed_page_recovery", "")).replace("_", "-")
     if failed_page_recovery == "hosted-vlm-page":
         return cargo_features_with_pdf_render(features)
     selection = normalize_render_selection(
@@ -69,10 +63,7 @@ def cargo_features_with_pdf_feature(features: str, feature: str) -> str:
 
 def cargo_features_with_feature(features: str, feature: str) -> str:
     parts = [
-        part.strip()
-        for chunk in features.split(",")
-        for part in chunk.split()
-        if part.strip()
+        part.strip() for chunk in features.split(",") for part in chunk.split() if part.strip()
     ]
     if feature not in parts:
         parts.append(feature)
@@ -86,10 +77,7 @@ def cargo_features_without_package_foreign_entries(
     package_foreign_features: set[str],
 ) -> str:
     parts = [
-        part.strip()
-        for chunk in features.split(",")
-        for part in chunk.split()
-        if part.strip()
+        part.strip() for chunk in features.split(",") for part in chunk.split() if part.strip()
     ]
     return ",".join(part for part in parts if part not in package_foreign_features)
 

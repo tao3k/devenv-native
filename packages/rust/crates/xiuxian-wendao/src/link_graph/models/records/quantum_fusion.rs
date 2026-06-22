@@ -2,8 +2,11 @@
 
 use super::retrieval_plan::LinkGraphRetrievalBudget;
 use crate::link_graph::models::LinkGraphRelatedPprOptions;
-use crate::link_graph::models::LinkGraphSemanticSearchPolicy;
+use crate::link_graph::models::{LinkGraphSemanticDocumentScope, LinkGraphSemanticSearchPolicy};
 use serde::{Deserialize, Serialize};
+
+const MISSING_SEMANTIC_POLICY_FALLBACK_REASON: &str =
+    "semantic policy omitted; use unrestricted semantic ignition thresholds";
 
 /// One semantic anchor hit returned by a vector backend.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -129,7 +132,7 @@ impl QuantumSemanticSearchRequest<'_> {
         budget: Option<&LinkGraphRetrievalBudget>,
         semantic_policy: Option<LinkGraphSemanticSearchPolicy>,
     ) -> QuantumSemanticSearchRequest<'a> {
-        let semantic_policy = semantic_policy.unwrap_or_default().normalized();
+        let semantic_policy = semantic_policy_with_explicit_fallback(semantic_policy).normalized();
         QuantumSemanticSearchRequest {
             query_text,
             query_vector,
@@ -174,6 +177,25 @@ impl QuantumSemanticSearchRequest<'_> {
         let min_ok = self.min_vector_score.is_none_or(|min| score >= min);
         let max_ok = self.max_vector_score.is_none_or(|max| score <= max);
         min_ok && max_ok
+    }
+}
+
+fn semantic_policy_with_explicit_fallback(
+    semantic_policy: Option<LinkGraphSemanticSearchPolicy>,
+) -> LinkGraphSemanticSearchPolicy {
+    match semantic_policy {
+        Some(policy) => policy,
+        None => semantic_policy_missing_explicit_fallback(MISSING_SEMANTIC_POLICY_FALLBACK_REASON),
+    }
+}
+
+fn semantic_policy_missing_explicit_fallback(
+    fallback_reason: &'static str,
+) -> LinkGraphSemanticSearchPolicy {
+    debug_assert!(!fallback_reason.trim().is_empty());
+    LinkGraphSemanticSearchPolicy {
+        document_scope: LinkGraphSemanticDocumentScope::All,
+        min_vector_score: None,
     }
 }
 

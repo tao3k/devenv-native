@@ -24,6 +24,24 @@ fn semantic_read_model_record_batches_match_public_table_contract() -> TestResul
         batches.projection_state.schema().field(0).name(),
         "projection"
     );
+    assert_eq!(
+        batches
+            .objects
+            .schema()
+            .metadata()
+            .get("wendao.contract.surface")
+            .map(String::as_str),
+        Some("arrow-record-batch")
+    );
+    assert_eq!(
+        batches
+            .objects
+            .schema()
+            .metadata()
+            .get("wendao.table.name")
+            .map(String::as_str),
+        Some(SEMANTIC_OBJECTS_TABLE_NAME)
+    );
     assert_eq!(SEMANTIC_OBJECTS_TABLE_NAME, "semantic_objects");
     assert_eq!(SEMANTIC_RELATIONS_TABLE_NAME, "semantic_relations");
     assert_eq!(

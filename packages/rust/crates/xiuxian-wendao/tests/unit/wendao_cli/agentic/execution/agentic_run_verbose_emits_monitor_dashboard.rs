@@ -14,7 +14,7 @@ fn test_wendao_agentic_run_verbose_emits_monitor_dashboard()
     let config_path = tmp.path().join("wendao.yaml");
     fs::write(
         &config_path,
-        "link_graph:\n  agentic:\n    expansion:\n      max_workers: 1\n      max_candidates: 3\n      max_pairs_per_worker: 1\n      time_budget_ms: 1000.0\n    execution:\n      worker_time_budget_ms: 1000.0\n      persist_suggestions_default: false\n      relation: \"related_to\"\n      agent_id: \"qianhuan-architect\"\n      evidence_prefix: \"agentic expansion bridge candidate\"\n",
+        "link_graph:\n  agentic:\n    expansion:\n      max_workers: 1\n      max_candidates: 3\n      max_pairs_per_worker: 1\n      time_budget_ms: 1000.0\n    execution:\n      worker_time_budget_ms: 1000.0\n      persist_suggestions_default: false\n      relation: \"related_to\"\n      agent_id: \"wendao-agentic-architect\"\n      evidence_prefix: \"agentic expansion bridge candidate\"\n",
     )?;
 
     let output = wendao_cmd()

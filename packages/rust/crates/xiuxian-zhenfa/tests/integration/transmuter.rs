@@ -25,8 +25,8 @@ fn validate_structure_rejects_mismatched_tag() {
 }
 
 #[test]
-fn refine_for_llm_normalizes_payload() {
-    let refined = ZhenfaTransmuter::refine_for_llm("line 1 \r\n\r\n\r\nline 2\0");
+fn refine_for_caller_normalizes_payload() {
+    let refined = ZhenfaTransmuter::refine_for_caller("line 1 \r\n\r\n\r\nline 2\0");
     assert_eq!(refined, "line 1\n\n\nline 2");
 }
 

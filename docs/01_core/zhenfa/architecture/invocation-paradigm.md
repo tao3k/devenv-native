@@ -18,7 +18,7 @@ By introducing the `xiuxian-zhenfa` matrix, we drastically alter how the LLM "Ac
 
 ## The Legacy Native Paradigm
 
-Previously, tools like `wendao.search` or `agenda.view` required the `xiuxian-daochang` binary to compile against the full Rust source code of `xiuxian-wendao` and `xiuxian-zhixing`. The host had to manage massive dependency trees, and any change required a full workspace recompile.
+Previously, tools like `wendao.search` or `agenda.view` required the `xiuxian-daochang` binary to compile against the full Rust source code of `xiuxian-wendao` and `retired Zhixing crate`. The host had to manage massive dependency trees, and any change required a full workspace recompile.
 
 ## The Zhenfa Paradigm
 
@@ -31,4 +31,4 @@ Under the Zhenfa architecture, the `xiuxian-daochang` tool registry becomes incr
 
 ## Hot-Reloading
 
-This paradigm naturally supports hot-reloading. For instance, sending a `POST /v1/qianhuan/reload` to the Zhenfa gateway instantly triggers the `ManifestationManager` to refresh its templates across the entire network, without restarting the Agent's conversational state.
+This paradigm naturally supports hot-reloading. For instance, sending a domain-specific reload request to the Zhenfa gateway can refresh context templates across the network without restarting the agent's conversational state.

@@ -12,13 +12,13 @@ use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::execution::DEFAULT_QIANJI_BPMN_SCHEDULER_LEASE_TTL_MS;
 use crate::bpmn::ownership::QianjiBpmnSchedulerLeaseConfig;
 use crate::telemetry::unix_millis_now;
-use qianji_bpmn_engine::{
+use std::io;
+use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnHumanTaskAssignmentSpec, BpmnHumanTaskResourceRoleSpec,
     BpmnLaneMembershipSpec, PendingHumanTaskClaimInput, PendingHumanTaskClaimRequest,
     PendingHumanTaskReleaseInput, PendingHumanTaskReleaseRequest, claim_pending_human_task,
     release_pending_human_task,
 };
-use std::io;
 
 pub(crate) async fn claim_workflow_task(
     service: &QianjiBpmnWorkflowControlService,

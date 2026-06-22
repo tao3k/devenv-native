@@ -251,6 +251,7 @@ def real_docling_server_code(
             audio_worker=audio_worker,
             converter_factory=make_converter,
         )
+        print("READY grpc://{host}:{port}", flush=True)
         server.serve()
         """
     )
@@ -340,6 +341,7 @@ def fixture_server_code(
             ocr_worker=ocr_worker,
             audio_worker=audio_worker,
         )
+        print("READY grpc://{host}:{port}", flush=True)
         server.serve()
         """
     )

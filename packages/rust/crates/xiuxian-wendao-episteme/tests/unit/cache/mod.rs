@@ -3,6 +3,7 @@ use xiuxian_wendao_episteme::EpistemeCacheTask;
 
 mod docling_document;
 mod image_ocr;
+mod legacy_office;
 
 fn single_pixel_png_bytes() -> [u8; 24] {
     [
@@ -38,7 +39,11 @@ fn image_task(
     }
 }
 
-fn docling_task(queue_id: &str, planned_output_path: &str) -> EpistemeCacheTask {
+fn docling_task(
+    queue_id: &str,
+    source_sha256: String,
+    planned_output_path: &str,
+) -> EpistemeCacheTask {
     EpistemeCacheTask {
         queue_id: queue_id.to_string(),
         file_id: format!("synthetic.file.{queue_id}"),
@@ -47,8 +52,29 @@ fn docling_task(queue_id: &str, planned_output_path: &str) -> EpistemeCacheTask 
         language: "zh-CN".to_string(),
         extraction_route: "document_text_evidence".to_string(),
         priority: 10,
-        source_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-            .to_string(),
+        source_sha256,
+        planned_output_path: planned_output_path.to_string(),
+        output_contract: "cache_only_no_rdf_promotion".to_string(),
+        status: "planned".into(),
+    }
+}
+
+fn legacy_office_task(
+    queue_id: &str,
+    relative_path: &str,
+    source_sha256: String,
+    route: &str,
+    planned_output_path: &str,
+) -> EpistemeCacheTask {
+    EpistemeCacheTask {
+        queue_id: queue_id.to_string(),
+        file_id: format!("synthetic.file.{queue_id}"),
+        relative_path: relative_path.to_string(),
+        category: "synthetic".into(),
+        language: "zh-CN".to_string(),
+        extraction_route: route.to_string(),
+        priority: 10,
+        source_sha256,
         planned_output_path: planned_output_path.to_string(),
         output_contract: "cache_only_no_rdf_promotion".to_string(),
         status: "planned".into(),

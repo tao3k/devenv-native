@@ -18,7 +18,7 @@ To prevent `xiuxian-zhenfa` from becoming a monolithic bottleneck that knows abo
 
 ## The `ZhenfaRouter` Trait
 
-Any domain crate (e.g., `xiuxian-wendao`, `xiuxian-qianhuan`) that wishes to expose HTTP endpoints must implement this trait.
+Any domain crate (e.g., `xiuxian-wendao` or a downstream runtime crate) that wishes to expose HTTP endpoints must implement this trait.
 
 ```rust
 use axum::Router;

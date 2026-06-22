@@ -427,7 +427,6 @@ api_key_env = "SYSTEM_API_KEY"
     assert!(err.to_string().contains("SYSTEM_API_KEY"));
 }
 
-#[cfg(feature = "llm")]
 #[test]
 fn runtime_config_resolves_default_provider_wire_api_from_qianji_toml() {
     let tmp = TempDir::new()

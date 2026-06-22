@@ -2,13 +2,14 @@
 name = "xiuxian-zhenfa"
 version.workspace = true
 edition.workspace = true
-description = "Zhenfa (Matrix Gateway) - Native-first tool microkernel with optional JSON-RPC gateway"
+description = "Zhenfa (Matrix Gateway) - Contract and streaming gateway with optional JSON-RPC support"
 authors.workspace = true
 license.workspace = true
 publish = false
 
 [features]
-default = [
+default = []
+full = [
   "client",
   "contract-validation",
   "gateway",
@@ -34,7 +35,7 @@ xml-transform = ["dep:pulldown-cmark"]
 async-trait = { workspace = true }
 axum = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 schemars = { workspace = true }
 thiserror = { workspace = true }
@@ -42,13 +43,15 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 tempfile = { workspace = true, optional = true }
 uuid = { workspace = true }
-xiuxian-macros = { path = "../xiuxian-macros" }
 pulldown-cmark = { workspace = true, optional = true }
 quick-xml = { workspace = true, optional = true }
 
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time", "sync"] }
+tokio = { workspace = true }
 
 [lints]
 workspace = true

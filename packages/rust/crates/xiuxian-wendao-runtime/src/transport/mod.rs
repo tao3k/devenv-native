@@ -5,6 +5,8 @@ mod client;
 #[cfg(feature = "transport")]
 mod contract;
 #[cfg(feature = "transport")]
+pub mod data_plane;
+#[cfg(feature = "transport")]
 mod flight;
 #[cfg(feature = "transport")]
 mod host_settings;
@@ -23,6 +25,15 @@ pub use contract::{
     resolve_default_flight_base_url, resolve_flight_max_in_flight_requests, resolve_flight_timeout,
     validate_flight_max_in_flight_requests, validate_flight_schema_version,
     validate_flight_timeout_secs,
+};
+#[cfg(feature = "transport")]
+pub use data_plane::{
+    WENDAO_ARROW_FLIGHT_DATA_PLANE, WENDAO_ARROW_RECORD_BATCH_PAYLOAD,
+    WENDAO_FORBIDDEN_ARROW_PAYLOAD_WRAPPERS, WENDAO_JSON_CONTROL_PLANE,
+    WENDAO_JSONL_STDIO_CONTROL_PLANE, WENDAO_PROCESS_ARGS_CONTROL_PLANE,
+    WENDAO_REST_METADATA_CONTROL_PLANE, WendaoPayloadBoundaryError, WendaoPayloadPlane,
+    WendaoPayloadSurface, parse_wendao_payload_surface, validate_arrow_payload_encoding_token,
+    validate_arrow_table_payload_surface,
 };
 #[cfg(feature = "transport")]
 pub use host_settings::{
@@ -57,7 +68,7 @@ pub use query_contract::RerankScoreWeights;
 #[cfg(feature = "transport")]
 pub use query_contract::validate_sql_query_request;
 pub use query_contract::{
-    ANALYSIS_AUDIO_SHARDS_ROUTE, ANALYSIS_CODE_AST_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
+    ANALYSIS_AUDIO_SHARDS_ROUTE, ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_DOCUMENT_EXTRACT_STATUS_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_PDF_OCR_SHARDS_ROUTE,
     ANALYSIS_REFINE_DOC_ROUTE, ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_INDEX_ROUTE,
     ANALYSIS_REPO_INDEX_STATUS_ROUTE, ANALYSIS_REPO_OVERVIEW_ROUTE,
@@ -77,17 +88,18 @@ pub use query_contract::{
     RepoIndexRequest, RepoProjectedPageIndexTreeRequest, RepoProjectedRetrievalContextInput,
     RepoProjectedRetrievalContextNodeId, RepoProjectedRetrievalContextPageId,
     RepoProjectedRetrievalContextRepoId, RepoProjectedRetrievalContextRequest, RepoSearchRequest,
-    RepoSyncMode, RepoSyncRequest, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE,
-    SEARCH_AUTOCOMPLETE_ROUTE, SEARCH_DEFINITION_ROUTE, SEARCH_INTENT_ROUTE,
-    SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE, TOPOLOGY_3D_ROUTE,
-    VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE, WENDAO_ANALYSIS_LINE_HEADER,
-    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
+    RepoSyncMode, RepoSyncRequest, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE,
+    SEARCH_DEFINITION_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE,
+    SEARCH_SYMBOLS_ROUTE, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
+    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
     WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
-    WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUDIO_WORKERS_HEADER,
-    WENDAO_AUTOCOMPLETE_LIMIT_HEADER, WENDAO_AUTOCOMPLETE_PREFIX_HEADER,
-    WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER, WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER,
-    WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER, WENDAO_DATASET_ONTOLOGY_PAYLOAD_ID_HEADER,
-    WENDAO_DEFINITION_LINE_HEADER, WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
+    WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+    WENDAO_AUDIO_HOSTED_MODEL_HEADER, WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+    WENDAO_AUDIO_WORKER_HEADER, WENDAO_AUDIO_WORKERS_HEADER, WENDAO_AUTOCOMPLETE_LIMIT_HEADER,
+    WENDAO_AUTOCOMPLETE_PREFIX_HEADER, WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER,
+    WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER, WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER,
+    WENDAO_DATASET_ONTOLOGY_PAYLOAD_ID_HEADER, WENDAO_DEFINITION_LINE_HEADER,
+    WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_MODE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER, WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER,
@@ -116,11 +128,10 @@ pub use query_contract::{
     decode_document_extract_source_path_utf8_hex, encode_dataset_ontology_manifest_header,
     encode_document_extract_source_path_utf8_hex, flight_descriptor_path,
     normalize_document_extract_profile, normalize_flight_route, validate_attachment_search_request,
-    validate_autocomplete_request, validate_code_ast_analysis_request,
-    validate_dataset_ontology_flight_manifest, validate_definition_request,
-    validate_document_extract_request, validate_graph_neighbors_request,
-    validate_markdown_analysis_request, validate_refine_doc_request,
-    validate_repo_doc_coverage_request, validate_repo_index_request,
+    validate_autocomplete_request, validate_dataset_ontology_flight_manifest,
+    validate_definition_request, validate_document_extract_request,
+    validate_graph_neighbors_request, validate_markdown_analysis_request,
+    validate_refine_doc_request, validate_repo_doc_coverage_request, validate_repo_index_request,
     validate_repo_index_status_request, validate_repo_overview_request,
     validate_repo_projected_page_index_tree_request,
     validate_repo_projected_retrieval_context_request, validate_repo_search_request,
@@ -141,14 +152,14 @@ pub use query_contract::{
 };
 #[cfg(feature = "transport")]
 pub use server::{
-    AnalysisFlightRouteResponse, AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
+    AnalysisFlightRouteResponse, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, AutocompleteFlightRouteResponse,
-    CodeAstAnalysisFlightRouteProvider, DatasetOntologyMaterializeFlightRouteProvider,
-    DatasetOntologyMaterializeFlightRouteResponse, DefinitionFlightRouteProvider,
-    DefinitionFlightRouteResponse, DocumentExtractFlightRouteProvider,
-    DocumentExtractFlightRouteResponse, GraphNeighborsFlightRouteProvider,
-    GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
-    RefineDocFlightRouteProvider, RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
+    DatasetOntologyMaterializeFlightRouteProvider, DatasetOntologyMaterializeFlightRouteResponse,
+    DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
+    DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
+    GraphNeighborsFlightRouteProvider, GraphNeighborsFlightRouteResponse,
+    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
+    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider,
     RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRequest,
@@ -165,13 +176,12 @@ pub(crate) use query_contract::WENDAO_RERANK_TOP_K_HEADER;
 #[cfg(all(feature = "transport", test))]
 pub(crate) use server::{
     is_search_family_route, validate_attachment_search_request_metadata,
-    validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
-    validate_dataset_ontology_materialize_request_metadata, validate_definition_request_metadata,
-    validate_document_extract_request_metadata, validate_document_extract_status_request_metadata,
-    validate_graph_neighbors_request_metadata, validate_markdown_analysis_request_metadata,
-    validate_repo_doc_coverage_request_metadata, validate_repo_index_status_request_metadata,
-    validate_repo_overview_request_metadata, validate_repo_search_request_metadata,
-    validate_repo_sync_request_metadata, validate_rerank_top_k_header,
-    validate_search_request_metadata, validate_sql_request_metadata,
+    validate_autocomplete_request_metadata, validate_dataset_ontology_materialize_request_metadata,
+    validate_definition_request_metadata, validate_document_extract_request_metadata,
+    validate_document_extract_status_request_metadata, validate_graph_neighbors_request_metadata,
+    validate_markdown_analysis_request_metadata, validate_repo_doc_coverage_request_metadata,
+    validate_repo_index_status_request_metadata, validate_repo_overview_request_metadata,
+    validate_repo_search_request_metadata, validate_repo_sync_request_metadata,
+    validate_rerank_top_k_header, validate_search_request_metadata, validate_sql_request_metadata,
     validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
 };

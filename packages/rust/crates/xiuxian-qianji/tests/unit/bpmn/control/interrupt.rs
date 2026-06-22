@@ -60,11 +60,11 @@ async fn workflow_control_service_interrupts_checkpointed_session_from_duckdb_st
     );
     assert!(matches!(
         interrupt_report.instance.lifecycle,
-        qianji_bpmn_engine::InstanceLifecycle::Suspended
+        xiuxian_qianji_bpmn_engine::InstanceLifecycle::Suspended
     ));
     assert!(matches!(
         interrupt_report.instance.suspend_reason,
-        Some(qianji_bpmn_engine::SuspendReason::HostRequested)
+        Some(xiuxian_qianji_bpmn_engine::SuspendReason::HostRequested)
     ));
 
     let checkpoint = ok_of(
@@ -78,7 +78,7 @@ async fn workflow_control_service_interrupts_checkpointed_session_from_duckdb_st
     assert_eq!(checkpoint.sequence, interrupt_report.checkpoint_sequence);
     assert!(matches!(
         checkpoint.state.lifecycle,
-        qianji_bpmn_engine::InstanceLifecycle::Suspended
+        xiuxian_qianji_bpmn_engine::InstanceLifecycle::Suspended
     ));
 
     let resume_report = ok_of(
@@ -171,11 +171,11 @@ async fn workflow_control_service_runtime_valkey_interrupt_preserves_checkpoint_
     assert_eq!(interrupt_report.instance.instance_id.as_ref(), instance_id);
     assert!(matches!(
         interrupt_report.instance.lifecycle,
-        qianji_bpmn_engine::InstanceLifecycle::Suspended
+        xiuxian_qianji_bpmn_engine::InstanceLifecycle::Suspended
     ));
     assert!(matches!(
         interrupt_report.instance.suspend_reason,
-        Some(qianji_bpmn_engine::SuspendReason::HostRequested)
+        Some(xiuxian_qianji_bpmn_engine::SuspendReason::HostRequested)
     ));
 
     let checkpoint = ok_of(

@@ -1,0 +1,77 @@
+#+TITLE: Wendao Query Core Graph Relation Arrow Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:wendao:query-core:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao query-core graph relation Arrow schema contract :agent:
+:PROPERTIES:
+:ID: D3B18375-6250-48B8-B95A-561229B0BE30
+:SDD: .cache/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao/README.md
+:PACKAGE: packages/rust/crates/xiuxian-wendao
+:SLICE: wendao-query-core-graph-relation-arrow-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archived after query-core graph-neighbor relation Arrow schema moved to db-store ArrowSchemaContract helpers and targeted validation passed.
+:GRAPH: flowchart LR;T["task:D3B18375-6250-48B8-B95A-561229B0BE30"]-->S["sdd:db-store-arrow-schema-contract"];T-->P["xiuxian-wendao:query-core-graph-neighbor-relation"]
+:EVIDENCE: targeted query-core graph tests, targeted Wendao clippy, fmt check, README hidden-path scan, Org lint, SDD status
+:END:
+SCHEDULED: <2026-05-26 Tue>
+CLOSED: [2026-05-26 Tue 17:58]
+
+- [x] Scope and recovery anchor confirmed.
+- [x] RTK command policy confirmed.
+- [x] Task-local research complete.
+- [x] Implementation complete.
+- [x] Validation complete.
+- [x] Related package or canonical docs synced or explicitly judged unchanged.
+- [x] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+The query-core graph-neighbor backend returns an Arrow-native relation that is
+consumed by projection and payload operators. This slice moves only that
+relation schema into a db-store Arrow schema contract and keeps graph traversal,
+projection, telemetry, and public query-core operators unchanged.
+
+** Validation
+
+- [x] Targeted query-core graph tests pass.
+- [x] Targeted Wendao fmt/check or clippy scope passes.
+- [x] Package docs and hidden-path scan pass.
+- [x] Tracking surfaces pass Org lint and SDD status.
+
+** Evidence
+
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao graph_neighbors_relation_schema_uses_db_store_table_metadata`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao graph_neighbors_routes_through_link_graph_adapter_and_returns_relation`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao query_graph_neighbors_projection_returns_nodes_and_links`
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao --check`
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao/README.md`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao --all-targets -- -D warnings`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize lint --format compact .cache/agent/org/archives/wendao_query_core_graph_relation_arrow_schema_contract.org`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize sdd status .cache/agent/sdd/db_store_arrow_schema_contract.org`
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao/README.md
+- Updated: query-core graph relation batches now document the shared db-store
+  `ArrowSchemaContract` helper while graph semantics stay in Wendao.
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Yes; the SDD scenario, gate, and evidence log were updated for the query-core graph relation slice. |
+| Did the task meet its expected outcome and validation target? | Yes; targeted contract metadata, graph execution, graph projection, fmt, clippy, docs scan, Org lint, and SDD status passed. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; only query-core graph-neighbor relation schema construction and validation moved to db-store ArrowSchema contracts. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated packages/rust/crates/xiuxian-wendao/README.md. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; graph-neighbor relation schema helpers are scoped to query-core execution. |
+| Does this task improve future task-probe, orgid-show, SDD graph, or agent recovery understanding? | Yes; the task records the package, SDD, slice, and exact validation evidence. |
+| What should the next agent query, verify, or avoid? | Query db-store ArrowSchema adoption, verify the next concrete relation or IPC owner, and avoid treating Lance index schemas as db-store Arrow table contracts. |
+
+** Recovery
+
+Use `wendao-query-core-graph-relation-arrow-schema-contract` as the task-local
+recovery anchor.

@@ -3,13 +3,16 @@ use std::sync::Arc;
 use arrow::array::{ArrayRef, Int32Array, Int64Array};
 use arrow::record_batch::RecordBatch;
 
-use super::schema::{document_extract_status_schema, document_resource_schema, string_column};
+use super::schema::{
+    document_extract_status_schema, document_resource_schema, string_column,
+    validate_document_extract_status_batch, validate_document_resource_batch,
+};
 use crate::studio::router::handlers::analysis::document_extract::registry::DocumentExtractJobStatus;
 
 pub(crate) fn build_job_resource_batch(
     status: &DocumentExtractJobStatus,
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         document_resource_schema(),
         vec![
             string_column([status.source_path.as_str()]),
@@ -23,13 +26,15 @@ pub(crate) fn build_job_resource_batch(
             string_column([status.job_id.as_str()]),
         ],
     )
-    .map_err(|error| format!("build document extract job batch: {error}"))
+    .map_err(|error| format!("build document extract job batch: {error}"))?;
+    validate_document_resource_batch(&batch)?;
+    Ok(batch)
 }
 
 pub(crate) fn build_error_resource_batch(
     status: &DocumentExtractJobStatus,
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         document_resource_schema(),
         vec![
             string_column([status.source_path.as_str()]),
@@ -43,7 +48,37 @@ pub(crate) fn build_error_resource_batch(
             string_column([status.job_id.as_str()]),
         ],
     )
-    .map_err(|error| format!("build document extract error batch: {error}"))
+    .map_err(|error| format!("build document extract error batch: {error}"))?;
+    validate_document_resource_batch(&batch)?;
+    Ok(batch)
+}
+
+pub(crate) fn build_native_text_resource_batch(
+    source_path: &str,
+    resource_type: &str,
+    resource_path: &str,
+    caption: &str,
+    content: &str,
+    mime_type: &str,
+    element_id: &str,
+) -> Result<RecordBatch, String> {
+    let batch = RecordBatch::try_new(
+        document_resource_schema(),
+        vec![
+            string_column([source_path]),
+            string_column([resource_type]),
+            string_column([resource_path]),
+            Arc::new(Int32Array::from(vec![0])) as ArrayRef,
+            string_column([caption]),
+            string_column([content]),
+            string_column([mime_type]),
+            string_column(["ok"]),
+            string_column([element_id]),
+        ],
+    )
+    .map_err(|error| format!("build native text document resource batch: {error}"))?;
+    validate_document_resource_batch(&batch)?;
+    Ok(batch)
 }
 
 #[cfg(all(test, feature = "document-extract-audio-shards"))]
@@ -53,7 +88,7 @@ pub(crate) fn build_audio_transcript_resource_batch(
     transcript: &str,
     element_id: &str,
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         document_resource_schema(),
         vec![
             string_column([source_path]),
@@ -67,7 +102,9 @@ pub(crate) fn build_audio_transcript_resource_batch(
             string_column([element_id]),
         ],
     )
-    .map_err(|error| format!("build audio transcript resource batch: {error}"))
+    .map_err(|error| format!("build audio transcript resource batch: {error}"))?;
+    validate_document_resource_batch(&batch)?;
+    Ok(batch)
 }
 
 #[cfg(feature = "document-extract-audio-shards")]
@@ -77,7 +114,7 @@ pub(crate) fn build_audio_transcript_with_org_resource_batch(
     transcript: &str,
     org_ledger: &str,
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         document_resource_schema(),
         vec![
             string_column([source_path, source_path]),
@@ -91,11 +128,13 @@ pub(crate) fn build_audio_transcript_with_org_resource_batch(
             string_column(["_audio_transcript", "_audio_transcript_org"]),
         ],
     )
-    .map_err(|error| format!("build audio transcript with Org resource batch: {error}"))
+    .map_err(|error| format!("build audio transcript with Org resource batch: {error}"))?;
+    validate_document_resource_batch(&batch)?;
+    Ok(batch)
 }
 
 pub(crate) fn build_status_batch(status: &DocumentExtractJobStatus) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         document_extract_status_schema(),
         vec![
             string_column([status.job_id.as_str()]),
@@ -110,5 +149,7 @@ pub(crate) fn build_status_batch(status: &DocumentExtractJobStatus) -> Result<Re
             string_column([status.error_message.as_str()]),
         ],
     )
-    .map_err(|error| format!("build document extract status batch: {error}"))
+    .map_err(|error| format!("build document extract status batch: {error}"))?;
+    validate_document_extract_status_batch(&batch)?;
+    Ok(batch)
 }

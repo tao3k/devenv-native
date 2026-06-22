@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::contracts::{
-    NodeDefinition, load_wendao_docs_contract, validate_cli_call, validate_http_call,
-};
+use crate::contracts::NodeDefinition;
+#[cfg(feature = "wendao-integration")]
+use crate::contracts::{load_wendao_docs_contract, validate_cli_call, validate_http_call};
 use crate::error::QianjiError;
 use serde_json::Value;
 
@@ -74,55 +74,79 @@ pub(super) fn suspend_mechanism_config(node_def: &NodeDefinition) -> SuspendMech
 pub(super) fn http_call_mechanism_config(
     node_def: &NodeDefinition,
 ) -> Result<HttpCallMechanismConfig, QianjiError> {
-    let contract = required_top_level_string(
-        node_def.contract.as_deref(),
-        node_def.id.as_str(),
-        "contract",
-    )?;
-    let method =
-        required_top_level_string(node_def.method.as_deref(), node_def.id.as_str(), "method")?;
-    let path = required_top_level_string(node_def.path.as_deref(), node_def.id.as_str(), "path")?;
-    let query = node_def.query.clone().ok_or_else(|| {
-        QianjiError::Topology(format!(
-            "node `{}` kind `http_call` requires `query`",
-            node_def.id
-        ))
-    })?;
-    let loaded_contract = load_wendao_docs_contract(contract.as_str())?;
-    validate_http_call(&loaded_contract, &method, &path, &query)?;
+    #[cfg(not(feature = "wendao-integration"))]
+    {
+        let _ = node_def;
+        Err(wendao_contract_validation_disabled("http_call"))
+    }
+    #[cfg(feature = "wendao-integration")]
+    {
+        let contract = required_top_level_string(
+            node_def.contract.as_deref(),
+            node_def.id.as_str(),
+            "contract",
+        )?;
+        let method =
+            required_top_level_string(node_def.method.as_deref(), node_def.id.as_str(), "method")?;
+        let path =
+            required_top_level_string(node_def.path.as_deref(), node_def.id.as_str(), "path")?;
+        let query = node_def.query.clone().ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "node `{}` kind `http_call` requires `query`",
+                node_def.id
+            ))
+        })?;
+        let loaded_contract = load_wendao_docs_contract(contract.as_str())?;
+        validate_http_call(&loaded_contract, &method, &path, &query)?;
 
-    Ok(HttpCallMechanismConfig {
-        contract,
-        method,
-        path,
-        base_url: optional_top_level_string(node_def.base_url.as_deref()),
-        query,
-        output_key: node_def.id.clone(),
-    })
+        Ok(HttpCallMechanismConfig {
+            contract,
+            method,
+            path,
+            base_url: optional_top_level_string(node_def.base_url.as_deref()),
+            query,
+            output_key: node_def.id.clone(),
+        })
+    }
 }
 
 pub(super) fn cli_call_mechanism_config(
     node_def: &NodeDefinition,
 ) -> Result<CliCallMechanismConfig, QianjiError> {
-    let contract = required_top_level_string(
-        node_def.contract.as_deref(),
-        node_def.id.as_str(),
-        "contract",
-    )?;
-    let argv = node_def.argv.clone().ok_or_else(|| {
-        QianjiError::Topology(format!(
-            "node `{}` kind `cli_call` requires `argv`",
-            node_def.id
-        ))
-    })?;
-    let loaded_contract = load_wendao_docs_contract(contract.as_str())?;
-    validate_cli_call(&loaded_contract, &argv)?;
+    #[cfg(not(feature = "wendao-integration"))]
+    {
+        let _ = node_def;
+        Err(wendao_contract_validation_disabled("cli_call"))
+    }
+    #[cfg(feature = "wendao-integration")]
+    {
+        let contract = required_top_level_string(
+            node_def.contract.as_deref(),
+            node_def.id.as_str(),
+            "contract",
+        )?;
+        let argv = node_def.argv.clone().ok_or_else(|| {
+            QianjiError::Topology(format!(
+                "node `{}` kind `cli_call` requires `argv`",
+                node_def.id
+            ))
+        })?;
+        let loaded_contract = load_wendao_docs_contract(contract.as_str())?;
+        validate_cli_call(&loaded_contract, &argv)?;
 
-    Ok(CliCallMechanismConfig {
-        contract,
-        argv,
-        output_key: node_def.id.clone(),
-    })
+        Ok(CliCallMechanismConfig {
+            contract,
+            argv,
+            output_key: node_def.id.clone(),
+        })
+    }
+}
+
+#[cfg(not(feature = "wendao-integration"))]
+fn wendao_contract_validation_disabled(kind: &str) -> QianjiError {
+    QianjiError::Topology(format!(
+        "node kind `{kind}` requires the `wendao-integration` feature for Wendao docs contract validation"
+    ))
 }
 
 fn bool_param(node_def: &NodeDefinition, key: &str, default: bool) -> bool {
@@ -151,6 +175,7 @@ fn optional_string_param(node_def: &NodeDefinition, key: &str) -> Option<String>
         .map(ToString::to_string)
 }
 
+#[cfg(feature = "wendao-integration")]
 fn required_top_level_string(
     value: Option<&str>,
     node_id: &str,
@@ -161,6 +186,7 @@ fn required_top_level_string(
     })
 }
 
+#[cfg(feature = "wendao-integration")]
 fn optional_top_level_string(value: Option<&str>) -> Option<String> {
     value
         .map(str::trim)

@@ -5,13 +5,11 @@ use tonic::metadata::MetadataMap;
 
 use super::header_values::split_non_empty_header_values;
 use crate::transport::query_contract::{
-    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
-    WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER,
-    WENDAO_GRAPH_NODE_ID_HEADER, WENDAO_SEMANTIC_SCOPE_OBJECT_IDS_HEADER,
-    WENDAO_SEMANTIC_SCOPE_TASK_ID_HEADER, WENDAO_VFS_PATH_HEADER,
-    validate_code_ast_analysis_request, validate_graph_neighbors_request,
-    validate_markdown_analysis_request, validate_semantic_scope_request,
-    validate_vfs_content_request, validate_vfs_resolve_request,
+    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER,
+    WENDAO_GRAPH_LIMIT_HEADER, WENDAO_GRAPH_NODE_ID_HEADER,
+    WENDAO_SEMANTIC_SCOPE_OBJECT_IDS_HEADER, WENDAO_SEMANTIC_SCOPE_TASK_ID_HEADER,
+    WENDAO_VFS_PATH_HEADER, validate_graph_neighbors_request, validate_markdown_analysis_request,
+    validate_semantic_scope_request, validate_vfs_content_request, validate_vfs_resolve_request,
 };
 
 pub(crate) fn validate_vfs_resolve_request_metadata(
@@ -93,35 +91,6 @@ pub(crate) fn validate_markdown_analysis_request_metadata(
         .to_string();
     validate_markdown_analysis_request(path.as_str()).map_err(Status::invalid_argument)?;
     Ok(path)
-}
-
-pub(crate) fn validate_code_ast_analysis_request_metadata(
-    metadata: &MetadataMap,
-) -> Result<(String, String, Option<usize>), Status> {
-    let path = metadata
-        .get(WENDAO_ANALYSIS_PATH_HEADER)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default()
-        .to_string();
-    let repo_id = metadata
-        .get(WENDAO_ANALYSIS_REPO_HEADER)
-        .and_then(|value| value.to_str().ok())
-        .unwrap_or_default()
-        .to_string();
-    let line_hint = match metadata.get(WENDAO_ANALYSIS_LINE_HEADER) {
-        Some(raw_value) => {
-            let line_hint = raw_value.to_str().unwrap_or_default();
-            Some(line_hint.parse::<usize>().map_err(|_| {
-                Status::invalid_argument(format!(
-                    "invalid analysis line header `{WENDAO_ANALYSIS_LINE_HEADER}`: {line_hint}"
-                ))
-            })?)
-        }
-        None => None,
-    };
-    validate_code_ast_analysis_request(path.as_str(), repo_id.as_str(), line_hint)
-        .map_err(Status::invalid_argument)?;
-    Ok((path, repo_id, line_hint))
 }
 
 pub(crate) fn validate_semantic_scope_request_metadata(

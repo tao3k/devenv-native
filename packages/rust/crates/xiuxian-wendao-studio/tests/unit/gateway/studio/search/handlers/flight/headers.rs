@@ -1,22 +1,25 @@
+#[cfg(feature = "duckdb")]
 use crate::transport::{
-    DatasetOntologyFlightManifest, DatasetOntologySourceTablePayload, WENDAO_ANALYSIS_PATH_HEADER,
-    WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
-    WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUTOCOMPLETE_LIMIT_HEADER,
-    WENDAO_AUTOCOMPLETE_PREFIX_HEADER, WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER,
-    WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER, WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER,
+    DatasetOntologyFlightManifest, DatasetOntologySourceTablePayload,
+    WENDAO_DATASET_ONTOLOGY_CONTRACT_ID_HEADER, WENDAO_DATASET_ONTOLOGY_MANIFEST_HEADER,
+    WENDAO_DATASET_ONTOLOGY_MAPPING_ID_HEADER, encode_dataset_ontology_manifest_header,
+};
+use crate::transport::{
+    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
+    WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER, WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER,
+    WENDAO_AUTOCOMPLETE_LIMIT_HEADER, WENDAO_AUTOCOMPLETE_PREFIX_HEADER,
     WENDAO_DEFINITION_LINE_HEADER, WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
     WENDAO_GRAPH_DIRECTION_HEADER, WENDAO_GRAPH_HOPS_HEADER, WENDAO_GRAPH_LIMIT_HEADER,
     WENDAO_GRAPH_NODE_ID_HEADER, WENDAO_REPO_INDEX_REFRESH_HEADER, WENDAO_REPO_INDEX_REPO_HEADER,
     WENDAO_REPO_INDEX_REQUEST_ID_HEADER, WENDAO_REPO_INDEX_STATUS_REPO_HEADER,
     WENDAO_REPO_SYNC_MODE_HEADER, WENDAO_REPO_SYNC_REPO_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
     WENDAO_SEARCH_LIMIT_HEADER, WENDAO_SEARCH_QUERY_HEADER, WENDAO_VFS_PATH_HEADER,
-    encode_dataset_ontology_manifest_header,
 };
 use crate::transport::{
-    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_REPO_HEADER, WENDAO_REFINE_DOC_ENTITY_ID_HEADER,
-    WENDAO_REFINE_DOC_REPO_HEADER, WENDAO_REFINE_DOC_USER_HINTS_HEADER,
-    WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER, WENDAO_REPO_DOC_COVERAGE_REPO_HEADER,
-    WENDAO_REPO_OVERVIEW_REPO_HEADER, WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
+    WENDAO_REFINE_DOC_ENTITY_ID_HEADER, WENDAO_REFINE_DOC_REPO_HEADER,
+    WENDAO_REFINE_DOC_USER_HINTS_HEADER, WENDAO_REPO_DOC_COVERAGE_MODULE_HEADER,
+    WENDAO_REPO_DOC_COVERAGE_REPO_HEADER, WENDAO_REPO_OVERVIEW_REPO_HEADER,
+    WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_PAGE_ID_HEADER,
     WENDAO_REPO_PROJECTED_PAGE_INDEX_TREE_REPO_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_NODE_ID_HEADER,
     WENDAO_REPO_PROJECTED_RETRIEVAL_CONTEXT_PAGE_ID_HEADER,
@@ -198,6 +201,7 @@ pub(super) fn populate_vfs_scan_headers(metadata: &mut MetadataMap) {
     populate_schema_headers(metadata);
 }
 
+#[cfg(feature = "duckdb")]
 pub(super) fn populate_dataset_ontology_headers(metadata: &mut MetadataMap) {
     populate_schema_headers(metadata);
     let manifest = DatasetOntologyFlightManifest::new(
@@ -287,29 +291,6 @@ pub(super) fn populate_markdown_analysis_headers(metadata: &mut MetadataMap, pat
         path,
         "analysis path metadata",
     );
-}
-
-pub(super) fn populate_code_ast_analysis_headers(
-    metadata: &mut MetadataMap,
-    path: &str,
-    repo_id: &str,
-    line_hint: Option<usize>,
-) {
-    populate_markdown_analysis_headers(metadata, path);
-    insert_header(
-        metadata,
-        WENDAO_ANALYSIS_REPO_HEADER,
-        repo_id,
-        "analysis repo metadata",
-    );
-    if let Some(line_hint) = line_hint {
-        insert_header(
-            metadata,
-            WENDAO_ANALYSIS_LINE_HEADER,
-            &line_hint.to_string(),
-            "analysis line metadata",
-        );
-    }
 }
 
 pub(super) fn populate_repo_doc_coverage_headers(

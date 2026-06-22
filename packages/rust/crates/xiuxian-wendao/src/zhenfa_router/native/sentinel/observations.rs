@@ -50,7 +50,7 @@ pub enum ObservationSignal {
 /// Reference to a code observation within a document.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObservationRef {
-    /// The observation pattern (sgrep/ast-grep syntax).
+    /// The observation pattern used by the configured source-query backend.
     pub pattern: String,
     /// Target language.
     pub language: String,

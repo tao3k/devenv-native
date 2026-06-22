@@ -5,9 +5,7 @@ fn artifact_cache_lookup(root: &std::path::Path, planner: &str) -> impl Fn(&str)
     let planner = planner.to_string();
     move |key| match key {
         "WENDAO_DOCUMENT_EXTRACT_PDF_FULL_ARTIFACT_CACHE" => Some("enabled".to_string()),
-        "WENDAO_DOCUMENT_EXTRACT_PDF_FULL_ARTIFACT_CACHE_ROOT" => {
-            Some(root.to_string_lossy().to_string())
-        }
+        "WENDAO_ARTIFACT_CACHE_ROOT" => Some(root.to_string_lossy().to_string()),
         "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER" => Some(planner.clone()),
         _ => None,
     }

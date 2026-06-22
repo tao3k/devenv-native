@@ -183,7 +183,7 @@ fn ensure_local_symbol_index_started_with_fingerprint_and_scanned_files(
 pub async fn publish_local_symbol_hits(
     service: &SearchPlaneService,
     fingerprint: &str,
-    hits: &[crate::search::contracts::AstSearchHit],
+    hits: &[crate::search::contracts::SourceSymbolHit],
 ) -> Result<(), LocalSymbolBuildError> {
     let lease = match service.coordinator().begin_build(
         SearchCorpusKind::LocalSymbol,

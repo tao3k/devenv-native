@@ -2,12 +2,13 @@ use super::{
     TemplateCliCommand, must_ok, must_some, parse_template_command, run_template_command, to_args,
 };
 use crate::QianjiCompiler;
-use qianji_bpmn_engine::{
+#[cfg(feature = "wendao-integration")]
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnParseOptions, BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source,
     parse_bpmn_package, snapshot_bpmn_source,
 };
-use std::sync::Arc;
-use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
+#[cfg(feature = "wendao-integration")]
 use xiuxian_wendao::LinkGraphIndex;
 
 #[test]
@@ -92,9 +93,11 @@ fn run_template_command_renders_native_bpmn_with_standard_di() {
         .unwrap_or_else(|| panic!("BPMN template should preserve a BPMNPlane"));
     assert_eq!(plane.shapes.len(), 3);
     assert_eq!(plane.edges.len(), 2);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    assert_eq!(report.issues[0].code, "bpmn.metadata_di_surface");
+    assert!(
+        report.ok,
+        "BPMN template should lint clean with native BPMNDI: {report:?}"
+    );
+    assert!(report.issues.is_empty());
 }
 
 #[test]
@@ -122,15 +125,18 @@ fn run_template_command_renders_semantic_guard_route_manifest() {
 #[test]
 fn run_template_command_renders_compilable_semantic_guard_route_manifest() {
     let output = run_template_command(&TemplateCliCommand::SemanticGuardRoute);
-    let temp = tempfile::tempdir().unwrap_or_else(|error| {
-        panic!("temporary index root should be created: {error}");
-    });
-    let index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap_or_else(|error| {
-        panic!("link graph index should build: {error}");
-    }));
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-    let compiler = QianjiCompiler::new(index, orchestrator, registry, None);
+    #[cfg(feature = "wendao-integration")]
+    let compiler = {
+        let temp = tempfile::tempdir().unwrap_or_else(|error| {
+            panic!("temporary index root should be created: {error}");
+        });
+        let index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap_or_else(|error| {
+            panic!("link graph index should build: {error}");
+        }));
+        QianjiCompiler::new(index)
+    };
+    #[cfg(not(feature = "wendao-integration"))]
+    let compiler = QianjiCompiler::new();
 
     compiler
         .compile(&output.rendered)

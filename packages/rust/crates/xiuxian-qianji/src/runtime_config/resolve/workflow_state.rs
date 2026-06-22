@@ -1,6 +1,7 @@
-use crate::runtime_config::constants::DEFAULT_WORKFLOW_STATE_DUCKDB_PATH;
+use crate::runtime_config::constants::WORKFLOW_STATE_DUCKDB_FILE_NAME;
 use crate::runtime_config::env_vars::{env_var_or_override, normalize_non_empty};
 use crate::runtime_config::model::{QianjiRuntimeEnv, QianjiRuntimeWorkflowStateConfig};
+use crate::runtime_config::pathing::resolve_qianji_data_root;
 use crate::runtime_config::toml_config::QianjiTomlWorkflowState;
 use std::path::{Path, PathBuf};
 
@@ -20,11 +21,20 @@ pub(super) fn resolve_qianji_runtime_workflow_state(
                 .and_then(|value| normalize_non_empty(Some(value)))
                 .map(PathBuf::from)
         })
-        .unwrap_or_else(|| PathBuf::from(DEFAULT_WORKFLOW_STATE_DUCKDB_PATH));
+        .unwrap_or_else(|| default_workflow_state_duckdb_path(runtime_env, project_root));
 
     QianjiRuntimeWorkflowStateConfig {
         local_duckdb_path: resolve_against_project_root(project_root, local_duckdb_path),
     }
+}
+
+fn default_workflow_state_duckdb_path(
+    runtime_env: &QianjiRuntimeEnv,
+    project_root: &Path,
+) -> PathBuf {
+    resolve_qianji_data_root(runtime_env, project_root)
+        .join("duckdb")
+        .join(WORKFLOW_STATE_DUCKDB_FILE_NAME)
 }
 
 fn resolve_against_project_root(project_root: &Path, path: PathBuf) -> PathBuf {

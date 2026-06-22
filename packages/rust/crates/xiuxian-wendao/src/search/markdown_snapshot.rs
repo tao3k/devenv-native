@@ -5,9 +5,10 @@ use std::sync::{Arc, OnceLock};
 use crate::parsers::markdown::{
     ParsedNote, adapt_markdown_note, adapt_org_note, is_org_note, is_supported_note,
 };
-use crate::search::contracts::AstSearchHit;
 use crate::search::contracts::compile_markdown_nodes;
-use crate::search::contracts::{build_markdown_ast_hits_from_sections, markdown_scope_name};
+use crate::search::contracts::{
+    SourceSymbolHit, build_markdown_source_symbol_hits_from_sections, markdown_scope_name,
+};
 use xiuxian_wendao_parsers::{
     fingerprint_markdown_note, parse_markdown_note_artifacts, parse_org_note,
     sections::MarkdownSection,
@@ -45,29 +46,31 @@ pub(crate) struct MarkdownSnapshotEntry {
     pub(crate) symbol_fingerprint: Option<String>,
     content: Option<Arc<str>>,
     parser_sections: Vec<MarkdownSection>,
-    ast_hits: OnceLock<Vec<AstSearchHit>>,
+    source_symbol_hits: OnceLock<Vec<SourceSymbolHit>>,
 }
 
 impl MarkdownSnapshotEntry {
     #[must_use]
-    pub(crate) fn clone_ast_hits(&self) -> Vec<AstSearchHit> {
-        self.ast_hits.get_or_init(|| self.build_ast_hits()).clone()
+    pub(crate) fn clone_source_symbol_hits(&self) -> Vec<SourceSymbolHit> {
+        self.source_symbol_hits
+            .get_or_init(|| self.build_source_symbol_hits())
+            .clone()
     }
 
-    fn build_ast_hits(&self) -> Vec<AstSearchHit> {
+    fn build_source_symbol_hits(&self) -> Vec<SourceSymbolHit> {
         let Some(content) = &self.content else {
             return Vec::new();
         };
 
         let nodes = compile_markdown_nodes(self.file.normalized_path.as_str(), content.as_ref());
         let crate_name = markdown_scope_name(Path::new(self.file.normalized_path.as_str()));
-        let mut ast_hits = build_markdown_ast_hits_from_sections(
+        let mut source_symbol_hits = build_markdown_source_symbol_hits_from_sections(
             self.file.normalized_path.as_str(),
             crate_name.as_str(),
             &nodes,
             self.parser_sections.as_slice(),
         );
-        for hit in &mut ast_hits {
+        for hit in &mut source_symbol_hits {
             if self.file.project_name.is_some() {
                 hit.project_name.clone_from(&self.file.project_name);
                 hit.navigation_target
@@ -82,7 +85,7 @@ impl MarkdownSnapshotEntry {
             }
         }
 
-        ast_hits
+        source_symbol_hits
     }
 }
 
@@ -118,7 +121,7 @@ pub(crate) fn build_markdown_snapshot_entry(
             symbol_fingerprint: None,
             content: None,
             parser_sections: Vec::new(),
-            ast_hits: OnceLock::new(),
+            source_symbol_hits: OnceLock::new(),
         };
     }
 
@@ -130,7 +133,7 @@ pub(crate) fn build_markdown_snapshot_entry(
             symbol_fingerprint: None,
             content: None,
             parser_sections: Vec::new(),
-            ast_hits: OnceLock::new(),
+            source_symbol_hits: OnceLock::new(),
         };
     };
 
@@ -176,6 +179,6 @@ pub(crate) fn build_markdown_snapshot_entry(
         symbol_fingerprint: Some(symbol_fingerprint),
         content: Some(Arc::<str>::from(content)),
         parser_sections,
-        ast_hits: OnceLock::new(),
+        source_symbol_hits: OnceLock::new(),
     }
 }

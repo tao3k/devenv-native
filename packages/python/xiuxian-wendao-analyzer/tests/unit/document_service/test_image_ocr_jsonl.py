@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
-from pathlib import Path
-from typing import Any
+import urllib.error
+from typing import TYPE_CHECKING, Any
 
 from xiuxian_wendao_analyzer.image_ocr_jsonl import run_image_ocr_jsonl_tasks
 from xiuxian_wendao_analyzer.pdf_ocr_ocr2.config import Ocr2ClientConfig
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _config() -> Ocr2ClientConfig:
@@ -18,11 +22,17 @@ def _config() -> Ocr2ClientConfig:
         prompt="Convert the image to markdown.",
         max_tokens=512,
         region_max_tokens=256,
+        region_prompt_mode="default",
         region_composite_size=1,
+        region_composite_mode="disabled",
+        region_composite_max_source_pixels=1_000_000,
+        region_composite_max_image_bytes=1_000_000,
         region_atlas_mode="disabled",
         timeout_seconds=30.0,
         request_concurrency=1,
         speculative_retry_delay_seconds=0.0,
+        speculative_retry_min_source_pixels=0,
+        speculative_retry_min_image_bytes=0,
         page_window_size=1,
         scaffold_mode="disabled",
         image_optimization_mode="disabled",
@@ -155,40 +165,43 @@ def test_image_ocr_jsonl_adapter_blocks_source_hash_drift(tmp_path: Path) -> Non
     assert output_jsonl.read_text(encoding="utf-8") == ""
 
 
-def test_image_ocr_jsonl_adapter_blocks_corpus_path_escape(tmp_path: Path) -> None:
+def test_image_ocr_jsonl_adapter_reports_http_error_body(tmp_path: Path) -> None:
     corpus_root = tmp_path / "corpus"
-    outside_path = tmp_path / "outside" / "a.jpg"
-    outside_path.parent.mkdir(parents=True)
-    image_bytes = b"\xff\xd8outside-jpeg\xff\xd9"
-    outside_path.write_bytes(image_bytes)
+    image_path = corpus_root / "images" / "a.jpg"
+    image_path.parent.mkdir(parents=True)
+    image_bytes = b"\xff\xd8synthetic-jpeg\xff\xd9"
+    image_path.write_bytes(image_bytes)
     tasks_path = tmp_path / "run" / "tasks.tsv"
-    _write_tasks(
-        tasks_path,
-        source_sha256=hashlib.sha256(image_bytes).hexdigest(),
-        relative_path="../outside/a.jpg",
-    )
+    _write_tasks(tasks_path, source_sha256=hashlib.sha256(image_bytes).hexdigest())
     output_jsonl = tmp_path / "run" / "ocr_results.jsonl"
 
-    def unexpected_sender(
+    def failing_sender(
         completion_url: str,
         headers: dict[str, str],
         timeout_seconds: float,
         payload: dict[str, Any],
     ) -> tuple[int, dict[str, Any]]:
-        raise AssertionError("OCR request should not be sent on path escape")
+        _ = completion_url, headers, timeout_seconds, payload
+        raise urllib.error.HTTPError(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            code=404,
+            msg="Not Found",
+            hdrs={},
+            fp=io.BytesIO(b'{"error":{"message":"No endpoints found"}}'),
+        )
 
     report = run_image_ocr_jsonl_tasks(
         tasks_path=tasks_path,
         corpus_root=corpus_root,
         output_jsonl_path=output_jsonl,
         config=_config(),
-        send_request=unexpected_sender,
+        send_request=failing_sender,
     )
 
     assert report["passed"] is False
-    assert report["succeeded_count"] == 0
-    assert "escapes corpus root" in report["errors"][0]
-    assert output_jsonl.read_text(encoding="utf-8") == ""
+    assert report["failed_count"] == 1
+    assert "HTTP Error 404" in report["errors"][0]
+    assert "No endpoints found" in report["errors"][0]
 
 
 def test_image_ocr_jsonl_adapter_blocks_corpus_path_escape(tmp_path: Path) -> None:

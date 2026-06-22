@@ -1,0 +1,48 @@
+[package]
+name = "xiuxian-julia-core"
+version.workspace = true
+edition.workspace = true
+description = "Julia core contracts and Wendao integration adapters"
+authors = ["CyberXiuXian Artisan workshop"]
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+walkdir = { workspace = true }
+regex = { workspace = true }
+toml = { workspace = true }
+arrow = { workspace = true }
+arrow-flight = { workspace = true }
+arrow-ipc = { workspace = true }
+parquet = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+blake3 = { workspace = true }
+inventory = { workspace = true }
+tonic = { workspace = true }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
+xiuxian-graph-core = { path = "../xiuxian-graph-core" }
+xiuxian-julia-runtime = { path = "../xiuxian-julia-runtime", features = ["wendao"] }
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", features = ["julia-runtime", "wendao-contracts"] }
+xiuxian-wendao-core = { path = "../xiuxian-wendao-core" }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", features = ["transport"] }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+tempfile = { workspace = true }
+insta = { workspace = true }
+serial_test = { workspace = true }
+async-trait = { workspace = true }
+tokio-stream = { workspace = true }
+serde_yaml = { workspace = true }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql" }
+xiuxian-graph-core = { path = "../xiuxian-graph-core", features = ["mermaid"] }
+
+[lints]
+workspace = true

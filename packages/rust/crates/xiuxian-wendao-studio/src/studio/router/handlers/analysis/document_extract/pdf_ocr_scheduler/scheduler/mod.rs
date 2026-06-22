@@ -9,7 +9,9 @@ pub(crate) use core::PdfOcrWorkerScheduler;
 
 #[cfg(test)]
 pub(super) use dispatch::{
-    endpoint_index_for_request, scheduler_shard_groups,
+    OCR_SCHEDULER_LANE_FAIRNESS_ENV, endpoint_index_for_request,
+    scheduler_lane_fairness_source_first_enabled_with_lookup,
+    scheduler_shard_group_execution_batches, scheduler_shard_groups,
     source_pdf_page_range_chunk_endpoint_index_with_lookup,
     source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup,
 };
@@ -31,7 +33,8 @@ use super::OcrSchedulerLane;
 
 #[cfg(test)]
 pub(super) use limit::{
-    DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, pdf_ocr_worker_limit_with_lookup,
+    DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE_ENV,
+    pdf_ocr_worker_limit_with_lookup, rendered_region_dispatch_chunk_size_with_lookup,
     rendered_region_shard_chunks, rendered_region_shard_chunks_with_composite_size,
     source_pdf_page_range_chunks, source_pdf_page_range_chunks_with_fast_text_split,
     source_pdf_page_range_chunks_with_weights, source_pdf_page_range_dispatch_budget,

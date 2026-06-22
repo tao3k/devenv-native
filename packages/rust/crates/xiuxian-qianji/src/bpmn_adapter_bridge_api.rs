@@ -1,25 +1,26 @@
 //! Bpmn adapter bridge api surface for `xiuxian-qianji`.
 
-use qianji_bpmn_engine::{
-    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
-    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ScriptTaskOutcome, ScriptTaskRequest,
-    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, UserTaskOutcome,
-    UserTaskRequest,
-};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
+    BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome, EventPollRequest,
+    HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ScriptTaskOutcome, ScriptTaskRequest,
+    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, TaskOutcome,
+    TaskRequest, UserTaskOutcome, UserTaskRequest,
+};
 
 use super::defaults::{
     default_clock_handler, unsupported_business_rule_handler, unsupported_event_poll_handler,
     unsupported_manual_handler, unsupported_script_handler, unsupported_send_handler,
-    unsupported_service_handler, unsupported_user_handler,
+    unsupported_service_handler, unsupported_task_handler, unsupported_user_handler,
 };
 
 pub(super) type HostFuture<T> =
     Pin<Box<dyn Future<Output = std::result::Result<T, HostBridgeError>> + Send + 'static>>;
 pub(super) type SendHandler =
     Arc<dyn Fn(SendTaskRequest) -> HostFuture<SendTaskOutcome> + Send + Sync>;
+pub(super) type TaskHandler = Arc<dyn Fn(TaskRequest) -> HostFuture<TaskOutcome> + Send + Sync>;
 pub(super) type ServiceHandler =
     Arc<dyn Fn(ServiceTaskRequest) -> HostFuture<ServiceTaskOutcome> + Send + Sync>;
 pub(super) type ScriptHandler =
@@ -38,6 +39,7 @@ pub(super) type ClockHandler = Arc<dyn Fn() -> u64 + Send + Sync>;
 #[derive(Clone)]
 pub struct QianjiBpmnHostBridge {
     pub(super) send_task: SendHandler,
+    pub(super) task: TaskHandler,
     pub(super) service_task: ServiceHandler,
     pub(super) script_task: ScriptHandler,
     pub(super) user_task: UserHandler,
@@ -65,6 +67,7 @@ impl Default for QianjiBpmnHostBridge {
 #[derive(Clone, Default)]
 pub struct QianjiBpmnHostBridgeBuilder {
     send_task: Option<SendHandler>,
+    task: Option<TaskHandler>,
     service_task: Option<ServiceHandler>,
     script_task: Option<ScriptHandler>,
     user_task: Option<UserHandler>,
@@ -75,6 +78,17 @@ pub struct QianjiBpmnHostBridgeBuilder {
 }
 
 impl QianjiBpmnHostBridgeBuilder {
+    /// Installs the callback used for generic BPMN task dispatch.
+    #[must_use]
+    pub fn on_task<F, Fut>(mut self, handler: F) -> Self
+    where
+        F: Fn(TaskRequest) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = std::result::Result<TaskOutcome, HostBridgeError>> + Send + 'static,
+    {
+        self.task = Some(Arc::new(move |request| Box::pin(handler(request))));
+        self
+    }
+
     /// Installs the callback used for BPMN send-task dispatch.
     #[must_use]
     pub fn on_send_task<F, Fut>(mut self, handler: F) -> Self
@@ -182,6 +196,9 @@ impl QianjiBpmnHostBridgeBuilder {
             send_task: self
                 .send_task
                 .unwrap_or_else(|| unsupported_send_handler("dispatch_send_task")),
+            task: self
+                .task
+                .unwrap_or_else(|| unsupported_task_handler("dispatch_task")),
             service_task: self
                 .service_task
                 .unwrap_or_else(|| unsupported_service_handler("dispatch_service_task")),

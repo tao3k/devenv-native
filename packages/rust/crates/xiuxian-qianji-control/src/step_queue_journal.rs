@@ -23,6 +23,21 @@ impl StepQueueJournalRecord {
             occurred_at_ms,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            step,
+            occurred_at_ms,
+        } = self;
+        ControlEvent::step(
+            step.run_id,
+            step.step_id,
+            occurred_at_ms,
+            ControlEventKind::StepQueued,
+        )
+    }
 }
 
 /// Records one step queue fact as an append-only control event.
@@ -37,16 +52,7 @@ pub fn record_step_queued<L>(
 where
     L: ControlLedger + ?Sized,
 {
-    let StepQueueJournalRecord {
-        step,
-        occurred_at_ms,
-    } = request;
-    ledger.append_event(ControlEvent::step(
-        step.run_id,
-        step.step_id,
-        occurred_at_ms,
-        ControlEventKind::StepQueued,
-    ))
+    ledger.append_event(request.into_event())
 }
 
 /// Enqueues one runnable step in hot state and records the durable queue fact.

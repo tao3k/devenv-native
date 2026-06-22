@@ -36,7 +36,7 @@ fn modelica_plugin_emits_structural_and_semantic_relations() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-relations]
+            r#"[sources.projects.modelica-relations]
 root = "{}"
 plugins = ["modelica"]
 "#,

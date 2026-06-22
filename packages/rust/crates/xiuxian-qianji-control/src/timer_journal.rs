@@ -34,6 +34,24 @@ impl TimerFireJournalRecord {
             occurred_at_ms,
         }
     }
+
+    /// Converts this record into its replayable control event.
+    #[must_use]
+    pub fn into_event(self) -> ControlEvent {
+        let Self {
+            run_id,
+            scope,
+            timer_id,
+            occurred_at_ms,
+        } = self;
+        let kind = ControlEventKind::TimerFired { timer_id };
+        match scope {
+            RecoveryItemScope::Run => ControlEvent::run(run_id, occurred_at_ms, kind),
+            RecoveryItemScope::Step { step_id } => {
+                ControlEvent::step(run_id, step_id, occurred_at_ms, kind)
+            }
+        }
+    }
 }
 
 /// Records one timer fire fact as an append-only control event.
@@ -48,18 +66,5 @@ pub fn record_timer_fired<L>(
 where
     L: ControlLedger + ?Sized,
 {
-    let TimerFireJournalRecord {
-        run_id,
-        scope,
-        timer_id,
-        occurred_at_ms,
-    } = request;
-    let kind = ControlEventKind::TimerFired { timer_id };
-    let event = match scope {
-        RecoveryItemScope::Run => ControlEvent::run(run_id, occurred_at_ms, kind),
-        RecoveryItemScope::Step { step_id } => {
-            ControlEvent::step(run_id, step_id, occurred_at_ms, kind)
-        }
-    };
-    ledger.append_event(event)
+    ledger.append_event(request.into_event())
 }

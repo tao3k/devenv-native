@@ -78,7 +78,7 @@ impl Default for LinkGraphAgenticExecutionConfig {
             persist_retry_attempts: 2,
             idempotency_scan_limit: 2000,
             relation: "related_to".to_string(),
-            agent_id: "qianhuan-architect".to_string(),
+            agent_id: "wendao-agentic-architect".to_string(),
             evidence_prefix: "agentic expansion bridge candidate".to_string(),
             created_at_unix: None,
         }
@@ -110,7 +110,7 @@ impl LinkGraphAgenticExecutionConfig {
                 relation.to_string()
             },
             agent_id: if agent_id.is_empty() {
-                "qianhuan-architect".to_string()
+                "wendao-agentic-architect".to_string()
             } else {
                 agent_id.to_string()
             },

@@ -16,6 +16,10 @@ from .document_extract_inline import (
     _should_isolate_document_extract,
     _write_extract_error_timing,
 )
+from .document_image_extract import (
+    extract_image_document_resources,
+    is_hosted_vlm_image_source,
+)
 from .document_profiles import (
     DOCUMENT_EXTRACT_FULL_PROFILE,
 )
@@ -28,6 +32,7 @@ from .document_types import (
 
 if TYPE_CHECKING:
     import pyarrow as pa
+    from .pdf_ocr_ocr2.config import Ocr2ClientConfig
 
 __all__ = [
     "_new_docling_converter",
@@ -47,6 +52,7 @@ def extract_document_table(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
+    hosted_vlm_config: Ocr2ClientConfig | None = None,
 ) -> pa.Table:
     """Extract one document and return Arrow resource rows.
 
@@ -59,11 +65,7 @@ def extract_document_table(
 
     source = Path(source_path)
     if source.exists() and not force and page_range is None:
-        out = (
-            Path(output_dir)
-            if output_dir is not None
-            else default_document_output_dir(source)
-        )
+        out = Path(output_dir) if output_dir is not None else default_document_output_dir(source)
         cached_table = _read_cached_table(source, out)
         if cached_table is not None:
             return cached_table
@@ -77,6 +79,7 @@ def extract_document_table(
             force=force,
             error_row=error_row,
             page_range=page_range,
+            hosted_vlm_config=hosted_vlm_config,
         )
     )
 
@@ -90,6 +93,7 @@ def extract_document_resources(
     force: bool = False,
     error_row: bool = False,
     page_range: tuple[int, int] | None = None,
+    hosted_vlm_config: Ocr2ClientConfig | None = None,
 ) -> list[DocumentResourceRow]:
     """Extract one local document into Arrow-friendly resource rows.
 
@@ -111,17 +115,21 @@ def extract_document_resources(
             ]
         raise FileNotFoundError(f"document source path does not exist: {source}")
 
-    out = (
-        Path(output_dir)
-        if output_dir is not None
-        else default_document_output_dir(source)
-    )
+    out = Path(output_dir) if output_dir is not None else default_document_output_dir(source)
     out.mkdir(parents=True, exist_ok=True)
 
     if not force and page_range is None:
         cached = _read_cached_resources(source, out)
         if cached is not None:
             return cached
+
+    if page_range is None and is_hosted_vlm_image_source(source, profile):
+        return extract_image_document_resources(
+            source,
+            out,
+            config=hosted_vlm_config,
+            error_row=error_row,
+        )
 
     if page_range is None and _should_isolate_document_extract(
         converter=converter, profile=profile

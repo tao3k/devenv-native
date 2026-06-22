@@ -38,7 +38,7 @@ fn log_provisional_suggestion(config_path: &Path) -> TestResult {
             "--evidence",
             "provisional-only",
             "--agent-id",
-            "qianhuan-architect",
+            "wendao-agentic-architect",
         ],
         "wendao agentic log failed",
     )

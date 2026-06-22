@@ -3,7 +3,9 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 
-use crate::studio::router::LocalCorpusScanCoalescingState;
+use crate::studio::router::{
+    LocalCorpusScanCoalescingState, load_model_routing_config_from_wendao_toml,
+};
 use crate::studio::symbol_index::SymbolIndexCoordinator;
 use crate::studio::types::{UiConfig, UiRepoProjectConfig};
 use crate::studio::{
@@ -34,6 +36,9 @@ pub(crate) fn gateway_state_for_project(project_root: &Path) -> Result<Arc<Gatew
         studio: Arc::new(StudioState {
             project_root: project_root.to_path_buf(),
             config_root: config_root.clone(),
+            model_routing_config: Arc::new(load_model_routing_config_from_wendao_toml(
+                config_root.as_path(),
+            )),
             bootstrap_background_indexing: false,
             cold_start_process_started_at: crate::studio::symbol_index::timestamp_now(),
             cold_start_process_started_instant: std::time::Instant::now(),

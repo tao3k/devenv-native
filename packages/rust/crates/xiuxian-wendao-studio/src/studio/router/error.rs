@@ -64,6 +64,18 @@ impl StudioApiError {
         }
     }
 
+    /// Creates a service unavailable error.
+    pub fn unavailable(code: &str, message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            error: ApiError {
+                code: code.to_string(),
+                message: message.into(),
+                details: None,
+            },
+        }
+    }
+
     /// Creates a conflict error.
     pub fn conflict(code: &str, message: impl Into<String>, details: Option<String>) -> Self {
         Self {

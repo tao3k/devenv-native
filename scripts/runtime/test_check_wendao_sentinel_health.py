@@ -26,7 +26,7 @@ def test_resolve_sentinel_watch_paths_reads_link_graph_projects(tmp_path) -> Non
     config_path = project_root / "wendao.toml"
     config_path.write_text(
         """
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs", "skills"]
 """.strip()
@@ -47,7 +47,7 @@ def test_is_sentinel_healthy_accepts_live_pid_and_existing_watch_root(tmp_path) 
     config_path = project_root / "wendao.toml"
     config_path.write_text(
         """
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 """.strip()
@@ -76,7 +76,7 @@ def test_is_sentinel_healthy_rejects_dead_pid(tmp_path) -> None:
     config_path = project_root / "wendao.toml"
     config_path.write_text(
         """
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 """.strip()
@@ -104,7 +104,7 @@ def test_is_sentinel_healthy_rejects_missing_watch_roots(tmp_path) -> None:
     config_path = project_root / "wendao.toml"
     config_path.write_text(
         """
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs"]
 """.strip()

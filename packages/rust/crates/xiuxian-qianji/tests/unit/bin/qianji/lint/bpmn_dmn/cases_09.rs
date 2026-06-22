@@ -142,7 +142,7 @@ fn run_lint_command_json_reports_gateway_condition_structure() {
 }
 
 #[test]
-fn run_lint_command_renders_bpmn_snapshot_evidence() {
+fn run_lint_command_accepts_standard_bpmn_data_surfaces() {
     let temp_dir =
         TempDir::new().unwrap_or_else(|error| panic!("temp dir should allocate: {error}"));
     let path = temp_dir.path().join("deferred_data_store_surface.bpmn");
@@ -165,21 +165,11 @@ fn run_lint_command_renders_bpmn_snapshot_evidence() {
 
     let output = must_ok(
         run_lint_command(LintCliCommand::Bpmn { path }),
-        "lint command should render snapshot evidence",
+        "lint command should accept standard BPMN data surfaces",
     );
 
-    assert_eq!(output.exit_code, 2);
-    assert!(output.rendered.contains("bpmn.unsupported_data_surface"));
-    assert!(output.rendered.contains("\"snapshot_available\": true"));
-    assert!(
-        output
-            .rendered
-            .contains("\"data_object_reference_count\": 1")
-    );
-    assert!(
-        output
-            .rendered
-            .contains("\"data_object_ref\": \"order_payload\"")
-    );
-    assert!(output.rendered.contains("\"order_payload\""));
+    assert_eq!(output.exit_code, 0);
+    assert!(output.rendered.starts_with("[ok]"));
+    assert!(output.rendered.contains("bpmn"));
+    assert!(output.rendered.contains("no blocking issues"));
 }

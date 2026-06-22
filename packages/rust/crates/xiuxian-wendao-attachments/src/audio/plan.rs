@@ -35,6 +35,7 @@ pub fn plan_audio_shards(plan: &AudioShardPlan) -> Result<Vec<AudioShardManifest
                 sample_rate_hz: plan.sample_rate_hz,
                 channels: plan.channels,
                 audio_format: normalized_audio_format(plan.audio_format.as_str())?,
+                audio_bitrate: normalized_audio_bitrate(plan.audio_bitrate.as_deref())?,
                 cache_key: audio_shard_cache_key(plan, chunk_index, window, media_window),
                 reading_order_key: format!("{chunk_index:06}.{:012}", window.start_ms),
             })
@@ -76,6 +77,7 @@ pub fn build_audio_shard_plan(input: &AudioShardPlannerInput) -> Result<AudioSha
         sample_rate_hz: input.sample_rate_hz,
         channels: input.channels,
         audio_format: input.audio_format.clone(),
+        audio_bitrate: normalized_audio_bitrate(input.audio_bitrate.as_deref())?,
         strategy: strategy_token(input.strategy).to_owned(),
     };
     validate_plan(&plan)?;
@@ -98,6 +100,7 @@ pub fn build_audio_speech_window_plan(
         input.min_window_ms,
         input.short_merge_gap_ms.unwrap_or(input.min_window_ms),
         input.max_window_ms,
+        input.boundary_snap_tolerance_ms,
     )?;
     let mut windows = windows;
     if windows.len() > input.limit_chunks as usize {
@@ -114,6 +117,7 @@ pub fn build_audio_speech_window_plan(
         sample_rate_hz: input.sample_rate_hz,
         channels: input.channels,
         audio_format: input.audio_format.clone(),
+        audio_bitrate: normalized_audio_bitrate(input.audio_bitrate.as_deref())?,
         strategy: "speech-segments".to_owned(),
     };
     validate_plan(&plan)?;
@@ -173,6 +177,7 @@ pub fn build_audio_recovery_split_plan(
         sample_rate_hz: parent_plan.sample_rate_hz,
         channels: parent_plan.channels,
         audio_format: parent_plan.audio_format.clone(),
+        audio_bitrate: parent_plan.audio_bitrate.clone(),
         strategy: "risk-recovery-split".to_owned(),
     };
     validate_plan(&plan)?;
@@ -335,6 +340,7 @@ fn build_recovery_speech_window_plan(
         sample_rate_hz: parent_plan.sample_rate_hz,
         channels: parent_plan.channels,
         audio_format: parent_plan.audio_format.clone(),
+        audio_bitrate: parent_plan.audio_bitrate.clone(),
         strategy: "speech-segments".to_owned(),
     };
     validate_plan(&plan)?;
@@ -414,6 +420,7 @@ fn packed_speech_windows_for_selected_windows(
             input.min_window_ms,
             input.short_merge_gap_ms.unwrap_or(input.min_window_ms),
             input.max_window_ms,
+            input.boundary_snap_tolerance_ms,
         )?;
         parent_packed_windows.sort_by_key(|window| (window.start_ms, window.duration_ms));
         packed_windows.extend(parent_packed_windows);
@@ -497,6 +504,7 @@ fn validate_plan(plan: &AudioShardPlan) -> Result<(), String> {
         return Err("audio channel count must be positive".to_owned());
     }
     normalized_audio_format(plan.audio_format.as_str())?;
+    normalized_audio_bitrate(plan.audio_bitrate.as_deref())?;
     Ok(())
 }
 
@@ -520,6 +528,7 @@ fn validate_speech_window_input(input: &AudioSpeechWindowPlannerInput) -> Result
         return Err("audio speech min window cannot exceed max window".to_owned());
     }
     normalized_audio_format(input.audio_format.as_str())?;
+    normalized_audio_bitrate(input.audio_bitrate.as_deref())?;
     Ok(())
 }
 
@@ -560,13 +569,21 @@ fn pack_speech_segment_windows(
     min_window_ms: u64,
     short_merge_gap_ms: u64,
     max_window_ms: Option<u64>,
+    boundary_snap_tolerance_ms: u64,
 ) -> Result<Vec<AudioShardWindow>, String> {
     let mut sorted_segments = segments.to_vec();
     sorted_segments.sort_by_key(|segment| (segment.start_ms, segment.index));
 
     let expanded_segments = sorted_segments
         .iter()
-        .map(|segment| expand_speech_segment_windows(segment, max_window_ms))
+        .map(|segment| {
+            expand_speech_segment_windows(
+                segment,
+                max_window_ms,
+                min_window_ms,
+                boundary_snap_tolerance_ms,
+            )
+        })
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .flatten()
@@ -582,6 +599,7 @@ fn pack_speech_segment_windows(
                 min_window_ms,
                 short_merge_gap_ms,
                 max_window_ms,
+                boundary_snap_tolerance_ms,
             )
         })
 }
@@ -593,6 +611,7 @@ fn merge_packed_speech_window(
     min_window_ms: u64,
     short_merge_gap_ms: u64,
     max_window_ms: Option<u64>,
+    boundary_snap_tolerance_ms: u64,
 ) -> Result<Vec<AudioShardWindow>, String> {
     let Some(current) = windows.last_mut() else {
         windows.push(segment);
@@ -606,8 +625,10 @@ fn merge_packed_speech_window(
     let current_is_short = current.duration_ms < min_window_ms;
     let segment_is_short = segment.duration_ms < min_window_ms;
     let can_short_merge = (current_is_short || segment_is_short) && gap_ms <= short_merge_gap_ms;
-    let within_max_window =
-        max_window_ms.is_none_or(|max_window_ms| merged_duration_ms <= max_window_ms);
+    let within_max_window = max_window_ms
+        .map(|max_window_ms| speech_window_soft_cap(max_window_ms, boundary_snap_tolerance_ms))
+        .transpose()?
+        .is_none_or(|max_window_ms| merged_duration_ms <= max_window_ms);
     let can_merge = (gap_ms <= merge_gap_ms || can_short_merge) && within_max_window;
     if can_merge {
         current.duration_ms = merged_duration_ms;
@@ -620,17 +641,35 @@ fn merge_packed_speech_window(
 fn expand_speech_segment_windows(
     segment: &AudioSpeechSegment,
     max_window_ms: Option<u64>,
+    min_window_ms: u64,
+    boundary_snap_tolerance_ms: u64,
 ) -> Result<Vec<AudioShardWindow>, String> {
     if segment.duration_ms == 0 {
         return Err("audio speech segment duration must be positive".to_owned());
+    }
+    let Some(max_window_ms) = max_window_ms else {
+        return Ok(vec![AudioShardWindow {
+            start_ms: segment.start_ms,
+            duration_ms: segment.duration_ms,
+        }]);
+    };
+    let soft_cap_ms = speech_window_soft_cap(max_window_ms, boundary_snap_tolerance_ms)?;
+    if segment.duration_ms <= soft_cap_ms {
+        return Ok(vec![AudioShardWindow {
+            start_ms: segment.start_ms,
+            duration_ms: segment.duration_ms,
+        }]);
+    }
+    if let Some(windows) =
+        balanced_long_speech_segment_windows(segment, max_window_ms, min_window_ms)?
+    {
+        return Ok(windows);
     }
     let mut windows = Vec::new();
     let mut remaining_ms = segment.duration_ms;
     let mut start_ms = segment.start_ms;
     while remaining_ms > 0 {
-        let duration_ms = max_window_ms.map_or(remaining_ms, |max_window_ms| {
-            remaining_ms.min(max_window_ms)
-        });
+        let duration_ms = remaining_ms.min(max_window_ms);
         windows.push(AudioShardWindow {
             start_ms,
             duration_ms,
@@ -641,6 +680,51 @@ fn expand_speech_segment_windows(
             .ok_or_else(|| "audio speech segment exceeds u64::MAX".to_owned())?;
     }
     Ok(windows)
+}
+
+fn balanced_long_speech_segment_windows(
+    segment: &AudioSpeechSegment,
+    max_window_ms: u64,
+    min_window_ms: u64,
+) -> Result<Option<Vec<AudioShardWindow>>, String> {
+    if min_window_ms == 0 {
+        return Ok(None);
+    }
+    let remainder_ms = segment.duration_ms % max_window_ms;
+    if remainder_ms == 0 || remainder_ms >= min_window_ms {
+        return Ok(None);
+    }
+    let chunk_count = segment.duration_ms.div_ceil(max_window_ms);
+    if chunk_count <= 1 {
+        return Ok(None);
+    }
+    let base_duration_ms = segment.duration_ms / chunk_count;
+    let extra_count = segment.duration_ms % chunk_count;
+    if base_duration_ms > max_window_ms || base_duration_ms < min_window_ms {
+        return Ok(None);
+    }
+    let mut windows = Vec::new();
+    let mut start_ms = segment.start_ms;
+    for index in 0..chunk_count {
+        let duration_ms = base_duration_ms + u64::from(index < extra_count);
+        windows.push(AudioShardWindow {
+            start_ms,
+            duration_ms,
+        });
+        start_ms = start_ms
+            .checked_add(duration_ms)
+            .ok_or_else(|| "audio speech segment exceeds u64::MAX".to_owned())?;
+    }
+    Ok(Some(windows))
+}
+
+fn speech_window_soft_cap(
+    max_window_ms: u64,
+    boundary_snap_tolerance_ms: u64,
+) -> Result<u64, String> {
+    max_window_ms
+        .checked_add(boundary_snap_tolerance_ms)
+        .ok_or_else(|| "audio speech max window tolerance exceeds u64::MAX".to_owned())
 }
 
 fn checked_window_end(window: AudioShardWindow) -> Result<u64, String> {
@@ -656,6 +740,28 @@ fn normalized_audio_format(value: &str) -> Result<String, String> {
         return Err("audio format cannot be empty".to_owned());
     }
     Ok(normalized)
+}
+
+fn normalized_audio_bitrate(value: Option<&str>) -> Result<Option<String>, String> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    let normalized = value.to_ascii_lowercase();
+    let (digits, suffix) = normalized
+        .trim_end_matches(|ch: char| ch.is_ascii_alphabetic())
+        .split_at(
+            normalized
+                .trim_end_matches(|ch: char| ch.is_ascii_alphabetic())
+                .len(),
+        );
+    if digits.is_empty() || digits.starts_with('0') || !digits.chars().all(|ch| ch.is_ascii_digit())
+    {
+        return Err("audio bitrate must be a positive bitrate token such as `96k`".to_owned());
+    }
+    if !suffix.chars().all(|ch| matches!(ch, 'k' | 'm')) {
+        return Err("audio bitrate suffix must be `k`, `m`, or omitted".to_owned());
+    }
+    Ok(Some(normalized))
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -699,7 +805,7 @@ fn audio_shard_id(
 ) -> String {
     sha256_hex(
         format!(
-            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             plan.profile,
             plan.source.source_sha256,
             chunk_index,
@@ -709,7 +815,11 @@ fn audio_shard_id(
             media_window.duration,
             plan.sample_rate_hz,
             plan.channels,
-            plan.audio_format.trim().to_ascii_lowercase()
+            plan.audio_format.trim().to_ascii_lowercase(),
+            normalized_audio_bitrate(plan.audio_bitrate.as_deref())
+                .ok()
+                .flatten()
+                .unwrap_or_default()
         )
         .as_bytes(),
     )

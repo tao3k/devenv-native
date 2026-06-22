@@ -40,6 +40,9 @@ mod analysis;
 #[path = "arrow_types.rs"]
 pub(crate) mod arrow_types;
 #[cfg(feature = "zhenfa-router")]
+#[path = "code_language.rs"]
+pub(crate) mod code_language;
+#[cfg(feature = "zhenfa-router")]
 #[path = "pathing.rs"]
 mod pathing;
 /// Performance fixtures and helpers for Studio gateway benchmarks.
@@ -63,8 +66,6 @@ pub(crate) mod symbol_index;
 #[path = "vfs/mod.rs"]
 mod vfs;
 
-#[cfg(all(feature = "zhenfa-router", feature = "julia"))]
-pub(crate) use router::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 #[cfg(feature = "zhenfa-router")]
 pub use router::{
     GatewayState, StudioApiError, StudioBootstrapBackgroundIndexingTelemetry,
@@ -78,8 +79,6 @@ pub use router::{
 pub(crate) use router::{
     configured_repository, registered_repository_search_seeds, resolve_registered_repository_id,
 };
-#[cfg(feature = "zhenfa-router")]
-pub use search::build_ast_index;
 #[cfg(feature = "flight-server-bin-support")]
 pub(crate) use search::handlers::build_studio_flight_service_for_roots_with_weights;
 #[cfg(feature = "cli-bin-support")]

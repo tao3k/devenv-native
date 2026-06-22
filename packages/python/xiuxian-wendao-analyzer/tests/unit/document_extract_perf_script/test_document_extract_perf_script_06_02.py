@@ -155,3 +155,84 @@ def test_pdf_render_shard_audit_command_adds_feature_and_fixture_manifest(
     assert inputs == [{"name": "pdf", "source": str(tmp_path / "sample.pdf")}]
     assert env["WENDAO_PDF_RENDER_SHARD_REPORT_DIR"] == str(tmp_path / "reports")
     assert env["WENDAO_PDF_RENDER_SELECTION"] == "all_pages"
+
+
+def test_pdf_render_artifact_cache_summary_reads_manifest_totals(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir()
+    manifest_path = report_dir / "pdf_page_render_shard_manifest.json"
+    manifest_path.write_text(
+        benchmark.json.dumps(
+            {
+                "totalInputs": 2,
+                "totalRenderedShards": 5,
+                "renderedInputs": 2,
+                "fallbackInputs": 0,
+                "artifactCacheBackendCounts": {"foyer": 2},
+                "artifactCacheHitCount": 3,
+                "artifactCacheMissCount": 2,
+                "artifactCacheThrottledCount": 0,
+                "artifactCacheByteCount": 4096,
+                "records": [
+                    {"artifactCacheBackend": "foyer"},
+                    {"artifactCacheBackend": "foyer"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary_path = benchmark.write_pdf_render_artifact_cache_summary(report_dir)
+    summary = benchmark.json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary_path.name == "pdf_render_artifact_cache_summary.json"
+    assert summary["schema"] == "xiuxian_wendao.pdf_render_artifact_cache_summary.v1"
+    assert summary["artifactCacheBackendCounts"] == {"foyer": 2}
+    assert summary["artifactCacheConfiguredRecordCount"] == 2
+    assert summary["artifactCacheHitCount"] == 3
+    assert summary["artifactCacheMissCount"] == 2
+    assert summary["artifactCacheThrottledCount"] == 0
+    assert summary["artifactCacheByteCount"] == 4096
+    assert summary["artifactCacheReuseObserved"] is True
+    assert summary["artifactCacheMaterializationObserved"] is True
+
+
+def test_pdf_render_artifact_cache_summary_falls_back_to_record_counts(
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    manifest_path = tmp_path / "pdf_page_render_shard_manifest.json"
+    manifest_path.write_text(
+        benchmark.json.dumps(
+            {
+                "records": [
+                    {
+                        "artifactCacheBackend": "filesystem",
+                        "artifactCacheHitCount": 1,
+                        "artifactCacheMissCount": 0,
+                        "artifactCacheThrottledCount": 0,
+                        "artifactCacheByteCount": 100,
+                    },
+                    {
+                        "artifactCacheBackend": "filesystem",
+                        "artifactCacheHitCount": 0,
+                        "artifactCacheMissCount": 1,
+                        "artifactCacheThrottledCount": 0,
+                        "artifactCacheByteCount": 120,
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = benchmark.summarize_pdf_render_artifact_cache(manifest_path)
+
+    assert summary["recordCount"] == 2
+    assert summary["artifactCacheBackendCounts"] == {"filesystem": 2}
+    assert summary["artifactCacheHitCount"] == 1
+    assert summary["artifactCacheMissCount"] == 1
+    assert summary["artifactCacheByteCount"] == 220

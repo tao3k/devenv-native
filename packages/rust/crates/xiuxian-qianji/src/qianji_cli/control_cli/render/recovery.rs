@@ -95,6 +95,7 @@ fn recovery_application_applied(application: &RecoveryActionApplication) -> bool
 fn recovery_application_label(application: &RecoveryActionApplication) -> &'static str {
     match application {
         RecoveryActionApplication::AppliedStepRetry { .. } => "applied_step_retry",
+        RecoveryActionApplication::AppliedActivityRetry { .. } => "applied_activity_retry",
         RecoveryActionApplication::AppliedTimerFire { .. } => "applied_timer_fire",
         RecoveryActionApplication::AppliedLeaseReclaim { .. } => "applied_lease_reclaim",
         RecoveryActionApplication::NotApplicable { .. } => "not_applicable",

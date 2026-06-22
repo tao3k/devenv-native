@@ -2,16 +2,12 @@
 use std::path::{Component, Path, PathBuf};
 
 use walkdir::DirEntry;
-use xiuxian_ast::Lang;
-use xiuxian_code_intelligence::{
-    extract_code_structure_symbols, supported_code_language_from_path,
-};
 use xiuxian_wendao_parsers::sections::MarkdownSection;
 
 use crate::parsers::markdown::extract_observations;
 
 use super::{
-    AnalysisNode, AnalysisNodeKind, AstSearchHit, SearchProjectConfig, StudioNavigationTarget,
+    AnalysisNode, AnalysisNodeKind, SearchProjectConfig, SourceSymbolHit, StudioNavigationTarget,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -175,61 +171,6 @@ pub(crate) fn project_metadata_for_path(
         .unwrap_or_default()
 }
 
-pub(crate) fn build_code_ast_hits_from_content(
-    normalized_path: &str,
-    content: &str,
-) -> Vec<AstSearchHit> {
-    let normalized_path_ref = Path::new(normalized_path);
-    let Some(lang) = ast_search_lang(normalized_path_ref) else {
-        return Vec::new();
-    };
-    let crate_name = infer_crate_name(normalized_path_ref);
-    let mut hits = Vec::new();
-    let mut seen = std::collections::HashSet::new();
-    for symbol in extract_code_structure_symbols(content, lang) {
-        if symbol.signature.is_empty() {
-            continue;
-        }
-        let dedupe_key = format!(
-            "{normalized_path}:{}:{}:{}",
-            symbol.line_start,
-            symbol.line_end,
-            symbol.name.as_str()
-        );
-        if !seen.insert(dedupe_key) {
-            continue;
-        }
-
-        hits.push(AstSearchHit {
-            name: symbol.name,
-            signature: symbol.signature,
-            path: normalized_path.to_string(),
-            language: lang.as_str().to_string(),
-            crate_name: crate_name.clone(),
-            project_name: None,
-            root_label: None,
-            node_kind: None,
-            owner_title: None,
-            navigation_target: ast_navigation_target(
-                normalized_path,
-                crate_name.as_str(),
-                None,
-                None,
-                symbol.line_start,
-                symbol.line_end,
-            ),
-            line_start: symbol.line_start,
-            line_end: symbol.line_end,
-            score: 0.0,
-        });
-    }
-    hits
-}
-
-pub(crate) fn ast_search_lang(path: &Path) -> Option<Lang> {
-    supported_code_language_from_path(path)
-}
-
 pub(crate) fn markdown_scope_name(path: &Path) -> String {
     path.components()
         .find_map(|component| match component {
@@ -259,12 +200,12 @@ pub(crate) fn compile_markdown_nodes(_path: &str, content: &str) -> Vec<Analysis
         .collect()
 }
 
-pub(crate) fn build_markdown_ast_hits_from_sections(
+pub(crate) fn build_markdown_source_symbol_hits_from_sections(
     path: &str,
     crate_name: &str,
     nodes: &[AnalysisNode],
     sections: &[MarkdownSection],
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let mut hits = build_markdown_node_hits(path, crate_name, nodes);
     for section in sections {
         hits.extend(build_markdown_property_hits_from_toc_section(
@@ -331,12 +272,12 @@ fn build_markdown_node_hits(
     path: &str,
     crate_name: &str,
     nodes: &[AnalysisNode],
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     nodes
         .iter()
         .filter_map(|node| {
             let signature = markdown_signature(node.kind, node.depth, node.label.as_str())?;
-            Some(AstSearchHit {
+            Some(SourceSymbolHit {
                 name: node.label.clone(),
                 signature,
                 path: path.to_string(),
@@ -346,7 +287,7 @@ fn build_markdown_node_hits(
                 root_label: None,
                 node_kind: markdown_node_kind(node.kind).map(ToOwned::to_owned),
                 owner_title: None,
-                navigation_target: ast_navigation_target(
+                navigation_target: source_symbol_navigation_target(
                     path,
                     crate_name,
                     None,
@@ -382,13 +323,13 @@ fn build_markdown_property_hits_from_toc_section(
     path: &str,
     crate_name: &str,
     section: &MarkdownSection,
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let owner_title = markdown_owner_title_from_toc_section(section);
     section
         .attributes()
         .iter()
         .filter(|(key, _)| !is_observation_attribute(key.as_str()))
-        .map(|(key, value)| AstSearchHit {
+        .map(|(key, value)| SourceSymbolHit {
             name: key.clone(),
             signature: format!(":{key}: {value}"),
             path: path.to_string(),
@@ -398,7 +339,7 @@ fn build_markdown_property_hits_from_toc_section(
             root_label: None,
             node_kind: Some("property".to_string()),
             owner_title: owner_title.clone(),
-            navigation_target: ast_navigation_target(
+            navigation_target: source_symbol_navigation_target(
                 path,
                 crate_name,
                 None,
@@ -417,11 +358,11 @@ fn build_markdown_observation_hits_from_toc_section(
     path: &str,
     crate_name: &str,
     section: &MarkdownSection,
-) -> Vec<AstSearchHit> {
+) -> Vec<SourceSymbolHit> {
     let owner_title = markdown_owner_title_from_toc_section(section);
     extract_observations(section.attributes())
         .into_iter()
-        .map(|observation| AstSearchHit {
+        .map(|observation| SourceSymbolHit {
             name: "OBSERVE".to_string(),
             signature: format!(":OBSERVE: {}", observation.raw_value),
             path: path.to_string(),
@@ -431,7 +372,7 @@ fn build_markdown_observation_hits_from_toc_section(
             root_label: None,
             node_kind: Some("observation".to_string()),
             owner_title: owner_title.clone(),
-            navigation_target: ast_navigation_target(
+            navigation_target: source_symbol_navigation_target(
                 path,
                 crate_name,
                 None,
@@ -460,7 +401,7 @@ fn is_observation_attribute(key: &str) -> bool {
     key == "OBSERVE" || key.starts_with("OBSERVE_")
 }
 
-fn ast_navigation_target(
+fn source_symbol_navigation_target(
     path: &str,
     crate_name: &str,
     project_name: Option<&str>,

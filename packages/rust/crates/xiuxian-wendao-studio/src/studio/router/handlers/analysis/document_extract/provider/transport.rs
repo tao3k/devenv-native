@@ -9,7 +9,10 @@ use arrow_flight::flight_service_client::FlightServiceClient as TonicFlightServi
 use futures::TryStreamExt;
 use tokio::sync::{OwnedSemaphorePermit, TryAcquireError};
 use tonic::transport::{Channel, Endpoint};
-use xiuxian_wendao_runtime::polyglot::DocumentExtractPressureEvidenceInput;
+use xiuxian_polyglot_orchestrator::{
+    DocumentExtractPressureEvidenceInput, document_extract_pressure_evidence,
+    document_extract_schedule_plan,
+};
 use xiuxian_wendao_server::transport::{
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE, WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER,
     WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
@@ -53,23 +56,15 @@ impl StudioDocumentExtractFlightRouteProvider {
             .runtime
             .conversion_limit
             .saturating_sub(available_permits);
-        let pressure = xiuxian_wendao_runtime::polyglot::document_extract_pressure_evidence(
-            DocumentExtractPressureEvidenceInput {
-                max_in_flight: Some(saturating_u32(self.runtime.conversion_limit)),
-                active_in_flight: saturating_u32(active_in_flight),
-                queued_items: 0,
-                failed_items: 0,
-                retryable_failures: 0,
-                fallback_available: false,
-            },
-        );
-        xiuxian_wendao_runtime::polyglot::document_extract_schedule_plan(
-            pressure,
-            Some(1),
-            Some(1),
-            1,
-        )
-        .recommended_workers
+        let pressure = document_extract_pressure_evidence(DocumentExtractPressureEvidenceInput {
+            max_in_flight: Some(saturating_u32(self.runtime.conversion_limit)),
+            active_in_flight: saturating_u32(active_in_flight),
+            queued_items: 0,
+            failed_items: 0,
+            retryable_failures: 0,
+            fallback_available: false,
+        });
+        document_extract_schedule_plan(pressure, Some(1), Some(1), 1).recommended_workers
     }
 
     pub(super) async fn channel_for_endpoint(&self, endpoint_url: &str) -> Result<Channel, String> {
@@ -127,6 +122,21 @@ impl StudioDocumentExtractFlightRouteProvider {
         profile: &str,
         page_range: Option<(u32, u32)>,
     ) -> Result<Vec<EngineRecordBatch>, String> {
+        self.request_python_document_extract_with_request(PythonDocumentExtractRequest {
+            source_path,
+            output_dir,
+            force,
+            error_row,
+            profile,
+            page_range,
+        })
+        .await
+    }
+
+    async fn request_python_document_extract_with_request(
+        &self,
+        request: PythonDocumentExtractRequest<'_>,
+    ) -> Result<Vec<EngineRecordBatch>, String> {
         let endpoint_urls = self.document_extract_endpoint_attempt_order()?;
         let mut last_retryable_error = None;
         for (attempt_index, endpoint_url) in endpoint_urls.iter().enumerate() {
@@ -134,12 +144,12 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .request_python_document_extract_with_page_range_at_endpoint(
                     PythonDocumentExtractEndpointRequest {
                         endpoint_url,
-                        source_path,
-                        output_dir,
-                        force,
-                        error_row,
-                        profile,
-                        page_range,
+                        source_path: request.source_path,
+                        output_dir: request.output_dir,
+                        force: request.force,
+                        error_row: request.error_row,
+                        profile: request.profile,
+                        page_range: request.page_range,
                     },
                 )
                 .await
@@ -205,7 +215,6 @@ impl StudioDocumentExtractFlightRouteProvider {
                 .add_header(WENDAO_DOCUMENT_EXTRACT_PAGE_RANGE_HEADER, value.as_str())
                 .map_err(|error| format!("invalid page range header: {error}"))?;
         }
-
         let descriptor = FlightDescriptor::new_path(
             ANALYSIS_DOCUMENT_EXTRACT_ROUTE
                 .trim_start_matches('/')
@@ -252,6 +261,15 @@ impl StudioDocumentExtractFlightRouteProvider {
             .fetch_add(1, Ordering::Relaxed);
         document_extract_endpoint_attempt_order_for_request(request_index, endpoint_urls.as_slice())
     }
+}
+
+struct PythonDocumentExtractRequest<'a> {
+    source_path: &'a str,
+    output_dir: &'a str,
+    force: bool,
+    error_row: bool,
+    profile: &'a str,
+    page_range: Option<(u32, u32)>,
 }
 
 struct PythonDocumentExtractEndpointRequest<'a> {

@@ -1,7 +1,7 @@
 use std::io;
 use std::path::Path;
 
-use qianji_bpmn_engine::{LintDomain, LintReport};
+use xiuxian_qianji_bpmn_engine::{LintDomain, LintReport};
 
 use super::types::LintCliOutput;
 use crate::qianji_cli::json_output::{CliJsonEnvelope, render_cli_json};

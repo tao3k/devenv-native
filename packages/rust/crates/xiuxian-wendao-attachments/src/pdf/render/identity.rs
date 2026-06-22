@@ -58,7 +58,7 @@ fn f64_to_u32_saturating(value: f64) -> u32 {
     value.to_u32().unwrap_or(u32::MAX)
 }
 
-pub(super) fn sha256_hex(bytes: &[u8]) -> String {
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     format!("{:x}", hasher.finalize())

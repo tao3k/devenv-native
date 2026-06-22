@@ -1,25 +1,20 @@
 use include_dir::{Dir, include_dir};
-#[cfg(feature = "llm")]
 use serde_json::json;
-#[cfg(feature = "llm")]
 use xiuxian_qianji::{BootcampRunOptions, BootcampVfsMount};
 
 pub(crate) const AGENDA_FLOW_URI_FROM_ALIAS: &str =
     "wendao://skills/agenda-lab/references/agenda_flow.toml";
 pub(crate) const AGENDA_FLOW_URI_CANONICAL: &str =
     "wendao://skills/agenda-management/references/agenda_flow.toml";
-#[cfg(feature = "llm")]
 pub(crate) const FORGE_FLOW_URI_CANONICAL: &str =
     "wendao://skills/forge-evolution/references/soul_forge_flow.toml";
 pub(crate) const AGENDA_FACTS: &str = "timeboxing; execution order; deadline awareness; review loop; tool output fidelity; single message clarity; language alignment; cognitive load; historical carryover; execution realism; risk-first review; carryover=1; milimeter-level alignment; audit trail; traceability; architectural consistency";
 
-#[cfg(feature = "llm")]
 pub(crate) static ZHIXING_RESOURCES: Dir<'_> =
-    include_dir!("$CARGO_MANIFEST_DIR/../xiuxian-zhixing/resources");
+    include_dir!("$CARGO_MANIFEST_DIR/../xiuxian-wendao/resources");
 pub(crate) static AGENDA_OVERRIDE_RESOURCES: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/tests/fixtures/agenda_override/resources");
 
-#[cfg(feature = "llm")]
 pub(crate) fn zhixing_mount(
     semantic_name: &'static str,
     references_dir: &'static str,
@@ -31,25 +26,14 @@ pub(crate) fn zhixing_mount(
     )]
 }
 
-#[cfg(feature = "llm")]
 pub(crate) fn runtime_default_llm_options() -> BootcampRunOptions {
-    BootcampRunOptions {
-        llm_mode: xiuxian_qianji::BootcampLlmMode::RuntimeDefault,
-        ..BootcampRunOptions::default()
-    }
+    BootcampRunOptions::default()
 }
 
-#[cfg(feature = "llm")]
-pub(crate) fn mock_llm_options(response: &str) -> BootcampRunOptions {
-    BootcampRunOptions {
-        llm_mode: xiuxian_qianji::BootcampLlmMode::Mock {
-            response: response.to_string(),
-        },
-        ..BootcampRunOptions::default()
-    }
+pub(crate) fn mock_llm_options(_response: &str) -> BootcampRunOptions {
+    BootcampRunOptions::default()
 }
 
-#[cfg(feature = "llm")]
 pub(crate) fn bootcamp_context_from_env() -> Option<serde_json::Value> {
     let Ok(context_raw) = std::env::var("XIUXIAN_BOOTCAMP_CONTEXT") else {
         return None;
@@ -59,7 +43,6 @@ pub(crate) fn bootcamp_context_from_env() -> Option<serde_json::Value> {
     Some(context)
 }
 
-#[cfg(feature = "llm")]
 pub(crate) fn context_object_mut(
     context: &mut serde_json::Value,
 ) -> &mut serde_json::Map<String, serde_json::Value> {
@@ -69,7 +52,6 @@ pub(crate) fn context_object_mut(
     context_object
 }
 
-#[cfg(feature = "llm")]
 pub(crate) fn ensure_runtime_forge_context_defaults(context: &mut serde_json::Value) {
     use tempfile::tempdir;
 
@@ -84,4 +66,11 @@ pub(crate) fn ensure_runtime_forge_context_defaults(context: &mut serde_json::Va
     context_object
         .entry("role_id".to_string())
         .or_insert_with(|| json!("runtime_soul_forger"));
+}
+
+pub(crate) fn result_error<T, E>(result: Result<T, E>, message: &str) -> E {
+    match result {
+        Ok(_) => panic!("{message}"),
+        Err(error) => error,
+    }
 }

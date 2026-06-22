@@ -1,17 +1,27 @@
 //! `link_graph::perf_support` owns Wendao link graph perf support behavior.
 
-use std::io::Cursor;
-use std::sync::Arc;
+use std::{collections::HashMap, io::Cursor, sync::Arc};
 
 use arrow::array::{
     ArrayRef, Float64Array, Int64Array, ListBuilder, StringArray, StringBuilder, UInt64Array,
 };
-use arrow::datatypes::{DataType, Field, Schema};
 use arrow::ipc::reader::StreamReader;
 use arrow::ipc::writer::StreamWriter;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_arrow_ipc_stream_with_options, validate_record_batch_schema_with_options,
+};
 
-use super::LinkGraphIndex;
+pub use super::LinkGraphIndex;
+
+/// Arrow table name for encoded core document rows.
+pub const CORE_DOCS_TABLE: &str = "link_graph_perf_core_docs";
+/// Arrow table name for encoded core edge rows.
+pub const CORE_EDGES_TABLE: &str = "link_graph_perf_core_edges";
+/// Arrow table name for encoded core alias rows.
+pub const CORE_ALIASES_TABLE: &str = "link_graph_perf_core_aliases";
 
 /// Native Arrow IPC streams for the core link-graph cache shape.
 pub struct LinkGraphArrowCoreStreams {
@@ -74,6 +84,13 @@ pub fn encode_link_graph_arrow_core_streams(
 pub fn decode_link_graph_arrow_core_stream_stats(
     streams: &LinkGraphArrowCoreStreams,
 ) -> Result<LinkGraphArrowCoreStreamStats, String> {
+    validate_core_stream_payload(streams.docs.as_slice(), &core_docs_contract(), "docs")?;
+    validate_core_stream_payload(streams.edges.as_slice(), &core_edges_contract(), "edges")?;
+    validate_core_stream_payload(
+        streams.aliases.as_slice(),
+        &core_aliases_contract(),
+        "aliases",
+    )?;
     Ok(LinkGraphArrowCoreStreamStats {
         doc_count: decode_row_count(streams.docs.as_slice())?,
         edge_count: decode_row_count(streams.edges.as_slice())?,
@@ -115,25 +132,9 @@ fn build_docs_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
         tags_builder.append(true);
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("id", DataType::Utf8, false),
-        Field::new("stem", DataType::Utf8, false),
-        Field::new("path", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("doc_type", DataType::Utf8, true),
-        Field::new(
-            "tags",
-            DataType::List(Arc::new(Field::new("item", DataType::Utf8, true))),
-            false,
-        ),
-        Field::new("word_count", DataType::UInt64, false),
-        Field::new("saliency_base", DataType::Float64, false),
-        Field::new("decay_rate", DataType::Float64, false),
-        Field::new("created_ts", DataType::Int64, true),
-        Field::new("modified_ts", DataType::Int64, true),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = core_docs_contract();
+    let batch = RecordBatch::try_new(
+        core_stream_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(ids)) as ArrayRef,
             Arc::new(StringArray::from(stems)) as ArrayRef,
@@ -148,7 +149,9 @@ fn build_docs_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
             Arc::new(Int64Array::from(modified_values)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow docs batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow docs batch: {error}"))?;
+    validate_core_stream_batch(&batch, &contract, "docs")?;
+    Ok(batch)
 }
 
 fn build_edges_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
@@ -167,18 +170,17 @@ fn build_edges_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
         targets.push(target.to_string());
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("source_id", DataType::Utf8, false),
-        Field::new("target_id", DataType::Utf8, false),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = core_edges_contract();
+    let batch = RecordBatch::try_new(
+        core_stream_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(sources)) as ArrayRef,
             Arc::new(StringArray::from(targets)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow edges batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow edges batch: {error}"))?;
+    validate_core_stream_batch(&batch, &contract, "edges")?;
+    Ok(batch)
 }
 
 fn build_aliases_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
@@ -196,18 +198,118 @@ fn build_aliases_batch(index: &LinkGraphIndex) -> Result<RecordBatch, String> {
         doc_ids.push(doc_id.to_string());
     }
 
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("alias", DataType::Utf8, false),
-        Field::new("doc_id", DataType::Utf8, false),
-    ]));
-    RecordBatch::try_new(
-        schema,
+    let contract = core_aliases_contract();
+    let batch = RecordBatch::try_new(
+        core_stream_schema_ref(&contract),
         vec![
             Arc::new(StringArray::from(alias_values)) as ArrayRef,
             Arc::new(StringArray::from(doc_ids)) as ArrayRef,
         ],
     )
-    .map_err(|error| format!("build link-graph Arrow aliases batch: {error}"))
+    .map_err(|error| format!("build link-graph Arrow aliases batch: {error}"))?;
+    validate_core_stream_batch(&batch, &contract, "aliases")?;
+    Ok(batch)
+}
+
+/// Build the Arrow schema contract for core document rows.
+pub fn core_docs_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        CORE_DOCS_TABLE,
+        true,
+        vec![
+            utf8_column("id"),
+            utf8_column("stem"),
+            utf8_column("path"),
+            utf8_column("title"),
+            nullable_utf8_column("doc_type"),
+            utf8_list_column("tags"),
+            uint64_column("word_count"),
+            float64_column("saliency_base"),
+            float64_column("decay_rate"),
+            nullable_int64_column("created_ts"),
+            nullable_int64_column("modified_ts"),
+        ],
+    )
+}
+
+/// Build the Arrow schema contract for core directed-edge rows.
+pub fn core_edges_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        CORE_EDGES_TABLE,
+        true,
+        vec![utf8_column("source_id"), utf8_column("target_id")],
+    )
+}
+
+/// Build the Arrow schema contract for core alias rows.
+pub fn core_aliases_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        CORE_ALIASES_TABLE,
+        true,
+        vec![utf8_column("alias"), utf8_column("doc_id")],
+    )
+}
+
+/// Build an Arrow schema reference with Wendao table metadata attached.
+pub fn core_stream_schema_ref(contract: &ArrowSchemaContract) -> Arc<arrow::datatypes::Schema> {
+    let mut metadata = HashMap::new();
+    metadata.insert(
+        WENDAO_TABLE_METADATA_KEY.to_string(),
+        contract.table_name().to_string(),
+    );
+    Arc::new(build_arrow_schema(contract, metadata))
+}
+
+fn validate_core_stream_batch(
+    batch: &RecordBatch,
+    contract: &ArrowSchemaContract,
+    context: &str,
+) -> Result<(), String> {
+    validate_record_batch_schema_with_options(
+        batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("validate link-graph Arrow {context} batch schema: {error}"))
+}
+
+fn validate_core_stream_payload(
+    payload: &[u8],
+    contract: &ArrowSchemaContract,
+    context: &str,
+) -> Result<(), String> {
+    validate_arrow_ipc_stream_with_options(
+        payload,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("validate link-graph Arrow {context} IPC schema: {error}"))
+}
+
+fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+fn uint64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::UInt64)
+}
+
+fn nullable_int64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int64)
+}
+
+fn float64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Float64)
+}
+
+fn utf8_list_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8List)
 }
 
 fn encode_batch(batch: &RecordBatch) -> Result<Vec<u8>, String> {

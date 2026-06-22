@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use duckdb::Connection;
+use xiuxian_db_store::state::{ArtisanStateRootConfig, artisan_state_root_from_config};
 
 use super::types::{DEFAULT_CONVERTER_PROFILE, DocumentExtractJobRegistry};
 
@@ -32,14 +33,17 @@ impl DocumentExtractJobRegistry {
     }
 
     pub(crate) fn default_for_project(project_root: &Path) -> Result<Self, String> {
-        let cache_root = std::env::var_os("PRJ_CACHE_HOME")
-            .map_or_else(|| project_root.join(".cache"), PathBuf::from);
+        let state_root = artisan_state_root_from_config(ArtisanStateRootConfig {
+            project_root: Some(project_root.to_path_buf()),
+            state_root: None,
+            home_dir: None,
+        });
         let job_db = std::env::var_os("WENDAO_DOCUMENT_EXTRACT_JOB_DB").map_or_else(
-            || cache_root.join("wendao-document-extract/jobs.duckdb"),
+            || state_root.join("wendao-document-extract/jobs.duckdb"),
             PathBuf::from,
         );
         let artifact_root = std::env::var_os("WENDAO_DOCUMENT_EXTRACT_ARTIFACT_ROOT").map_or_else(
-            || cache_root.join("wendao-document-extract/artifacts"),
+            || state_root.join("wendao-document-extract/artifacts"),
             PathBuf::from,
         );
         Self::new(job_db, artifact_root)

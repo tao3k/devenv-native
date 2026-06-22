@@ -15,7 +15,7 @@ struct ParsedObservationInput<'a> {
 pub struct CodeObservation {
     /// Target language for the pattern (e.g., "rust", "python", "typescript").
     pub language: String,
-    /// The sgrep/ast-grep pattern to match in source code.
+    /// The provider-owned pattern to match in source code.
     pub pattern: String,
     /// Optional scope filter to restrict pattern matching to specific paths.
     ///
@@ -28,7 +28,7 @@ pub struct CodeObservation {
     pub raw_value: String,
     /// Line number within the document where this observation was declared.
     pub line_number: Option<usize>,
-    /// Whether the pattern has been validated by `xiuxian-ast`.
+    /// Whether the pattern has been validated by an external language provider.
     pub is_validated: bool,
     /// Validation error message if pattern validation failed.
     pub validation_error: Option<String>,
@@ -110,28 +110,18 @@ impl CodeObservation {
         Some(build_observation(parsed))
     }
 
-    /// Get the language for `xiuxian-ast` queries.
-    #[must_use]
-    pub fn ast_language(&self) -> Option<xiuxian_ast::Lang> {
-        xiuxian_ast::Lang::try_from(self.language.as_str()).ok()
-    }
-
-    /// Validate the pattern using `xiuxian-ast`.
+    /// Report that local pattern validation is no longer available.
     ///
     /// # Errors
     ///
-    /// Returns an error when the observation language is not supported by
-    /// `xiuxian-ast` or when the configured pattern is not accepted by the
-    /// target parser.
+    /// Always returns an error because local parser validation was retired
+    /// from this crate. Code intelligence will be provided by the external
+    /// language-provider boundary.
     pub fn validate_pattern(&self) -> Result<(), String> {
-        let language = self
-            .ast_language()
-            .ok_or_else(|| format!("Unsupported language: {}", self.language))?;
-
-        xiuxian_ast::pattern(&self.pattern, language)
-            .map_err(|error| format!("Invalid pattern: {error}"))?;
-
-        Ok(())
+        Err(format!(
+            "code observation validation for `{}` is retired; use the language-provider boundary",
+            self.language
+        ))
     }
 }
 

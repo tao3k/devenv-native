@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::consensus::ConsensusPolicy;
 
-use super::{NodeLlmBinding, NodeQianhuanBinding};
+use super::{NodeAnnotationBinding, NodeLlmBinding};
 
 /// Typed manifest node task-kind token.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,9 +75,9 @@ pub struct NodeDefinition {
     /// Optional argv vector for `cli_call` nodes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub argv: Option<Vec<String>>,
-    /// Optional node-level Qianhuan binding metadata.
+    /// Optional node-level annotation binding metadata.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub qianhuan: Option<NodeQianhuanBinding>,
+    pub annotation: Option<NodeAnnotationBinding>,
     /// Optional node-level LLM tenant binding metadata.
     ///
     /// Backward compatibility:

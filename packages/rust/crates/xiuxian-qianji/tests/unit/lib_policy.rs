@@ -45,6 +45,12 @@ fn qianji_verification_profile_hints_bind_active_skill_tasks() {
     );
     assert_bound_task(
         &plan,
+        "src/qianji_server_cli/run.rs",
+        RustVerificationTaskKind::Security,
+        "rust-verification-security@semgrep",
+    );
+    assert_bound_task(
+        &plan,
         "src/bpmn_runtime_execution.rs",
         RustVerificationTaskKind::Performance,
         "rust-verification-performance@criterion",
@@ -83,6 +89,7 @@ fn qianji_manifest_dir() -> PathBuf {
 pub(super) fn qianji_rust_harness_config() -> RustHarnessConfig {
     default_rust_harness_config()
         .with_verification_profile_hint(bpmn_api_security_hint())
+        .with_verification_profile_hint(qianji_server_control_ledger_security_hint())
         .with_verification_profile_hint(bpmn_runtime_execution_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
@@ -143,6 +150,39 @@ fn bpmn_api_security_hint() -> RustVerificationProfileHint {
         ),
     )
     .with_rationale("BPMN control routes cross workflow authorization boundaries")
+}
+
+fn qianji_server_control_ledger_security_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/qianji_server_cli/run.rs",
+        [
+            RustOwnerResponsibility::PublicApi,
+            RustOwnerResponsibility::SecurityBoundary,
+        ],
+    )
+    .with_task_kinds([RustVerificationTaskKind::Security])
+    .with_task_contract(
+        RustVerificationTaskKind::Security,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::BeforeRelease,
+            "security skill must report qianji-server control-ledger route and configuration probes",
+            [
+                RustVerificationRequirement::new(
+                    "workflow_authz_matrix",
+                    "qianji-server workflow/control authorization matrix",
+                ),
+                RustVerificationRequirement::new(
+                    "route_surface",
+                    "qianji-server workflow, Flowhub, and control-ledger HTTP routes",
+                ),
+                RustVerificationRequirement::new(
+                    "control_ledger_config",
+                    "control-ledger enabled and omitted-ledger behavior",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("qianji-server exposes workflow-control and durable control-ledger HTTP routes")
 }
 
 fn bpmn_runtime_execution_hint() -> RustVerificationProfileHint {

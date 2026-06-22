@@ -1,4 +1,7 @@
+use std::{collections::HashMap, sync::Arc};
+
 use arrow::array::Array;
+use arrow::record_batch::RecordBatch;
 
 use super::{
     PDF_OCR_SHARD_RESULT_SCHEMA_VERSION, PdfOcrShardResult, PdfOcrWorkerProfile, assert_close,
@@ -47,6 +50,22 @@ fn document_extract_pdf_ocr_decodes_result_batch() -> Result<(), String> {
     let decoded = decode_ocr_shard_result_batch(&batch)?;
 
     assert_eq!(decoded, vec![success, skipped]);
+    Ok(())
+}
+
+#[test]
+fn document_extract_pdf_ocr_decodes_metadata_free_worker_result_batch() -> Result<(), String> {
+    let inputs = build_ocr_shard_inputs(
+        &[sample_manifest()],
+        &PdfOcrWorkerProfile::docling_compatible(),
+    );
+    let success = PdfOcrShardResult::succeeded(&inputs[0], "recognized text", 0.98);
+    let batch = build_ocr_shard_result_batch(std::slice::from_ref(&success))?;
+    let batch = without_schema_metadata(&batch)?;
+
+    let decoded = decode_ocr_shard_result_batch(&batch)?;
+
+    assert_eq!(decoded, vec![success]);
     Ok(())
 }
 
@@ -103,6 +122,18 @@ fn document_extract_pdf_ocr_result_id_changes_with_profile() {
 
     assert_ne!(first.element_id, second.element_id);
     assert_eq!(first.shard_element_id, second.shard_element_id);
+}
+
+fn without_schema_metadata(batch: &RecordBatch) -> Result<RecordBatch, String> {
+    let schema = Arc::new(
+        batch
+            .schema()
+            .as_ref()
+            .clone()
+            .with_metadata(HashMap::new()),
+    );
+    RecordBatch::try_new(schema, batch.columns().to_vec())
+        .map_err(|error| format!("rebuild OCR result batch without metadata: {error}"))
 }
 
 #[test]

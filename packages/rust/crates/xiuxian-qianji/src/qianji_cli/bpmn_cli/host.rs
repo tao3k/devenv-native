@@ -2,8 +2,8 @@ use super::deps::{
     Arc, BTreeMap, BpmnPackage, BusinessRuleTaskOutcome, BusinessRuleTaskRequest,
     DmnEvaluationResult, EventPollOutcome, EventPollRequest, HostBridgeError, ManualTaskOutcome,
     ManualTaskRequest, Path, QianjiBpmnHostBridge, QianjiBpmnHostBridgeBuilder, Ready,
-    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, StdArc,
-    UserTaskOutcome, UserTaskRequest, fs, io, ready, resolve_cli_path,
+    SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest, StdArc, TaskOutcome,
+    TaskRequest, UserTaskOutcome, UserTaskRequest, fs, io, ready, resolve_cli_path,
 };
 use super::types::{
     BpmnCliBusinessRuleFixture, BpmnCliEventFixture, BpmnCliEventPollFixture,
@@ -137,6 +137,7 @@ fn builder_for_bpmn_cli_host_fixture(
     process_id: &str,
     fixture: BpmnCliHostFixture,
 ) -> QianjiBpmnHostBridgeBuilder {
+    let task = StdArc::new(fixture.task);
     let send = StdArc::new(fixture.send);
     let service = StdArc::new(fixture.service);
     let service_by_token = StdArc::new(fixture.service_by_token);
@@ -145,6 +146,11 @@ fn builder_for_bpmn_cli_host_fixture(
     let business_rule = StdArc::new(fixture.business_rule);
 
     builder
+        .on_task(task_fixture_handler(
+            StdArc::clone(&node_ids),
+            process_id.to_string(),
+            task,
+        ))
         .on_send_task(send_task_fixture_handler(
             StdArc::clone(&node_ids),
             process_id.to_string(),
@@ -171,6 +177,27 @@ fn builder_for_bpmn_cli_host_fixture(
             process_id.to_string(),
             business_rule,
         ))
+}
+
+fn task_fixture_handler(
+    node_ids: StdArc<Vec<String>>,
+    process_id: String,
+    fixture: StdArc<BTreeMap<String, BpmnCliHostDataFixture>>,
+) -> impl Fn(TaskRequest) -> Ready<Result<TaskOutcome, HostBridgeError>> + Send + Sync + 'static {
+    move |request| {
+        ready(
+            resolve_bpmn_cli_host_data_fixture(
+                node_ids.as_slice(),
+                &process_id,
+                request.node_index,
+                "tasks",
+                fixture.as_ref(),
+            )
+            .map(|entry| TaskOutcome {
+                data: entry.data.clone(),
+            }),
+        )
+    }
 }
 
 fn send_task_fixture_handler(

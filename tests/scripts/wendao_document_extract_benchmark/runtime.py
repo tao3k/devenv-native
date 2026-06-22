@@ -59,6 +59,29 @@ def wait_for_port(
     )
 
 
+def wait_for_process_stdout_contains(
+    server: subprocess.Popen[str],
+    needle: str,
+    *,
+    timeout_seconds: float,
+) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if server.poll() is not None:
+            raise RuntimeError(
+                "document extract service exited before ready marker:\n"
+                + process_log_tail(server)
+            )
+        stdout_log = getattr(server, "wendao_stdout_log", None)
+        if stdout_log is not None and needle in tail_file(Path(stdout_log)):
+            return
+        time.sleep(0.2)
+    raise TimeoutError(
+        f"document extract service did not emit ready marker {needle!r} "
+        f"within {timeout_seconds:.1f}s\n{process_log_tail(server)}"
+    )
+
+
 def wait_for_document_extract_flight_endpoint(
     host: str,
     port: int,
@@ -68,12 +91,23 @@ def wait_for_document_extract_flight_endpoint(
 ) -> None:
     deadline = time.monotonic() + timeout_seconds
     location = f"grpc://{host}:{port}"
+    ready_marker = f"READY {location}"
+    marker_required = getattr(server, "wendao_stdout_log", None) is not None
+    marker_seen = not marker_required
     while time.monotonic() < deadline:
         if server.poll() is not None:
             raise RuntimeError(
                 "document extract service exited before Flight readiness:\n"
                 + process_log_tail(server)
             )
+        if marker_required and not marker_seen:
+            stdout_log = getattr(server, "wendao_stdout_log", None)
+            marker_seen = stdout_log is not None and ready_marker in tail_file(
+                Path(stdout_log)
+            )
+            if not marker_seen:
+                time.sleep(0.2)
+                continue
         try:
             import pyarrow.flight as flight
 

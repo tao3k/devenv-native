@@ -1,5 +1,7 @@
 //! Integration tests for `wendao_refresh` mechanism.
 
+#![cfg(feature = "wendao-integration")]
+
 use std::fs;
 use tempfile::TempDir;
 use xiuxian_qianji::executors::WendaoRefreshMechanism;

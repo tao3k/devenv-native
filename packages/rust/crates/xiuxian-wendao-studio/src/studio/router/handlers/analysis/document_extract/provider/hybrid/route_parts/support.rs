@@ -2,21 +2,26 @@ use super::Instant;
 use super::{
     BTreeMap, DOCUMENT_EXTRACT_PDF_FAILED_PAGE_RECOVERY_ENV,
     DOCUMENT_EXTRACT_PDF_RENDER_REGIONS_ENV, FAILED_PAGE_RECOVERY_HOSTED_VLM_PAGE_MODE,
-    HybridDocumentResourceBatch, HybridPdfFailedPageRecoveryMode, HybridPdfOcr2RegionPipelineMode,
-    HybridPdfOcr2RegionPlanner, HybridPdfOcrProfilePlanner, Path, PdfOcrShardInput,
-    PdfPageRenderShardReport, PdfRenderRoutingDecision, PdfRenderStatus,
-    hybrid_page_ocr_profile_planner_with_lookup, hybrid_page_ocr2_region_pipeline_mode_with_lookup,
+    HybridDocumentResourceBatch, HybridPdfFailedPageRecoveryMode, HybridPdfOcr2RegionPlanner,
+    HybridPdfOcrProfilePlanner, Path, PdfOcrShardInput, PdfPageRenderShardReport,
+    PdfRenderRoutingDecision, PdfRenderStatus, hybrid_page_ocr_profile_planner_with_lookup,
     hybrid_page_ocr2_region_planner_with_lookup,
 };
 #[cfg(feature = "document-extract-pdf-render")]
 use super::{
-    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV, HybridPdfOcr2RegionRenderChunkMode,
-    PdfPageRegionRenderRequest, hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV, PdfPageRegionRenderRequest,
     page_region_render_request_chunks_all, page_region_render_request_chunks_by_page,
     page_region_render_request_chunks_by_page_area_desc,
     page_region_render_request_chunks_by_page_max_area_desc,
     page_region_render_request_chunks_by_region,
     page_region_render_request_chunks_by_region_seed_page,
+};
+use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::{
+    HybridPdfOcr2RegionPipelineMode, hybrid_page_ocr2_region_pipeline_mode_with_lookup,
+};
+#[cfg(feature = "document-extract-pdf-render")]
+use crate::studio::router::handlers::analysis::document_extract::provider::hybrid::types::{
+    HybridPdfOcr2RegionRenderChunkMode, hybrid_page_ocr2_region_render_chunk_mode_with_lookup,
 };
 
 pub(super) fn record_phase_elapsed(
@@ -85,39 +90,60 @@ pub(super) fn direct_docling_structure_recovery_render_report(
             .to_string(),
         elapsed_ms: 0.0,
         error_message: None,
+        artifact_cache_backend: None,
+        artifact_cache_hit_count: 0,
+        artifact_cache_miss_count: 0,
+        artifact_cache_throttled_count: 0,
+        artifact_cache_byte_count: 0,
+        artifact_cache_page_raster_hit_count: 0,
+        artifact_cache_page_raster_miss_count: 0,
+        artifact_cache_page_raster_throttled_count: 0,
+        artifact_cache_page_raster_byte_count: 0,
+        artifact_cache_region_crop_hit_count: 0,
+        artifact_cache_region_crop_miss_count: 0,
+        artifact_cache_region_crop_throttled_count: 0,
+        artifact_cache_region_crop_byte_count: 0,
+        artifact_cache_region_manifest_projection_hit_count: 0,
+        artifact_cache_region_manifest_projection_miss_count: 0,
+        artifact_cache_region_manifest_projection_throttled_count: 0,
+        artifact_cache_region_manifest_projection_byte_count: 0,
+        artifact_cache_region_manifest_projection_row_hit_count: 0,
+        artifact_cache_region_manifest_projection_row_miss_count: 0,
+        artifact_cache_region_manifest_projection_row_throttled_count: 0,
+        artifact_cache_region_manifest_projection_row_byte_count: 0,
     }
 }
 
 pub(super) fn ocr2_region_pipeline_enabled() -> bool {
-    #[cfg(any(feature = "document-extract-pdf-render", test))]
+    #[cfg(feature = "document-extract-pdf-render")]
     {
         hybrid_page_ocr2_region_pipeline_mode_with_lookup(&|key| std::env::var(key).ok())
             == HybridPdfOcr2RegionPipelineMode::RenderDispatch
     }
-    #[cfg(not(any(feature = "document-extract-pdf-render", test)))]
+    #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         false
     }
 }
 
 pub(super) fn ocr2_region_pipeline_mode_label() -> &'static str {
-    #[cfg(any(feature = "document-extract-pdf-render", test))]
+    #[cfg(feature = "document-extract-pdf-render")]
     {
         hybrid_page_ocr2_region_pipeline_mode_with_lookup(&|key| std::env::var(key).ok()).as_str()
     }
-    #[cfg(not(any(feature = "document-extract-pdf-render", test)))]
+    #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         "disabled"
     }
 }
 
 pub(super) fn ocr2_region_render_chunk_mode_label() -> &'static str {
-    #[cfg(any(feature = "document-extract-pdf-render", test))]
+    #[cfg(feature = "document-extract-pdf-render")]
     {
         hybrid_page_ocr2_region_render_chunk_mode_with_lookup(&|key| std::env::var(key).ok())
             .as_str()
     }
-    #[cfg(not(any(feature = "document-extract-pdf-render", test)))]
+    #[cfg(not(feature = "document-extract-pdf-render"))]
     {
         "page"
     }
@@ -172,15 +198,17 @@ pub(super) fn ocr2_region_render_request_chunks_with_lookup(
 }
 
 #[cfg(feature = "document-extract-pdf-render")]
-pub(super) fn ocr2_region_render_ahead_limit_with_lookup(
+pub(super) fn ocr2_region_render_ahead_limit_for_capacity_with_lookup(
     chunk_count: usize,
+    endpoint_count: usize,
     lookup: &dyn Fn(&str) -> Option<String>,
 ) -> usize {
+    let endpoint_window = endpoint_count.saturating_sub(1).max(1);
     let requested = lookup(DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD_ENV)
         .and_then(|value| value.parse::<usize>().ok())
         .filter(|value| *value > 0)
-        .unwrap_or(1);
-    requested.clamp(1, chunk_count.max(1))
+        .unwrap_or(endpoint_window);
+    requested.clamp(1, chunk_count.max(1).min(endpoint_window))
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -189,13 +217,106 @@ pub(super) struct Ocr2RegionMaterializationStats {
     pub(super) rendered_region_count: usize,
     pub(super) render_cache_hit_count: usize,
     pub(super) render_cache_miss_count: usize,
+    pub(super) render_artifact_cache_hit_count: u64,
+    pub(super) render_artifact_cache_miss_count: u64,
+    pub(super) render_artifact_cache_throttled_count: u64,
+    pub(super) render_artifact_cache_byte_count: u64,
+    pub(super) render_artifact_cache_page_raster_hit_count: u64,
+    pub(super) render_artifact_cache_page_raster_miss_count: u64,
+    pub(super) render_artifact_cache_page_raster_throttled_count: u64,
+    pub(super) render_artifact_cache_page_raster_byte_count: u64,
+    pub(super) render_artifact_cache_region_crop_hit_count: u64,
+    pub(super) render_artifact_cache_region_crop_miss_count: u64,
+    pub(super) render_artifact_cache_region_crop_throttled_count: u64,
+    pub(super) render_artifact_cache_region_crop_byte_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_hit_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_miss_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_throttled_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_byte_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_hit_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_miss_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_throttled_count: u64,
+    pub(super) render_artifact_cache_region_manifest_projection_row_byte_count: u64,
     pub(super) render_reported_elapsed_ms: f64,
+    pub(super) pipeline_planned_render_chunk_count: usize,
+    pub(super) pipeline_endpoint_count: usize,
+    pub(super) pipeline_render_ahead_limit: usize,
+    pub(super) pipeline_render_spawn_count: usize,
     pub(super) pipeline_render_chunk_count: usize,
     pub(super) pipeline_region_dispatch_count: usize,
     pub(super) pipeline_base_result_count: usize,
     pub(super) pipeline_base_result_shard_count: usize,
     pub(super) pipeline_region_result_count: usize,
     pub(super) pipeline_region_result_shard_count: usize,
+}
+
+impl Ocr2RegionMaterializationStats {
+    #[cfg(feature = "document-extract-pdf-render")]
+    pub(super) fn record_render_artifact_cache_report(
+        &mut self,
+        report: &PdfPageRenderShardReport,
+    ) {
+        self.render_artifact_cache_hit_count = self
+            .render_artifact_cache_hit_count
+            .saturating_add(report.artifact_cache_hit_count);
+        self.render_artifact_cache_miss_count = self
+            .render_artifact_cache_miss_count
+            .saturating_add(report.artifact_cache_miss_count);
+        self.render_artifact_cache_throttled_count = self
+            .render_artifact_cache_throttled_count
+            .saturating_add(report.artifact_cache_throttled_count);
+        self.render_artifact_cache_byte_count = self
+            .render_artifact_cache_byte_count
+            .saturating_add(report.artifact_cache_byte_count);
+        self.render_artifact_cache_page_raster_hit_count = self
+            .render_artifact_cache_page_raster_hit_count
+            .saturating_add(report.artifact_cache_page_raster_hit_count);
+        self.render_artifact_cache_page_raster_miss_count = self
+            .render_artifact_cache_page_raster_miss_count
+            .saturating_add(report.artifact_cache_page_raster_miss_count);
+        self.render_artifact_cache_page_raster_throttled_count = self
+            .render_artifact_cache_page_raster_throttled_count
+            .saturating_add(report.artifact_cache_page_raster_throttled_count);
+        self.render_artifact_cache_page_raster_byte_count = self
+            .render_artifact_cache_page_raster_byte_count
+            .saturating_add(report.artifact_cache_page_raster_byte_count);
+        self.render_artifact_cache_region_crop_hit_count = self
+            .render_artifact_cache_region_crop_hit_count
+            .saturating_add(report.artifact_cache_region_crop_hit_count);
+        self.render_artifact_cache_region_crop_miss_count = self
+            .render_artifact_cache_region_crop_miss_count
+            .saturating_add(report.artifact_cache_region_crop_miss_count);
+        self.render_artifact_cache_region_crop_throttled_count = self
+            .render_artifact_cache_region_crop_throttled_count
+            .saturating_add(report.artifact_cache_region_crop_throttled_count);
+        self.render_artifact_cache_region_crop_byte_count = self
+            .render_artifact_cache_region_crop_byte_count
+            .saturating_add(report.artifact_cache_region_crop_byte_count);
+        self.render_artifact_cache_region_manifest_projection_hit_count = self
+            .render_artifact_cache_region_manifest_projection_hit_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_hit_count);
+        self.render_artifact_cache_region_manifest_projection_miss_count = self
+            .render_artifact_cache_region_manifest_projection_miss_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_miss_count);
+        self.render_artifact_cache_region_manifest_projection_throttled_count = self
+            .render_artifact_cache_region_manifest_projection_throttled_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_throttled_count);
+        self.render_artifact_cache_region_manifest_projection_byte_count = self
+            .render_artifact_cache_region_manifest_projection_byte_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_byte_count);
+        self.render_artifact_cache_region_manifest_projection_row_hit_count = self
+            .render_artifact_cache_region_manifest_projection_row_hit_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_hit_count);
+        self.render_artifact_cache_region_manifest_projection_row_miss_count = self
+            .render_artifact_cache_region_manifest_projection_row_miss_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_miss_count);
+        self.render_artifact_cache_region_manifest_projection_row_throttled_count = self
+            .render_artifact_cache_region_manifest_projection_row_throttled_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_throttled_count);
+        self.render_artifact_cache_region_manifest_projection_row_byte_count = self
+            .render_artifact_cache_region_manifest_projection_row_byte_count
+            .saturating_add(report.artifact_cache_region_manifest_projection_row_byte_count);
+    }
 }
 
 #[derive(Debug)]
@@ -206,6 +327,7 @@ pub(super) struct Ocr2RegionMaterialization {
 }
 
 impl Ocr2RegionMaterialization {
+    #[cfg(feature = "document-extract-pdf-render")]
     pub(super) fn new(inputs: Vec<PdfOcrShardInput>) -> Self {
         Self {
             inputs,
@@ -214,6 +336,7 @@ impl Ocr2RegionMaterialization {
         }
     }
 
+    #[cfg(feature = "document-extract-pdf-render")]
     pub(super) fn record_phase_elapsed(&mut self, phase: &str, started: Instant) {
         record_phase_elapsed(&mut self.phase_elapsed_ms, phase, started);
     }

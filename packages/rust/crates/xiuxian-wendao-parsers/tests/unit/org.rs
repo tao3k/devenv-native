@@ -1,5 +1,6 @@
 use xiuxian_wendao_parsers::{
-    DocumentFormat, extract_org_sections, parse_org_document, parse_org_note, parse_org_toc,
+    DocumentFormat, OrgAttachmentLinkProtocol, extract_org_attachment_links, extract_org_sections,
+    parse_org_document, parse_org_note, parse_org_toc,
 };
 
 #[test]
@@ -98,4 +99,30 @@ fn parse_org_note_and_toc_share_org_sections() {
         toc.sections[0].attributes().get("ID").map(String::as_str),
         Some("first-id")
     );
+}
+
+#[test]
+fn extract_org_attachment_links_preserves_org_link_metadata() {
+    let content = concat!(
+        "#+CAPTION: Source PDF\n",
+        "[[file:docs/source.pdf::page-2][Policy source]]\n",
+        "\n",
+        "* Attachments\n",
+        "[[attachment:report.docx]]\n",
+        "[[https://example.com][external]]\n",
+    );
+
+    let links = extract_org_attachment_links(content);
+
+    assert_eq!(links.len(), 2);
+    assert_eq!(links[0].raw_path, "file:docs/source.pdf::page-2");
+    assert_eq!(links[0].target_path, "docs/source.pdf");
+    assert_eq!(links[0].protocol, OrgAttachmentLinkProtocol::File);
+    assert_eq!(links[0].description, "Policy source");
+    assert_eq!(links[0].caption.as_deref(), Some("Source PDF"));
+    assert_eq!(links[0].line, 2);
+    assert_eq!(links[1].raw_path, "attachment:report.docx");
+    assert_eq!(links[1].target_path, "report.docx");
+    assert_eq!(links[1].protocol, OrgAttachmentLinkProtocol::Attachment);
+    assert_eq!(links[1].line, 5);
 }

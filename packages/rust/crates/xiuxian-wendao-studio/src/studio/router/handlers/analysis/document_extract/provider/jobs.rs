@@ -4,10 +4,17 @@ use std::time::{Duration, Instant};
 use arrow::array::{Array, StringArray};
 use arrow::record_batch::RecordBatch;
 use xiuxian_wendao_server::transport::{
-    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest, DocumentExtractFlightRouteResponse,
+    DOCUMENT_EXTRACT_FULL_PROFILE, DocumentExtractFlightRequest,
+    DocumentExtractFlightRouteResponse, DocumentExtractMode,
 };
 
 use super::StudioDocumentExtractFlightRouteProvider;
+#[cfg(feature = "document-extract-legacy-office")]
+use super::legacy_office::is_legacy_office_source;
+use super::native_org::is_native_org_source;
+use super::route::{
+    gateway_document_extract_mode_for_source, gateway_document_extract_profile_for_source,
+};
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
     DOCUMENT_RESOURCE_ARROW_CACHE_NAME, build_error_resource_batch, build_job_resource_batch,
     mirror_artifact_to_output, mirror_document_extract_cache, read_arrow_file,
@@ -16,6 +23,34 @@ use crate::studio::router::handlers::analysis::document_extract::arrow_cache::{
 use crate::studio::router::handlers::analysis::document_extract::registry::{
     DocumentExtractJobRegistry, DocumentExtractJobStatus, artifact_ready, default_output_dir,
 };
+
+async fn recreate_document_extract_artifact_dir(artifact_dir: &Path) -> Result<(), String> {
+    if artifact_dir.exists() {
+        tokio::fs::remove_dir_all(artifact_dir)
+            .await
+            .map_err(|error| {
+                format!(
+                    "remove stale document extract artifact `{}`: {error}",
+                    artifact_dir.display()
+                )
+            })?;
+    }
+    tokio::fs::create_dir_all(artifact_dir)
+        .await
+        .map_err(|error| {
+            format!(
+                "create document extract artifact `{}`: {error}",
+                artifact_dir.display()
+            )
+        })
+}
+
+async fn touch_document_extract_artifact_marker(artifact_dir: &Path) -> Result<(), String> {
+    tokio::fs::File::create(artifact_dir.join("_complete.marker"))
+        .await
+        .map_err(|error| format!("touch document extract artifact marker: {error}"))?;
+    Ok(())
+}
 
 impl StudioDocumentExtractFlightRouteProvider {
     pub(super) async fn sync_document_extract_batch(
@@ -32,6 +67,24 @@ impl StudioDocumentExtractFlightRouteProvider {
         } else {
             PathBuf::from(output_dir)
         };
+        if source.exists() && is_native_org_source(source.as_path()) {
+            let _permit = self.acquire_document_extract_dispatch_permit().await?;
+            return self
+                .sync_native_org_document_extract_batch(
+                    source.as_path(),
+                    output.as_path(),
+                    force,
+                    error_row,
+                )
+                .await;
+        }
+        #[cfg(feature = "document-extract-legacy-office")]
+        if source.exists() && is_legacy_office_source(source.as_path()) {
+            let _permit = self.acquire_document_extract_dispatch_permit().await?;
+            return self
+                .sync_legacy_office_document_extract_batch(source.as_path(), output.as_path())
+                .await;
+        }
         if source.exists() && !force {
             if let Some(batches) = read_cached_document_batches(source.as_path(), output.as_path())?
             {
@@ -144,6 +197,17 @@ impl StudioDocumentExtractFlightRouteProvider {
         &self,
         request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
+        if is_native_org_source(Path::new(request.source_path.as_str())) {
+            return self
+                .sync_document_extract_batch(
+                    request.source_path.as_str(),
+                    request.output_dir.as_str(),
+                    request.force,
+                    request.error_row,
+                    request.profile.as_str(),
+                )
+                .await;
+        }
         if request.profile != DOCUMENT_EXTRACT_FULL_PROFILE {
             return self
                 .sync_document_extract_batch(
@@ -175,7 +239,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 request.source_path.as_str(),
                 Some(output_string.as_str()),
                 request.force,
-                request.wait_ms,
+                request.wait_ms.as_millis(),
             )
             .await?;
 
@@ -191,7 +255,7 @@ impl StudioDocumentExtractFlightRouteProvider {
                 Err(status.error_message)
             }
         } else {
-            if request.wait_ms > 0
+            if request.wait_ms.as_millis() > 0
                 && let Some(current) = self.status(status.job_id.as_str())?
             {
                 status = current;
@@ -253,50 +317,175 @@ impl StudioDocumentExtractFlightRouteProvider {
             return Ok(());
         };
         let artifact_dir = PathBuf::from(status.artifact_dir.as_str());
-        if artifact_dir.exists() {
-            tokio::fs::remove_dir_all(artifact_dir.as_path())
-                .await
-                .map_err(|error| {
-                    format!(
-                        "remove stale document extract artifact `{}`: {error}",
-                        artifact_dir.display()
-                    )
-                })?;
-        }
-        tokio::fs::create_dir_all(artifact_dir.as_path())
-            .await
-            .map_err(|error| {
-                format!(
-                    "create document extract artifact `{}`: {error}",
-                    artifact_dir.display()
-                )
-            })?;
+        recreate_document_extract_artifact_dir(artifact_dir.as_path()).await?;
 
+        if self
+            .run_native_org_document_extract_job(job_id, &status, artifact_dir.as_path())
+            .await?
+        {
+            return Ok(());
+        }
+        #[cfg(feature = "document-extract-legacy-office")]
+        if self
+            .run_legacy_office_document_extract_job(job_id, &status, artifact_dir.as_path())
+            .await?
+        {
+            return Ok(());
+        }
+        if gateway_document_extract_mode_for_source(status.source_path.as_str())
+            == DocumentExtractMode::AudioShards
+        {
+            #[cfg(feature = "document-extract-audio-shards")]
+            {
+                return self
+                    .run_audio_document_extract_job(job_id, &status, artifact_dir.as_path())
+                    .await;
+            }
+            #[cfg(not(feature = "document-extract-audio-shards"))]
+            {
+                return Err(
+                    "`audio-shards` document extraction requires the `document-extract-audio-shards` feature"
+                        .to_string(),
+                );
+            }
+        }
+
+        let profile = gateway_document_extract_profile_for_source(
+            status.source_path.as_str(),
+            DOCUMENT_EXTRACT_FULL_PROFILE,
+        );
         let conversion = self
-            .request_python_document_extract(
-                status.source_path.as_str(),
-                status.artifact_dir.as_str(),
-                true,
-                false,
-                DOCUMENT_EXTRACT_FULL_PROFILE,
-            )
+            .request_python_document_extract_job(&status, &profile)
             .await;
 
+        self.finish_python_document_extract_job(job_id, &status, artifact_dir.as_path(), conversion)
+            .await
+    }
+
+    async fn request_python_document_extract_job(
+        &self,
+        status: &DocumentExtractJobStatus,
+        profile: &str,
+    ) -> Result<Vec<RecordBatch>, String> {
+        self.request_python_document_extract(
+            status.source_path.as_str(),
+            status.artifact_dir.as_str(),
+            true,
+            false,
+            profile,
+        )
+        .await
+    }
+
+    async fn run_native_org_document_extract_job(
+        &self,
+        job_id: &str,
+        status: &DocumentExtractJobStatus,
+        artifact_dir: &Path,
+    ) -> Result<bool, String> {
+        if !is_native_org_source(Path::new(status.source_path.as_str())) {
+            return Ok(false);
+        }
+        let batches = self
+            .write_native_org_document_extract_output(
+                Path::new(status.source_path.as_str()),
+                artifact_dir,
+                true,
+                false,
+            )
+            .await?;
+        self.complete_local_document_extract_job(job_id, status, artifact_dir, batches)
+            .await?;
+        Ok(true)
+    }
+
+    #[cfg(feature = "document-extract-legacy-office")]
+    async fn run_legacy_office_document_extract_job(
+        &self,
+        job_id: &str,
+        status: &DocumentExtractJobStatus,
+        artifact_dir: &Path,
+    ) -> Result<bool, String> {
+        if !is_legacy_office_source(Path::new(status.source_path.as_str())) {
+            return Ok(false);
+        }
+        let batches = super::legacy_office::write_legacy_office_document_extract_output(
+            Path::new(status.source_path.as_str()),
+            artifact_dir,
+        )
+        .await?;
+        self.complete_local_document_extract_job(job_id, status, artifact_dir, batches)
+            .await?;
+        Ok(true)
+    }
+
+    #[cfg(feature = "document-extract-audio-shards")]
+    async fn run_audio_document_extract_job(
+        &self,
+        job_id: &str,
+        status: &DocumentExtractJobStatus,
+        artifact_dir: &Path,
+    ) -> Result<(), String> {
+        let request = DocumentExtractFlightRequest {
+            source_path: xiuxian_wendao_server::transport::DocumentExtractSourcePath::new(
+                status.source_path.clone(),
+            ),
+            output_dir: status.artifact_dir.clone(),
+            force: true,
+            error_row: false,
+            profile: DOCUMENT_EXTRACT_FULL_PROFILE.to_string(),
+            mode: DocumentExtractMode::AudioShards,
+            wait_ms: xiuxian_wendao_server::transport::DocumentExtractWaitBudgetMs::from_millis(0),
+            audio_worker: None,
+            audio_hosted_provider: None,
+            audio_hosted_base_url: None,
+            audio_hosted_endpoint: None,
+            audio_hosted_model: None,
+        };
+        let response = self
+            .audio_shards_document_extract_batch_for_source_hash(
+                &request,
+                status.content_hash.as_str(),
+            )
+            .await?;
+        self.complete_local_document_extract_job(job_id, status, artifact_dir, response.batches)
+            .await
+    }
+
+    async fn complete_local_document_extract_job(
+        &self,
+        job_id: &str,
+        status: &DocumentExtractJobStatus,
+        artifact_dir: &Path,
+        batches: Vec<RecordBatch>,
+    ) -> Result<(), String> {
+        write_arrow_file(
+            artifact_dir
+                .join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME)
+                .as_path(),
+            batches.as_slice(),
+        )?;
+        touch_document_extract_artifact_marker(artifact_dir).await?;
+        mirror_artifact_to_output(artifact_dir, Path::new(status.output_dir.as_str()))?;
+        let _registry_guard = self.registry_lock();
+        self.registry()?.mark_succeeded(job_id)
+    }
+
+    async fn finish_python_document_extract_job(
+        &self,
+        job_id: &str,
+        status: &DocumentExtractJobStatus,
+        artifact_dir: &Path,
+        conversion: Result<Vec<RecordBatch>, String>,
+    ) -> Result<(), String> {
         match conversion {
             Ok(batches) => {
                 let resources_path = artifact_dir.join(DOCUMENT_RESOURCE_ARROW_CACHE_NAME);
                 if !resources_path.exists() {
                     write_arrow_file(resources_path.as_path(), &batches)?;
-                    tokio::fs::File::create(artifact_dir.join("_complete.marker"))
-                        .await
-                        .map_err(|error| {
-                            format!("touch document extract artifact marker: {error}")
-                        })?;
+                    touch_document_extract_artifact_marker(artifact_dir).await?;
                 }
-                mirror_artifact_to_output(
-                    artifact_dir.as_path(),
-                    Path::new(status.output_dir.as_str()),
-                )?;
+                mirror_artifact_to_output(artifact_dir, Path::new(status.output_dir.as_str()))?;
                 let _registry_guard = self.registry_lock();
                 self.registry()?.mark_succeeded(job_id)
             }

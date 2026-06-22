@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A single document row from a full table scan (id, content, vector, metadata).
-/// Used by xiuxian-memory-engine to load all episodes from `LanceDB`.
+/// Used by vector consumers that need complete row materialization.
 #[derive(Debug, Clone)]
 pub struct DocumentRow {
     /// Document identifier.

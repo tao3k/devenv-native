@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  id="pkg_link_event"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="link_event_metadata">
+    <bpmn:startEvent id="start" />
+    <bpmn:intermediateCatchEvent id="link_catch">
+      <bpmn:linkEventDefinition name="handoff" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateThrowEvent id="link_throw">
+      <bpmn:linkEventDefinition name="handoff" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end" />
+    <bpmn:sequenceFlow id="flow_start" sourceRef="start" targetRef="link_catch" />
+    <bpmn:sequenceFlow id="flow_link" sourceRef="link_catch" targetRef="link_throw" />
+    <bpmn:sequenceFlow id="flow_end" sourceRef="link_throw" targetRef="end" />
+  </bpmn:process>
+</bpmn:definitions>

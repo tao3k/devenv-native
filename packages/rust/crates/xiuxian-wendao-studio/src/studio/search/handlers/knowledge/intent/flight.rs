@@ -10,7 +10,9 @@ use crate::studio::arrow_types::{
 use async_trait::async_trait;
 use xiuxian_wendao_server::transport::SearchFlightRouteResponse;
 #[cfg(test)]
-use xiuxian_wendao_server::transport::{SEARCH_INTENT_ROUTE, SearchFlightRouteProvider};
+use xiuxian_wendao_server::transport::{
+    SEARCH_INTENT_ROUTE, SearchFlightRouteProvider, SearchFlightRouteRequest,
+};
 
 use super::entry::build_intent_search_response_with_metadata;
 use crate::studio::types::{SearchHit, SearchResponse};
@@ -44,32 +46,30 @@ impl StudioIntentSearchFlightRouteProvider {
 #[async_trait]
 #[cfg(test)]
 impl SearchFlightRouteProvider for StudioIntentSearchFlightRouteProvider {
-    async fn search_batch(
+    async fn search_batch_for_request(
         &self,
-        route: &str,
-        query_text: &str,
-        limit: usize,
-        intent: Option<&str>,
-        repo_hint: Option<&str>,
+        request: SearchFlightRouteRequest<'_>,
     ) -> Result<SearchFlightRouteResponse, String> {
-        if route != SEARCH_INTENT_ROUTE {
+        if request.route != SEARCH_INTENT_ROUTE {
             return Err(format!(
-                "studio intent Flight provider only supports route `{SEARCH_INTENT_ROUTE}`, got `{route}`"
+                "studio intent Flight provider only supports route `{SEARCH_INTENT_ROUTE}`, got `{}`",
+                request.route
             ));
         }
 
         let (response, _transport_metadata) = build_intent_search_response_with_metadata(
             self.studio.as_ref(),
-            query_text,
-            query_text,
-            repo_hint,
-            limit,
-            intent.map(ToString::to_string),
+            request.query_text,
+            request.query_text,
+            request.repo_hint,
+            request.limit,
+            request.intent.map(ToString::to_string),
         )
         .await
         .map_err(|error| {
             format!(
-                "studio intent Flight provider failed to build search response for `{query_text}`: {error:?}"
+                "studio intent Flight provider failed to build search response for `{}`: {error:?}",
+                request.query_text
             )
         })?;
 

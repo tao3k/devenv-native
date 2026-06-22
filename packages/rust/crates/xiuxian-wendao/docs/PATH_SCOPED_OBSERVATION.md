@@ -15,7 +15,7 @@ The `:OBSERVE:` attribute is extended with an optional `scope:` parameter.
 ### 2.2 Examples
 
 - **Precise File**: `:OBSERVE: lang:rust scope:"packages/xiuxian-wendao/src/lib.rs" "fn process_data"`
-- **Package Glob**: `:OBSERVE: lang:rust scope:"packages/xiuxian-ast/src/**/*.rs" "struct Item"`
+- Package Glob : `:OBSERVE: lang:rust scope:"packages/rust/crates/xiuxian-wendao*/src/**/*.rs" "struct Item"`
 - **Legacy (Unscoped)**: `:OBSERVE: lang:rust "fn global_helper"` (Deprecated: Fallback to global search)
 
 ## 3. Propagation Logic (Sentinel)

@@ -9,7 +9,7 @@ use xiuxian_git_repo::{
     read_checkout_file_bytes_at_revision,
 };
 #[cfg(all(feature = "julia", feature = "zhenfa-router"))]
-use xiuxian_wendao_julia::{
+use xiuxian_julia_core::{
     julia_parser_summary_allows_safe_incremental_file_for_repository,
     julia_parser_summary_file_semantic_fingerprint_for_repository,
     modelica_package_incremental_semantic_fingerprint_for_repository,

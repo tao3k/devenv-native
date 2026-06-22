@@ -5,13 +5,13 @@ use std::sync::Arc;
 use crate::transport::RerankScoreWeights;
 
 use super::cache::FlightRoutePayloadCache;
+use super::internal_auth::WendaoFlightInternalSecurity;
 use crate::transport::server::{
-    AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
-    AutocompleteFlightRouteProvider, CodeAstAnalysisFlightRouteProvider,
+    AttachmentSearchFlightRouteProvider, AutocompleteFlightRouteProvider,
     DatasetOntologyMaterializeFlightRouteProvider, DefinitionFlightRouteProvider,
     DocumentExtractFlightRouteProvider, GraphNeighborsFlightRouteProvider,
-    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
-    RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
+    MarkdownAnalysisFlightRouteProvider, OntologyCandidateInspectionFlightRouteProvider,
+    RefineDocFlightRouteProvider, RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider,
     RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRouteProvider,
@@ -29,7 +29,6 @@ pub struct WendaoFlightService {
     pub(super) repo_search_provider: Arc<dyn RepoSearchFlightRouteProvider>,
     pub(super) search_provider: Option<Arc<dyn SearchFlightRouteProvider>>,
     pub(super) attachment_search_provider: Option<Arc<dyn AttachmentSearchFlightRouteProvider>>,
-    pub(super) ast_search_provider: Option<Arc<dyn AstSearchFlightRouteProvider>>,
     pub(super) definition_provider: Option<Arc<dyn DefinitionFlightRouteProvider>>,
     pub(super) autocomplete_provider: Option<Arc<dyn AutocompleteFlightRouteProvider>>,
     pub(super) vfs_content_provider: Option<Arc<dyn VfsContentFlightRouteProvider>>,
@@ -38,7 +37,6 @@ pub struct WendaoFlightService {
     pub(super) graph_neighbors_provider: Option<Arc<dyn GraphNeighborsFlightRouteProvider>>,
     pub(super) topology_3d_provider: Option<Arc<dyn Topology3dFlightRouteProvider>>,
     pub(super) markdown_analysis_provider: Option<Arc<dyn MarkdownAnalysisFlightRouteProvider>>,
-    pub(super) code_ast_analysis_provider: Option<Arc<dyn CodeAstAnalysisFlightRouteProvider>>,
     pub(super) semantic_scope_provider: Option<Arc<dyn SemanticScopeFlightRouteProvider>>,
     pub(super) repo_overview_provider: Option<Arc<dyn RepoOverviewFlightRouteProvider>>,
     pub(super) repo_index_provider: Option<Arc<dyn RepoIndexFlightRouteProvider>>,
@@ -53,9 +51,12 @@ pub struct WendaoFlightService {
     pub(super) document_extract_provider: Option<Arc<dyn DocumentExtractFlightRouteProvider>>,
     pub(super) dataset_ontology_materialize_provider:
         Option<Arc<dyn DatasetOntologyMaterializeFlightRouteProvider>>,
+    pub(super) ontology_candidate_inspection_provider:
+        Option<Arc<dyn OntologyCandidateInspectionFlightRouteProvider>>,
     pub(super) sql_provider: Option<Arc<dyn SqlFlightRouteProvider>>,
     pub(super) rerank_handler: RerankFlightRouteHandler,
     pub(super) route_payload_cache: Arc<FlightRoutePayloadCache>,
+    pub(super) internal_security: Option<WendaoFlightInternalSecurity>,
 }
 
 impl WendaoFlightService {
@@ -69,11 +70,9 @@ impl WendaoFlightService {
             repo_search: repo_search_provider,
             search: search_provider,
             attachment_search: attachment_search_provider,
-            ast_search: ast_search_provider,
             definition: definition_provider,
             autocomplete: autocomplete_provider,
             markdown_analysis: markdown_analysis_provider,
-            code_ast_analysis: code_ast_analysis_provider,
             semantic_scope: semantic_scope_provider,
             repo_overview: repo_overview_provider,
             repo_index: repo_index_provider,
@@ -85,6 +84,7 @@ impl WendaoFlightService {
             refine_doc: refine_doc_provider,
             document_extract: document_extract_provider,
             dataset_ontology_materialize: dataset_ontology_materialize_provider,
+            ontology_candidate_inspection: ontology_candidate_inspection_provider,
             vfs_content: vfs_content_provider,
             vfs_scan: vfs_scan_provider,
             vfs_resolve: vfs_resolve_provider,
@@ -97,7 +97,6 @@ impl WendaoFlightService {
             repo_search_provider,
             search_provider,
             attachment_search_provider,
-            ast_search_provider,
             definition_provider,
             autocomplete_provider,
             vfs_content_provider,
@@ -106,7 +105,6 @@ impl WendaoFlightService {
             graph_neighbors_provider,
             topology_3d_provider,
             markdown_analysis_provider,
-            code_ast_analysis_provider,
             semantic_scope_provider,
             repo_overview_provider,
             repo_index_provider,
@@ -118,12 +116,14 @@ impl WendaoFlightService {
             refine_doc_provider,
             document_extract_provider,
             dataset_ontology_materialize_provider,
+            ontology_candidate_inspection_provider,
             sql_provider,
             rerank_handler: RerankFlightRouteHandler::new_with_weights(
                 rerank_dimension,
                 rerank_weights,
             )?,
             route_payload_cache: Arc::new(FlightRoutePayloadCache::default()),
+            internal_security: None,
         })
     }
 }

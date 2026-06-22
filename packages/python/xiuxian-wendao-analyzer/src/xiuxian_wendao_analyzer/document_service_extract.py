@@ -23,12 +23,14 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from .documents import DocumentConverterProtocol
+    from .pdf_ocr_ocr2.config import Ocr2ClientConfig
 
 
 def build_document_extract_table(
     headers: Mapping[str, str],
     *,
     converter: DocumentConverterProtocol | None = None,
+    hosted_vlm_config: Ocr2ClientConfig | None = None,
 ):
     """Build one Arrow table from Wendao document extraction headers.
 
@@ -61,4 +63,5 @@ def build_document_extract_table(
         force=force,
         error_row=error_row,
         page_range=page_range,
+        hosted_vlm_config=hosted_vlm_config,
     )

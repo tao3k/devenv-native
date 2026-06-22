@@ -15,15 +15,6 @@ The currently landed commands are:
 
 ```text
 wendao-client lint markdown [PATH]...
-wendao-client orgize fmt [--check] [PATH]...
-wendao-client orgize lint [--format compact|text|json] [--json] [PATH]...
-wendao-client orgize agent-planning --date YYYY-MM-DD [--end YYYY-MM-DD] [--include-done] [--include-archived] [--include-comments] [--match EXPR] [PATH]...
-wendao-client orgize read-model [PATH]...
-wendao-client orgize task-list [--text TEXT] [--tag TAG]... [--include-done] [--include-archived] [--limit N] [PATH]...
-wendao-client orgize task-report [--text TEXT] [--tag TAG]... [--include-archived] [--limit N] [PATH]...
-wendao-client orgize task-archive [--apply] [--text TEXT] [--tag TAG]... [--limit N] [PATH]...
-wendao-client orgize sparse-tree [--text TEXT] [--match EXPR] [--exclude-done] [--exclude-archived] [--include-comments] [--explain-skips] [PATH]...
-wendao-client orgize sdd status [PATH]...
 wendao-client get toc [TARGET] [--ignore DIR]...
 wendao-client get page-index [TARGET] [--ignore DIR]...
 ```
@@ -47,11 +38,11 @@ wendao-client semantic refresh-projections [--interval-secs SECONDS] [--max-runs
 Behavior:
 
 1.  walks Markdown files under the provided paths, or when no paths are given,
-    loads local writable `link_graph.projects.*.root` entries from
+    loads local writable `sources.projects.*.root` entries from
     `wendao.toml` before falling back to the configured root
-2.  treats `link_graph.projects.<id>.read_only = true` as the canonical way to
+2.  treats `sources.projects.<id>.read_only = true` as the canonical way to
     exclude a configured project root from default lint discovery
-3.  honors `link_graph.projects.<id>.read_only = false` even when the project
+3.  honors `sources.projects.<id>.read_only = false` even when the project
     also declares `url`, so writable mirrors can still be linted by default
 4.  keeps `url`-based managed-remote detection only as a backward-compatible
     readonly inference when `read_only` is omitted
@@ -187,34 +178,10 @@ Behavior:
     exactly one DuckDB-dialect read-only query statement and rejects blank,
     multi-statement, or mutation SQL before table registration. The local
     relation engine is DuckDB.
-37. exposes upstream Orgize tooling through `orgize fmt`, `orgize lint`,
-    `orgize agent-planning`, `orgize read-model`, `orgize task-list`,
-    `orgize task-report`, `orgize task-archive`, `orgize sparse-tree`, and
-    `orgize sdd status`.
-    Formatting and linting use parser-owned Orgize adapters from
-    `xiuxian-wendao-parsers`; planning and sparse-tree commands render compact
-    cards derived from native Org agenda and sparse-tree semantics. The `sdd
-status` command renders Org-native SDD
-    system/capability/view/decision/audit architecture status and parent edges
-    from upstream Orgize SDD parsing. The `read-model` command materializes
-    agent-tagged Org tasks into DuckDB by default and does not expose a
-    `--duckdb` runtime selector. The `task-list` command refreshes the same
-    DuckDB read model and renders active task rows for agent recovery, with
-    optional text/tag filtering and explicit
-    DONE/archive inclusion flags. The `task-report` command summarizes the
-    same snapshot for active rows, completed achievements, archive candidates,
-    repeating rows, and tag counts. The `task-archive` command renders an
-    archive plan by default and only mutates Org source when `--apply` is
-    passed; applied tasks are moved to their `ARCHIVE_TARGET` or the default
-    agent archive file and receive the native `ARCHIVE` tag. Native Org
-    repeater cookies on `SCHEDULED` or `DEADLINE` timestamps are preserved and
-    rendered as `repeat:` metadata so recurring profile, benchmark, or audit
-    tasks remain visible without a custom schedule DSL. When no source path is
-    supplied, read-model commands read from `$PRJ_CACHE_HOME/agent/org`; the
-    default database is
-    `$PRJ_CACHE_HOME/agent/readmodels/org_agent_tasks.duckdb`. Optional
-    path/runtime overrides belong in the `wendao.toml` `[agent.org_read_model]`
-    table through `database_path`, `temp_directory`, and `threads`.
+37. does not expose an `orgize` subcommand. Org parsing, SDD recovery, and
+    agent task memory are no longer owned by `xiuxian-wendao-client`; use the
+    dedicated Org provider or the owning runtime surface instead of adding Org
+    read-model state back to this client.
 
 Diagnostic rendering is split deliberately:
 
@@ -270,7 +237,7 @@ The `get` commands stay local and parser-owned by design:
 7. recursive directory traversal merges:
    - built-in local runtime-dir ignores such as `.cache`, `.data`, `.run`,
      `.config`, `.bin`, `target`, and `node_modules`
-   - `link_graph.exclude_dirs` from the active `wendao.toml` config
+   - `sources.exclude_dirs` from the active `wendao.toml` config
    - repeatable `--ignore DIR` command-line additions
 8. the same command tree can be flattened into the main `wendao` CLI without
    reimplementing execution logic in `xiuxian-wendao`

@@ -40,7 +40,7 @@ pub fn load_repo_intelligence_config(
         .map_or_else(|| cwd.to_path_buf(), Path::to_path_buf);
 
     let repos = parsed
-        .link_graph
+        .sources
         .projects
         .into_iter()
         .map(|(id, project)| {

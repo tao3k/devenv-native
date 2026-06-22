@@ -45,7 +45,7 @@ pub(crate) fn render_flowhub_root_module_section_lines(
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub root module section through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub root module section through the Qianji template catalog; falling back to inline format: {error}"
         );
         render_flowhub_root_module_section_lines_inline(module)
     })

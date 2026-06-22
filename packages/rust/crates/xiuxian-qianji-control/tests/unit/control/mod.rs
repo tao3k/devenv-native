@@ -1,11 +1,16 @@
 mod activity_queue;
+mod activity_schedule_plan;
+mod boundary;
 mod contracts;
 mod cost_inventory;
 mod evidence;
 mod hot_state;
 mod journal;
+mod llm_inventory;
 mod operator_summary;
 mod recovery;
 mod signal_inventory;
 mod support;
 mod timer_inventory;
+mod worker_lifecycle;
+mod workflow_observation;

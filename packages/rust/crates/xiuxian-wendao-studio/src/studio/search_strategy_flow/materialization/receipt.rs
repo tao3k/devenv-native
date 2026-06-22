@@ -1,6 +1,7 @@
 //! Owns the Studio search strategy flow materialization receipt surface.
 
 use serde::Serialize;
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 use crate::contracts::{StudioContractStatus, StudioContractToken};
 use thiserror::Error;
@@ -144,7 +145,7 @@ impl SearchStrategyFlowMaterializationReceipt {
         Self {
             materialization_status: "executed".into(),
             receipt_source: receipt_source.into().into(),
-            primary_transport: "arrow-flight".into(),
+            primary_transport: WENDAO_ARROW_FLIGHT_DATA_PLANE.into(),
             direct_file_read_allowed: false,
             execute_before_answer: true,
             materialized_rows,

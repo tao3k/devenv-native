@@ -1,62 +1,55 @@
 ---
 source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
-assertion_line: 33
+assertion_line: 129
 expression: value
 ---
 {
   "covered_symbols": 4,
   "docs": [
     {
-      "doc_id": "repo:cli-coverage:doc:README.md",
+      "doc_id": "repo:coverage-sample:doc:README.md",
       "format": "md",
       "path": "README.md",
-      "repo_id": "cli-coverage",
+      "repo_id": "coverage-sample",
       "title": "README.md"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:docs/Problem.md",
-      "format": "md",
-      "path": "docs/Problem.md",
-      "repo_id": "cli-coverage",
-      "title": "Problem"
-    },
-    {
-      "doc_id": "repo:cli-coverage:doc:docs/guide.md",
+      "doc_id": "repo:coverage-sample:doc:docs/guide.md",
       "format": "md",
       "path": "docs/guide.md",
-      "repo_id": "cli-coverage",
+      "repo_id": "coverage-sample",
       "title": "guide"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.Problem",
+      "doc_id": "repo:coverage-sample:doc:src/CoveragePkg.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.Problem",
       "doc_target": {
         "kind": "symbol",
         "line_end": 13,
         "line_start": 11,
         "name": "Problem",
-        "path": "CliCoveragePkg.Problem"
+        "path": "CoveragePkg.Problem"
       },
       "format": "julia_docstring",
-      "path": "src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.Problem",
-      "repo_id": "cli-coverage",
+      "path": "src/CoveragePkg.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.Problem",
+      "repo_id": "coverage-sample",
       "title": "Problem"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.solve",
+      "doc_id": "repo:coverage-sample:doc:src/CoveragePkg.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.solve",
       "doc_target": {
         "kind": "symbol",
         "line_end": 20,
         "line_start": 18,
         "name": "solve",
-        "path": "CliCoveragePkg.solve"
+        "path": "CoveragePkg.solve"
       },
       "format": "julia_docstring",
-      "path": "src/CliCoveragePkg.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.solve",
-      "repo_id": "cli-coverage",
+      "path": "src/CoveragePkg.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.solve",
+      "repo_id": "coverage-sample",
       "title": "solve"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:src/solvers.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.fastsolve",
+      "doc_id": "repo:coverage-sample:doc:src/solvers.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.fastsolve",
       "doc_target": {
         "kind": "symbol",
         "line_end": 5,
@@ -65,12 +58,12 @@ expression: value
         "path": "fastsolve"
       },
       "format": "julia_docstring",
-      "path": "src/solvers.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.fastsolve",
-      "repo_id": "cli-coverage",
+      "path": "src/solvers.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.fastsolve",
+      "repo_id": "coverage-sample",
       "title": "fastsolve"
     },
     {
-      "doc_id": "repo:cli-coverage:doc:src/nested/extra.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.ExtraProblem",
+      "doc_id": "repo:coverage-sample:doc:src/nested/extra.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.ExtraProblem",
       "doc_target": {
         "kind": "symbol",
         "line_end": 7,
@@ -79,17 +72,17 @@ expression: value
         "path": "ExtraProblem"
       },
       "format": "julia_docstring",
-      "path": "src/nested/extra.jl#symbol-id:repo:cli-coverage:symbol:CliCoveragePkg.ExtraProblem",
-      "repo_id": "cli-coverage",
+      "path": "src/nested/extra.jl#symbol-id:repo:coverage-sample:symbol:CoveragePkg.ExtraProblem",
+      "repo_id": "coverage-sample",
       "title": "ExtraProblem"
     }
   ],
-  "hierarchical_uri": "repo://cli-coverage",
+  "hierarchical_uri": "repo://coverage-sample",
   "hierarchy": [
     "repo",
-    "cli-coverage"
+    "coverage-sample"
   ],
   "module_id": null,
-  "repo_id": "cli-coverage",
+  "repo_id": "coverage-sample",
   "uncovered_symbols": 0
 }

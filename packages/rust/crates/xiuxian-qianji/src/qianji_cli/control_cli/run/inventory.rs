@@ -178,8 +178,8 @@ pub(super) fn run_signal_command(
     json: bool,
 ) -> io::Result<ControlCliOutput> {
     use xiuxian_qianji_control::{
-        ControlEvent, ControlEventKind, ControlLedger, DuckDbControlLedger, RunId, SignalName,
-        SignalRecord, StepId,
+        DuckDbControlLedger, RecoveryItemScope, RunId, SignalName, SignalReceiveJournalRecord,
+        SignalRecord, StepId, record_signal_received,
     };
 
     let payload_metadata = serde_json::from_str::<serde_json::Value>(payload).map_err(|error| {
@@ -189,28 +189,23 @@ pub(super) fn run_signal_command(
     })?;
     let run_id = RunId::new(run_id).map_err(|error| control_error(&error))?;
     let signal_name = SignalName::new(signal_name).map_err(|error| control_error(&error))?;
-    let event_kind = ControlEventKind::SignalReceived {
-        signal: SignalRecord {
-            signal_name,
-            payload_ref: None,
-            payload_hash: None,
-            metadata: payload_metadata,
-        },
+    let signal = SignalRecord {
+        signal_name,
+        payload_ref: None,
+        payload_hash: None,
+        metadata: payload_metadata,
     };
-    let event = if let Some(step_id) = step_id {
-        ControlEvent::step(
-            run_id,
-            StepId::new(step_id).map_err(|error| control_error(&error))?,
-            received_at_ms,
-            event_kind,
-        )
+    let scope = if let Some(step_id) = step_id {
+        RecoveryItemScope::step(StepId::new(step_id).map_err(|error| control_error(&error))?)
     } else {
-        ControlEvent::run(run_id, received_at_ms, event_kind)
+        RecoveryItemScope::run()
     };
     let ledger = DuckDbControlLedger::open(ledger_path).map_err(|error| control_error(&error))?;
-    let record = ledger
-        .append_event(event)
-        .map_err(|error| control_error(&error))?;
+    let record = record_signal_received(
+        &ledger,
+        SignalReceiveJournalRecord::new(run_id, scope, signal, received_at_ms),
+    )
+    .map_err(|error| control_error(&error))?;
     let rendered = if json {
         render_signal_append_json(&record)?
     } else {

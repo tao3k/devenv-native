@@ -7,8 +7,12 @@ from typing import TYPE_CHECKING
 
 from xiuxian_wendao_analyzer.pdf_ocr_workers import (
     PDF_OCR_FAST_TEXT_DEFAULT_THREADS,
+    PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE,
+    PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT,
+    PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV,
     PDF_OCR_FAST_TEXT_THREADS_ENV,
     _fast_text_accelerator_threads_with_lookup,
+    fast_text_source_converter_mode_with_lookup,
 )
 
 if TYPE_CHECKING:
@@ -88,4 +92,29 @@ def test_fast_text_docling_threads_default_to_rust_scheduler_friendly_single_thr
             lambda key: "0" if key == PDF_OCR_FAST_TEXT_THREADS_ENV else None
         )
         == 1
+    )
+
+
+def test_fast_text_source_converter_mode_accepts_only_bounded_modes() -> None:
+    assert (
+        fast_text_source_converter_mode_with_lookup(lambda _key: None)
+        == PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT
+    )
+    assert (
+        fast_text_source_converter_mode_with_lookup(
+            lambda key: (
+                "backend_table"
+                if key == PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV
+                else None
+            )
+        )
+        == PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE
+    )
+    assert (
+        fast_text_source_converter_mode_with_lookup(
+            lambda key: (
+                "invalid" if key == PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV else None
+            )
+        )
+        == PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_DEFAULT
     )

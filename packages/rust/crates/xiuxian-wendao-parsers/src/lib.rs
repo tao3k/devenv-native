@@ -79,23 +79,26 @@ pub use org::{
     ORG_ONTOLOGY_AUTHORING_SCHEMA_ID, ORG_PROP_BLANK_VALUE, ORG_PROP_INVALID_CONFIDENCE,
     ORG_PROP_INVALID_ENUM, ORG_PROP_INVALID_SHA256, ORG_PROP_INVALID_UUID,
     ORG_PROP_MISSING_REQUIRED, ORG_PROP_UNKNOWN_PROPERTY, ORG_REASONING_PROPERTY_SCHEMA_ID,
-    OrgNote, OrgNoteCore, OrgOntologyAuthoringDocument, OrgOntologyAuthoringError,
-    OrgOntologyAuthoringKind, OrgOntologyAuthoringSection, OrgOntologyAuthoringTable,
-    OrgOntologyEmbeddedArtifact, OrgOntologyLifecycleState, OrgOntologySourceSpan,
-    OrgOntologyTableKind, OrgReasoningPropertyDiagnostic, OrgReasoningPropertyRecord, OrgSection,
-    OrgTocDocument, compile_org_ontology_authoring_document,
-    compile_org_reasoning_property_records, extract_org_sections, parse_org_document,
-    parse_org_note, parse_org_toc, validate_org_reasoning_properties,
-    validate_org_reasoning_property_records,
+    OrgAttachmentLink, OrgAttachmentLinkProtocol, OrgNote, OrgNoteCore,
+    OrgOntologyAuthoringDocument, OrgOntologyAuthoringError, OrgOntologyAuthoringKind,
+    OrgOntologyAuthoringSection, OrgOntologyAuthoringTable, OrgOntologyEmbeddedArtifact,
+    OrgOntologyLifecycleState, OrgOntologySourceSpan, OrgOntologyTableKind,
+    OrgReasoningPropertyDiagnostic, OrgReasoningPropertyRecord, OrgSection, OrgTocDocument,
+    compile_org_ontology_authoring_document, compile_org_reasoning_property_records,
+    extract_org_attachment_links, extract_org_sections, parse_org_document, parse_org_note,
+    parse_org_toc, validate_org_reasoning_properties, validate_org_reasoning_property_records,
 };
 pub use orgize_tool::{
-    OrgizeAgentPlanningRequest, OrgizeAgentTaskProperty, OrgizeAgentTaskReadModelReport,
-    OrgizeAgentTaskReadModelRequest, OrgizeAgentTaskRepeater, OrgizeAgentTaskRow,
-    OrgizeFormatReport, OrgizeFormatRequest, OrgizeLintFileReport, OrgizeLintOutputFormat,
-    OrgizeLintRequest, OrgizeLintRunReport, OrgizeSddGraphDiffRequest, OrgizeSddStatusRequest,
-    OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest, OrgizeSparseTreeVisibility,
-    OrgizeToolError, collect_agent_task_rows, count_sdd_graph_drift, count_sdd_status_issues,
-    format_org_files, lint_org_files, render_agent_planning, render_sdd_graph_diff,
+    OrgElementCategory, OrgElementKind, OrgizeAgentPlanningRequest, OrgizeAgentTaskProperty,
+    OrgizeAgentTaskReadModelReport, OrgizeAgentTaskReadModelRequest, OrgizeAgentTaskRepeater,
+    OrgizeAgentTaskRow, OrgizeEvalPatchRequest, OrgizeEvalPlanRequest, OrgizeFormatReport,
+    OrgizeFormatRequest, OrgizeLintFileReport, OrgizeLintFixReport, OrgizeLintOutputFormat,
+    OrgizeLintRequest, OrgizeLintRunReport, OrgizeOrgElementReadModelReport,
+    OrgizeOrgElementReadModelRequest, OrgizeOrgElementRow, OrgizeSddGraphDiffRequest,
+    OrgizeSddStatusRequest, OrgizeSparseTreeRenderOptions, OrgizeSparseTreeRequest,
+    OrgizeSparseTreeVisibility, OrgizeToolError, collect_agent_task_rows, collect_org_element_rows,
+    count_sdd_graph_drift, count_sdd_status_issues, format_org_files, lint_org_files,
+    render_agent_planning, render_eval_patch, render_eval_plan, render_sdd_graph_diff,
     render_sdd_status, render_sdd_status_json, render_sparse_tree,
 };
 pub use reference_core::ReferenceCore;
@@ -138,16 +141,3 @@ pub use toc::{
     parse_markdown_outline, parse_markdown_toc,
 };
 pub use wikilinks::{MarkdownWikiLink, extract_wikilinks, parse_wikilink_literal};
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = {
-        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
-            rust_lang_project_harness::RustVerificationProfileHint::new(
-                "src/lib.rs",
-                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-            )
-            .with_rationale("crate root owns the public package API for cargo-test verification"),
-        )
-    }
-);

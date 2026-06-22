@@ -61,7 +61,7 @@ fn modelica_plugin_projected_page_index_tree_lookup_resolves_one_stable_tree() -
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-projected-index-tree]
+            r#"[sources.projects.modelica-projected-index-tree]
 root = "{}"
 plugins = ["modelica"]
 "#,

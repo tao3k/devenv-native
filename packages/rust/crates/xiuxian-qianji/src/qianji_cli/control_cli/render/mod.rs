@@ -6,6 +6,7 @@ mod history;
 #[cfg(any(feature = "valkey", test))]
 mod hot_state;
 mod lease;
+mod llm_inventory;
 mod recovery;
 mod signal;
 mod state;
@@ -27,6 +28,9 @@ pub(super) use hot_state::{render_hot_state_snapshot_json, render_hot_state_snap
 pub(super) use lease::{
     render_step_lease_json, render_step_lease_text, render_step_leases_json,
     render_step_leases_text,
+};
+pub(super) use llm_inventory::{
+    render_llm_activity_inventory_json, render_llm_activity_inventory_text,
 };
 #[cfg(all(feature = "duckdb", feature = "valkey"))]
 pub(super) use recovery::{render_recovery_loop_json, render_recovery_loop_text};

@@ -7,18 +7,34 @@ authors.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+foyer-artifact-cache = ["xiuxian-db-store/foyer-artifact-cache"]
+
 [dependencies]
 anyhow = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+arrow = { workspace = true }
+clap = { workspace = true }
+parquet = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
+quick-xml = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 toml = { workspace = true }
-xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
+xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, features = ["arrow-codec"] }
+xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", default-features = false }
 
 [lints]
 workspace = true
 
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
+[[bin]]
+name = "wendao-episteme"
+path = "src/bin/wendao_episteme.rs"
+
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
 tempfile = { workspace = true }
+xiuxian-qianji-control = { path = "../xiuxian-qianji-control" }

@@ -21,6 +21,7 @@ mod flowhub_validation;
 mod manifest;
 #[path = "../contracts_mechanism.rs"]
 mod mechanism;
+#[cfg(feature = "wendao-integration")]
 #[path = "../contracts_wendao_docs/mod.rs"]
 mod wendao_docs;
 #[path = "../contracts_workdir_manifest.rs"]
@@ -33,10 +34,13 @@ pub use api::{
     FlowhubModuleMetadata, FlowhubRootManifest, FlowhubRootMetadata, FlowhubScenarioManifest,
     FlowhubScenarioPlanning, FlowhubScenarioTemplate, FlowhubStructureContract,
     FlowhubTemplateComposition, FlowhubValidationKind, FlowhubValidationRule,
-    FlowhubValidationScope, NodeDefinition, NodeLlmBinding, NodeQianhuanBinding,
-    NodeQianhuanExecutionMode, NodeStatus, NodeTaskType, QianjiManifest, QianjiMechanism,
-    QianjiOutput, TemplateLinkRef, TemplateLinkSpec, TemplateUseSpec, WendaoDocsContractShow,
-    WorkdirCheck, WorkdirManifest, WorkdirPlan, render_wendao_docs_contract_show,
-    show_wendao_docs_contract,
+    FlowhubValidationScope, NodeAnnotationBinding, NodeAnnotationExecutionMode, NodeDefinition,
+    NodeLlmBinding, NodeStatus, NodeTaskType, QianjiManifest, QianjiMechanism, QianjiOutput,
+    TemplateLinkRef, TemplateLinkSpec, TemplateUseSpec, WorkdirCheck, WorkdirManifest, WorkdirPlan,
 };
+#[cfg(feature = "wendao-integration")]
+pub use api::{
+    WendaoDocsContractShow, render_wendao_docs_contract_show, show_wendao_docs_contract,
+};
+#[cfg(feature = "wendao-integration")]
 pub(crate) use wendao_docs::{load_wendao_docs_contract, validate_cli_call, validate_http_call};

@@ -162,12 +162,12 @@ fn test_gateway_flight_request_timeout_defaults_to_studio_budget() {
 fn test_gateway_flight_request_timeout_accepts_positive_override() {
     let timeout = gateway_flight_request_timeout_secs_with_lookup(18, &|key| {
         if key == "XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS" {
-            Some("45".to_string())
+            Some("600".to_string())
         } else {
             None
         }
     });
-    assert_eq!(timeout, 45);
+    assert_eq!(timeout, 600);
 }
 
 #[test]

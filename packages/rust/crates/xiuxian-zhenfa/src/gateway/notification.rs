@@ -24,7 +24,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use reqwest::StatusCode;
+use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::{error, info, warn};
@@ -98,10 +98,17 @@ impl NotificationService {
     /// Create a new notification service.
     #[must_use]
     pub fn new(config: WebhookConfig) -> Self {
-        let client = reqwest::Client::builder()
+        let client = Client::builder()
+            .brotli(true)
+            .deflate(true)
+            .gzip(true)
+            .zstd(true)
+            .pool_idle_timeout(Duration::from_mins(2))
+            .pool_max_idle_per_host(32)
+            .connect_timeout(Duration::from_secs(5))
             .timeout(Duration::from_secs(config.timeout_secs))
             .build()
-            .unwrap_or_else(|_| reqwest::Client::new());
+            .unwrap_or_else(|_| Client::new());
 
         Self {
             client,

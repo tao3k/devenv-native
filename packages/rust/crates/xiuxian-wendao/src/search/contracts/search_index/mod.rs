@@ -24,3 +24,9 @@ pub(crate) use definitions::{
 };
 #[cfg(all(test, feature = "duckdb"))]
 pub(crate) use diagnostics::configured_status_diagnostics_engine_kind;
+pub use diagnostics::{
+    QUERY_TELEMETRY_DIAGNOSTICS_TABLE, REPO_READ_PRESSURE_DIAGNOSTICS_TABLE,
+    STATUS_DIAGNOSTICS_TABLE, STATUS_REASON_DIAGNOSTICS_TABLE, diagnostics_schema_ref,
+    query_telemetry_contract, repo_read_pressure_contract, status_reason_contract,
+    status_snapshot_contract,
+};

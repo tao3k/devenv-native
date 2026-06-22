@@ -6,7 +6,9 @@ use crate::local_relation::{DuckDbLocalRelationEngine, LocalRelationEngine};
 
 use super::discovery::discover_bounded_work_markdown_files;
 use super::rows::{BoundedWorkMarkdownRow, build_rows_for_file};
-use super::schema::{bounded_work_markdown_schema, build_markdown_record_batch};
+use super::schema::{
+    bounded_work_markdown_contract, bounded_work_markdown_schema, build_markdown_record_batch,
+};
 
 /// The default local relation table name for bounded-work markdown retrieval.
 pub const BOUNDED_WORK_MARKDOWN_TABLE_NAME: &str = "markdown";
@@ -55,6 +57,7 @@ pub(super) fn register_bounded_work_markdown_table_with_stats(
     let rows = build_bounded_work_markdown_rows(root)?;
     let schema = bounded_work_markdown_schema();
     let batch = build_markdown_record_batch(&rows)?;
+    bounded_work_markdown_contract().validate_compatible_schema(batch.schema().as_ref())?;
     let input_row_count = rows.len();
     let input_bytes = u64::try_from(batch.get_array_memory_size()).unwrap_or(u64::MAX);
     query_engine.register_record_batches(BOUNDED_WORK_MARKDOWN_TABLE_NAME, schema, vec![batch])?;

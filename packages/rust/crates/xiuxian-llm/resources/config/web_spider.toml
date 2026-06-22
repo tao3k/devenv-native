@@ -1,7 +1,0 @@
-# Optional defaults for Spider native ingestion.
-# User overrides: `llm.web.spider.*` in xiuxian.toml.
-
-# Example:
-# user_agent = "Mozilla/5.0 ..."
-# chrome_intercept = false
-# prefer_raw_html_on_clean_empty = true

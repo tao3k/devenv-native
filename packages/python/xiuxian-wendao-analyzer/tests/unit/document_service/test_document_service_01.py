@@ -157,9 +157,7 @@ def test_document_flight_server_warms_arrow_runtime(
 
 def test_document_extract_converter_cache_mode_accepts_profile_aliases() -> None:
     assert (
-        document_service._document_extract_converter_cache_mode_with_lookup(
-            lambda _key: None
-        )
+        document_service._document_extract_converter_cache_mode_with_lookup(lambda _key: None)
         == "disabled"
     )
     assert (
@@ -169,9 +167,7 @@ def test_document_extract_converter_cache_mode_accepts_profile_aliases() -> None
         == "profile"
     )
     assert (
-        document_service._document_extract_converter_cache_mode_with_lookup(
-            lambda _key: "unknown"
-        )
+        document_service._document_extract_converter_cache_mode_with_lookup(lambda _key: "unknown")
         == "disabled"
     )
 
@@ -194,15 +190,9 @@ def test_document_flight_server_can_reuse_profile_converter(
         converter_factory=converter_factory,
     )
 
-    first = server._document_extract_converter(
-        {WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"}
-    )
-    second = server._document_extract_converter(
-        {WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"}
-    )
-    fast = server._document_extract_converter(
-        {WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "fast-text"}
-    )
+    first = server._document_extract_converter({WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"})
+    second = server._document_extract_converter({WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"})
+    fast = server._document_extract_converter({WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "fast-text"})
 
     assert first is second
     assert first is not fast
@@ -223,9 +213,7 @@ def test_document_flight_server_profile_header_overrides_fixed_full_converter() 
         converter_factory=converter_factory,
     )
 
-    full = server._document_extract_converter(
-        {WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"}
-    )
+    full = server._document_extract_converter({WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"})
     structure = server._document_extract_converter(
         {WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "structure-text"}
     )
@@ -253,10 +241,7 @@ def test_document_flight_server_converter_cache_is_opt_in() -> None:
     )
 
     assert (
-        server._document_extract_converter(
-            {WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"}
-        )
-        is None
+        server._document_extract_converter({WENDAO_DOCUMENT_EXTRACT_PROFILE_HEADER: "full"}) is None
     )
     assert calls == 0
 

@@ -1,0 +1,35 @@
+# Semantic agent client hook config.
+# Loaded by `asp hook` on every client hook invocation.
+# Missing or comment-only rules preserve the built-in classifier behavior.
+schemaId = "agent.semantic-protocols.hook.client-config"
+schemaVersion = "1"
+protocolId = "agent.semantic-protocols.hook"
+protocolVersion = "1"
+
+# AST patch routing is experimental and disabled for generated Codex hook configs.
+[experimental.semanticAstPatch]
+enabled = false
+
+# Uncomment and edit this example to add a project-local rule.
+# [[rules]]
+# id = "deny-rust-raw-search"
+# enabled = true
+# event = "pre-tool"
+# priority = 100
+# decision = "deny"
+# reasonKind = "raw-broad-search"
+# languageIds = ["rust"]
+# message = "Use asp rust search ingest instead of raw Rust source search."
+#
+# [rules.match]
+# tool = "Bash"
+# commandAny = ["rg", "grep", "fd", "find"]
+# pathGlobAny = ["**/*.rs"]
+#
+# [[rules.routes]]
+# providerId = "rs-harness"
+# languageId = "rust"
+# binary = "asp"
+# kind = "ingest"
+# argv = ["asp", "rust", "search", "ingest", "items", "tests", "--view", "seeds", "."]
+# stdinMode = "pipe-candidates"

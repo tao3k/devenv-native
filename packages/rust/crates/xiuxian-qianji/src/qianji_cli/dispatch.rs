@@ -4,10 +4,11 @@ use xiuxian_logging::{init, split_logging_args};
 
 use super::bpmn_cli::{handle_bpmn_command, parse_bpmn_command};
 use super::construct_cli::{handle_construct_command, parse_construct_command};
+#[cfg(feature = "wendao-integration")]
 use super::contract_feedback_cli::{
     handle_contract_feedback_command, parse_contract_feedback_command,
 };
-use super::control_cli::{handle_control_command, parse_control_command};
+use super::control_cli::{handle_control_command_async, parse_control_command};
 use super::dir_cli::{handle_dir_command, parse_dir_command};
 use super::emit_cli::{handle_emit_command, parse_emit_command};
 use super::graph_export::handle_graph_export;
@@ -34,13 +35,16 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(command) = parse_control_command(&args)? {
-        return handle_control_command(&command).map_err(Into::into);
+        return handle_control_command_async(command)
+            .await
+            .map_err(Into::into);
     }
 
     if args.len() >= 4 && args[1] == "graph" {
         return handle_graph_export(&args[2], &args[3]);
     }
 
+    #[cfg(feature = "wendao-integration")]
     if let Some(command) = parse_contract_feedback_command(&args)? {
         return handle_contract_feedback_command(command).await;
     }

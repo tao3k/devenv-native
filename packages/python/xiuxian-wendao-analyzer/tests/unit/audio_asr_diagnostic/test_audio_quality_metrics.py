@@ -19,7 +19,7 @@ def test_quality_rows_classify_reference_and_proxy_statuses(tmp_path: Path) -> N
     noisy_transcript.write_text("[inaudible] [inaudible] ok", encoding="utf-8")
     results = [
         diagnostic.AsrResult(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             source="/tmp/forum.MP3",
             chunk="/tmp/chunk0.wav",
             chunk_index=0,
@@ -64,7 +64,7 @@ def test_quality_rows_classify_reference_and_proxy_statuses(tmp_path: Path) -> N
     assert rows[0].reference_cer == 0
     assert rows[1].review_status == "weak-language-ratio"
     summary = diagnostic.summarize_quality(rows)
-    assert summary["qualityByBackend"]["openrouter-chat-audio"]["referencePass"] == 1
+    assert summary["qualityByBackend"]["openrouter-audio"]["referencePass"] == 1
     assert summary["qualityByBackend"]["local-docling"]["weakRows"] == 1
     subset = diagnostic.summarize_reference_subset(rows)
     assert subset["referenceSubsetConfigured"] is True
@@ -100,6 +100,9 @@ def test_summarize_results_reports_latency_percentiles() -> None:
     assert row["chunks"] == 3
     assert row["latencyP50Seconds"] == 1.0
     assert row["latencyP95Seconds"] == 3.0
+    assert row["requestCumulativeSeconds"] == 4.5
+    assert row["requestCumulativeRealTimeFactor"] == 0.05
+    assert "wallSeconds" not in row
 
 
 def test_timeline_structure_reports_contiguous_timestamp_coverage() -> None:
@@ -146,7 +149,7 @@ def test_timeline_structure_flags_timestamp_gaps() -> None:
     diagnostic = _load_audio_asr_diagnostic()
     rows = [
         diagnostic.QualityRow(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             source="/tmp/forum.MP3",
             chunk_index=0,
             start_seconds=0.0,
@@ -168,7 +171,7 @@ def test_timeline_structure_flags_timestamp_gaps() -> None:
             error="",
         ),
         diagnostic.QualityRow(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             source="/tmp/forum.MP3",
             chunk_index=1,
             start_seconds=45.0,
@@ -192,7 +195,7 @@ def test_timeline_structure_flags_timestamp_gaps() -> None:
     ]
 
     summary = summarize_timeline_structure(rows)
-    backend = summary["timelineStructureByBackend"]["openrouter-chat-audio"]
+    backend = summary["timelineStructureByBackend"]["openrouter-audio"]
 
     assert summary["timelineStructurePassed"] is False
     assert backend["gapSeconds"] == 15.0
@@ -203,7 +206,7 @@ def test_timeline_structure_allows_planned_speech_segment_gaps() -> None:
     diagnostic = _load_audio_asr_diagnostic()
     rows = [
         diagnostic.QualityRow(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             source="/tmp/forum.MP3",
             chunk_index=0,
             start_seconds=0.0,
@@ -225,7 +228,7 @@ def test_timeline_structure_allows_planned_speech_segment_gaps() -> None:
             error="",
         ),
         diagnostic.QualityRow(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             source="/tmp/forum.MP3",
             chunk_index=1,
             start_seconds=14.0,
@@ -249,7 +252,7 @@ def test_timeline_structure_allows_planned_speech_segment_gaps() -> None:
     ]
 
     summary = summarize_timeline_structure(rows, allow_planned_gaps=True)
-    backend = summary["timelineStructureByBackend"]["openrouter-chat-audio"]
+    backend = summary["timelineStructureByBackend"]["openrouter-audio"]
 
     assert summary["timelineGapPolicy"] == "planned-gaps-allowed"
     assert summary["timelineStructurePassed"] is True
@@ -262,7 +265,7 @@ def test_required_terms_mark_precision_failure(tmp_path: Path) -> None:
     transcript = tmp_path / "transcript.txt"
     transcript.write_text("这里讨论通用术语", encoding="utf-8")
     result = diagnostic.AsrResult(
-        backend="openrouter-chat-audio",
+        backend="openrouter-audio",
         source="/tmp/forum.MP3",
         chunk="/tmp/chunk0.wav",
         chunk_index=0,
@@ -292,7 +295,7 @@ def test_required_terms_mark_precision_failure(tmp_path: Path) -> None:
     assert rows[0].required_term_recall == 0.5
     assert rows[0].missing_required_terms == "测试地点"
     summary = diagnostic.summarize_quality(rows)
-    assert summary["qualityByBackend"]["openrouter-chat-audio"]["requiredTermMiss"] == 1
+    assert summary["qualityByBackend"]["openrouter-audio"]["requiredTermMiss"] == 1
 
 
 def test_repetition_marks_weak_precision_row(tmp_path: Path) -> None:
@@ -328,6 +331,51 @@ def test_repetition_marks_weak_precision_row(tmp_path: Path) -> None:
 
     assert rows[0].review_status == "weak-repetition-heavy"
     assert rows[0].repeated_ngram_ratio > 0.2
+
+
+def test_precision_gate_rejects_weak_quality_rows_without_reference(
+    tmp_path: Path,
+) -> None:
+    diagnostic = _load_audio_asr_diagnostic()
+    transcript = tmp_path / "transcript.txt"
+    transcript.write_text("hello hello hello hello hello hello hello hello", encoding="utf-8")
+    result = diagnostic.AsrResult(
+        backend="openrouter-audio",
+        source="/tmp/forum.MP3",
+        chunk="/tmp/chunk0.wav",
+        chunk_index=0,
+        start_seconds=0.0,
+        duration_seconds=30.0,
+        model="xiaomi/mimo-v2.5",
+        status="ok",
+        wall_seconds=1.0,
+        transcript_chars=transcript.stat().st_size,
+        transcript_path=str(transcript),
+        error="",
+    )
+    rows = diagnostic.build_quality_rows(
+        [result],
+        references={},
+        max_reference_cer=0.15,
+        required_terms=[],
+        min_required_term_recall=1.0,
+        min_chars_per_minute=20.0,
+        min_chinese_ratio=0.35,
+        max_inaudible_per_minute=1.0,
+        max_repeated_ngram_ratio=0.2,
+    )
+
+    summary = diagnostic.summarize_precision_gate(
+        rows,
+        reference_configured=False,
+        max_reference_cer=0.15,
+        required_terms_configured=False,
+    )
+
+    assert rows[0].review_status.startswith("weak-")
+    assert summary["precisionGatePassed"] is False
+    assert summary["precisionGateReason"] == "quality-weak-rows"
+    assert summary["weakQualityRows"] == 1
 
 
 def test_natural_short_utterance_is_review_not_weak(tmp_path: Path) -> None:

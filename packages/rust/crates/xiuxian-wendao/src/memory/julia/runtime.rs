@@ -1,10 +1,10 @@
 //! `memory::julia::runtime` owns Wendao memory julia runtime behavior.
 
 use crate::settings::merged_wendao_settings;
+use xiuxian_julia_runtime::wendao::build_memory_julia_compute_bindings;
 use xiuxian_wendao_core::{
     capabilities::PluginCapabilityBinding, repo_intelligence::RepoIntelligenceError,
 };
-use xiuxian_wendao_julia::memory::build_memory_julia_compute_bindings;
 use xiuxian_wendao_runtime::config::{
     MemoryJuliaComputeRuntimeConfig, resolve_memory_julia_compute_runtime_with_settings,
 };

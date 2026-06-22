@@ -31,6 +31,7 @@ async fn audio_shard_response_plans_recovery_from_speech_timing_facts() -> Resul
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     };
     let mut selected = sample_input();
@@ -70,11 +71,13 @@ async fn audio_shard_response_plans_recovery_from_speech_timing_facts() -> Resul
         min_window_ms: 0,
         short_merge_gap_ms: Some(500),
         max_window_ms: Some(15_000),
+        boundary_snap_tolerance_ms: 0,
         context_before_ms: 0,
         context_after_ms: 0,
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
     };
 
     let planning = response.plan_recovery_split(AudioShardRecoveryPlanRequest {
@@ -142,11 +145,13 @@ async fn audio_shard_client_skips_recovery_when_speech_facts_miss_failed_parent(
         min_window_ms: 0,
         short_merge_gap_ms: Some(500),
         max_window_ms: Some(15_000),
+        boundary_snap_tolerance_ms: 0,
         context_before_ms: 0,
         context_after_ms: 0,
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
     };
 
     let client = AudioShardFlightClient::connect(endpoint.as_str()).await?;
@@ -220,6 +225,7 @@ fn missing_speech_parent_audio_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "full-coverage".to_owned(),
     }
 }
@@ -241,6 +247,7 @@ fn missing_speech_materialization(
         source_path,
         output_dir: tempdir.path().join("chunks"),
         ffmpeg_path,
+        artifact_cache_dir: None,
         force: true,
     })
 }

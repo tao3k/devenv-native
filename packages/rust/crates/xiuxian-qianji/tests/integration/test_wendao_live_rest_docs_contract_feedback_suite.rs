@@ -1,5 +1,7 @@
 //! Integration coverage for the real Wendao bundled `OpenAPI` artifact.
 
+#![cfg(feature = "wendao-integration")]
+
 #[path = "support/workspace.rs"]
 mod workspace;
 use xiuxian_qianji::contract_feedback::{

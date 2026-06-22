@@ -119,7 +119,7 @@ def _hosted_vlm_promotion_payload(
         "summary": summary,
         "hostedVlmOcr": {
             "provider": "openrouter",
-            "openRouterModel": "baidu/qianfan-ocr-fast:free",
+            "openRouterModel": "baidu/qianfan-ocr-fast",
             "openRouterApiKeyConfigured": True,
             "regionAtlasMode": region_atlas_mode,
             "scaffoldMode": scaffold_mode,
@@ -153,3 +153,28 @@ def test_candidate_taxonomy_marks_structure_loss_rejection() -> None:
     assert taxonomy["speedCandidate"] is False
     assert taxonomy["promotionCandidate"] is False
     assert taxonomy["rejectedStructureLoss"] is True
+
+
+def test_candidate_taxonomy_marks_default_safe_promotion() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(benchmark, force_ms=9_000.0)
+    payload["hostedVlmPromotionGate"] = benchmark.hosted_vlm_promotion_gate(payload)
+
+    taxonomy = benchmark.candidate_taxonomy(payload)
+
+    assert taxonomy["promotionCandidate"] is True
+    assert taxonomy["defaultPromotionCandidate"] is True
+    assert taxonomy["optInPromotionControls"] == []
+
+
+def test_candidate_taxonomy_keeps_compact_prompt_opt_in() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(benchmark, force_ms=9_000.0)
+    payload["hostedVlmOcr"]["regionPromptMode"] = "compact-region-markdown"
+    payload["hostedVlmPromotionGate"] = benchmark.hosted_vlm_promotion_gate(payload)
+
+    taxonomy = benchmark.candidate_taxonomy(payload)
+
+    assert taxonomy["promotionCandidate"] is True
+    assert taxonomy["defaultPromotionCandidate"] is False
+    assert taxonomy["optInPromotionControls"] == ["hosted_vlm_region_prompt_mode"]

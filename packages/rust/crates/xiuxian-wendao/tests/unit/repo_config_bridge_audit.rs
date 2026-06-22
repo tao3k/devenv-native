@@ -194,7 +194,7 @@ fn inspect_effective_project_surface(config_path: &Path) -> TestResult<Effective
         .and_then(Value::as_table)
         .ok_or_else(|| {
             format!(
-                "`{}` does not contain a [link_graph.projects] table",
+                "`{}` does not contain a [sources.projects] table",
                 config_path.display()
             )
         })?;

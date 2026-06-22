@@ -1,26 +1,34 @@
 //! Qianji workflow proof for the two-pass audio shard recovery chain.
 
+#[path = "workflow_stages.rs"]
+mod stages;
+
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
 use xiuxian_qianji::workflow_kernel::WorkflowMemoryCheckpointRecord;
 use xiuxian_qianji::{
-    WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStage, WorkflowStageBinding,
-    WorkflowStageFacts, WorkflowTopology, WorkflowTopologyEdge, WorkflowTrace,
+    WorkflowMemoryCheckpointStore, WorkflowRun, WorkflowStageBinding, WorkflowStageFacts,
+    WorkflowTopology, WorkflowTopologyEdge, WorkflowTrace,
 };
 use xiuxian_wendao_attachments::audio::AudioSpeechWindowPlannerInput;
 use xiuxian_wendao_attachments::audio::{
-    AudioRecoveryPatchGateOptions, AudioRecoveryPatchGateReport, AudioShardInput,
-    AudioShardMaterializationInput, AudioShardMaterializedItem, AudioShardMergeReport,
-    AudioShardPlan, AudioShardRequestMetric, AudioShardWorkerProfile,
-    build_audio_shard_input_batch, build_audio_shard_inputs, build_audio_shard_result_batch,
-    materialize_audio_shards,
+    AudioPlannedTranscriptAdmissionLookup, AudioRecoveryPatchGateOptions,
+    AudioRecoveryPatchGateReport, AudioShardInput, AudioShardMaterializationInput,
+    AudioShardMaterializedItem, AudioShardMergeReport, AudioShardPlan, AudioShardRequestMetric,
+    AudioShardWorkerProfile, AudioTranscriptAdmissionStats,
 };
 
-use super::recovery::{
-    AudioShardRecoveryPlanRequest, AudioShardRecoveryPlanning, empty_patch_gate_report,
+use super::{
+    AudioShardFlightClient, AudioShardFlightRequestOptions, AudioShardFlightResponse,
+    AudioShardRecoveryPlanning,
 };
-use super::{AudioShardFlightClient, AudioShardFlightResponse};
+use stages::{
+    BaseBuildAudioShardInputsStage, BaseMaterializeAudioShardPlanStage,
+    BaseRequestAudioShardFlightStage, MergeAudioShardRecoveryStage, PlanAudioShardRecoveryStage,
+    RecoveryBuildAudioShardInputsStage, RecoveryMaterializeAudioShardPlanStage,
+    RecoveryRequestAudioShardFlightStage,
+};
 use xiuxian_wendao_attachments::audio::AudioRiskParentSelectionOptions;
 
 const AUDIO_RECOVERY_WORKFLOW_ID: &str = "wendao.audio_shards.recovery.v1";
@@ -79,6 +87,8 @@ pub struct AudioShardRecoveryWorkflowExecution {
     pub recovery_inputs: Vec<AudioShardInput>,
     /// Recovery analyzer response rows, when recovery work was selected.
     pub recovery_response: Option<AudioShardFlightResponse>,
+    /// Aggregate accepted transcript admission counters for base and recovery passes.
+    pub(crate) transcript_admission_stats: AudioTranscriptAdmissionStats,
     /// Final merge report after accepted recovery patches are applied.
     pub merge_report: AudioShardMergeReport,
     /// Recovery patch precision gate report.
@@ -87,6 +97,14 @@ pub struct AudioShardRecoveryWorkflowExecution {
     pub trace: WorkflowTrace,
     /// Same-process memory checkpoints retained by the workflow run.
     pub memory_checkpoints: WorkflowMemoryCheckpointStore,
+}
+
+impl AudioShardRecoveryWorkflowExecution {
+    /// Return aggregate transcript admission counters for the base and recovery passes.
+    #[must_use]
+    pub fn transcript_admission_stats(&self) -> &AudioTranscriptAdmissionStats {
+        &self.transcript_admission_stats
+    }
 }
 
 impl AudioShardFlightClient {
@@ -103,6 +121,22 @@ impl AudioShardFlightClient {
         &self,
         request: AudioShardRecoveryWorkflowRequest<'_>,
     ) -> Result<AudioShardRecoveryWorkflowExecution, String> {
+        self.execute_recovery_split_with_options(request, AudioShardFlightRequestOptions::default())
+            .await
+    }
+
+    /// Execute a recovery split with request metadata forwarded to the analyzer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when materialization, either Flight exchange, recovery
+    /// planning, patch gating, workflow validation, or final merge validation
+    /// fails.
+    pub async fn execute_recovery_split_with_options(
+        &self,
+        request: AudioShardRecoveryWorkflowRequest<'_>,
+        request_options: AudioShardFlightRequestOptions,
+    ) -> Result<AudioShardRecoveryWorkflowExecution, String> {
         let topology = audio_shard_recovery_workflow_topology()?;
         let mut run =
             WorkflowRun::new_with_topology(topology).map_err(|error| error.to_string())?;
@@ -112,6 +146,9 @@ impl AudioShardFlightClient {
             profile: request.profile.clone(),
             base_worker_budget: request.base_worker_budget,
             recovery_worker_budget: request.recovery_worker_budget,
+            request_options,
+            base_planned_result_preflight: None,
+            recovery_planned_result_preflight: None,
         };
 
         let base_pass = run_audio_base_pass(&mut run, &mut context, request.parent_plan).await?;
@@ -139,6 +176,11 @@ impl AudioShardFlightClient {
             recovery_materialized_shards: recovery_pass.materialized_shards,
             recovery_inputs: recovery_pass.inputs,
             recovery_response: recovery_pass.response,
+            transcript_admission_stats: {
+                let mut stats = base_pass.exchange.transcript_admission_stats;
+                stats.add_assign(&recovery_pass.transcript_admission_stats);
+                stats
+            },
             merge_report: workflow_report.output.merge_report,
             patch_gate_report: workflow_report.output.patch_gate_report,
             trace: workflow_report.trace,
@@ -154,6 +196,9 @@ struct AudioShardRecoveryWorkflowContext {
     profile: AudioShardWorkerProfile,
     base_worker_budget: Option<usize>,
     recovery_worker_budget: Option<usize>,
+    request_options: AudioShardFlightRequestOptions,
+    base_planned_result_preflight: Option<AudioPlannedTranscriptAdmissionLookup>,
+    recovery_planned_result_preflight: Option<AudioPlannedTranscriptAdmissionLookup>,
 }
 
 #[derive(Debug, Clone)]
@@ -166,6 +211,7 @@ struct AudioShardPreparedInputs {
 struct AudioShardRecoveryFlightExchange {
     response: AudioShardFlightResponse,
     result_batch: EngineRecordBatch,
+    transcript_admission_stats: AudioTranscriptAdmissionStats,
 }
 
 #[derive(Debug, Clone)]
@@ -180,6 +226,7 @@ struct AudioShardShortWindowRecoveryPass {
     materialized_shards: Vec<AudioShardMaterializedItem>,
     inputs: Vec<AudioShardInput>,
     response: Option<AudioShardFlightResponse>,
+    transcript_admission_stats: AudioTranscriptAdmissionStats,
 }
 
 #[derive(Debug, Clone)]
@@ -295,6 +342,7 @@ async fn run_audio_recovery_pass(
             materialized_shards: Vec::new(),
             inputs: Vec::new(),
             response: None,
+            transcript_admission_stats: AudioTranscriptAdmissionStats::default(),
         });
     }
 
@@ -342,6 +390,7 @@ async fn run_audio_recovery_pass(
         materialized_shards,
         inputs: prepared_inputs.inputs,
         response: Some(exchange.response),
+        transcript_admission_stats: exchange.transcript_admission_stats,
     })
 }
 
@@ -388,323 +437,6 @@ where
     })
     .map(|_| ())
     .map_err(|error| error.to_string())
-}
-
-#[derive(Debug, Clone, Copy)]
-struct BaseMaterializeAudioShardPlanStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPlan>
-    for BaseMaterializeAudioShardPlanStage
-{
-    type Output = Vec<AudioShardMaterializedItem>;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_BASE_MATERIALIZE_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &AudioShardPlan) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("AudioShardPlan").with_item_count(input.start_offsets_ms.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("Vec<AudioShardMaterializedItem>").with_item_count(output.len())
-    }
-
-    async fn run(
-        &self,
-        context: &mut AudioShardRecoveryWorkflowContext,
-        input: AudioShardPlan,
-    ) -> Result<Self::Output, String> {
-        materialize_audio_shards(&input, &context.materialization)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct RecoveryMaterializeAudioShardPlanStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPlan>
-    for RecoveryMaterializeAudioShardPlanStage
-{
-    type Output = Vec<AudioShardMaterializedItem>;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_RECOVERY_MATERIALIZE_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &AudioShardPlan) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("AudioShardPlan").with_item_count(input.start_offsets_ms.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("Vec<AudioShardMaterializedItem>").with_item_count(output.len())
-    }
-
-    async fn run(
-        &self,
-        context: &mut AudioShardRecoveryWorkflowContext,
-        input: AudioShardPlan,
-    ) -> Result<Self::Output, String> {
-        materialize_audio_shards(&input, &context.materialization)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct BaseBuildAudioShardInputsStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, Vec<AudioShardMaterializedItem>>
-    for BaseBuildAudioShardInputsStage
-{
-    type Output = AudioShardPreparedInputs;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_BASE_BUILD_ROWS_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &Vec<AudioShardMaterializedItem>) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("Vec<AudioShardMaterializedItem>").with_item_count(input.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_input", "v1")
-            .with_item_count(output.inputs.len())
-    }
-
-    async fn run(
-        &self,
-        context: &mut AudioShardRecoveryWorkflowContext,
-        input: Vec<AudioShardMaterializedItem>,
-    ) -> Result<Self::Output, String> {
-        build_prepared_inputs(input.as_slice(), &context.profile)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct RecoveryBuildAudioShardInputsStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, Vec<AudioShardMaterializedItem>>
-    for RecoveryBuildAudioShardInputsStage
-{
-    type Output = AudioShardPreparedInputs;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_RECOVERY_BUILD_ROWS_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &Vec<AudioShardMaterializedItem>) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("Vec<AudioShardMaterializedItem>").with_item_count(input.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_input", "v1")
-            .with_item_count(output.inputs.len())
-    }
-
-    async fn run(
-        &self,
-        context: &mut AudioShardRecoveryWorkflowContext,
-        input: Vec<AudioShardMaterializedItem>,
-    ) -> Result<Self::Output, String> {
-        build_prepared_inputs(input.as_slice(), &context.profile)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct BaseRequestAudioShardFlightStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPreparedInputs>
-    for BaseRequestAudioShardFlightStage
-{
-    type Output = AudioShardRecoveryFlightExchange;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_BASE_CALL_FLIGHT_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &AudioShardPreparedInputs) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_input", "v1")
-            .with_item_count(input.inputs.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_result", "v1")
-            .with_item_count(output.response.results.len())
-    }
-
-    async fn run(
-        &self,
-        context: &mut AudioShardRecoveryWorkflowContext,
-        input: AudioShardPreparedInputs,
-    ) -> Result<Self::Output, String> {
-        request_with_result_batch(&context.client, input.inputs, context.base_worker_budget).await
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct RecoveryRequestAudioShardFlightStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardPreparedInputs>
-    for RecoveryRequestAudioShardFlightStage
-{
-    type Output = AudioShardRecoveryFlightExchange;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_RECOVERY_CALL_FLIGHT_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &AudioShardPreparedInputs) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_input", "v1")
-            .with_item_count(input.inputs.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_result", "v1")
-            .with_item_count(output.response.results.len())
-    }
-
-    async fn run(
-        &self,
-        context: &mut AudioShardRecoveryWorkflowContext,
-        input: AudioShardPreparedInputs,
-    ) -> Result<Self::Output, String> {
-        request_with_result_batch(
-            &context.client,
-            input.inputs,
-            context.recovery_worker_budget,
-        )
-        .await
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PlanAudioShardRecoveryStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardRecoveryPlanningStageInput>
-    for PlanAudioShardRecoveryStage
-{
-    type Output = AudioShardRecoveryPlanning;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_PLAN_RECOVERY_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &AudioShardRecoveryPlanningStageInput) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_result", "v1")
-            .with_item_count(input.response.results.len())
-    }
-
-    fn output_facts(&self, output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("AudioShardRecoveryPlanning")
-            .with_item_count(output.selected_parent_inputs.len())
-    }
-
-    async fn run(
-        &self,
-        _context: &mut AudioShardRecoveryWorkflowContext,
-        input: AudioShardRecoveryPlanningStageInput,
-    ) -> Result<Self::Output, String> {
-        input
-            .response
-            .plan_recovery_split(AudioShardRecoveryPlanRequest {
-                parent_plan: &input.parent_plan,
-                inputs: input.inputs.as_slice(),
-                request_metrics: input.request_metrics.as_slice(),
-                selection_options: input.selection_options,
-                split_duration_ms: input.split_duration_ms,
-                speech_window_input: input.speech_window_input.as_ref(),
-            })
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-struct MergeAudioShardRecoveryStage;
-
-#[async_trait::async_trait]
-impl WorkflowStage<AudioShardRecoveryWorkflowContext, AudioShardRecoveryMergeStageInput>
-    for MergeAudioShardRecoveryStage
-{
-    type Output = AudioShardRecoveryMergeStageOutput;
-    type Error = String;
-
-    fn id(&self) -> &'static str {
-        AUDIO_RECOVERY_MERGE_STAGE_ID
-    }
-
-    fn input_facts(&self, input: &AudioShardRecoveryMergeStageInput) -> WorkflowStageFacts {
-        WorkflowStageFacts::arrow_record_batch("xiuxian_wendao.audio_shard_result", "v1")
-            .with_item_count(input.base_response.results.len())
-    }
-
-    fn output_facts(&self, _output: &Self::Output) -> WorkflowStageFacts {
-        WorkflowStageFacts::typed("AudioShardRecoveryMergeStageOutput")
-    }
-
-    async fn run(
-        &self,
-        _context: &mut AudioShardRecoveryWorkflowContext,
-        input: AudioShardRecoveryMergeStageInput,
-    ) -> Result<Self::Output, String> {
-        let (merge_report, patch_gate_report) =
-            if let Some(recovery_response) = input.recovery_response {
-                input.base_response.merge_with_recovery_for_inputs(
-                    input.base_inputs.as_slice(),
-                    input.recovery_inputs.as_slice(),
-                    &recovery_response,
-                    input.patch_options,
-                )?
-            } else {
-                (
-                    input
-                        .base_response
-                        .merge_for_inputs(input.base_inputs.as_slice())?,
-                    empty_patch_gate_report(),
-                )
-            };
-        Ok(AudioShardRecoveryMergeStageOutput {
-            merge_report,
-            patch_gate_report,
-        })
-    }
-}
-
-fn build_prepared_inputs(
-    materialized_shards: &[AudioShardMaterializedItem],
-    profile: &AudioShardWorkerProfile,
-) -> Result<AudioShardPreparedInputs, String> {
-    let inputs = build_audio_shard_inputs(materialized_shards, profile);
-    let input_batch = build_audio_shard_input_batch(inputs.as_slice())?;
-    Ok(AudioShardPreparedInputs {
-        inputs,
-        input_batch,
-    })
-}
-
-async fn request_with_result_batch(
-    client: &AudioShardFlightClient,
-    inputs: Vec<AudioShardInput>,
-    worker_budget: Option<usize>,
-) -> Result<AudioShardRecoveryFlightExchange, String> {
-    let response = client
-        .request_with_worker_budget(inputs.as_slice(), worker_budget)
-        .await?;
-    let result_batch = build_audio_shard_result_batch(response.results.as_slice())?;
-    Ok(AudioShardRecoveryFlightExchange {
-        response,
-        result_batch,
-    })
 }
 
 fn audio_shard_recovery_workflow_topology() -> Result<WorkflowTopology, String> {

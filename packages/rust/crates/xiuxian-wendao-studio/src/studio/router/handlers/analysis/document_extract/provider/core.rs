@@ -8,6 +8,8 @@ use tonic::transport::Channel;
 
 #[cfg(feature = "document-extract-pdf-source-range")]
 use crate::studio::router::handlers::analysis::document_extract::pdf_ocr_scheduler::PdfOcrWorkerScheduler;
+#[cfg(feature = "document-extract-audio-shards")]
+use crate::studio::router::handlers::analysis::document_extract::provider::audio::AudioShardCapacityController;
 use crate::studio::router::handlers::analysis::document_extract::registry::{
     DocumentExtractJobRegistry, DocumentExtractJobRegistrySnapshot,
 };
@@ -37,6 +39,8 @@ pub(super) struct DocumentExtractProviderRuntime {
     pub(super) conversion_limit: usize,
     #[cfg(feature = "document-extract-pdf-source-range")]
     pub(super) pdf_ocr_scheduler: PdfOcrWorkerScheduler,
+    #[cfg(feature = "document-extract-audio-shards")]
+    pub(super) audio_capacity: AudioShardCapacityController,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,6 +82,16 @@ pub(crate) struct DocumentExtractRuntimeSnapshot {
     pub(crate) pdf_ocr_budget_increase_events: u64,
     #[cfg(feature = "document-extract-pdf-source-range")]
     pub(crate) pdf_ocr_budget_decrease_events: u64,
+    #[cfg(feature = "document-extract-audio-shards")]
+    pub(crate) max_audio_shard_workers: usize,
+    #[cfg(feature = "document-extract-audio-shards")]
+    pub(crate) current_audio_shard_worker_budget: usize,
+    #[cfg(feature = "document-extract-audio-shards")]
+    pub(crate) audio_shard_healthy_streak: usize,
+    #[cfg(feature = "document-extract-audio-shards")]
+    pub(crate) audio_shard_budget_increase_events: u64,
+    #[cfg(feature = "document-extract-audio-shards")]
+    pub(crate) audio_shard_budget_decrease_events: u64,
     pub(crate) in_process_scheduled_jobs: usize,
     pub(crate) registry: DocumentExtractJobRegistrySnapshot,
 }

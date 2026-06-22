@@ -1,7 +1,15 @@
 //! Dataset-to-ontology transport contracts.
 
+mod candidates;
 mod dataset;
 
+pub use candidates::{
+    ONTOLOGY_CANDIDATE_INSPECT_ROUTE, ONTOLOGY_CANDIDATE_INSPECTION_SCHEMA_VERSION,
+    OntologyCandidateInspectionFlightRequest, WENDAO_ONTOLOGY_CANDIDATE_INSPECTION_REQUEST_HEADER,
+    decode_ontology_candidate_inspection_request_header,
+    encode_ontology_candidate_inspection_request_header,
+    validate_ontology_candidate_inspection_request,
+};
 pub use dataset::{
     DATASET_ONTOLOGY_HANDOFF_SCHEMA_VERSION, DatasetOntologyFlightManifest,
     DatasetOntologySourceTablePayload, ONTOLOGY_DATASET_MATERIALIZE_ROUTE,

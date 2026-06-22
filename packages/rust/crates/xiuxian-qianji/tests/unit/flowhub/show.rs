@@ -8,7 +8,7 @@ use super::{
 use std::path::PathBuf;
 
 #[test]
-fn scenario_case_summary_block_renders_with_qianhuan_template()
+fn scenario_case_summary_block_renders_with_template_catalog()
 -> Result<(), crate::error::QianjiError> {
     let summary = FlowhubScenarioCaseSummary {
         file_name: "codex-plan.mmd".to_string(),
@@ -53,7 +53,7 @@ fn scenario_case_section_lines_keep_blank_line_between_cases() {
 }
 
 #[test]
-fn flowhub_root_module_section_lines_render_with_qianhuan_template() {
+fn flowhub_root_module_section_lines_render_with_template_catalog() {
     let lines = render_flowhub_root_module_section_lines(&FlowhubModuleSummary {
         module_ref: "plan".to_string(),
         module_name: "plan".to_string(),
@@ -82,7 +82,7 @@ fn flowhub_root_module_section_lines_render_with_qianhuan_template() {
 }
 
 #[test]
-fn flowhub_module_contract_section_lines_render_with_qianhuan_template() {
+fn flowhub_module_contract_section_lines_render_with_template_catalog() {
     let lines = render_flowhub_module_contract_section_lines(&FlowhubModuleShow {
         summary: FlowhubModuleSummary {
             module_ref: "plan".to_string(),

@@ -1,5 +1,8 @@
 //! DuckDB-backed Qianji BPMN workflow data-store implementation.
 
+use std::collections::HashMap;
+use std::sync::Mutex;
+
 use crate::duckdb::DuckDbConnection;
 use crate::duckdb_crate::OptionalExt;
 
@@ -7,7 +10,7 @@ use super::{
     QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY, QianjiBpmnDataRecord, QianjiBpmnDataStoreError,
     QianjiBpmnDuckDbDataStoreConfig, QianjiBpmnInstanceId, QianjiBpmnRecordKey,
 };
-use qianji_bpmn_engine::BpmnCheckpointEnvelope;
+use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
 const WORKFLOW_DATA_TABLE: &str = "qianji_bpmn_workflow_data_records";
 const UPSERT_WORKFLOW_DATA_RECORD_SQL: &str = "
@@ -32,6 +35,7 @@ WHERE instance_id = ?1 AND record_key = ?2";
 /// DuckDB-backed BPMN workflow-local data store.
 pub struct QianjiBpmnDuckDbDataStore {
     connection: DuckDbConnection,
+    latest_snapshot_cache: Mutex<HashMap<String, BpmnCheckpointEnvelope>>,
 }
 
 impl QianjiBpmnDuckDbDataStore {
@@ -49,7 +53,10 @@ impl QianjiBpmnDuckDbDataStore {
                     message: error,
                 }
             })?;
-        let store = Self { connection };
+        let store = Self {
+            connection,
+            latest_snapshot_cache: Mutex::new(HashMap::new()),
+        };
         store.ensure_schema()?;
         store.ensure_workflow_state_log_schema()?;
         Ok(store)
@@ -337,6 +344,55 @@ impl QianjiBpmnDuckDbDataStore {
         self.connection.connection()
     }
 
+    pub(super) fn cached_latest_workflow_state_snapshot(
+        &self,
+        instance_id: &str,
+    ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
+        let cache = self.lock_latest_snapshot_cache("lock_workflow_state_latest_cache_for_read")?;
+        Ok(cache.get(instance_id).cloned())
+    }
+
+    pub(super) fn cache_latest_workflow_state_snapshot(
+        &self,
+        checkpoint: &BpmnCheckpointEnvelope,
+    ) -> Result<(), QianjiBpmnDataStoreError> {
+        let instance_id = checkpoint.state.instance_id.as_ref();
+        let mut cache =
+            self.lock_latest_snapshot_cache("lock_workflow_state_latest_cache_for_write")?;
+        let should_update = cache
+            .get(instance_id)
+            .is_none_or(|current| is_newer_workflow_state_snapshot(checkpoint, current));
+        if should_update {
+            cache.insert(instance_id.to_string(), checkpoint.clone());
+        }
+        Ok(())
+    }
+
+    pub(super) fn remove_cached_latest_workflow_state_snapshot(
+        &self,
+        instance_id: &str,
+    ) -> Result<(), QianjiBpmnDataStoreError> {
+        let mut cache =
+            self.lock_latest_snapshot_cache("lock_workflow_state_latest_cache_for_delete")?;
+        cache.remove(instance_id);
+        Ok(())
+    }
+
+    fn lock_latest_snapshot_cache(
+        &self,
+        operation: &'static str,
+    ) -> Result<
+        std::sync::MutexGuard<'_, HashMap<String, BpmnCheckpointEnvelope>>,
+        QianjiBpmnDataStoreError,
+    > {
+        self.latest_snapshot_cache
+            .lock()
+            .map_err(|error| QianjiBpmnDataStoreError::Storage {
+                operation,
+                message: error.to_string(),
+            })
+    }
+
     pub(super) fn execute_in_transaction<T>(
         &self,
         operation: &'static str,
@@ -386,6 +442,15 @@ CREATE TABLE IF NOT EXISTS {WORKFLOW_DATA_TABLE} (
                 message: error.to_string(),
             })
     }
+}
+
+fn is_newer_workflow_state_snapshot(
+    candidate: &BpmnCheckpointEnvelope,
+    current: &BpmnCheckpointEnvelope,
+) -> bool {
+    candidate.sequence > current.sequence
+        || (candidate.sequence == current.sequence
+            && candidate.state.updated_at_ms >= current.state.updated_at_ms)
 }
 
 fn delete_workflow_state_row(

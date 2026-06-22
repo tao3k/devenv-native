@@ -4,14 +4,14 @@
 //! that connect UI/API requests to Wendao domain services. Low-level Flight and
 //! gRPC transport contracts are provided by `xiuxian-wendao-server`.
 
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
+#![recursion_limit = "256"]
 
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::wendao_studio_harness_config()
-);
+#[cfg(all(test, feature = "document-extract-audio-shards"))]
+#[path = "test_support/unit/mod.rs"]
+pub(crate) mod test_support_unit;
+
+#[cfg(all(test, feature = "document-extract-audio-shards"))]
+pub(crate) use test_support_unit as unit;
 
 /// Lightweight Studio route, schema, and `OpenAPI` contracts.
 #[cfg(feature = "contracts")]

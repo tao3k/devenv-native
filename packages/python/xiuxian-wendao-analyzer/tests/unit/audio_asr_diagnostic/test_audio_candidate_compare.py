@@ -20,23 +20,21 @@ def test_compare_audio_candidate_summaries_prefers_lower_cer(
             model="qwen3-asr-1.7b-mlx",
             precision_passed=True,
             max_cer=0.04,
-            wall_seconds=90.0,
+            request_cumulative_seconds=90.0,
         ),
     )
     diagnostic.write_json(
         xiaomi_summary,
         _summary_payload(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             model="xiaomi/mimo-v2.5",
             precision_passed=True,
             max_cer=0.08,
-            wall_seconds=30.0,
+            request_cumulative_seconds=30.0,
         ),
     )
 
-    report = diagnostic.compare_audio_candidate_summaries(
-        [qwen_summary, xiaomi_summary]
-    )
+    report = diagnostic.compare_audio_candidate_summaries([qwen_summary, xiaomi_summary])
 
     assert report["eligiblePrecisionCandidateCount"] == 2
     assert report["eligibleTimelineCandidateCount"] == 2
@@ -45,7 +43,7 @@ def test_compare_audio_candidate_summaries_prefers_lower_cer(
     assert report["promotionCandidate"] == ("local-openai-audio:qwen3-asr-1.7b-mlx")
     assert report["rankedCandidates"] == [
         "local-openai-audio:qwen3-asr-1.7b-mlx",
-        "openrouter-chat-audio:xiaomi/mimo-v2.5",
+        "openrouter-audio:xiaomi/mimo-v2.5",
     ]
 
 
@@ -57,12 +55,12 @@ def test_compare_audio_candidate_summaries_reports_no_precision_candidate(
     diagnostic.write_json(
         summary_path,
         _summary_payload(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             model="xiaomi/mimo-v2.5",
             precision_passed=False,
             precision_reason="reference-not-configured",
             max_cer=None,
-            wall_seconds=20.0,
+            request_cumulative_seconds=20.0,
         ),
     )
 
@@ -87,30 +85,28 @@ def test_compare_audio_candidate_summaries_prefers_diagnostic_wall_time(
             model="qwen3-asr-1.7b-mlx",
             precision_passed=True,
             max_cer=0.04,
-            wall_seconds=200.0,
+            request_cumulative_seconds=200.0,
             diagnostic_wall_seconds=25.0,
         ),
     )
     diagnostic.write_json(
         xiaomi_summary,
         _summary_payload(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             model="xiaomi/mimo-v2.5",
             precision_passed=True,
             max_cer=0.04,
-            wall_seconds=20.0,
+            request_cumulative_seconds=20.0,
             diagnostic_wall_seconds=40.0,
         ),
     )
 
-    report = diagnostic.compare_audio_candidate_summaries(
-        [qwen_summary, xiaomi_summary]
-    )
+    report = diagnostic.compare_audio_candidate_summaries([qwen_summary, xiaomi_summary])
     candidate = report["candidates"][0]
 
     assert report["promotionCandidate"] == "local-openai-audio:qwen3-asr-1.7b-mlx"
-    assert candidate["wallSeconds"] == 25.0
-    assert candidate["requestWallSeconds"] == 200.0
+    assert candidate["diagnosticWallSeconds"] == 25.0
+    assert candidate["requestCumulativeSeconds"] == 200.0
 
 
 def test_compare_audio_candidate_summaries_rejects_timeline_gaps(
@@ -121,11 +117,11 @@ def test_compare_audio_candidate_summaries_rejects_timeline_gaps(
     diagnostic.write_json(
         summary_path,
         _summary_payload(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             model="xiaomi/mimo-v2.5",
             precision_passed=True,
             max_cer=0.03,
-            wall_seconds=20.0,
+            request_cumulative_seconds=20.0,
             timeline_passed=False,
             timeline_gap_seconds=15.0,
         ),
@@ -151,11 +147,11 @@ def test_compare_audio_candidate_summaries_rejects_repetition_proxy(
     diagnostic.write_json(
         summary_path,
         _summary_payload(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             model="xiaomi/mimo-v2.5",
             precision_passed=True,
             max_cer=0.03,
-            wall_seconds=20.0,
+            request_cumulative_seconds=20.0,
             weak_rows=3,
             avg_repeated_ngram_ratio=0.56,
         ),
@@ -185,7 +181,7 @@ def test_compare_audio_candidate_summaries_reports_short_utterance_rows(
             model="qwen3-asr-1.7b-mlx",
             precision_passed=True,
             max_cer=0.03,
-            wall_seconds=20.0,
+            request_cumulative_seconds=20.0,
             short_utterance_rows=1,
         ),
     )
@@ -209,11 +205,11 @@ def test_compare_audio_candidate_summaries_cli_mode_writes_report(
     diagnostic.write_json(
         summary_path,
         _summary_payload(
-            backend="openrouter-chat-audio",
+            backend="openrouter-audio",
             model="xiaomi/mimo-v2.5",
             precision_passed=True,
             max_cer=0.03,
-            wall_seconds=18.0,
+            request_cumulative_seconds=18.0,
         ),
     )
 
@@ -229,9 +225,7 @@ def test_compare_audio_candidate_summaries_cli_mode_writes_report(
     assert exit_code == 0
     stdout_report = json.loads(capsys.readouterr().out)
     file_report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert (
-        stdout_report["promotionCandidate"] == "openrouter-chat-audio:xiaomi/mimo-v2.5"
-    )
+    assert stdout_report["promotionCandidate"] == "openrouter-audio:xiaomi/mimo-v2.5"
     assert stdout_report["timelineStructureRequired"] is True
     assert stdout_report["qualityProxyRequired"] is True
     assert file_report == stdout_report
@@ -243,7 +237,7 @@ def _summary_payload(
     model: str,
     precision_passed: bool,
     max_cer: float | None,
-    wall_seconds: float,
+    request_cumulative_seconds: float,
     precision_reason: str = "passed",
     timeline_passed: bool = True,
     timeline_gap_seconds: float = 0.0,
@@ -258,10 +252,10 @@ def _summary_payload(
             backend: {
                 "chunks": 5,
                 "errors": 0,
-                "wallSeconds": wall_seconds,
+                "requestCumulativeSeconds": request_cumulative_seconds,
                 "transcriptChars": 1000,
-                "latencyP50Seconds": wall_seconds / 5,
-                "latencyP95Seconds": wall_seconds / 4,
+                "latencyP50Seconds": request_cumulative_seconds / 5,
+                "latencyP95Seconds": request_cumulative_seconds / 4,
             }
         },
         "qualityByBackend": {

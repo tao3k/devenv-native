@@ -46,7 +46,32 @@ def build_openrouter_payload(
         ],
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "reasoning": {"effort": "none"},
     }
+
+
+def build_openrouter_transcription_payload(
+    *,
+    model: str,
+    audio_bytes: bytes,
+    audio_format: str,
+) -> dict[str, object]:
+    """Build an OpenRouter speech-to-text transcription request."""
+
+    encoded_audio = base64.b64encode(audio_bytes).decode("ascii")
+    return {
+        "model": model,
+        "input_audio": {
+            "data": encoded_audio,
+            "format": audio_format,
+        },
+    }
+
+
+def is_openrouter_transcription_url(base_url: str) -> bool:
+    """Return true when a diagnostic URL targets the OpenRouter STT endpoint."""
+
+    return base_url.rstrip("/").endswith("/audio/transcriptions")
 
 
 def _message_content_to_text(content: object) -> str:
@@ -136,10 +161,7 @@ def _normalize_segment(value: object) -> dict[str, object] | None:
     if end is None and (end_ms := _seconds(value.get("endMs"))) is not None:
         end = end_ms / 1000
     duration = _seconds(value.get("durationSeconds"))
-    if (
-        duration is None
-        and (duration_ms := _seconds(value.get("durationMs"))) is not None
-    ):
+    if duration is None and (duration_ms := _seconds(value.get("durationMs"))) is not None:
         duration = duration_ms / 1000
     if end is None and start is not None and duration is not None:
         end = start + duration
@@ -152,9 +174,7 @@ def _normalize_segment(value: object) -> dict[str, object] | None:
 def _segments_from_mapping(value: Mapping[str, object]) -> list[dict[str, object]]:
     for key in ("segments", "words"):
         segments = value.get(key)
-        if isinstance(segments, Sequence) and not isinstance(
-            segments, (str, bytes, bytearray)
-        ):
+        if isinstance(segments, Sequence) and not isinstance(segments, (str, bytes, bytearray)):
             return [
                 normalized
                 for segment in segments
@@ -213,14 +233,22 @@ def transcribe_openrouter(
 ) -> tuple[str, list[dict[str, object]]]:
     """Run OpenRouter chat/audio transcription for one chunk."""
 
-    payload = build_openrouter_payload(
-        model=model,
-        prompt=prompt,
-        audio_bytes=chunk.path.read_bytes(),
-        audio_format=chunk.format,
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
+    audio_bytes = chunk.path.read_bytes()
+    if is_openrouter_transcription_url(base_url):
+        payload = build_openrouter_transcription_payload(
+            model=model,
+            audio_bytes=audio_bytes,
+            audio_format=chunk.format,
+        )
+    else:
+        payload = build_openrouter_payload(
+            model=model,
+            prompt=prompt,
+            audio_bytes=audio_bytes,
+            audio_format=chunk.format,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
     request = urllib.request.Request(
         base_url,
         data=json.dumps(payload).encode("utf-8"),

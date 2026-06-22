@@ -1,13 +1,11 @@
 //! Search-family route contracts for Wendao Flight metadata.
 
-mod ast;
 mod attachments;
 mod autocomplete;
 mod definition;
 mod generic;
 mod repo;
 
-pub use ast::SEARCH_AST_ROUTE;
 pub use attachments::{
     SEARCH_ATTACHMENTS_ROUTE, WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
     WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER, WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER,

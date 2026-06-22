@@ -37,6 +37,10 @@ def test_cargo_perf_probe_can_send_distinct_input_manifest(
         cargo_features="performance,studio,zhenfa-router,duckdb",
         flight_mode="async",
         wait_ms=0,
+        audio_worker="hosted",
+        audio_hosted_provider="openrouter",
+        audio_hosted_base_url="https://openrouter.ai/api/v1",
+        audio_hosted_model="qwen/qwen3-asr-flash-2026-02-10",
     )
 
     benchmark.run_cargo_perf_test(
@@ -54,10 +58,16 @@ def test_cargo_perf_probe_can_send_distinct_input_manifest(
         wait_ms=60000,
     )
 
-    manifest = benchmark.json.loads(
-        captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"]
-    )
+    manifest = benchmark.json.loads(captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"])
     assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_WAIT_MS"] == "60000"
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_WORKER"] == "hosted"
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_PROVIDER"] == "openrouter"
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_BASE_URL"] == (
+        "https://openrouter.ai/api/v1"
+    )
+    assert captured_env["WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_MODEL"] == (
+        "qwen/qwen3-asr-flash-2026-02-10"
+    )
     assert [item["name"] for item in manifest] == ["first", "second"]
     assert [Path(item["outputDir"]).name for item in manifest] == ["first", "second"]
 
@@ -95,6 +105,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
         rust_audio_sample_rate_hz=16000,
         rust_audio_channels=1,
         rust_audio_format="wav",
+        rust_audio_bitrate="96k",
+        rust_audio_artifact_cache_dir=tmp_path / "audio-artifacts",
+        rust_audio_transcript_admission_dir=tmp_path / "audio-transcript-admissions",
         rust_audio_base_workers="4",
         rust_audio_recovery_workers="2",
         rust_document_extract_endpoint=[
@@ -136,9 +149,7 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS"] == "6"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SOURCE_RANGE_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER"] == "fast-risk-window"
-    assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE"] == (
-        "hosted-audio-transcript-v1"
-    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_BACKEND_PROFILE"] == ("hosted-audio-transcript-v1")
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_CHUNK_MS"] == "60000"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_BEFORE_MS"] == "5000"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_CONTEXT_AFTER_MS"] == "5000"
@@ -146,6 +157,13 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_SAMPLE_RATE_HZ"] == "16000"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_CHANNELS"] == "1"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_FORMAT"] == "wav"
+    assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_BITRATE"] == "96k"
+    assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR"] == str(
+        tmp_path / "audio-artifacts"
+    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_TRANSCRIPT_ADMISSION_DIR"] == str(
+        tmp_path / "audio-transcript-admissions"
+    )
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_BASE_WORKERS"] == "4"
     assert env["WENDAO_DOCUMENT_EXTRACT_AUDIO_RECOVERY_WORKERS"] == "2"
     assert env["WENDAO_DOCUMENT_EXTRACT_PDF_OCR_ENDPOINTS"] == (
@@ -158,13 +176,9 @@ def test_start_gateway_server_sets_document_extract_and_valkey_env(
     assert env["WENDAO_DOCUMENT_EXTRACT_OCR_SHARD_CACHE_ROOT"] == str(
         (tmp_path / "ocr-shard-cache").resolve()
     )
-    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == (
-        "shard_fallback_pages"
-    )
+    assert env["WENDAO_DOCUMENT_EXTRACT_PDF_RENDER_SELECTION"] == ("shard_fallback_pages")
     assert env["VALKEY_URL"] == "redis://127.0.0.1:51079/0"
-    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == (
-        "redis://127.0.0.1:51079/0"
-    )
+    assert env["XIUXIAN_WENDAO_SEARCH_PLANE_VALKEY_URL"] == ("redis://127.0.0.1:51079/0")
     assert env["XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING"] == "false"
     config = (tmp_path / "gateway" / "wendao.toml").read_text(encoding="utf-8")
     assert "[search.cache]" in config
@@ -200,6 +214,8 @@ def test_start_rust_provider_server_enables_flight_bin_feature(
         rust_audio_sample_rate_hz=None,
         rust_audio_channels=None,
         rust_audio_format=None,
+        rust_audio_bitrate=None,
+        rust_audio_artifact_cache_dir=None,
         rust_audio_base_workers=None,
         rust_audio_recovery_workers=None,
         ocr_shard_cache_root=None,

@@ -1,13 +1,10 @@
 //! Runtime data contracts for `Qianji` bootcamp workflow execution.
 
-#[cfg(feature = "llm")]
-use crate::QianjiLlmClient;
 use crate::scheduler_preflight::RuntimeWendaoMount;
 use include_dir::Dir;
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_wendao::link_graph::LinkGraphIndex;
 
 /// Runtime report returned by the Qianji laboratory API.
@@ -37,40 +34,6 @@ pub struct WorkflowReport {
     pub final_context: Value,
 }
 
-/// Compatibility namespace boundary: this feature-gated enum keeps the same
-/// public name as the non-`llm` placeholder.
-/// LLM runtime mode for bootcamp workflow execution.
-#[cfg(feature = "llm")]
-#[derive(Clone, Default)]
-pub enum BootcampLlmMode {
-    /// Disable LLM client injection.
-    ///
-    /// Workflows requiring LLM nodes will fail at compile-time with a clear
-    /// topology error.
-    #[default]
-    Disabled,
-    /// Build an OpenAI-compatible client from `qianji.toml` runtime config.
-    RuntimeDefault,
-    /// Use one deterministic mock response for every chat completion call.
-    Mock {
-        /// Static completion payload returned for all requests.
-        response: String,
-    },
-    /// Use one externally managed LLM client.
-    External(Arc<QianjiLlmClient>),
-}
-
-/// Compatibility namespace boundary: this placeholder keeps the same public
-/// name when the `llm` feature is disabled.
-/// LLM runtime mode for bootcamp workflow execution.
-#[cfg(not(feature = "llm"))]
-#[derive(Debug, Clone, Copy, Default)]
-pub enum BootcampLlmMode {
-    /// Disable LLM client injection.
-    #[default]
-    Disabled,
-}
-
 /// Optional runtime overrides for `run_workflow`.
 #[derive(Clone)]
 pub struct BootcampRunOptions {
@@ -84,16 +47,8 @@ pub struct BootcampRunOptions {
     pub session_id: Option<String>,
     /// Optional `Valkey` URL used with `session_id`.
     pub redis_url: Option<String>,
-    /// Genesis rules for default orchestrator construction.
-    pub genesis_rules: String,
     /// Optional prebuilt `LinkGraph` index.
     pub index: Option<Arc<LinkGraphIndex>>,
-    /// Optional prebuilt `Qianhuan` orchestrator.
-    pub orchestrator: Option<Arc<ThousandFacesOrchestrator>>,
-    /// Optional prebuilt persona registry.
-    pub persona_registry: Option<Arc<PersonaRegistry>>,
-    /// LLM runtime selection strategy.
-    pub llm_mode: BootcampLlmMode,
     /// Optional manager for distributed consensus voting.
     pub consensus_manager: Option<Arc<crate::consensus::ConsensusManager>>,
 }
@@ -106,11 +61,7 @@ impl BootcampRunOptions {
             repo_path: None,
             session_id: None,
             redis_url: None,
-            genesis_rules: "Safety Rules".to_string(),
             index: None,
-            orchestrator: None,
-            persona_registry: None,
-            llm_mode: BootcampLlmMode::Disabled,
             consensus_manager: None,
         }
     }

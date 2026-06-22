@@ -4,15 +4,19 @@ use std::path::{Path, PathBuf};
 
 use crate::settings::{first_non_empty, get_setting_bool, get_setting_string, parse_positive_u64};
 use serde_yaml::Value;
-use xiuxian_config_core::{resolve_cache_home, resolve_path_from_value};
+use xiuxian_config_core::resolve_path_from_value;
 pub use xiuxian_db_store::duckdb::DuckDbDatabasePath;
 use xiuxian_db_store::duckdb::{DuckDbExecutionConfig, DuckDbRuntimeConfig};
+use xiuxian_db_store::state::{ArtisanStateRootConfig, artisan_state_root_from_config};
 
+/// State namespace for Wendao-owned runtime artifacts.
+pub const DEFAULT_WENDAO_STATE_NAMESPACE: &str = "wendao";
 /// `DuckDB`'s special marker for one ephemeral in-process database.
 ///
-/// This is a DuckDB-local catalog mode, not Wendao memory-layer state and not
-/// an integration point for `xiuxian-memory-engine`.
-pub const DEFAULT_SEARCH_DUCKDB_DATABASE_PATH: &str = ":memory:";
+/// This is a DuckDB-local catalog mode, not Wendao memory-layer state.
+pub const SEARCH_DUCKDB_IN_MEMORY_DATABASE_PATH: &str = ":memory:";
+/// Compatibility alias for the config marker that keeps older callers compiling.
+pub const DEFAULT_SEARCH_DUCKDB_DATABASE_PATH: &str = SEARCH_DUCKDB_IN_MEMORY_DATABASE_PATH;
 /// Default thread budget for bounded `DuckDB` analytics.
 pub const DEFAULT_SEARCH_DUCKDB_THREADS: u64 = 4;
 /// Default row-order policy for Wendao's bounded `DuckDB` search lane.
@@ -37,11 +41,29 @@ pub type SearchDuckDbExecutionConfig = DuckDbExecutionConfig;
 /// Runtime-owned `DuckDB` config for bounded Wendao search analytics.
 pub type SearchDuckDbRuntimeConfig = DuckDbRuntimeConfig;
 
+/// Resolve the default Wendao state root.
+#[must_use]
+pub fn default_wendao_state_root(project_root: &Path) -> PathBuf {
+    artisan_state_root_from_config(ArtisanStateRootConfig {
+        project_root: Some(project_root.to_path_buf()),
+        state_root: None,
+        home_dir: None,
+    })
+    .join(DEFAULT_WENDAO_STATE_NAMESPACE)
+}
+
+/// Resolve the default database file for bounded `DuckDB` search analytics.
+#[must_use]
+pub fn default_search_duckdb_database_path(project_root: &Path) -> PathBuf {
+    default_wendao_state_root(project_root)
+        .join("duckdb")
+        .join("search.duckdb")
+}
+
 /// Resolve the default temp directory for bounded `DuckDB` analytics.
 #[must_use]
 pub fn default_search_duckdb_temp_directory(project_root: &Path) -> PathBuf {
-    resolve_cache_home(Some(project_root))
-        .unwrap_or_else(|| project_root.join(".cache"))
+    default_wendao_state_root(project_root)
         .join("duckdb")
         .join("tmp")
 }
@@ -49,7 +71,7 @@ pub fn default_search_duckdb_temp_directory(project_root: &Path) -> PathBuf {
 fn default_search_duckdb_runtime(project_root: &Path) -> SearchDuckDbRuntimeConfig {
     SearchDuckDbRuntimeConfig {
         enabled: false,
-        database_path: DuckDbDatabasePath::InMemory,
+        database_path: DuckDbDatabasePath::File(default_search_duckdb_database_path(project_root)),
         temp_directory: default_search_duckdb_temp_directory(project_root),
         threads: DEFAULT_SEARCH_DUCKDB_THREADS,
         execution: SearchDuckDbExecutionConfig {
@@ -68,7 +90,7 @@ fn resolve_non_empty_string(settings: &Value, dotted_key: &str) -> Option<String
 }
 
 fn resolve_database_path(project_root: &Path, raw: &str) -> DuckDbDatabasePath {
-    if raw.trim() == DEFAULT_SEARCH_DUCKDB_DATABASE_PATH {
+    if raw.trim() == SEARCH_DUCKDB_IN_MEMORY_DATABASE_PATH {
         DuckDbDatabasePath::InMemory
     } else {
         resolve_path_from_value(Some(project_root), Some(raw))

@@ -1,8 +1,10 @@
 //! Cargo entry point for dormant `xiuxian-qianji` unit suites.
 
-pub use xiuxian_qianji::runtime_config;
 pub use xiuxian_qianji::{
-    BpmnAdapterError, BpmnOrchestrationError, QianjiBpmnCheckpointStore, QianjiBpmnExecutionDriver,
+    BpmnAdapterError, BpmnOrchestrationError, FLOWHUB_SERVICE_ACTIVITY_TYPE, FlowhubScenarioIdRef,
+    FlowhubServiceActivityHttpScheduleInput, FlowhubServiceActivityScheduleInput,
+    QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE, QIANJI_RUN_CONSOLE_EVENT_ROUTE,
+    QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiBpmnCheckpointStore, QianjiBpmnExecutionDriver,
     QianjiBpmnExecutionFacade, QianjiBpmnExecutionMode, QianjiBpmnExecutionRequest,
     QianjiBpmnExecutionScheduler, QianjiBpmnHostBridge, QianjiBpmnPendingHostWorkHttpResponse,
     QianjiBpmnSchedulerLeaseConfig, QianjiBpmnSession, QianjiBpmnWorkflowActionHttpRequest,
@@ -16,24 +18,36 @@ pub use xiuxian_qianji::{
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusHttpResponse,
     QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimHttpRequest,
     QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskClaimPayload,
-    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
-    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
-    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
-    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiBpmnWorkflowTaskReleasePayload,
-    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
-    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
-    SchedulerAgentIdentity, dispatch_pending_host_work_request, load_bpmn_package_from_files,
-    qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
+    QianjiBpmnWorkflowTaskClaimRequest, QianjiBpmnWorkflowTaskCompleteBatchHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
+    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseRequest,
+    QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistRequest,
+    QianjiBpmnWorkflowWorklistRoutingFilter, QianjiControlDiagnosticsHttpResponse,
+    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
+    QianjiControlRunStreamSource, QianjiRunConsoleElementState, QianjiRuntimeBpmnInstanceIdRef,
+    QianjiRuntimeInstantMs, SchedulerAgentIdentity, build_flowhub_service_activity_schedule_record,
+    build_flowhub_service_activity_schedule_record_from_http_pending_work,
+    build_flowhub_service_task_complete_http_request,
+    build_flowhub_service_task_completion_payload,
+    build_flowhub_service_task_contract_activity_result,
+    build_flowhub_service_task_contract_completion_data, dispatch_pending_host_work_request,
+    load_bpmn_package_from_files, qianji_bpmn_workflow_router, qianji_control_run_stream_rows,
+    resolve_pending_host_work, resolve_waiting_external_event,
 };
+#[cfg(feature = "run-console-flight")]
+pub use xiuxian_qianji::{
+    QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleArrowReadModel,
+    QianjiRunConsoleFlightService, qianji_run_console_arrow_read_model,
+};
+pub use xiuxian_qianji::{bpmn, runtime_config, workflow_config};
 
 #[path = "unit/bpmn_engine_dependency.rs"]
 mod bpmn_engine_dependency;
-#[path = "unit/bpmn/mod.rs"]
-mod bpmn_tests;
 #[path = "unit/lib_policy.rs"]
 mod lib_policy;
-#[path = "unit/support/valkey.rs"]
-mod qianji_test_valkey_support;
 #[cfg(feature = "qianji-full")]
 #[path = "unit/unit_adversarial_loop.rs"]
 mod unit_adversarial_loop;

@@ -4,8 +4,8 @@ use include_dir::Dir;
 
 /// Embedded skill document path relative to the `resources/` root.
 pub const ZHIXING_SKILL_DOC_PATH: &str = "zhixing/skills/agenda-management/SKILL.md";
-/// Stable embedded crate id used by mounted zhixing resource readers.
-pub const ZHIXING_EMBEDDED_CRATE_ID: &str = "xiuxian-zhixing";
+/// Stable embedded package id used by mounted zhixing resource readers.
+pub const ZHIXING_EMBEDDED_CRATE_ID: &str = "xiuxian-wendao";
 
 static EMBEDDED_ZHIXING_RESOURCES: Dir<'_> =
     include_dir::include_dir!("$CARGO_MANIFEST_DIR/../xiuxian-wendao/resources");

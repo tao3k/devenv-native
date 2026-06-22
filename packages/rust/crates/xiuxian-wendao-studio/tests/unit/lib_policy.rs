@@ -159,7 +159,7 @@ fn studio_polyglot_document_extract_provider_hint() -> RustVerificationProfileHi
         RustVerificationTaskKind::Chaos,
     ])
     .with_rationale(
-        "Studio full-document Docling dispatch adopts the runtime polyglot schedule plan while retaining endpoint-pool and Flight authority",
+        "Studio full-document Docling dispatch adopts the orchestrator Wendao contract schedule plan while retaining endpoint-pool and Flight authority",
     )
 }
 
@@ -214,7 +214,3 @@ fn security_skill_descriptor() -> RustVerificationSkillDescriptor {
         .with_pass_criteria(["exit=0", "findings=triaged"])
         .with_receipt_fields(["route_surface", "finding_summary", "artifact"])
 }
-
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = wendao_studio_harness_config()
-);

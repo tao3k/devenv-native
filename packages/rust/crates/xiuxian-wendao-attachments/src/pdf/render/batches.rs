@@ -1,13 +1,19 @@
 //! Arrow batch builders and IPC sidecar writers for render shard artifacts.
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use arrow::array::{ArrayRef, Float64Array, Int32Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::ipc::writer::FileWriter;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 use crate::pdf::ocr::{PdfOcrWorkerProfile, build_ocr_shard_input_batch, build_ocr_shard_inputs};
 
@@ -16,6 +22,8 @@ use super::types::{PdfOcrShardType, PdfPageShardManifest};
 const OCR_SHARD_MANIFEST_ARROW_NAME: &str = "_ocr_shards.arrow";
 const OCR_SHARD_INPUT_ARROW_NAME: &str = "_ocr_input.arrow";
 const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
+const OCR_SHARD_MANIFEST_TABLE: &str = "pdf_ocr_shard_manifest";
+const OCR_PENDING_RESOURCE_TABLE: &str = "pdf_ocr_pending_resource";
 
 /// # Errors
 ///
@@ -23,8 +31,8 @@ const OCR_PENDING_RESOURCE_ARROW_NAME: &str = "_ocr_pending.arrow";
 pub fn build_shard_manifest_batch(
     manifests: &[PdfPageShardManifest],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        shard_manifest_schema(),
+    record_batch(
+        &shard_manifest_contract(),
         vec![
             string_manifest_column(manifests, |manifest| manifest.source_path.clone()),
             string_manifest_column(manifests, |manifest| manifest.source_content_hash.clone()),
@@ -70,8 +78,100 @@ pub fn build_shard_manifest_batch(
             int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.right),
             int_manifest_column(manifests, |manifest| manifest.source_page_pixel_box.bottom),
         ],
+        "build OCR shard manifest Arrow batch",
     )
-    .map_err(|error| format!("build OCR shard manifest Arrow batch: {error}"))
+}
+
+/// Decode a typed shard manifest batch into manifest DTO rows.
+///
+/// # Errors
+///
+/// Returns an error if required columns are missing, typed incorrectly, or
+/// contain unsupported shard-type values.
+#[cfg(feature = "pdf-render")]
+pub(super) fn shard_manifests_from_batch(
+    batch: &RecordBatch,
+) -> Result<Vec<PdfPageShardManifest>, String> {
+    let source_path = string_column(batch, "sourcePath")?;
+    let source_content_hash = string_column(batch, "sourceContentHash")?;
+    let page_index = int_column(batch, "pageIndex")?;
+    let render_profile = string_column(batch, "renderProfile")?;
+    let image_path = string_column(batch, "imagePath")?;
+    let image_mime_type = string_column(batch, "imageMimeType")?;
+    let raster_sha256 = string_column(batch, "rasterSha256")?;
+    let raster_width_px = int_column(batch, "rasterWidthPx")?;
+    let raster_height_px = int_column(batch, "rasterHeightPx")?;
+    let render_dpi = int_column(batch, "renderDpi")?;
+    let rotation_degrees = int_column(batch, "rotationDegrees")?;
+    let media_left = float_column(batch, "mediaLeft")?;
+    let media_bottom = float_column(batch, "mediaBottom")?;
+    let media_right = float_column(batch, "mediaRight")?;
+    let media_top = float_column(batch, "mediaTop")?;
+    let crop_left = float_column(batch, "cropLeft")?;
+    let crop_bottom = float_column(batch, "cropBottom")?;
+    let crop_right = float_column(batch, "cropRight")?;
+    let crop_top = float_column(batch, "cropTop")?;
+    let point_to_pixel_scale_x = float_column(batch, "pointToPixelScaleX")?;
+    let point_to_pixel_scale_y = float_column(batch, "pointToPixelScaleY")?;
+    let element_id = string_column(batch, "elementId")?;
+    let shard_type = string_column(batch, "shardType")?;
+    let region_index = int_column(batch, "regionIndex")?;
+    let parent_shard_element_id = string_column(batch, "parentShardElementId")?;
+    let reading_order_key = string_column(batch, "readingOrderKey")?;
+    let source_page_pixel_left = int_column(batch, "sourcePagePixelLeft")?;
+    let source_page_pixel_top = int_column(batch, "sourcePagePixelTop")?;
+    let source_page_pixel_right = int_column(batch, "sourcePagePixelRight")?;
+    let source_page_pixel_bottom = int_column(batch, "sourcePagePixelBottom")?;
+
+    (0..batch.num_rows())
+        .map(|row| {
+            let shard_type = match shard_type.value(row) {
+                "page" => PdfOcrShardType::Page,
+                "region" => PdfOcrShardType::Region,
+                value => return Err(format!("unsupported PDF render shard type `{value}`")),
+            };
+            Ok(PdfPageShardManifest {
+                source_path: source_path.value(row).to_string(),
+                source_content_hash: source_content_hash.value(row).to_string(),
+                page_index: i32_to_u32(page_index.value(row), "pageIndex")?,
+                shard_type,
+                region_index: i32_to_u32(region_index.value(row), "regionIndex")?,
+                parent_shard_element_id: parent_shard_element_id.value(row).to_string(),
+                reading_order_key: reading_order_key.value(row).to_string(),
+                render_profile: render_profile.value(row).to_string(),
+                image_path: image_path.value(row).to_string(),
+                image_mime_type: image_mime_type.value(row).to_string(),
+                raster_sha256: raster_sha256.value(row).to_string(),
+                geometry: super::types::PdfPageShardGeometry {
+                    media_box: super::types::PdfPageBox::new(
+                        media_left.value(row),
+                        media_bottom.value(row),
+                        media_right.value(row),
+                        media_top.value(row),
+                    ),
+                    crop_box: super::types::PdfPageBox::new(
+                        crop_left.value(row),
+                        crop_bottom.value(row),
+                        crop_right.value(row),
+                        crop_top.value(row),
+                    ),
+                    rotation_degrees: i32_to_u16(rotation_degrees.value(row), "rotationDegrees")?,
+                    render_dpi: i32_to_u32(render_dpi.value(row), "renderDpi")?,
+                    raster_width_px: i32_to_u32(raster_width_px.value(row), "rasterWidthPx")?,
+                    raster_height_px: i32_to_u32(raster_height_px.value(row), "rasterHeightPx")?,
+                    point_to_pixel_scale_x: point_to_pixel_scale_x.value(row),
+                    point_to_pixel_scale_y: point_to_pixel_scale_y.value(row),
+                },
+                source_page_pixel_box: super::types::PdfPagePixelBox::new(
+                    i32_to_u32(source_page_pixel_left.value(row), "sourcePagePixelLeft")?,
+                    i32_to_u32(source_page_pixel_top.value(row), "sourcePagePixelTop")?,
+                    i32_to_u32(source_page_pixel_right.value(row), "sourcePagePixelRight")?,
+                    i32_to_u32(source_page_pixel_bottom.value(row), "sourcePagePixelBottom")?,
+                ),
+                element_id: element_id.value(row).to_string(),
+            })
+        })
+        .collect()
 }
 
 /// # Errors
@@ -80,8 +180,8 @@ pub fn build_shard_manifest_batch(
 pub fn build_ocr_pending_resource_batch(
     manifests: &[PdfPageShardManifest],
 ) -> Result<RecordBatch, String> {
-    RecordBatch::try_new(
-        document_resource_schema(),
+    record_batch(
+        &document_resource_contract(),
         vec![
             Arc::new(StringArray::from(
                 manifests
@@ -137,8 +237,8 @@ pub fn build_ocr_pending_resource_batch(
                     .collect::<Vec<_>>(),
             )),
         ],
+        "build OCR pending resource Arrow batch",
     )
-    .map_err(|error| format!("build OCR pending resource Arrow batch: {error}"))
 }
 fn pending_caption(manifest: &PdfPageShardManifest) -> String {
     match manifest.shard_type {
@@ -179,6 +279,46 @@ where
         manifests.iter().map(value).collect::<Vec<_>>(),
     ))
 }
+
+#[cfg(feature = "pdf-render")]
+fn string_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a StringArray, String> {
+    batch
+        .column_by_name(name)
+        .ok_or_else(|| format!("missing `{name}` column"))?
+        .as_any()
+        .downcast_ref::<StringArray>()
+        .ok_or_else(|| format!("`{name}` column is not Utf8"))
+}
+
+#[cfg(feature = "pdf-render")]
+fn int_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a Int32Array, String> {
+    batch
+        .column_by_name(name)
+        .ok_or_else(|| format!("missing `{name}` column"))?
+        .as_any()
+        .downcast_ref::<Int32Array>()
+        .ok_or_else(|| format!("`{name}` column is not Int32"))
+}
+
+#[cfg(feature = "pdf-render")]
+fn float_column<'a>(batch: &'a RecordBatch, name: &str) -> Result<&'a Float64Array, String> {
+    batch
+        .column_by_name(name)
+        .ok_or_else(|| format!("missing `{name}` column"))?
+        .as_any()
+        .downcast_ref::<Float64Array>()
+        .ok_or_else(|| format!("`{name}` column is not Float64"))
+}
+
+#[cfg(feature = "pdf-render")]
+fn i32_to_u32(value: i32, column: &str) -> Result<u32, String> {
+    u32::try_from(value).map_err(|_| format!("`{column}` value must be non-negative"))
+}
+
+#[cfg(feature = "pdf-render")]
+fn i32_to_u16(value: i32, column: &str) -> Result<u16, String> {
+    u16::try_from(value).map_err(|_| format!("`{column}` value is outside u16 range"))
+}
 pub(super) fn write_shard_artifact_batches(
     output_dir: &Path,
     manifests: &[PdfPageShardManifest],
@@ -200,53 +340,110 @@ pub(super) fn write_shard_artifact_batches(
     ))
 }
 
-fn shard_manifest_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("sourcePath", DataType::Utf8, false),
-        Field::new("sourceContentHash", DataType::Utf8, false),
-        Field::new("pageIndex", DataType::Int32, false),
-        Field::new("renderProfile", DataType::Utf8, false),
-        Field::new("imagePath", DataType::Utf8, false),
-        Field::new("imageMimeType", DataType::Utf8, false),
-        Field::new("rasterSha256", DataType::Utf8, false),
-        Field::new("rasterWidthPx", DataType::Int32, false),
-        Field::new("rasterHeightPx", DataType::Int32, false),
-        Field::new("renderDpi", DataType::Int32, false),
-        Field::new("rotationDegrees", DataType::Int32, false),
-        Field::new("mediaLeft", DataType::Float64, false),
-        Field::new("mediaBottom", DataType::Float64, false),
-        Field::new("mediaRight", DataType::Float64, false),
-        Field::new("mediaTop", DataType::Float64, false),
-        Field::new("cropLeft", DataType::Float64, false),
-        Field::new("cropBottom", DataType::Float64, false),
-        Field::new("cropRight", DataType::Float64, false),
-        Field::new("cropTop", DataType::Float64, false),
-        Field::new("pointToPixelScaleX", DataType::Float64, false),
-        Field::new("pointToPixelScaleY", DataType::Float64, false),
-        Field::new("elementId", DataType::Utf8, false),
-        Field::new("shardType", DataType::Utf8, false),
-        Field::new("regionIndex", DataType::Int32, false),
-        Field::new("parentShardElementId", DataType::Utf8, false),
-        Field::new("readingOrderKey", DataType::Utf8, false),
-        Field::new("sourcePagePixelLeft", DataType::Int32, false),
-        Field::new("sourcePagePixelTop", DataType::Int32, false),
-        Field::new("sourcePagePixelRight", DataType::Int32, false),
-        Field::new("sourcePagePixelBottom", DataType::Int32, false),
-    ]))
+fn shard_manifest_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_SHARD_MANIFEST_TABLE,
+        true,
+        vec![
+            utf8_column("sourcePath"),
+            utf8_column("sourceContentHash"),
+            int32_column("pageIndex"),
+            utf8_column("renderProfile"),
+            utf8_column("imagePath"),
+            utf8_column("imageMimeType"),
+            utf8_column("rasterSha256"),
+            int32_column("rasterWidthPx"),
+            int32_column("rasterHeightPx"),
+            int32_column("renderDpi"),
+            int32_column("rotationDegrees"),
+            float64_column("mediaLeft"),
+            float64_column("mediaBottom"),
+            float64_column("mediaRight"),
+            float64_column("mediaTop"),
+            float64_column("cropLeft"),
+            float64_column("cropBottom"),
+            float64_column("cropRight"),
+            float64_column("cropTop"),
+            float64_column("pointToPixelScaleX"),
+            float64_column("pointToPixelScaleY"),
+            utf8_column("elementId"),
+            utf8_column("shardType"),
+            int32_column("regionIndex"),
+            utf8_column("parentShardElementId"),
+            utf8_column("readingOrderKey"),
+            int32_column("sourcePagePixelLeft"),
+            int32_column("sourcePagePixelTop"),
+            int32_column("sourcePagePixelRight"),
+            int32_column("sourcePagePixelBottom"),
+        ],
+    )
 }
 
-fn document_resource_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("sourcePath", DataType::Utf8, true),
-        Field::new("resourceType", DataType::Utf8, true),
-        Field::new("resourcePath", DataType::Utf8, true),
-        Field::new("pageIndex", DataType::Int32, true),
-        Field::new("caption", DataType::Utf8, true),
-        Field::new("content", DataType::Utf8, true),
-        Field::new("mimeType", DataType::Utf8, true),
-        Field::new("status", DataType::Utf8, true),
-        Field::new("elementId", DataType::Utf8, true),
-    ]))
+fn document_resource_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        OCR_PENDING_RESOURCE_TABLE,
+        true,
+        vec![
+            nullable_utf8_column("sourcePath"),
+            nullable_utf8_column("resourceType"),
+            nullable_utf8_column("resourcePath"),
+            nullable_int32_column("pageIndex"),
+            nullable_utf8_column("caption"),
+            nullable_utf8_column("content"),
+            nullable_utf8_column("mimeType"),
+            nullable_utf8_column("status"),
+            nullable_utf8_column("elementId"),
+        ],
+    )
+}
+
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<ArrayRef>,
+    context: &'static str,
+) -> Result<RecordBatch, String> {
+    let batch = RecordBatch::try_new(schema_ref(contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("{context} schema validation: {error}"))?;
+    Ok(batch)
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Int32)
+}
+
+const fn nullable_int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int32)
+}
+
+const fn float64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Float64)
 }
 
 fn write_arrow_file(path: &Path, batches: &[RecordBatch]) -> Result<(), String> {

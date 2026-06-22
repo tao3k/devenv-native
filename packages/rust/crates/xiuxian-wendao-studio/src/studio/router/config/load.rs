@@ -11,7 +11,9 @@ use super::paths::studio_effective_wendao_toml_path;
 use super::sanitize::{
     sanitize_path_like, sanitize_path_list, sanitize_projects, sanitize_repo_projects,
 };
-use super::types::{WendaoGraphOntologyReadModelQualityEndpointConfig, WendaoTomlConfig};
+#[cfg(any(test, feature = "julia"))]
+use super::types::WendaoGraphOntologyReadModelQualityEndpointConfig;
+use super::types::WendaoTomlConfig;
 
 const DEFAULT_MARKDOWN_PARSER_PLUGIN_ID: &str = "markdown-parser";
 
@@ -69,6 +71,22 @@ pub(crate) fn load_document_extract_endpoint_from_wendao_toml_path(
     normalize_endpoint(parsed.document_extract.endpoint.as_deref())
 }
 
+#[cfg(test)]
+pub(crate) fn load_model_routing_config_from_wendao_toml(
+    config_root: &Path,
+) -> Result<Option<()>, String> {
+    let config_path = studio_effective_wendao_toml_path(config_root);
+    load_model_routing_config_from_wendao_toml_path(config_path.as_path())
+}
+
+#[cfg(test)]
+pub(crate) fn load_model_routing_config_from_wendao_toml_path(
+    config_path: &Path,
+) -> Result<Option<()>, String> {
+    let _ = config_path;
+    Ok(None)
+}
+
 pub(crate) fn load_episteme_registry_from_wendao_toml(
     config_root: &Path,
 ) -> Result<Vec<EpistemeRegistryEntry>, String> {
@@ -88,6 +106,7 @@ pub(crate) fn load_episteme_registry_from_wendao_toml_path(
 }
 
 #[must_use]
+#[cfg(any(test, feature = "julia"))]
 pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml(
     config_root: &Path,
 ) -> Option<WendaoGraphOntologyReadModelQualityEndpointConfig> {
@@ -98,6 +117,7 @@ pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_
 }
 
 #[must_use]
+#[cfg(any(test, feature = "julia"))]
 pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml_path(
     config_path: &Path,
 ) -> Option<WendaoGraphOntologyReadModelQualityEndpointConfig> {
@@ -118,10 +138,10 @@ pub(crate) fn load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_
 fn ui_config_from_wendao_toml(parsed: WendaoTomlConfig) -> UiConfig {
     let mut projects = Vec::new();
     let mut repo_projects = Vec::new();
-    let global_include_dirs = sanitize_path_list(&parsed.link_graph.include_dirs);
+    let global_include_dirs = sanitize_path_list(&parsed.sources.include_dirs);
     let mut global_include_dirs_applied = false;
 
-    for (id, project) in parsed.link_graph.projects {
+    for (id, project) in parsed.sources.projects {
         let root = project
             .root
             .as_deref()

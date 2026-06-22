@@ -4,7 +4,7 @@ use serde_yaml::Value;
 use xiuxian_wendao_core::capabilities::PluginCapabilityBinding;
 use xiuxian_wendao_runtime::transport::RerankScoreWeights;
 
-use xiuxian_wendao_julia::compatibility::link_graph::LinkGraphJuliaRerankRuntimeConfig;
+use xiuxian_julia_runtime::wendao::link_graph::LinkGraphJuliaRerankRuntimeConfig;
 
 /// Generic rerank projection resolved from the linked builtin plugin bundle.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -36,7 +36,7 @@ fn project_julia_rerank_runtime(
             .schema_version
             .clone()
             .filter(|value| !value.trim().is_empty())
-            .map(xiuxian_wendao_julia::JuliaContractSchemaVersion::into_string),
+            .map(xiuxian_julia_runtime::wendao::JuliaContractSchemaVersion::into_string),
         score_weights: build_score_weights(runtime),
     }
 }

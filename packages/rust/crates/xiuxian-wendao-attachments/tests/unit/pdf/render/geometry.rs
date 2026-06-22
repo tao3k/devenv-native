@@ -1,6 +1,6 @@
-use super::{
-    assert_close, sample_manifest, sample_region_manifest, save_region_crop_image, shard_element_id,
-};
+use super::{assert_close, sample_manifest, sample_region_manifest};
+use crate::pdf::render::document::save_region_crop_image;
+use crate::pdf::render::identity::shard_element_id;
 use crate::pdf::render::{
     PdfOcrShardType, PdfPageBox, PdfPagePixelBox, PdfPageRegionRenderRequest, PdfPageRenderProfile,
     region_pixel_box_for_crop, render_dimensions_for_box,

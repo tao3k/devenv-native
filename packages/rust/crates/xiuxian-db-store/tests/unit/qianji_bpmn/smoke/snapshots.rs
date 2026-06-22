@@ -1,5 +1,6 @@
 use super::support::{
-    must_ok, must_some, open_file_store, sample_checkpoint_with_package, sample_package,
+    must_ok, must_some, open_file_store, open_store_path, sample_checkpoint_with_package,
+    sample_package,
 };
 use serde_json::json;
 use tempfile::TempDir;
@@ -48,6 +49,43 @@ fn duckdb_workflow_state_append_log_loads_latest_checkpoint_snapshot() {
         ),
         0
     );
+}
+
+#[test]
+fn duckdb_workflow_state_append_log_cold_loads_latest_checkpoint_snapshot() {
+    let temp_dir = must_ok(TempDir::new(), "temp dir should allocate");
+    let database_path = temp_dir
+        .path()
+        .join("workflow-state-append-log-cold.duckdb");
+    let package = sample_package();
+    let first =
+        sample_checkpoint_with_package(&package, "wf_append_log_cold", 1, json!({ "risk": "low" }));
+    let second = sample_checkpoint_with_package(
+        &package,
+        "wf_append_log_cold",
+        2,
+        json!({ "risk": "high" }),
+    );
+
+    {
+        let store = open_store_path(&database_path);
+        let appended = must_ok(
+            store.append_workflow_state_snapshots([&first, &second]),
+            "workflow-state append log should save cold-load samples",
+        );
+        assert_eq!(appended, 2);
+    }
+
+    let store = open_store_path(&database_path);
+    let loaded = must_some(
+        must_ok(
+            store.load_latest_workflow_state_snapshot("wf_append_log_cold"),
+            "cold latest append-log checkpoint should load",
+        ),
+        "cold latest append-log checkpoint should exist",
+    );
+    assert_eq!(loaded.sequence, 2);
+    assert_eq!(loaded.state.variables["risk"], json!("high"));
 }
 
 #[test]

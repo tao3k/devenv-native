@@ -3,9 +3,9 @@
 # User overrides: $PRJ_CONFIG_HOME/xiuxian-artisan-workshop/qianji.toml
 
 [llm]
-model = "MiniMax-M2.5"
-base_url = "http://localhost:3002/v1"
-api_key_env = "MINIMAX_API_KEY"
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/v1"
+api_key_env = "DEEPSEEK_API_KEY"
 
 [memory_promotion.wendao]
 graph_scope = "qianji:memory_promotion"
@@ -17,8 +17,11 @@ persist_best_effort = true
 valkey_url = "redis://127.0.0.1:6379/0"
 
 [workflow_state]
-local_duckdb_path = ".run/qianji-workflow-state.duckdb"
+# Leave `local_duckdb_path` unset so runtime-owned local state defaults to
+# `$PRJ_DATA_HOME/xiuxian-qianji`. Operator deployments may override this value
+# in their root `qianji.toml`.
 
 [server]
 bind_addr = "127.0.0.1:38130"
+flight_bind_addr = "127.0.0.1:38131"
 require_valkey_ready = false

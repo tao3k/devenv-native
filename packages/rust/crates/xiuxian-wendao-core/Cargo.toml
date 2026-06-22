@@ -13,7 +13,7 @@ arrow-transport = ["dep:arrow"]
 
 [dependencies]
 arrow = { workspace = true, optional = true }
-chrono = { workspace = true, features = ["clock", "serde"] }
+chrono = { workspace = true }
 inventory = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
@@ -24,6 +24,9 @@ xiuxian-types = { path = "../xiuxian-types" }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [lints]
 workspace = true

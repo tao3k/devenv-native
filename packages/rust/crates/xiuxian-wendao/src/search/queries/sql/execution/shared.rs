@@ -7,7 +7,7 @@ use xiuxian_db_store::EngineRecordBatch;
 use crate::duckdb::LocalRelationEngineKind;
 #[cfg(feature = "duckdb")]
 use crate::duckdb::{
-    DuckDbLocalRelationEngine, LocalRelationEngine, resolve_search_duckdb_runtime,
+    DuckDbLocalRelationEngine, LocalRelationEngine, resolve_search_duckdb_runtime_for_storage_root,
 };
 use crate::search::queries::SearchQueryService;
 #[cfg(not(feature = "duckdb"))]
@@ -33,7 +33,7 @@ pub(crate) async fn execute_shared_sql_query(
     #[cfg(feature = "duckdb")]
     {
         let assembly = build_sql_surface_assembly(service.search_plane()).await?;
-        let query_engine = configured_duckdb_shared_sql_engine()?;
+        let query_engine = configured_duckdb_shared_sql_engine(service)?;
         register_duckdb_shared_sql_surface(&query_engine, &assembly)?;
         let batches = query_engine
             .query_batches(query_text)
@@ -63,8 +63,11 @@ pub(crate) async fn execute_shared_sql_query(
 }
 
 #[cfg(feature = "duckdb")]
-fn configured_duckdb_shared_sql_engine() -> Result<DuckDbLocalRelationEngine, String> {
-    let mut runtime = resolve_search_duckdb_runtime();
+fn configured_duckdb_shared_sql_engine(
+    service: &SearchQueryService,
+) -> Result<DuckDbLocalRelationEngine, String> {
+    let mut runtime =
+        resolve_search_duckdb_runtime_for_storage_root(service.search_plane().storage_root());
     runtime.enabled = true;
     DuckDbLocalRelationEngine::from_runtime(runtime)
 }
@@ -149,10 +152,22 @@ fn register_duckdb_logical_views(
     query_engine: &DuckDbLocalRelationEngine,
     tables_by_name: &BTreeMap<String, RegisteredSqlTable>,
 ) -> Result<(), String> {
-    if let Some((_logical_view_name, view_sql)) = collect_local_logical_view_sql(tables_by_name) {
+    if let Some((logical_view_name, view_sql)) = collect_local_logical_view_sql(tables_by_name) {
+        query_engine.execute_batch_sql(
+            xiuxian_db_store::duckdb::build_drop_duckdb_registered_relation_sql(
+                logical_view_name.as_str(),
+            )
+            .as_str(),
+        )?;
         query_engine.execute_batch_sql(view_sql.as_str())?;
     }
-    for (_logical_view_name, view_sql) in collect_repo_logical_view_sqls(tables_by_name) {
+    for (logical_view_name, view_sql) in collect_repo_logical_view_sqls(tables_by_name) {
+        query_engine.execute_batch_sql(
+            xiuxian_db_store::duckdb::build_drop_duckdb_registered_relation_sql(
+                logical_view_name.as_str(),
+            )
+            .as_str(),
+        )?;
         query_engine.execute_batch_sql(view_sql.as_str())?;
     }
     Ok(())

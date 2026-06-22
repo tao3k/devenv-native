@@ -14,9 +14,8 @@ if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
 _args = importlib.import_module("wendao_document_extract_benchmark.args")
-_artifact_summary = importlib.import_module(
-    "wendao_document_extract_benchmark.artifact_summary"
-)
+_artifact_summary = importlib.import_module("wendao_document_extract_benchmark.artifact_summary")
+_audio_trace = importlib.import_module("wendao_document_extract_benchmark.audio_trace")
 _audio_transcript_org = importlib.import_module(
     "wendao_document_extract_benchmark.audio_transcript_org"
 )
@@ -25,22 +24,19 @@ _attachment_classes = importlib.import_module(
 )
 _cache = importlib.import_module("wendao_document_extract_benchmark.cache")
 _constants = importlib.import_module("wendao_document_extract_benchmark.constants")
-_docling_groundtruth = importlib.import_module(
-    "xiuxian_wendao_analyzer.docling_groundtruth"
-)
-_fake_fixtures = importlib.import_module(
-    "wendao_document_extract_benchmark.fake_fixtures"
-)
+_docling_groundtruth = importlib.import_module("xiuxian_wendao_analyzer.docling_groundtruth")
+_fake_fixtures = importlib.import_module("wendao_document_extract_benchmark.fake_fixtures")
 _features = importlib.import_module("wendao_document_extract_benchmark.features")
 _fixtures = importlib.import_module("wendao_document_extract_benchmark.fixtures")
 _http_status = importlib.import_module("wendao_document_extract_benchmark.http_status")
 _ocr2_trace = importlib.import_module("wendao_document_extract_benchmark.ocr2_trace")
 _pdf_render = importlib.import_module("wendao_document_extract_benchmark.pdf_render")
 _pdfium = importlib.import_module("wendao_document_extract_benchmark.pdfium")
-_precision_speed = importlib.import_module(
-    "wendao_document_extract_benchmark.precision_speed"
-)
+_precision_speed = importlib.import_module("wendao_document_extract_benchmark.precision_speed")
 _probes = importlib.import_module("wendao_document_extract_benchmark.probes")
+_provider_lifecycle = importlib.import_module(
+    "wendao_document_extract_benchmark.provider_lifecycle"
+)
 _providers = importlib.import_module("wendao_document_extract_benchmark.providers")
 _reporting = importlib.import_module("wendao_document_extract_benchmark.reporting")
 _rust_status = importlib.import_module("wendao_document_extract_benchmark.rust_status")
@@ -57,6 +53,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _constants,
     _docling_groundtruth,
     _args,
+    _audio_trace,
     _audio_transcript_org,
     _fixtures,
     _fake_fixtures,
@@ -67,6 +64,7 @@ _EXPORTED_MODULES: tuple[Any, ...] = (
     _features,
     _ocr2_trace,
     _workers,
+    _provider_lifecycle,
     _providers,
     _http_status,
     _probes,

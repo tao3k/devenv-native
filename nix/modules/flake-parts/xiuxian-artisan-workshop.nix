@@ -1,4 +1,9 @@
-{ workspaceRoot, inputs, self, ... }:
+{
+  workspaceRoot,
+  inputs,
+  self,
+  ...
+}:
 {
   perSystem =
     {
@@ -46,6 +51,10 @@
         hash = "sha256-Cp93QTsTrTkXizWYoZtFz88R3lX7+MmYN4E9JYBsyps=";
       };
       lanceVendorFixup = import ../../lib/lance-vendor-fixup.nix { inherit lanceSrc; };
+      restoreWorkspaceCargoLock = ''
+        echo "restoring workspace Cargo.lock for vendored git source replacement"
+        cp -f ${workspaceRoot}/Cargo.lock Cargo.lock
+      '';
       commonProjectDrvConfig = {
         mkDerivation = {
           nativeBuildInputs = [
@@ -56,21 +65,24 @@
             pkgs.openssl
             pkgs.cacert
           ];
+          postConfigure = restoreWorkspaceCargoLock;
+          preBuild = restoreWorkspaceCargoLock;
         };
         env = commonProjectEnv;
       };
       commonProjectDepsDrvConfig = lib.recursiveUpdate commonProjectDrvConfig {
         mkDerivation =
           let
-            runLanceVendorFixup = ''
+            runCargoDepsFixup = ''
+              ${restoreWorkspaceCargoLock}
               ${lanceVendorFixup}
               echo "patching Lance cargo vendor manifests"
               fix_lance_vendor_dir "''${cargoVendorDir:-$TMPDIR/nix-vendor}"
             '';
           in
           {
-            postConfigure = runLanceVendorFixup;
-            preBuild = runLanceVendorFixup;
+            postConfigure = runCargoDepsFixup;
+            preBuild = runCargoDepsFixup;
           };
       };
     in
@@ -159,9 +171,6 @@
           depsDrvConfig = lib.recursiveUpdate commonProjectDepsDrvConfig {
             env.PROTOC = "${pkgs.protobuf}/bin/protoc";
           };
-        };
-        "xiuxian-io" = {
-          profiles.release.runTests = false;
         };
         "xiuxian-memory-engine" = {
           profiles.release.runTests = false;

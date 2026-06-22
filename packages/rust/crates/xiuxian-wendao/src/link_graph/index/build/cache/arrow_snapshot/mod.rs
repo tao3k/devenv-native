@@ -6,6 +6,7 @@ mod encode;
 mod ipc;
 mod page_index;
 mod primitive;
+mod schema;
 
 pub(in crate::link_graph::index::build::cache) use api::{
     LINK_GRAPH_DUCKDB_ARROW_CACHE_SCHEMA_VERSION, LinkGraphArrowSnapshotPayload,

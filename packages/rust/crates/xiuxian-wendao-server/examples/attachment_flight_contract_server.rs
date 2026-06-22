@@ -72,6 +72,20 @@ struct ContractAttachmentSearchProvider;
 
 #[async_trait]
 impl AttachmentSearchFlightRouteProvider for ContractAttachmentSearchProvider {
+    async fn attachment_search_batch_for_request(
+        &self,
+        request: xiuxian_wendao_server::transport::AttachmentSearchFlightRouteRequest<'_>,
+    ) -> Result<SearchFlightRouteResponse, String> {
+        self.attachment_search_batch(
+            request.query_text,
+            request.limit,
+            request.ext_filters,
+            request.kind_filters,
+            request.case_sensitive,
+        )
+        .await
+    }
+
     async fn attachment_search_batch(
         &self,
         query_text: &str,

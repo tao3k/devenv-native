@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use log::info;
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_zhenfa::ZhenfaSignal;
 
 use crate::studio::router::state::types::{
@@ -174,7 +175,7 @@ impl StudioState {
         plugin_registry: Arc<PluginRegistry>,
         bootstrap_config_path: Option<&std::path::Path>,
     ) -> Self {
-        let project_root = xiuxian_io::PrjDirs::project_root();
+        let project_root = ProjectDirs::project_root();
         let config_root = bootstrap_config_path
             .and_then(std::path::Path::parent)
             .map_or_else(
@@ -198,7 +199,7 @@ impl StudioState {
         plugin_registry: Arc<PluginRegistry>,
         bootstrap_config_path: Option<&std::path::Path>,
     ) -> Self {
-        let project_root = xiuxian_io::PrjDirs::project_root();
+        let project_root = ProjectDirs::project_root();
         let config_root = bootstrap_config_path
             .and_then(std::path::Path::parent)
             .map_or_else(
@@ -277,7 +278,7 @@ impl StudioState {
             .or_else(|| load_ui_config_from_wendao_toml(state.config_root.as_path()));
         if let Some(config) = boot_config {
             info!(
-                "Studio bootstrap loaded {} link_graph.projects and {} repo projects; startup background indexing is {}",
+                "Studio bootstrap loaded {} sources.projects and {} repo projects; startup background indexing is {}",
                 config.projects.len(),
                 config.repo_projects.len(),
                 if eager_background_indexing {
@@ -297,7 +298,7 @@ impl StudioState {
         plugin_registry: Arc<PluginRegistry>,
         search_plane_root: std::path::PathBuf,
     ) -> Self {
-        let project_root = xiuxian_io::PrjDirs::project_root();
+        let project_root = ProjectDirs::project_root();
         let config_root = resolve_studio_config_root(project_root.as_path());
         let manifest_keyspace = SearchManifestKeyspace::new(format!(
             "xiuxian:test:search_plane:{}",

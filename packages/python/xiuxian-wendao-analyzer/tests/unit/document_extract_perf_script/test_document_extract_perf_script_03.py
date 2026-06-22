@@ -40,6 +40,11 @@ def test_rust_jobs_status_summary_tracks_pressure() -> None:
                 "pdfOcrRenderedRegionShards": 1,
                 "pdfOcrBudgetIncreaseEvents": 2,
                 "pdfOcrBudgetDecreaseEvents": 0,
+                "maxAudioShardWorkers": 8,
+                "currentAudioShardWorkerBudget": 3,
+                "audioShardHealthyStreak": 1,
+                "audioShardBudgetIncreaseEvents": 2,
+                "audioShardBudgetDecreaseEvents": 0,
             },
             {
                 "queuedJobs": 1,
@@ -63,6 +68,11 @@ def test_rust_jobs_status_summary_tracks_pressure() -> None:
                 "pdfOcrRenderedRegionShards": 3,
                 "pdfOcrBudgetIncreaseEvents": 3,
                 "pdfOcrBudgetDecreaseEvents": 1,
+                "maxAudioShardWorkers": 8,
+                "currentAudioShardWorkerBudget": 4,
+                "audioShardHealthyStreak": 2,
+                "audioShardBudgetIncreaseEvents": 3,
+                "audioShardBudgetDecreaseEvents": 1,
                 "lastConversionDurationMs": 120,
                 "maxConversionDurationMs": 300,
             },
@@ -85,6 +95,11 @@ def test_rust_jobs_status_summary_tracks_pressure() -> None:
     assert summary["maxPdfOcrSourcePdfPageRangeShards"] == 8
     assert summary["maxPdfOcrRenderedRegionShards"] == 3
     assert summary["maxPdfOcrBudgetDecreaseEvents"] == 1
+    assert summary["maxAudioShardWorkers"] == 8
+    assert summary["maxCurrentAudioShardWorkerBudget"] == 4
+    assert summary["maxAudioShardHealthyStreak"] == 2
+    assert summary["maxAudioShardBudgetIncreaseEvents"] == 3
+    assert summary["maxAudioShardBudgetDecreaseEvents"] == 1
     assert summary["lastConversionDurationMs"] == 120
     assert summary["maxConversionDurationMs"] == 300
 

@@ -9,7 +9,7 @@
 
 ## Purpose
 
-Make `xiuxian-wendao-julia` the first plugin-first execution lane of the
+Make `xiuxian-julia-core` the first plugin-first execution lane of the
 Wendao package split.
 
 The goal is not only to externalize Julia ownership. The goal is to prove the
@@ -22,7 +22,7 @@ desired host architecture:
 
 ## Why Julia Goes First
 
-`xiuxian-wendao-julia` is already a real external crate with:
+`xiuxian-julia-core` is already a real external crate with:
 
 1. plugin entry and registration
 2. Julia-specific transport option interpretation
@@ -43,7 +43,7 @@ xiuxian-wendao-core
 xiuxian-wendao-runtime
   -> host config, Flight/DataFusion wiring, plugin loading, registry
 
-xiuxian-wendao-julia
+xiuxian-julia-core
   -> Julia parser/analyzer/projection/launch/transport specifics
 
 xiuxian-wendao
@@ -66,7 +66,7 @@ Avoid this implementation pattern:
 
 ## Julia Ownership Boundary
 
-`xiuxian-wendao-julia` should own:
+`xiuxian-julia-core` should own:
 
 1. Julia-specific parser and analyzer behavior
 2. Julia-specific projection and result shaping
@@ -96,7 +96,7 @@ The memory-family Julia lane follows the same plugin-first rule, but it is
 stricter about ownership:
 
 1. `WendaoMemory.jl` owns compute kernels only
-2. `xiuxian-wendao-julia` owns Julia-specific memory ABI logic: typed rows,
+2. `xiuxian-julia-core` owns Julia-specific memory ABI logic: typed rows,
    request and response batches, manifest projection, schema validation,
    decoding, route defaults, and plugin-owned host-adapter helpers over Rust
    memory-engine read models or evidence
@@ -108,7 +108,7 @@ stricter about ownership:
 For this lane, do not add new memory-family profile semantics, schema
 fragments, manifest rules, decoder logic, or Julia-specific validation logic
 to `xiuxian-wendao`. If the work is Julia ABI meaning rather than host-domain
-adaptation, it belongs in `xiuxian-wendao-julia`.
+adaptation, it belongs in `xiuxian-julia-core`.
 
 ## Landed Slice: Thin Memory Host Bridge
 
@@ -122,7 +122,7 @@ without pulling Julia profile logic back into the product crate.
    points
 3. no local profile shaping, validation, transport, or decode logic
 
-`xiuxian-wendao-julia` still keeps:
+`xiuxian-julia-core` still keeps:
 
 1. typed memory-family Arrow contracts
 2. host staging over Rust read models and evidence
@@ -168,7 +168,7 @@ without making `xiuxian-wendao` own a second downcall layer.
    those wrappers
 3. no local request shaping, Flight transport, or response decode logic
 
-`xiuxian-wendao-julia` still keeps:
+`xiuxian-julia-core` still keeps:
 
 1. memory-family host staging over read models and evidence
 2. the composed downcall logic that still accepts explicit runtime config
@@ -177,7 +177,7 @@ without making `xiuxian-wendao` own a second downcall layer.
 This slice matters because host callers can now enter through
 `xiuxian_wendao::memory::julia::*` with domain inputs only, while the product
 crate still delegates every Julia-specific step below runtime resolution into
-`xiuxian-wendao-julia`.
+`xiuxian-julia-core`.
 
 ## Landed Slice: Memory Host Client
 
@@ -201,7 +201,7 @@ folder and one configured client surface.
 This slice matters because the host-facing seam is now both thinner and more
 usable: callers can construct one configured client inside the product crate,
 while the actual compute lane still belongs below the seam in
-`xiuxian-wendao-julia`.
+`xiuxian-julia-core`.
 
 ## Landed Slice: Memory Public Surface Thinning
 
@@ -219,7 +219,7 @@ The next bounded move removes helper leakage from the product-crate bridge.
 1. raw runtime-resolved downcall free functions
 2. plugin-owned runtime-to-binding builder helpers
 3. gate-evidence builder helpers that belong under
-   `xiuxian-wendao-julia::memory::host::*`
+   `xiuxian-julia-core::memory::host::*`
 
 This slice matters because it makes the boundary harder to drift: host callers
 can still enter through the product crate, but helper-heavy Julia ABI details
@@ -230,7 +230,7 @@ are no longer presented as part of the Wendao product surface.
 The next bounded ownership move removes the last local memory Julia helper
 namespace from `xiuxian-wendao`.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. the memory-family typed Arrow contracts
 2. the plugin-owned host-adapter helpers under `memory::host::*`
@@ -249,7 +249,7 @@ namespace from `xiuxian-wendao`.
 The parser rule is intentionally split:
 
 1. general Wendao parser logic stays in `xiuxian-wendao`
-2. Julia-specific parser or analyzer logic moves into `xiuxian-wendao-julia`
+2. Julia-specific parser or analyzer logic moves into `xiuxian-julia-core`
 
 This keeps the host crate responsible for the platform-level understanding of
 knowledge while allowing language-specific intelligence to remain plugin-owned.
@@ -287,7 +287,7 @@ classes of behavior from the host path:
 The first bounded ownership move is now landed for the Julia rerank exchange
 lane.
 
-`xiuxian-wendao-julia` now owns:
+`xiuxian-julia-core` now owns:
 
 1. typed Julia Arrow rerank request rows
 2. typed Julia Arrow rerank score rows
@@ -313,7 +313,7 @@ The temporary host re-export seam is now gone:
 2. `analyzers::languages` no longer re-exports Julia or Modelica plugin
    registration or graph-structural helper APIs
 3. the remaining in-repo Julia facade consumer now imports directly from
-   `xiuxian-wendao-julia`
+   `xiuxian-julia-core`
 
 ## Landed Slice: Compatibility Wrapper Thinning
 
@@ -322,7 +322,7 @@ link-graph Julia rerank lane.
 
 `xiuxian-wendao` now keeps only:
 
-1. direct re-exports of Julia compatibility types from `xiuxian-wendao-julia`
+1. direct re-exports of Julia compatibility types from `xiuxian-julia-core`
 2. local compatibility type aliases where existing host tests still depend on
    the legacy names
 3. the host-side runtime policy and plugin-runtime call sites that consume
@@ -389,7 +389,7 @@ The next bounded host-thinning move removes the remaining
 
 1. `link_graph::runtime_config` as the host-owned surface for Wendao-specific
    rerank binding resolution and plugin artifact resolve/render helpers
-2. direct imports from `xiuxian-wendao-julia` for the Julia compatibility
+2. direct imports from `xiuxian-julia-core` for the Julia compatibility
    helper that materializes rerank provider bindings
 3. runtime-config-local tests for compatibility binding generation and direct
    artifact resolve/render behavior
@@ -404,7 +404,7 @@ The next bounded host-thinning move removes the remaining
 
 This slice matters because it completes the transition from a host-local
 plugin-runtime wrapper model to direct ownership boundaries:
-`xiuxian-wendao-julia` owns Julia-specific compatibility helpers,
+`xiuxian-julia-core` owns Julia-specific compatibility helpers,
 `xiuxian-wendao-runtime` owns transport/runtime behavior, and
 `xiuxian-wendao` retains only its domain-owned runtime configuration seams.
 
@@ -417,7 +417,7 @@ forwarding shell and the host-local compatibility test aliases.
 
 1. the Wendao-owned retrieval policy record and runtime-config resolution logic
 2. direct use of Julia-owned runtime/config types from
-   `xiuxian-wendao-julia::compatibility::link_graph`
+   `xiuxian-julia-core::compatibility::link_graph`
 3. runtime-config tests that exercise Julia deployment artifact rendering and
    rerank binding generation through the Julia-owned type names
 
@@ -443,7 +443,7 @@ re-export from `xiuxian-wendao`.
 `xiuxian-wendao` now keeps:
 
 1. Wendao-owned runtime-config resolution and plugin-artifact rendering logic
-2. direct internal imports from `xiuxian-wendao-julia` for Julia deployment
+2. direct internal imports from `xiuxian-julia-core` for Julia deployment
    selectors and runtime types where the host still needs them
 3. package docs that point downstream callers at the Julia crate for
    Julia-owned selectors and compatibility records
@@ -465,7 +465,7 @@ The next bounded plugin-first move retires the host-local Julia WendaoSearch
 service-fixture wrapper under `tests/integration/support/` and makes the plugin crate
 own that integration-support surface directly.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. a bounded public `integration_support` surface for Julia-owned WendaoSearch
    service fixtures
@@ -492,7 +492,7 @@ surface that used to widen the host test tree.
 The Julia lane is moving in the right direction when a new Julia capability can
 be landed primarily by:
 
-1. editing `xiuxian-wendao-julia`
+1. editing `xiuxian-julia-core`
 2. updating runtime registration or config
 3. avoiding new production logic in `xiuxian-wendao`
 
@@ -503,9 +503,9 @@ Julia-specific implementation modules, the plugin-first goal has not been met.
 
 The next bounded plugin-first move retires the remaining host-local
 WendaoArrow custom scoring support under `tests/integration/support/` and
-moves that custom service seam into `xiuxian-wendao-julia::integration_support`.
+moves that custom service seam into `xiuxian-julia-core::integration_support`.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. a folderized `integration_support::{common,wendaosearch_services,custom_service}`
    surface for Julia-specific integration services
@@ -530,10 +530,10 @@ surface coherent inside the plugin crate.
 The next bounded plugin-first move retires the remaining host-local Julia
 rerank runtime-config application helper under
 `link_graph/runtime_config/resolve/policy/retrieval/` and makes
-`xiuxian-wendao-julia` own the Julia-specific settings and environment override
+`xiuxian-julia-core` own the Julia-specific settings and environment override
 translation for `LinkGraphJuliaRerankRuntimeConfig`.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. a dedicated `compatibility/link_graph/settings.rs` module for Julia rerank
    settings keys, env constants, and normalization/application logic
@@ -557,10 +557,10 @@ runtime record itself.
 
 The next bounded plugin-first move retires the remaining host-local Julia
 deployment-artifact implementation under `link_graph/runtime_config/artifacts.rs`
-and makes `xiuxian-wendao-julia` own the Julia-specific artifact payload
+and makes `xiuxian-julia-core` own the Julia-specific artifact payload
 resolution, transport diagnostics, and artifact rendering helpers.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. the Julia deployment-artifact payload resolver for
    `LinkGraphJuliaRerankRuntimeConfig`
@@ -607,10 +607,10 @@ the plugin crate.
 
 The next bounded plugin-first move extracts the remaining pure
 Julia-compatibility proofs from `xiuxian-wendao/src/link_graph/runtime_config/tests.rs`
-into `xiuxian-wendao-julia/src/compatibility/link_graph/tests.rs`, leaving the
+into `xiuxian-julia-core/src/compatibility/link_graph/tests.rs`, leaving the
 host runtime-config tests focused on end-to-end host behavior only.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. the deployment-artifact TOML file-write proof
 2. the deployment-artifact JSON file-write proof
@@ -633,7 +633,7 @@ runtime-config integration test by extracting the pure plugin-local descriptor,
 launch-manifest, deployment-artifact, and direct binding proofs into the Julia
 compatibility test module.
 
-`xiuxian-wendao-julia` now keeps:
+`xiuxian-julia-core` now keeps:
 
 1. the pure `LinkGraphJuliaRerankRuntimeConfig` proof for descriptor shaping
 2. the pure runtime-launch manifest and plugin launch-spec proof
@@ -673,12 +673,12 @@ is host integration proof versus already-covered artifact or plugin-local proof.
 ## Julia OpenAPI Artifact Example Ownership
 
 This slice moved the Julia deployment-artifact OpenAPI example source of truth
-into `xiuxian-wendao-julia`, so the host gateway package no longer owns
+into `xiuxian-julia-core`, so the host gateway package no longer owns
 plugin-specific example payload shaping.
 
 The landed changes are:
 
-1. `xiuxian-wendao-julia` now owns the generic plugin-artifact and legacy Julia
+1. `xiuxian-julia-core` now owns the generic plugin-artifact and legacy Julia
    deployment-artifact OpenAPI example helpers in
    `compatibility/link_graph/openapi_examples.rs`
 2. `xiuxian-wendao` keeps the bundled OpenAPI document but validates it against
@@ -696,12 +696,12 @@ payload shaping.
 ## Julia Gateway Artifact Fixture Ownership
 
 This slice moved the Julia-specific Studio gateway artifact test fixtures into
-`xiuxian-wendao-julia`, so the host gateway tests no longer own repeated Julia
+`xiuxian-julia-core`, so the host gateway tests no longer own repeated Julia
 runtime-config snippets, selector literals, or stable TOML fragment shaping.
 
 The landed changes are:
 
-1. `xiuxian-wendao-julia` now owns focused Studio gateway fixture helpers in
+1. `xiuxian-julia-core` now owns focused Studio gateway fixture helpers in
    `integration_support/gateway_artifact.rs`, including the runtime-config TOML
    fixture, selector path, stable schema/base-url helpers, and expected TOML
    fragments
@@ -720,15 +720,15 @@ adapter behavior, not re-own language-specific artifact fixture construction.
 ## Julia UI Artifact Fixture Ownership
 
 This slice moved the Julia-specific `PluginArtifactPayload` fixture for Studio
-UI artifact mapping tests into `xiuxian-wendao-julia`, so the host
+UI artifact mapping tests into `xiuxian-julia-core`, so the host
 `UiPluginArtifact` test no longer owns inline Julia deployment-payload
 construction.
 
 The landed changes are:
 
-1. `xiuxian-wendao-julia` now owns the stable UI artifact payload fixture in
+1. `xiuxian-julia-core` now owns the stable UI artifact payload fixture in
    `integration_support/gateway_artifact.rs`
-2. `xiuxian-wendao-julia::integration_support` now re-exports that fixture so
+2. `xiuxian-julia-core::integration_support` now re-exports that fixture so
    host tests can consume it through the plugin-owned support surface
 3. `xiuxian-wendao` `gateway/studio/types/config.rs` now validates generic
    `UiPluginArtifact` mapping against the plugin-owned fixture instead of
@@ -741,14 +741,14 @@ projection, not re-own plugin-specific payload construction.
 
 This slice moved the Julia-specific generic plugin-artifact fixture support
 used by `tests/unit/zhenfa_router/native/deployment.rs` and
-`tests/unit/zhenfa_router/rpc.rs` into `xiuxian-wendao-julia`, so host
+`tests/unit/zhenfa_router/rpc.rs` into `xiuxian-julia-core`, so host
 `zhenfa_router` tests now consume plugin-owned config, request/selector, and
 stable output-fragment helpers instead of repeating Julia deployment details
 inline.
 
 The landed changes are:
 
-1. `xiuxian-wendao-julia::integration_support` now owns the extra
+1. `xiuxian-julia-core::integration_support` now owns the extra
    `zhenfa_router` fixture helpers in `integration_support/gateway_artifact.rs`,
    including the default strategy helper, stable JSON output fragments, and a
    JSON-RPC params fixture for generic plugin-artifact export tests
@@ -769,17 +769,17 @@ stay with the Julia plugin crate.
 This slice moved the remaining Julia-specific runtime-config TOML fixtures used
 by `planned_search_julia_rerank.rs` and
 `planned_search_julia_rerank_vector_store.rs` into
-`xiuxian-wendao-julia::integration_support`, so the host integration tests no
+`xiuxian-julia-core::integration_support`, so the host integration tests no
 longer own inline Julia rerank config strings for the custom `WendaoArrow`
 service lane.
 
 The landed changes are:
 
-1. `xiuxian-wendao-julia::integration_support` now owns focused planned-search
+1. `xiuxian-julia-core::integration_support` now owns focused planned-search
    runtime-config helpers in `integration_support/planned_search.rs` for the
    `openai-compatible` and `vector-store` semantic-ignition variants used by
    the custom Julia rerank tests
-2. `xiuxian-wendao-julia::integration_support` now re-exports those helpers
+2. `xiuxian-julia-core::integration_support` now re-exports those helpers
    through `integration_support/mod.rs`, so the plugin crate owns the stable
    fixture surface directly
 3. `xiuxian-wendao` host integration tests in
@@ -797,7 +797,7 @@ fixture construction stays with the Julia plugin crate.
 This slice will rewire the remaining WendaoSearch service-fixture and analyzer-service
 planned-search tests that still inline the generic `vector-store` Julia rerank
 runtime-config TOML, so those host tests consume the existing
-`xiuxian-wendao-julia::integration_support::planned_search` helper instead of
+`xiuxian-julia-core::integration_support::planned_search` helper instead of
 re-owning the same fixture string.
 
 The intended changes are:
@@ -996,13 +996,13 @@ The landed changes are:
 
 ## Landed Slice: Julia Optional Host Dependency Cutover
 
-This slice advances plugin independence by turning `xiuxian-wendao-julia` into
+This slice advances plugin independence by turning `xiuxian-julia-core` into
 an optional host dependency and by gating the touched host runtime-config seams
 that still import Julia-specific types unconditionally.
 
 The landed changes are:
 
-1. make the `xiuxian-wendao-julia` Cargo dependency optional and bind it to the
+1. make the `xiuxian-julia-core` Cargo dependency optional and bind it to the
    existing `julia` host feature
 2. keep `link_graph/runtime_config/*` compiling without the Julia plugin crate
    when `feature = "julia"` is disabled
@@ -1019,7 +1019,7 @@ The landed changes are:
 
 This slice proves the host/plugin split concretely:
 
-1. `direnv exec . cargo tree -p xiuxian-wendao --no-default-features --features zhenfa-router | rg 'xiuxian-wendao-julia'`
+1. `direnv exec . cargo tree -p xiuxian-wendao --no-default-features --features zhenfa-router | rg 'xiuxian-julia-core'`
    returns no match, so the non-Julia host feature graph no longer includes the
    Julia plugin crate
 2. `direnv exec . cargo check -p xiuxian-wendao --no-default-features --features zhenfa-router`
@@ -1041,7 +1041,7 @@ The landed changes are:
    to `transport`
 2. switch the bounded runtime transport cfg gates, test gates, and README
    verification commands to `feature = "transport"`
-3. update `xiuxian-wendao` and `xiuxian-wendao-julia` to consume the renamed
+3. update `xiuxian-wendao` and `xiuxian-julia-core` to consume the renamed
    runtime feature while keeping the host/plugin feature name `julia`
 4. rerun focused runtime transport tests plus both the non-Julia host compile
    probe and the Julia-enabled host runtime-config lane
@@ -1055,9 +1055,7 @@ This slice proves the runtime/host ownership split more explicitly:
    under a transport-owned feature name instead of a Julia-plugin name
 2. the bounded runtime sources no longer use `feature = "julia"` for generic
    transport cfg gates or README verification commands
-3. the searched Cargo/runtime scope no longer contains runtime feature
-   references to `julia`; the only remaining matches are the intentional
-   `xiuxian-ast` language feature edges in host/plugin Cargo manifests
+3. the searched Cargo/runtime scope no longer contains runtime feature references to `julia`; language feature edges now belong to the external language-provider boundary instead of Wendao-local AST crates
 4. `direnv exec . cargo test -p xiuxian-wendao-runtime --features transport`
    passes with `183 passed`
 5. `direnv exec . cargo check -p xiuxian-wendao --no-default-features --features zhenfa-router`
@@ -1188,7 +1186,7 @@ call.
 
 The landed changes are:
 
-1. `xiuxian-wendao-julia` now reuses one process-local tokio runtime for
+1. `xiuxian-julia-core` now reuses one process-local tokio runtime for
    blocking Modelica parser-summary fetches instead of spinning up a new
    runtime on every request
 2. the Modelica parser-summary transport now caches one negotiated Flight

@@ -1,0 +1,79 @@
+#+TITLE: Wendao Search Index Diagnostics Arrow Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:wendao:search:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao search-index diagnostics Arrow schema contract :agent:
+:PROPERTIES:
+:ID: DFE01F94-99DC-4A08-B6D8-C937DFCEB99A
+:SDD: .cache/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao/README.md
+:PACKAGE: packages/rust/crates/xiuxian-wendao
+:SLICE: wendao-search-index-diagnostics-arrow-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archived after search-index diagnostics relation Arrow schemas moved to db-store ArrowSchemaContract helpers and targeted validation passed.
+:GRAPH: flowchart LR;T["task:DFE01F94-99DC-4A08-B6D8-C937DFCEB99A"]-->S["sdd:db-store-arrow-schema-contract"];T-->P["xiuxian-wendao:search-index-diagnostics-relations"]
+:EVIDENCE: targeted search-index diagnostics tests, targeted Wendao clippy, fmt check, README hidden-path scan, Org lint, SDD status
+:END:
+SCHEDULED: <2026-05-26 Tue>
+CLOSED: [2026-05-26 Tue 17:53]
+
+- [x] Scope and recovery anchor confirmed.
+- [x] RTK command policy confirmed.
+- [x] Task-local research complete.
+- [x] Implementation complete.
+- [x] Validation complete.
+- [x] Related package or canonical docs synced or explicitly judged unchanged.
+- [x] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+Search-index status diagnostics builds four local relation inputs before
+DataFusion or DuckDB summarizes the status response. This slice moves only the
+input relation schemas for status rollup, status reason, query telemetry, and
+repo read pressure into db-store Arrow schema contracts. Search-plane response
+semantics, SQL queries, and local relation engine selection remain unchanged.
+
+** Validation
+
+- [x] Targeted search-index diagnostics tests pass.
+- [x] Targeted Wendao fmt/check or clippy scope passes.
+- [x] Package docs and hidden-path scan pass.
+- [x] Tracking surfaces pass Org lint and SDD status.
+
+** Evidence
+
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao diagnostics_relation_schemas_use_db_store_table_metadata`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao diagnostics_rollup_matches`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao --features duckdb diagnostics_rollup_selects_duckdb_when_enabled`
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao --check`
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao/README.md`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao --all-targets -- -D warnings`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize lint --format compact .cache/agent/org/archives/wendao_search_index_diagnostics_arrow_schema_contract.org`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize sdd status .cache/agent/sdd/db_store_arrow_schema_contract.org`
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao/README.md
+- Updated: search-index diagnostics relation inputs now document the shared
+  db-store `ArrowSchemaContract` helper while status response semantics stay in
+  Wendao.
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Yes; the SDD scenario, gate, and evidence log were updated for the search-index diagnostics slice. |
+| Did the task meet its expected outcome and validation target? | Yes; targeted diagnostics tests, DuckDB diagnostics selection test, fmt, clippy, docs scan, Org lint, and SDD status passed. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; only diagnostics relation input schemas moved to db-store ArrowSchema contracts. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated packages/rust/crates/xiuxian-wendao/README.md. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; diagnostics table constants are now owned beside the relation contracts and reused by summary registration. |
+| Does this task improve future task-probe, orgid-show, SDD graph, or agent recovery understanding? | Yes; the task records the package, SDD, slice, and exact validation evidence. |
+| What should the next agent query, verify, or avoid? | Query db-store ArrowSchema adoption, verify the next concrete batch owner, and avoid changing status response semantics in schema-only slices. |
+
+** Recovery
+
+Use `wendao-search-index-diagnostics-arrow-schema-contract` as the task-local
+recovery anchor.

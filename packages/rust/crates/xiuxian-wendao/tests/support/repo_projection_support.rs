@@ -30,7 +30,7 @@ pub fn write_repo_config(base: &Path, repo_dir: &Path, repo_id: &str) -> TestRes
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 root = "{}"
 plugins = [{plugin}]
 "#,

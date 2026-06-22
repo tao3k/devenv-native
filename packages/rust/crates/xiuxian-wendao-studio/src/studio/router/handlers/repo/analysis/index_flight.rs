@@ -34,13 +34,13 @@ impl std::fmt::Debug for StudioRepoIndexFlightRouteProvider {
 impl RepoIndexFlightRouteProvider for StudioRepoIndexFlightRouteProvider {
     async fn repo_index_batch(
         &self,
-        repo_id: Option<&str>,
+        repo_key: Option<&str>,
         refresh: bool,
     ) -> Result<AnalysisFlightRouteResponse, String> {
         let response = run_repo_index(
             Arc::clone(&self.state),
             RepoIndexRequest {
-                repo: repo_id.map(ToString::to_string),
+                repo: repo_key.map(ToString::to_string),
                 refresh,
             },
         )

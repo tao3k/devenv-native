@@ -9,6 +9,7 @@ use super::{
     QianjiBpmnWorkflowResumeRequest, QianjiBpmnWorkflowStartReport, QianjiBpmnWorkflowStartRequest,
     QianjiBpmnWorkflowStatusReport, QianjiBpmnWorkflowStatusRequest,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
     QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
@@ -16,7 +17,7 @@ use super::{
 use crate::bpmn::backend::QianjiBpmnCheckpointStore;
 use crate::bpmn::control_service as service;
 use crate::bpmn::session::QianjiBpmnSession;
-use qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
+use xiuxian_qianji_bpmn_engine::{BpmnExecutionTraceEvent, BpmnHostBridge};
 
 impl QianjiBpmnWorkflowControlService {
     /// Resolves the checkpoint backend for one bounded workflow run.
@@ -335,6 +336,26 @@ impl QianjiBpmnWorkflowControlService {
     ) -> Result<QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowControlError> {
         service::complete_prepared_workflow_task_until_host_boundary(self, prepared, request, host)
             .await
+    }
+
+    /// Completes multiple pending host-work items against an already prepared
+    /// checkpoint resume, then stops at the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QianjiBpmnWorkflowControlError`] when the checkpoint is
+    /// missing, the execution facade cannot resume the checkpoint, rejects any
+    /// explicit completion, or cannot persist the resulting checkpoint state.
+    pub async fn complete_prepared_workflow_task_batch_until_host_boundary<H: BpmnHostBridge>(
+        &self,
+        prepared: QianjiBpmnPreparedWorkflowResume,
+        request: &QianjiBpmnWorkflowTaskCompleteBatchRequest,
+        host: &H,
+    ) -> Result<QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowControlError> {
+        service::complete_prepared_workflow_task_batch_until_host_boundary(
+            self, prepared, request, host,
+        )
+        .await
     }
 
     /// Claims one checkpoint-backed pending BPMN `userTask` or `manualTask`

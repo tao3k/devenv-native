@@ -5,11 +5,6 @@ use crate::parsers::search::repo_code_query::ParsedRepoCodeSearchQuery;
 use crate::search::SearchPlaneService;
 use crate::search::contracts::SearchHit;
 
-use super::ast::{
-    ast_pattern_requests_generic_analysis, has_generic_ast_language_filters,
-    repository_supports_generic_ast_analysis, search_repo_ast_analysis_hits,
-    search_repo_ast_pattern_hits,
-};
 use super::buffered::search_repo_intent_hits_buffered;
 use super::buffered::{RepoSearchResultLimits, search_repo_code_hits_buffered};
 use super::dispatch::{RepoSearchDispatch, collect_repo_search_targets, repo_search_parallelism};
@@ -46,9 +41,6 @@ pub struct RepoCodeSearchOutcome {
 #[derive(Debug, thiserror::Error)]
 /// Errors returned while executing repository code search.
 pub enum RepoCodeSearchExecutionError {
-    /// Ast-grep search was requested without exactly one repository scope.
-    #[error("ast-grep code search requires one explicit repository scope")]
-    MissingRepositoryScopeForAstGrep,
     /// Repository search failed after dispatching to the selected backend.
     #[error("{0}")]
     Search(String),
@@ -122,80 +114,13 @@ pub(crate) async fn search_repo_code_outcome(
 /// Positional boundary: this public API preserves an existing compatibility surface; call-site semantics are documented by parameter names.
 pub async fn search_repo_code_outcome_for_query(
     search_plane: &SearchPlaneService,
-    selected_repository: Option<&RegisteredRepository>,
+    _selected_repository: Option<&RegisteredRepository>,
     repo_ids: Vec<String>,
     raw_query: &str,
-    parsed_query: &ParsedRepoCodeSearchQuery,
+    _parsed_query: &ParsedRepoCodeSearchQuery,
     per_repo_limits: RepoSearchResultLimits,
     repo_wide_budget: Option<Duration>,
 ) -> Result<RepoCodeSearchOutcome, RepoCodeSearchExecutionError> {
-    if let Some(ast_pattern) = parsed_query.ast_pattern.as_deref() {
-        let repository = selected_repository
-            .ok_or(RepoCodeSearchExecutionError::MissingRepositoryScopeForAstGrep)?;
-        let language_filters = parsed_query
-            .language_filters
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-        if ast_pattern_requests_generic_analysis(ast_pattern) {
-            let hits = search_repo_ast_analysis_hits(
-                search_plane,
-                repository,
-                parsed_query.search_term(),
-                language_filters.as_slice(),
-                per_repo_limits.entity_limit,
-            )
-            .await
-            .map_err(RepoCodeSearchExecutionError::Search)?;
-            return Ok(RepoCodeSearchOutcome {
-                hits,
-                pending_repos: Vec::new(),
-                skipped_repos: Vec::new(),
-                partial_timeout: false,
-            });
-        }
-        let hits = search_repo_ast_pattern_hits(
-            search_plane,
-            repository,
-            ast_pattern,
-            language_filters.as_slice(),
-            per_repo_limits.entity_limit,
-        )
-        .await
-        .map_err(RepoCodeSearchExecutionError::Search)?;
-        return Ok(RepoCodeSearchOutcome {
-            hits,
-            pending_repos: Vec::new(),
-            skipped_repos: Vec::new(),
-            partial_timeout: false,
-        });
-    }
-
-    if let Some(repository) = selected_repository
-        && should_use_generic_ast_analysis(repository, parsed_query)
-    {
-        let language_filters = parsed_query
-            .language_filters
-            .iter()
-            .cloned()
-            .collect::<Vec<_>>();
-        let hits = search_repo_ast_analysis_hits(
-            search_plane,
-            repository,
-            parsed_query.search_term(),
-            language_filters.as_slice(),
-            per_repo_limits.entity_limit,
-        )
-        .await
-        .map_err(RepoCodeSearchExecutionError::Search)?;
-        return Ok(RepoCodeSearchOutcome {
-            hits,
-            pending_repos: Vec::new(),
-            skipped_repos: Vec::new(),
-            partial_timeout: false,
-        });
-    }
-
     search_repo_code_outcome(
         search_plane,
         repo_ids,
@@ -205,16 +130,6 @@ pub async fn search_repo_code_outcome_for_query(
     )
     .await
     .map_err(RepoCodeSearchExecutionError::Search)
-}
-
-fn should_use_generic_ast_analysis(
-    repository: &RegisteredRepository,
-    parsed_query: &ParsedRepoCodeSearchQuery,
-) -> bool {
-    repository_supports_generic_ast_analysis(repository)
-        && parsed_query.kind_filters.is_empty()
-        && (!repository.has_repo_intelligence_plugins()
-            || has_generic_ast_language_filters(repository, &parsed_query.language_filters))
 }
 
 async fn prepare_repo_search_dispatch(

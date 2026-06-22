@@ -10,6 +10,7 @@ use arrow_flight::{
 use async_trait::async_trait;
 use futures::stream;
 use futures::{StreamExt, TryStreamExt};
+use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use xiuxian_db_store::{EngineRecordBatch, lance_batch_to_engine_batch};
 
@@ -67,6 +68,11 @@ impl FlightService for WendaoFlightService {
         let route_payload = self
             .cached_route_payload(route.as_str(), &metadata, &cache_key)
             .await?;
+        if let Some(alias_key) = Self::route_request_cache_alias_key(route.as_str(), &metadata)? {
+            self.route_payload_cache
+                .insert_alias(alias_key, Arc::clone(&route_payload))
+                .await;
+        }
         if route.starts_with(ANALYSIS_ROUTE_PREFIX) {
             let route_payload = route_payload.clone();
             drop(tokio::spawn(async move {

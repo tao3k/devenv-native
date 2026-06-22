@@ -1,8 +1,8 @@
 use crate::transport::{
-    ANALYSIS_CODE_AST_ROUTE, ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REPO_DOC_COVERAGE_ROUTE,
-    ANALYSIS_REPO_OVERVIEW_ROUTE, GRAPH_NEIGHBORS_ROUTE, SEARCH_AST_ROUTE,
-    SEARCH_ATTACHMENTS_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, VFS_CONTENT_ROUTE,
-    VFS_RESOLVE_ROUTE, is_search_family_route, validate_graph_neighbors_request_metadata,
+    ANALYSIS_MARKDOWN_ROUTE, ANALYSIS_REPO_DOC_COVERAGE_ROUTE, ANALYSIS_REPO_OVERVIEW_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE,
+    VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, is_search_family_route,
+    validate_graph_neighbors_request_metadata,
 };
 
 use crate::tests::transport::server::assertions::{must_err, must_ok};
@@ -79,12 +79,10 @@ fn search_family_route_matcher_accepts_semantic_business_routes() {
     assert!(is_search_family_route(SEARCH_INTENT_ROUTE));
     assert!(is_search_family_route(SEARCH_KNOWLEDGE_ROUTE));
     assert!(!is_search_family_route(SEARCH_ATTACHMENTS_ROUTE));
-    assert!(!is_search_family_route(SEARCH_AST_ROUTE));
     assert!(!is_search_family_route(VFS_RESOLVE_ROUTE));
     assert!(!is_search_family_route(VFS_CONTENT_ROUTE));
     assert!(!is_search_family_route(GRAPH_NEIGHBORS_ROUTE));
     assert!(!is_search_family_route(ANALYSIS_MARKDOWN_ROUTE));
-    assert!(!is_search_family_route(ANALYSIS_CODE_AST_ROUTE));
     assert!(!is_search_family_route(ANALYSIS_REPO_DOC_COVERAGE_ROUTE));
     assert!(!is_search_family_route(ANALYSIS_REPO_OVERVIEW_ROUTE));
 }

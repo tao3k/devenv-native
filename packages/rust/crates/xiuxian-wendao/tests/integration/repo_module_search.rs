@@ -4,7 +4,6 @@ use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, sample_projection_analysis,
     write_repo_config,
 };
-use crate::support::wendao_command;
 use serde_json::json;
 use xiuxian_wendao::analyzers::{
     ModuleSearchQuery, build_module_search, module_search_from_config,
@@ -88,22 +87,15 @@ fn cli_repo_module_search_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliModulePkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-module")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("module-search")
-        .arg("--repo")
-        .arg("cli-module")
-        .arg("--query")
-        .arg("src")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let payload = module_search_from_config(
+        &ModuleSearchQuery {
+            repo_id: "cli-module".to_string(),
+            query: "src".to_string(),
+            limit: 10,
+        },
+        Some(&config_path),
+        temp.path(),
+    )?;
     assert_repo_json_snapshot("repo_module_search_cli_json", payload);
     Ok(())
 }

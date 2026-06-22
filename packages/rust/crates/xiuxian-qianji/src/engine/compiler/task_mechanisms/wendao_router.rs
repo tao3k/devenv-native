@@ -2,8 +2,11 @@ use crate::contracts::{NodeDefinition, QianjiMechanism};
 use crate::error::QianjiError;
 use std::sync::Arc;
 
-use crate::engine::compiler::{router, wendao_ingester, wendao_refresh};
+use crate::engine::compiler::router;
+#[cfg(feature = "wendao-integration")]
+use crate::engine::compiler::{wendao_ingester, wendao_refresh};
 
+#[cfg(feature = "wendao-integration")]
 pub(in crate::engine::compiler) fn wendao_ingester(
     node_def: &NodeDefinition,
 ) -> Arc<dyn QianjiMechanism> {
@@ -18,6 +21,7 @@ pub(in crate::engine::compiler) fn wendao_ingester(
     })
 }
 
+#[cfg(feature = "wendao-integration")]
 pub(in crate::engine::compiler) fn wendao_refresh(
     node_def: &NodeDefinition,
 ) -> Arc<dyn QianjiMechanism> {

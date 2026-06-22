@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use crate::analyzers::{
-    RegisteredRepository, RepositoryPluginConfig, RepositoryRef, RepositoryRefreshPolicy,
-};
+use crate::analyzers::{RegisteredRepository, RepositoryRef, RepositoryRefreshPolicy};
 use crate::search::real_repo_precision::types::{
     RealRepoGoldQuery, RealRepoGoldQueryKind, RealRepoKnowledgeScenario,
     RealRepoKnowledgeScenarioAuthorityExpectation, RealRepoKnowledgeScenarioKind,
@@ -31,7 +29,7 @@ fn artisan_workshop_repository() -> RegisteredRepository {
         url: Some("https://github.com/tao3k/xiuxian-artisan-workshop.git".to_string()),
         git_ref: Some(RepositoryRef::Branch("main".to_string())),
         refresh: RepositoryRefreshPolicy::Manual,
-        plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+        plugins: Vec::new(),
     }
 }
 
@@ -41,7 +39,7 @@ fn artisan_workshop_include_dirs() -> Vec<String> {
         "semantic".to_string(),
         "packages/rust/crates/xiuxian-wendao".to_string(),
         "packages/rust/crates/xiuxian-wendao/src/link_graph".to_string(),
-        "packages/rust/crates/xiuxian-wendao-julia".to_string(),
+        "packages/rust/crates/xiuxian-julia-runtime".to_string(),
     ]
 }
 
@@ -60,7 +58,6 @@ fn standard_excluded_dirs() -> Vec<String> {
 fn artisan_workshop_gold_queries() -> Vec<RealRepoGoldQuery> {
     let mut queries = semantic_gold_queries();
     queries.extend(docs_gold_queries());
-    queries.extend(repo_ast_gold_queries());
     queries
 }
 
@@ -359,69 +356,6 @@ fn docs_boundary_gold_queries() -> Vec<RealRepoGoldQuery> {
     ]
 }
 
-fn repo_ast_gold_queries() -> Vec<RealRepoGoldQuery> {
-    vec![
-        RealRepoGoldQuery {
-            id: "repo-source-materialization-function".to_string(),
-            kind: RealRepoGoldQueryKind::RepoAst,
-            query: "resolve_registered_repository_source".to_string(),
-            limit: 10,
-            must_hit_paths: vec![
-                "packages/rust/crates/xiuxian-wendao/src/analyzers/repo_source.rs".to_string(),
-            ],
-            required_top_path: Some(
-                "packages/rust/crates/xiuxian-wendao/src/analyzers/repo_source.rs".to_string(),
-            ),
-            language_filters: vec!["rust".to_string()],
-        },
-        RealRepoGoldQuery {
-            id: "repo-code-search-outcome-struct".to_string(),
-            kind: RealRepoGoldQueryKind::RepoAst,
-            query: "RepoCodeSearchOutcome".to_string(),
-            limit: 10,
-            must_hit_paths: vec![
-                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                    .to_string(),
-            ],
-            required_top_path: Some(
-                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                    .to_string(),
-            ),
-            language_filters: vec!["rust".to_string()],
-        },
-        RealRepoGoldQuery {
-            id: "repo-code-search-query-async-function".to_string(),
-            kind: RealRepoGoldQueryKind::RepoAst,
-            query: "search_repo_code_outcome_for_query".to_string(),
-            limit: 10,
-            must_hit_paths: vec![
-                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                    .to_string(),
-            ],
-            required_top_path: Some(
-                "packages/rust/crates/xiuxian-wendao/src/search/repo_search/orchestration.rs"
-                    .to_string(),
-            ),
-            language_filters: vec!["rust".to_string()],
-        },
-        RealRepoGoldQuery {
-            id: "repo-link-graph-build-with-filters-source".to_string(),
-            kind: RealRepoGoldQueryKind::RepoAst,
-            query: "build_with_filters".to_string(),
-            limit: 10,
-            must_hit_paths: vec![
-                "packages/rust/crates/xiuxian-wendao/src/link_graph/index/build/assemble/api.rs"
-                    .to_string(),
-            ],
-            required_top_path: Some(
-                "packages/rust/crates/xiuxian-wendao/src/link_graph/index/build/assemble/api.rs"
-                    .to_string(),
-            ),
-            language_filters: vec!["rust".to_string()],
-        },
-    ]
-}
-
 fn pi_wendao_catalog_entry() -> RealRepoPrecisionCatalogEntry {
     RealRepoPrecisionCatalogEntry {
         repository: RegisteredRepository {
@@ -430,7 +364,7 @@ fn pi_wendao_catalog_entry() -> RealRepoPrecisionCatalogEntry {
             url: Some("https://github.com/tao3k/pi-wendao.git".to_string()),
             git_ref: None,
             refresh: RepositoryRefreshPolicy::Manual,
-            plugins: vec![RepositoryPluginConfig::Id("ast-grep".to_string())],
+            plugins: Vec::new(),
         },
         include_dirs: vec![".".to_string()],
         excluded_dirs: vec![
@@ -470,33 +404,6 @@ fn pi_wendao_catalog_entry() -> RealRepoPrecisionCatalogEntry {
                 must_hit_paths: vec!["docs/bpmn-format.md".to_string()],
                 required_top_path: None,
                 language_filters: Vec::new(),
-            },
-            RealRepoGoldQuery {
-                id: "pi-wendao-subagents-extension-source".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "createCliPiSubagentsHost".to_string(),
-                limit: 10,
-                must_hit_paths: vec!["src/cli/pi-subagents.ts".to_string()],
-                required_top_path: Some("src/cli/pi-subagents.ts".to_string()),
-                language_filters: vec!["typescript".to_string()],
-            },
-            RealRepoGoldQuery {
-                id: "pi-wendao-agent-host-interface-source".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "buildPiWendaoAgentPrompt".to_string(),
-                limit: 10,
-                must_hit_paths: vec!["src/executor/agent-host.ts".to_string()],
-                required_top_path: Some("src/executor/agent-host.ts".to_string()),
-                language_filters: vec!["typescript".to_string()],
-            },
-            RealRepoGoldQuery {
-                id: "pi-wendao-model-resolver-source".to_string(),
-                kind: RealRepoGoldQueryKind::RepoAst,
-                query: "resolveModel".to_string(),
-                limit: 10,
-                must_hit_paths: vec!["src/cli/model-resolver.ts".to_string()],
-                required_top_path: Some("src/cli/model-resolver.ts".to_string()),
-                language_filters: vec!["typescript".to_string()],
             },
         ],
         knowledge_scenarios: pi_wendao_knowledge_scenarios(),

@@ -34,7 +34,7 @@ pub(crate) async fn build_definition_response(
     let observation_hints =
         definition_observation_hints(studio, source_paths, source_line, query_text).await;
     studio.ensure_local_symbol_index_ready().await?;
-    let ast_hits = studio.search_local_symbol_hits(query_text, 256).await?;
+    let source_symbol_hits = studio.search_local_symbol_hits(query_text, 256).await?;
     let projects = studio.configured_projects();
     let options = DefinitionResolveOptions {
         scope_patterns: observation_hints.as_ref().and_then(|hints| {
@@ -48,7 +48,7 @@ pub(crate) async fn build_definition_response(
     };
     let candidates = resolve_definition_candidates(
         query_text,
-        ast_hits.as_slice(),
+        source_symbol_hits.as_slice(),
         studio.project_root.as_path(),
         studio.config_root.as_path(),
         projects.as_slice(),
@@ -56,7 +56,7 @@ pub(crate) async fn build_definition_response(
     );
     let Some(definition) = resolve_best_definition(
         query_text,
-        ast_hits.as_slice(),
+        source_symbol_hits.as_slice(),
         studio.project_root.as_path(),
         studio.config_root.as_path(),
         projects.as_slice(),

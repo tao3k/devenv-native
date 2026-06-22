@@ -2,10 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Execution mode for per-node Qianhuan annotation bindings.
+/// Execution mode for per-node annotation bindings.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
-pub enum NodeQianhuanExecutionMode {
+pub enum NodeAnnotationExecutionMode {
     /// Use an isolated ephemeral injection window for each node execution.
     ///
     /// This is the default mode for multi-persona adversarial loops to avoid
@@ -18,7 +18,7 @@ pub enum NodeQianhuanExecutionMode {
     Appended,
 }
 
-impl NodeQianhuanExecutionMode {
+impl NodeAnnotationExecutionMode {
     /// Returns the stable string representation used in telemetry payloads.
     #[must_use]
     pub const fn as_str(&self) -> &'static str {
@@ -29,21 +29,21 @@ impl NodeQianhuanExecutionMode {
     }
 }
 
-/// Qianhuan binding metadata attached to a node.
+/// Annotation binding metadata attached to a node.
 ///
-/// This formalizes Phase E of the Qianji-Qianhuan interface in TOML:
-/// `[[nodes]] ... [nodes.qianhuan]`.
+/// This formalizes node-local annotation context in TOML:
+/// `[[nodes]] ... [nodes.annotation]`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 /// Semantic field boundary: this public DTO preserves externally serialized field names.
-pub struct NodeQianhuanBinding {
-    /// Persona profile identifier resolved by `PersonaRegistry`.
+pub struct NodeAnnotationBinding {
+    /// Persona profile identifier resolved by the annotation context.
     pub persona_id: Option<String>,
     /// Logical template target consumed by manifestation/runtime layers.
     pub template_target: Option<String>,
     /// Execution-mode selector for context window behavior.
     #[serde(default)]
-    pub execution_mode: NodeQianhuanExecutionMode,
+    pub execution_mode: NodeAnnotationExecutionMode,
     /// Whitelisted context keys that can be marshaled into this node's
     /// annotation narrative blocks.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

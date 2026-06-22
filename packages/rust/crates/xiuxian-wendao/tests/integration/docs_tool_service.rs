@@ -6,7 +6,6 @@ use std::path::Path;
 
 use crate::support::linked_parser_summary::linked_modelica_parser_summary_base_url;
 use crate::support::repo_intelligence::create_sample_modelica_repo;
-use crate::support::wendao_command;
 use xiuxian_wendao::analyzers::{
     DocsNavigationOptions, DocsPageIndexTreeResult, DocsToolService, ProjectedPageIndexNode,
     ProjectedPageIndexTree, ProjectionPageKind,
@@ -34,7 +33,7 @@ fn write_modelica_docs_config(
     fs::write(
         config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 root = "{}"
 plugins = [{plugin}]
 "#,
@@ -151,7 +150,7 @@ fn docs_tool_service_opens_outline_tree_search_navigation_node_and_context() -> 
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_page_index_outline_returns_text_free_tree_payload() -> TestResult {
+fn docs_page_index_outline_returns_text_free_tree_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp
@@ -165,31 +164,29 @@ fn cli_docs_page_index_outline_returns_text_free_tree_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("tree-outline")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .arg("--page-id")
-        .arg(MODELICA_DOCS_CLI_PAGE_ID)
-        .output()?;
+    let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
+        .with_optional_config_path(Some(config_path.clone()));
+    let payload = service.get_page_index_outline(MODELICA_DOCS_CLI_PAGE_ID)?;
 
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["repo_id"], "modelica-docs-cli");
-    assert_eq!(payload["tree"]["page_id"], MODELICA_DOCS_CLI_PAGE_ID);
-    assert_eq!(payload["tree"]["roots"][0]["text"], "");
+    assert_eq!(payload.repo_id, "modelica-docs-cli");
+    assert_eq!(
+        payload.tree.as_ref().map(|tree| tree.page_id.as_str()),
+        Some(MODELICA_DOCS_CLI_PAGE_ID)
+    );
+    assert_eq!(
+        payload
+            .tree
+            .as_ref()
+            .and_then(|tree| tree.roots.first())
+            .map(|node| node.text.as_str()),
+        Some("")
+    );
     Ok(())
 }
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_page_index_returns_text_free_trees_payload() -> TestResult {
+fn docs_page_index_returns_text_free_trees_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-page-index-cli.wendao.toml");
@@ -201,35 +198,26 @@ fn cli_docs_page_index_returns_text_free_trees_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("page-index")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .output()?;
+    let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
+        .with_optional_config_path(Some(config_path.clone()));
+    let payload = service.get_page_index()?;
 
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["repo_id"], "modelica-docs-cli");
-    let trees = payload["trees"]
-        .as_array()
-        .ok_or("expected serialized page-index trees")?;
-    let target_tree = trees
+    assert_eq!(payload.repo_id, "modelica-docs-cli");
+    let target_tree = payload
+        .trees
         .iter()
-        .find(|tree| tree["page_id"] == MODELICA_DOCS_CLI_PAGE_ID)
+        .find(|tree| tree.page_id == MODELICA_DOCS_CLI_PAGE_ID)
         .ok_or("expected requested page in page-index")?;
-    assert_eq!(target_tree["roots"][0]["text"], "");
+    assert_eq!(
+        target_tree.roots.first().map(|node| node.text.as_str()),
+        Some("")
+    );
     Ok(())
 }
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
+fn docs_segment_returns_segment_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-segment-cli.wendao.toml");
@@ -251,34 +239,14 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
         .map(|hit| hit.line_range)
         .ok_or("expected node hit for segment reopen")?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("segment")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .arg("--page-id")
-        .arg(MODELICA_DOCS_CLI_PAGE_ID)
-        .arg("--line-start")
-        .arg(line_range.0.to_string())
-        .arg("--line-end")
-        .arg(line_range.1.to_string())
-        .output()?;
+    let segment_payload =
+        service.get_document_segment(MODELICA_DOCS_CLI_PAGE_ID, line_range.0, line_range.1)?;
 
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["repo_id"], "modelica-docs-cli");
-    assert_eq!(payload["page_id"], MODELICA_DOCS_CLI_PAGE_ID);
-    assert_eq!(payload["line_range"][0], line_range.0);
-    assert_eq!(payload["line_range"][1], line_range.1);
+    assert_eq!(segment_payload.repo_id, "modelica-docs-cli");
+    assert_eq!(segment_payload.page_id, MODELICA_DOCS_CLI_PAGE_ID);
+    assert_eq!(segment_payload.line_range, line_range);
     assert!(
-        payload["content"]
-            .as_str()
-            .is_some_and(|content| content.contains("Anchors")),
+        segment_payload.content.contains("Anchors"),
         "expected serialized segment content"
     );
     Ok(())
@@ -286,7 +254,7 @@ fn cli_docs_segment_returns_serialized_segment_payload() -> TestResult {
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_search_page_index_returns_serialized_hits_payload() -> TestResult {
+fn docs_search_page_index_returns_hits_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp
@@ -301,42 +269,22 @@ fn cli_docs_search_page_index_returns_serialized_hits_payload() -> TestResult {
     )?;
     let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
         .with_optional_config_path(Some(config_path.clone()));
-    let expected = service.search_page_index("anchors", Some(ProjectionPageKind::Reference), 3)?;
-    let first_hit = expected
+    let payload = service.search_page_index("anchors", Some(ProjectionPageKind::Reference), 3)?;
+    let first_hit = payload
         .hits
         .first()
         .ok_or("expected at least one page-index search hit")?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("search-structure")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .arg("--query")
-        .arg("anchors")
-        .arg("--kind")
-        .arg("reference")
-        .arg("--limit")
-        .arg("3")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["repo_id"], "modelica-docs-cli");
-    assert_eq!(payload["hits"][0]["page_id"], first_hit.page_id);
-    assert_eq!(payload["hits"][0]["node_id"], first_hit.node_id);
-    assert_eq!(payload["hits"][0]["node_title"], first_hit.node_title);
+    assert_eq!(payload.repo_id, "modelica-docs-cli");
+    assert_eq!(payload.hits[0].page_id, first_hit.page_id);
+    assert_eq!(payload.hits[0].node_id, first_hit.node_id);
+    assert_eq!(payload.hits[0].node_title, first_hit.node_title);
     Ok(())
 }
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_node_returns_serialized_node_payload() -> TestResult {
+fn docs_node_returns_node_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-node-cli.wendao.toml");
@@ -353,34 +301,22 @@ fn cli_docs_node_returns_serialized_node_payload() -> TestResult {
     let structure = service.get_page_index_tree(MODELICA_DOCS_CLI_PAGE_ID)?;
     let node_id = anchors_node_id(&structure)?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("node")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .arg("--page-id")
-        .arg(MODELICA_DOCS_CLI_PAGE_ID)
-        .arg("--node-id")
-        .arg(&node_id)
-        .output()?;
+    let payload = service.get_document_node(MODELICA_DOCS_CLI_PAGE_ID, &node_id)?;
+    let hit = payload
+        .hit
+        .as_ref()
+        .ok_or("expected resolved node hit for anchor lookup")?;
 
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["repo_id"], "modelica-docs-cli");
-    assert_eq!(payload["hit"]["page_id"], MODELICA_DOCS_CLI_PAGE_ID);
-    assert_eq!(payload["hit"]["node_id"], node_id);
-    assert_eq!(payload["hit"]["node_title"], "Anchors");
+    assert_eq!(payload.repo_id, "modelica-docs-cli");
+    assert_eq!(hit.page_id, MODELICA_DOCS_CLI_PAGE_ID);
+    assert_eq!(hit.node_id, node_id);
+    assert_eq!(hit.node_title, "Anchors");
     Ok(())
 }
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_page_returns_serialized_page_payload() -> TestResult {
+fn docs_page_returns_page_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-cli.wendao.toml");
@@ -392,29 +328,16 @@ fn cli_docs_page_returns_serialized_page_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("page")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .arg("--page-id")
-        .arg(MODELICA_DOCS_CLI_PAGE_ID)
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["page"]["title"], "Projectionica.Controllers.PI");
+    let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
+        .with_optional_config_path(Some(config_path.clone()));
+    let payload = service.get_document(MODELICA_DOCS_CLI_PAGE_ID)?;
+    assert_eq!(payload.page.title, "Projectionica.Controllers.PI");
     Ok(())
 }
 
 #[cfg(feature = "julia")]
 #[test]
-fn cli_docs_toc_returns_serialized_toc_payload() -> TestResult {
+fn docs_toc_returns_toc_payload() -> TestResult {
     let temp = tempfile::tempdir()?;
     let repo_dir = create_sample_modelica_repo(temp.path(), "Projectionica")?;
     let config_path = temp.path().join("modelica-docs-toc-cli.wendao.toml");
@@ -426,25 +349,13 @@ fn cli_docs_toc_returns_serialized_toc_payload() -> TestResult {
         Some(parser_summary_base_url.as_str()),
     )?;
 
-    let output = wendao_command()
-        .current_dir(temp.path())
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("docs")
-        .arg("toc")
-        .arg("--repo")
-        .arg("modelica-docs-cli")
-        .output()?;
+    let service = DocsToolService::from_project_root(temp.path(), "modelica-docs-cli")
+        .with_optional_config_path(Some(config_path.clone()));
+    let payload = service.get_toc_documents()?;
 
-    assert!(output.status.success(), "{output:?}");
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_eq!(payload["repo_id"], "modelica-docs-cli");
+    assert_eq!(payload.repo_id, "modelica-docs-cli");
     assert!(
-        payload["documents"]
-            .as_array()
-            .is_some_and(|documents| !documents.is_empty()),
+        !payload.documents.is_empty(),
         "expected serialized TOC documents"
     );
     Ok(())

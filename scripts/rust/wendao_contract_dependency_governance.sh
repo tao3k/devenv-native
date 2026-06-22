@@ -39,7 +39,7 @@ run_semver_core() {
 
   printf 'Running cargo-semver-checks for xiuxian-wendao-core against baseline %s\n' "${baseline_rev}"
   cd "${repo_root}"
-  scripts/rust/cargo_exec.sh semver-checks check-release \
+  direnv exec . cargo semver-checks check-release \
     --manifest-path packages/rust/crates/xiuxian-wendao-core/Cargo.toml \
     --baseline-rev "${baseline_rev}"
 }
@@ -61,7 +61,7 @@ run_machete_wendao() {
   for crate_path in "${crate_paths[@]}"; do
     printf 'Running cargo-machete advisory scan for %s\n' "${crate_path}"
     set +e
-    scripts/rust/cargo_exec.sh machete "${crate_path}"
+    direnv exec . cargo machete "${crate_path}"
     status=$?
     set -e
 

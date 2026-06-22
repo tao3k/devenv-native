@@ -37,15 +37,16 @@ pub(crate) fn get_entry(state: &StudioState, path: &str) -> Result<VfsEntry, Vfs
     })
 }
 
-#[allow(clippy::unused_async)]
 pub(crate) async fn read_content(
     state: &StudioState,
     path: &str,
 ) -> Result<VfsContentResponse, VfsError> {
     let resolved = resolve_vfs_path(state, path)?;
-    let content = fs::read_to_string(&resolved.full_path)
+    let content = tokio::fs::read_to_string(&resolved.full_path)
+        .await
         .map_err(|error| VfsError::internal("IO_ERROR", error.to_string(), None))?;
-    let metadata = fs::metadata(&resolved.full_path)
+    let metadata = tokio::fs::metadata(&resolved.full_path)
+        .await
         .map_err(|error| VfsError::internal("IO_ERROR", error.to_string(), None))?;
 
     Ok(VfsContentResponse {
@@ -56,13 +57,13 @@ pub(crate) async fn read_content(
     })
 }
 
-#[allow(clippy::unused_async)]
 pub(crate) async fn read_raw_content(
     state: &StudioState,
     path: &str,
 ) -> Result<RawVfsContent, VfsError> {
     let resolved = resolve_vfs_path(state, path)?;
-    let content = fs::read(&resolved.full_path)
+    let content = tokio::fs::read(&resolved.full_path)
+        .await
         .map_err(|error| VfsError::internal("IO_ERROR", error.to_string(), None))?;
 
     Ok(RawVfsContent {

@@ -1,0 +1,21 @@
+{
+  "profiles": {
+    "rust": {
+      "enabled": true,
+      "prime_required_before_edit": true,
+      "raw_search_requires_ingest": true,
+      "changed_check_required": true
+    },
+    "typescript": {
+      "enabled": true,
+      "prime_required_before_edit": true,
+      "raw_search_requires_ingest": true,
+      "changed_check_required": true
+    }
+  },
+  "global": {
+    "raw_ast_grep_blocked": true,
+    "exact_file_edit_exception": true,
+    "docs_only_exception": true
+  }
+}

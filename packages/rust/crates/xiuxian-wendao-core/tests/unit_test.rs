@@ -16,5 +16,7 @@ mod link_graph_refresh;
 mod resource_uri;
 #[path = "unit/semantic_document.rs"]
 mod semantic_document;
+#[path = "unit/semantic_scope.rs"]
+mod semantic_scope;
 #[path = "unit/sql_query.rs"]
 mod sql_query;

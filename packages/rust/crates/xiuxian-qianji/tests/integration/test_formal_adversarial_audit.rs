@@ -1,9 +1,9 @@
+#![cfg(feature = "wendao-integration")]
+
 use async_trait::async_trait;
 use serde_json::json;
 use std::sync::Arc;
-use xiuxian_qianhuan::{PersonaRegistry, ThousandFacesOrchestrator};
 use xiuxian_qianji::{FlowInstruction, QianjiMechanism, QianjiOutput, QianjiScheduler};
-use xiuxian_wendao::LinkGraphIndex;
 
 // A slightly smarter Mock that "learns" from audit failures
 struct SelfHealingMock;
@@ -32,11 +32,6 @@ impl QianjiMechanism for SelfHealingMock {
 
 #[tokio::test]
 async fn test_formal_adversarial_audit_convergence() -> Result<(), Box<dyn std::error::Error>> {
-    let temp = tempfile::tempdir()?;
-    let _index = Arc::new(LinkGraphIndex::build(temp.path())?);
-    let _orchestrator = Arc::new(ThousandFacesOrchestrator::new("Rules".to_string(), None));
-    let _registry = Arc::new(PersonaRegistry::with_builtins());
-
     let mut engine = xiuxian_qianji::QianjiEngine::new();
     let analyzer = Arc::new(SelfHealingMock);
     let skeptic = Arc::new(xiuxian_qianji::executors::FormalAuditMechanism {

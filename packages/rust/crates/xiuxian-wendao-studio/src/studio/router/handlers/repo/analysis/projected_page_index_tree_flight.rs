@@ -39,14 +39,14 @@ impl RepoProjectedPageIndexTreeFlightRouteProvider
 {
     async fn repo_projected_page_index_tree_batch(
         &self,
-        repo_id: &str,
-        page_id: &str,
+        repo_key: &str,
+        page_key: &str,
     ) -> Result<AnalysisFlightRouteResponse, Status> {
         let response = run_repo_projected_page_index_tree(
             Arc::clone(&self.state),
             xiuxian_wendao::analyzers::RepoProjectedPageIndexTreeQuery {
-                repo_id: repo_id.to_string(),
-                page_id: page_id.to_string(),
+                repo_id: repo_key.to_string(),
+                page_id: page_key.to_string(),
             },
         )
         .await

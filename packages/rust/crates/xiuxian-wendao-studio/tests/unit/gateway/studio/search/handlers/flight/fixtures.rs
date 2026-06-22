@@ -12,8 +12,7 @@ use crate::studio::studio_repo_sync_api_tests::support::prime_local_julia_fixtur
 #[cfg(feature = "julia")]
 use crate::studio::test_support::{add_git_remote, commit_all, init_git_repository};
 use crate::transport::{
-    AnalysisFlightRouteResponse, CodeAstAnalysisFlightRouteProvider,
-    MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
+    AnalysisFlightRouteResponse, MarkdownAnalysisFlightRouteProvider, RefineDocFlightRouteProvider,
     RepoDocCoverageFlightRouteProvider, RepoIndexFlightRouteProvider,
     RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
     RepoProjectedPageIndexTreeFlightRouteProvider,
@@ -28,8 +27,8 @@ use tonic::Status;
 use super::build_studio_search_flight_service_with_repo_provider;
 use crate::contracts::{UiConfig, UiProjectConfig};
 use crate::studio::search::handlers::tests::test_studio_state;
+use crate::studio::search::{build_source_symbol_hits, build_symbol_index};
 use crate::studio::{GatewayState, StudioState};
-use crate::studio::{build_ast_index, search::build_symbol_index};
 #[cfg(feature = "julia")]
 use xiuxian_wendao::repo_index::RepoCodeDocument;
 #[cfg(feature = "julia")]
@@ -192,11 +191,11 @@ pub(super) async fn make_gateway_state_with_search_strategy_flow_routes() -> Gat
     fs::write(
         temp_dir.path().join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.kernel]
+            r#"[sources.projects.kernel]
 root = "."
 dirs = ["docs"]
 
-[link_graph.projects.gateway-sync]
+[sources.projects.gateway-sync]
 root = "{}"
 plugins = ["julia-code-parser"]
 refresh = "manual"
@@ -272,7 +271,7 @@ version = "0.1.0"
 }
 
 async fn publish_local_symbol_index(studio: &StudioState) {
-    let hits = build_ast_index(
+    let hits = build_source_symbol_hits(
         studio.project_root.as_path(),
         studio.config_root.as_path(),
         studio.configured_projects().as_slice(),
@@ -290,7 +289,7 @@ async fn publish_local_symbol_index(studio: &StudioState) {
         )
         .to_hex()
     );
-    let hits = crate::contracts::domain_ast_hits_for_search_plane(hits);
+    let hits = crate::contracts::domain_source_symbol_hits_for_search_plane(hits);
     studio
         .search_plane
         .publish_local_symbol_hits(fingerprint.as_str(), hits.as_slice())
@@ -411,18 +410,6 @@ impl MarkdownAnalysisFlightRouteProvider for RecordingAnalysisRouteProvider {
 }
 
 #[async_trait]
-impl CodeAstAnalysisFlightRouteProvider for RecordingAnalysisRouteProvider {
-    async fn code_ast_analysis_batch(
-        &self,
-        path: &str,
-        repo_id: &str,
-        line_hint: Option<usize>,
-    ) -> Result<AnalysisFlightRouteResponse, String> {
-        analysis_route_response("code_ast", format!("{repo_id}:{path}:{line_hint:?}"))
-    }
-}
-
-#[async_trait]
 impl RepoOverviewFlightRouteProvider for RecordingAnalysisRouteProvider {
     async fn repo_overview_batch(
         &self,
@@ -539,7 +526,6 @@ pub(super) fn build_analysis_route_service() -> WendaoFlightService {
     let mut route_providers =
         WendaoFlightRouteProviders::new(Arc::new(RecordingRepoSearchProvider));
     route_providers.markdown_analysis = Some(analysis_provider.clone());
-    route_providers.code_ast_analysis = Some(analysis_provider.clone());
     route_providers.repo_overview = Some(analysis_provider.clone());
     route_providers.repo_index = Some(analysis_provider.clone());
     route_providers.repo_index_status = Some(analysis_provider.clone());

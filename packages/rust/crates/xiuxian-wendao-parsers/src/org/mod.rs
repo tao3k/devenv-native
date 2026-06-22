@@ -1,5 +1,6 @@
 //! Parser-owned Org-mode document, note, and section contracts.
 
+mod attachments;
 mod document;
 mod note;
 mod ontology;
@@ -7,6 +8,7 @@ mod property_schema;
 mod sections;
 mod types;
 
+pub use attachments::{OrgAttachmentLink, OrgAttachmentLinkProtocol, extract_org_attachment_links};
 pub use document::parse_org_document;
 pub use note::parse_org_note;
 pub use ontology::{

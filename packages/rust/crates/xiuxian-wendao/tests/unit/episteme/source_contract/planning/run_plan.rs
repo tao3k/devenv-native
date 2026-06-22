@@ -81,7 +81,13 @@ fn episteme_source_contract_writes_deterministic_run_plan() -> Result<(), Box<dy
     let run_root = fixture.episteme_root.join("runs/extraction");
 
     let report = write_episteme_extraction_run_plan(&request, &run_root)?;
+    assert_eq!(report.total_queue_rows, 1);
     assert_eq!(report.selected_count, 1);
+    assert_eq!(report.route_counts.get("document_text_evidence"), Some(&1));
+    assert_eq!(
+        report.category_counts.get("synthetic_policy_category"),
+        Some(&1)
+    );
     assert!(!report.extraction_executed);
     assert!(!report.raw_to_rdf_promotion_allowed);
     assert!(report.outputs_dir.is_dir());
@@ -109,6 +115,62 @@ fn episteme_source_contract_writes_deterministic_run_plan() -> Result<(), Box<dy
     fs::write(&report.tasks_path, "stale")?;
     let rewritten = write_episteme_extraction_run_plan(&request, &run_root)?;
     assert_ne!(fs::read_to_string(rewritten.tasks_path)?, "stale");
+
+    Ok(())
+}
+
+#[test]
+fn episteme_source_contract_plans_legacy_office_conversion_run()
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut fixture = EpistemeFixture::new()?;
+    fixture.add_source(
+        "docs/a.doc",
+        "episteme.file.legacy.doc",
+        "episteme.extract.legacy.doc",
+        "synthetic_policy_category",
+        "legacy_office_document_evidence",
+        10,
+    )?;
+    fixture.write_contract()?;
+    fixture.add_legacy_office_route()?;
+
+    let request = EpistemeRunPlanRequest::new(
+        &fixture.episteme_root,
+        &fixture.corpus_root,
+        "legacy_office_conversion_seed",
+    )
+    .with_route("legacy_office_document_evidence")
+    .with_limit(1);
+    let run_root = fixture.episteme_root.join("runs/extraction");
+
+    let report = write_episteme_extraction_run_plan(&request, &run_root)?;
+    assert_eq!(report.selected_count, 1);
+    assert_eq!(
+        report.route_counts.get("legacy_office_document_evidence"),
+        Some(&1)
+    );
+    assert_eq!(
+        report.category_counts.get("synthetic_policy_category"),
+        Some(&1)
+    );
+    assert!(!report.extraction_executed);
+    assert!(!report.raw_to_rdf_promotion_allowed);
+
+    let tasks = fs::read_to_string(&report.tasks_path)?;
+    assert!(tasks.contains(
+        "episteme.extract.legacy.doc\tepisteme.file.legacy.doc\tdocs/a.doc\tsynthetic_policy_category\tzh-CN\tlegacy_office_document_evidence\t10"
+    ));
+
+    let receipt = fs::read_to_string(&report.receipt_path)?;
+    let receipt: serde_json::Value = serde_json::from_str(&receipt)?;
+    assert_eq!(
+        receipt["route_counts"]["legacy_office_document_evidence"],
+        1
+    );
+    assert_eq!(
+        receipt["tasks"][0]["extraction_route"],
+        "legacy_office_document_evidence"
+    );
 
     Ok(())
 }

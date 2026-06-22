@@ -1,7 +1,6 @@
 use super::{
-    FlowhubModuleKind, FlowhubScenarioCaseSummary, FlowhubShow, assert_common_show_shape,
-    classify_flowhub_dir, flowhub_root, real_flowhub_fixture_available, render_flowhub_show,
-    show_flowhub,
+    FlowhubModuleKind, FlowhubShow, assert_common_show_shape, classify_flowhub_dir, flowhub_root,
+    real_flowhub_fixture_available, render_flowhub_show, show_flowhub,
 };
 use xiuxian_qianji::FlowhubDirKind;
 
@@ -126,25 +125,18 @@ fn show_flowhub_keeps_required_only_plan_node_as_leaf() {
     assert_eq!(show.summary.module_ref, "plan");
     assert_eq!(show.summary.kind, FlowhubModuleKind::Leaf);
     assert_eq!(show.registered_child_count, 0);
-    assert_eq!(show.required_contract_count, 1);
-    assert_eq!(
-        show.scenario_cases,
-        vec![FlowhubScenarioCaseSummary {
-            file_name: "codex-plan.mmd".to_string(),
-            merimind_graph_name: "codex-plan".to_string(),
-        }]
-    );
+    assert_eq!(show.required_contract_count, 3);
+    assert!(show.scenario_cases.is_empty());
 
     let rendered = render_flowhub_show(&FlowhubShow::Module(show));
     assert_common_show_shape(&rendered);
-    assert!(rendered.contains("Required contract entries: 1"));
-    assert!(rendered.contains("## Scenario Cases"));
-    assert!(rendered.contains("Graph name: codex-plan"));
-    assert!(rendered.contains("Path: ./plan/codex-plan.mmd"));
+    assert!(rendered.contains("Required contract entries: 3"));
+    assert!(!rendered.contains("## Scenario Cases"));
+    assert!(!rendered.contains(".mmd"));
 }
 
 #[test]
-fn show_flowhub_prefers_declared_graph_name_for_leaf_module_summary() {
+fn show_flowhub_prefers_declared_graph_name_for_nested_module_summary() {
     if !real_flowhub_fixture_available() {
         return;
     }
@@ -155,21 +147,20 @@ fn show_flowhub_prefers_declared_graph_name_for_leaf_module_summary() {
         panic!("expected Flowhub module summary");
     };
     assert_eq!(show.summary.module_ref, "wendao");
-    assert_eq!(show.summary.kind, FlowhubModuleKind::Leaf);
-    assert_eq!(show.registered_child_count, 0);
-    assert_eq!(show.required_contract_count, 1);
-    assert_eq!(
-        show.scenario_cases,
-        vec![FlowhubScenarioCaseSummary {
-            file_name: "docs-search.mmd".to_string(),
-            merimind_graph_name: "DOC_SEARCH".to_string(),
-        }]
+    assert_eq!(show.summary.kind, FlowhubModuleKind::Composite);
+    assert_eq!(show.registered_child_count, 1);
+    assert_eq!(show.required_contract_count, 4);
+    assert!(
+        show.summary
+            .child_modules
+            .iter()
+            .any(|child| child == "wendao/client")
     );
 
     let rendered = render_flowhub_show(&FlowhubShow::Module(show));
     assert_common_show_shape(&rendered);
-    assert!(rendered.contains("Required contract entries: 1"));
-    assert!(rendered.contains("## Scenario Cases"));
-    assert!(rendered.contains("Graph name: DOC_SEARCH"));
-    assert!(rendered.contains("Path: ./wendao/docs-search.mmd"));
+    assert!(rendered.contains("Kind: composite"));
+    assert!(rendered.contains("Registered children: 1"));
+    assert!(rendered.contains("Required contract entries: 4"));
+    assert!(!rendered.contains(".mmd"));
 }

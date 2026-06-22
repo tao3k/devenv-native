@@ -63,16 +63,31 @@ class _DeepSeekOcr2OpenAiClient:
         self._prompt = config.prompt
         self._max_tokens = config.max_tokens
         self._region_max_tokens = config.region_max_tokens
+        self._region_prompt_mode = config.region_prompt_mode
         self._region_composite_size = config.region_composite_size
+        self._region_composite_mode = config.region_composite_mode
+        self._region_composite_max_source_pixels = (
+            config.region_composite_max_source_pixels
+        )
+        self._region_composite_max_image_bytes = config.region_composite_max_image_bytes
         self._region_atlas_mode = config.region_atlas_mode
         self._timeout_seconds = config.timeout_seconds
         self._request_concurrency = config.request_concurrency
         self._speculative_retry_delay_seconds = config.speculative_retry_delay_seconds
+        self._speculative_retry_min_source_pixels = (
+            config.speculative_retry_min_source_pixels
+        )
+        self._speculative_retry_min_image_bytes = (
+            config.speculative_retry_min_image_bytes
+        )
         self._page_window_size = config.page_window_size
         self._scaffold_mode = config.scaffold_mode
         self._image_optimization_mode = config.image_optimization_mode
         self._trace_path = config.trace_path
         self._extra_headers = dict(config.extra_headers or {})
+        self._openrouter_provider_preferences = dict(
+            config.openrouter_provider_preferences or {}
+        )
         self._disabled_region_canaries: set[str] = set()
 
     def recognize_many(
@@ -82,7 +97,11 @@ class _DeepSeekOcr2OpenAiClient:
         rows = list(input_rows)
         if self._region_composite_size > 1:
             region_tasks = ocr2_region_composite_tasks(
-                rows, self._region_composite_size
+                rows,
+                self._region_composite_size,
+                composite_mode=self._region_composite_mode,
+                max_source_pixel_area=self._region_composite_max_source_pixels,
+                max_image_bytes=self._region_composite_max_image_bytes,
             )
             if any(len(task) > 1 for task in region_tasks):
                 return self._retry_transient_failed_results(
@@ -263,8 +282,15 @@ class _DeepSeekOcr2OpenAiClient:
             completion_url=self._completion_url,
             headers=self._headers(),
             timeout_seconds=self._timeout_seconds,
-            payload=payload,
+            payload=self._completion_payload(payload),
         )
+
+    def _completion_payload(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        if not self._openrouter_provider_preferences:
+            return payload
+        completion_payload = dict(payload)
+        completion_payload["provider"] = dict(self._openrouter_provider_preferences)
+        return completion_payload
 
     def _max_tokens_for_row(self, input_row: Mapping[str, Any]) -> int:
         if str(input_row.get("shardType") or "") == "region":
@@ -302,6 +328,10 @@ class _DeepSeekOcr2OpenAiClient:
         scaffold_validation_failure_count: int = 0,
         scaffold_json_chars: int = 0,
         canonical_markdown_chars: int = 0,
+        hedge_winner: str | None = None,
+        hedge_delay_seconds: float | None = None,
+        hedge_primary_latency_ms: float | None = None,
+        hedge_secondary_latency_ms: float | None = None,
     ) -> None:
         write_trace_record(
             trace_path=self._trace_path,
@@ -326,4 +356,8 @@ class _DeepSeekOcr2OpenAiClient:
             scaffold_validation_failure_count=scaffold_validation_failure_count,
             scaffold_json_chars=scaffold_json_chars,
             canonical_markdown_chars=canonical_markdown_chars,
+            hedge_winner=hedge_winner,
+            hedge_delay_seconds=hedge_delay_seconds,
+            hedge_primary_latency_ms=hedge_primary_latency_ms,
+            hedge_secondary_latency_ms=hedge_secondary_latency_ms,
         )

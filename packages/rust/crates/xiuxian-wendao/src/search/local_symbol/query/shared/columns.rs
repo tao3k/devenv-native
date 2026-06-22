@@ -50,7 +50,7 @@ pub(crate) fn collect_candidates(
             score,
             name: name.value(row).to_string(),
             path: path.value(row).to_string(),
-            line_start: usize::try_from(line_start.value(row)).unwrap_or(usize::MAX),
+            line_start: decode_usize_column("line_start", line_start.value(row))?,
         });
         telemetry.observe_working_set(candidates.len());
         if candidates.len() > window.threshold {
@@ -61,6 +61,14 @@ pub(crate) fn collect_candidates(
     }
 
     Ok(())
+}
+
+fn decode_usize_column(column: &str, value: u64) -> Result<usize, LocalSymbolSearchError> {
+    usize::try_from(value).map_err(|_| {
+        LocalSymbolSearchError::Decode(format!(
+            "local symbol `{column}` value `{value}` does not fit usize"
+        ))
+    })
 }
 
 pub(crate) fn collect_suggestions(

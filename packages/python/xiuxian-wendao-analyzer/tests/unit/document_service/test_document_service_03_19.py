@@ -6,7 +6,10 @@ import json
 
 from xiuxian_wendao_analyzer.pdf_ocr import (
     HOSTED_VLM_OCR_BASE_URL_ENV,
+    HOSTED_VLM_OCR_COMPACT_REGION_MARKDOWN_PROMPT_MODE,
+    HOSTED_VLM_OCR_REGION_PROMPT_MODE_ENV,
     HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV,
+    HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS_ENV,
     HOSTED_VLM_OCR_TRACE_PATH_ENV,
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
 )
@@ -140,3 +143,129 @@ def test_docling_pdf_ocr_worker_hedges_slow_region_ocr2_request(
     ]
     assert records[0]["requestKind"] == "region-hedged"
     assert records[0]["httpAttemptCount"] == 2
+    assert records[0]["hedgeWinner"] == "hedge"
+    assert records[0]["hedgeDelaySeconds"] == 0.01
+    assert records[0]["hedgeSecondaryLatencyMs"] >= 0
+
+
+def test_docling_pdf_ocr_worker_skips_region_hedge_below_source_pixel_threshold(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "region-00000.png"
+    image.write_bytes(b"region png fixture")
+    trace_path = tmp_path / "hosted-vlm-no-hedge.jsonl"
+    requests: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "# single request\n"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = request
+        _ = timeout
+        requests.append("request")
+        time.sleep(0.02)
+        return FakeResponse()
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(HOSTED_VLM_OCR_TRACE_PATH_ENV, str(trace_path))
+    monkeypatch.setenv(HOSTED_VLM_OCR_SPECULATIVE_RETRY_DELAY_SECONDS_ENV, "0.01")
+    monkeypatch.setenv(
+        HOSTED_VLM_OCR_SPECULATIVE_RETRY_MIN_SOURCE_PIXELS_ENV,
+        "8000000",
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            shard_type="region",
+            region_index=1,
+            parent_shard_element_id="hosted-vlm-page",
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    rows = table.to_pylist()
+    assert rows[0]["status"] == "succeeded"
+    assert rows[0]["text"] == "# single request\n"
+    assert requests == ["request"]
+    records = [
+        json.loads(line) for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert records[0]["requestKind"] == "region"
+    assert records[0]["httpAttemptCount"] == 1
+
+
+def test_docling_pdf_ocr_worker_uses_compact_region_prompt_mode(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "region-00000.png"
+    image.write_bytes(b"region png fixture")
+    prompts: list[str] = []
+
+    class FakeResponse:
+        status = 200
+
+        def __enter__(self) -> FakeResponse:
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            _ = args
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"choices": [{"message": {"content": "| a | b |\n"}}]}
+            ).encode("utf-8")
+
+    def fake_urlopen(request: object, *, timeout: float) -> FakeResponse:
+        _ = timeout
+        data = request.data
+        payload = json.loads(data.decode("utf-8"))
+        prompts.append(payload["messages"][0]["content"][0]["text"])
+        return FakeResponse()
+
+    monkeypatch.setenv(HOSTED_VLM_OCR_BASE_URL_ENV, "http://127.0.0.1:8999/v1")
+    monkeypatch.setenv(
+        HOSTED_VLM_OCR_REGION_PROMPT_MODE_ENV,
+        HOSTED_VLM_OCR_COMPACT_REGION_MARKDOWN_PROMPT_MODE,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_ocr2.http.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            shard_type="region",
+            region_index=1,
+            parent_shard_element_id="hosted-vlm-page",
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    rows = table.to_pylist()
+    assert rows[0]["status"] == "succeeded"
+    assert rows[0]["text"] == "| a | b |\n"
+    assert len(prompts) == 1
+    assert "one cropped OCR recovery region" in prompts[0]
+    assert "not as a full document page" in prompts[0]
+    assert "Do not add introductions, code fences, section markers" in prompts[0]

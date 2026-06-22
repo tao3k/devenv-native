@@ -1,7 +1,9 @@
 //! Executors annotation context surface for `xiuxian-qianji`.
 
 use super::persona_markdown::persona_profile_from_markdown;
-use crate::contracts::{FlowInstruction, NodeQianhuanExecutionMode, QianjiMechanism, QianjiOutput};
+use crate::contracts::{
+    FlowInstruction, NodeAnnotationExecutionMode, QianjiMechanism, QianjiOutput,
+};
 use crate::scheduler_preflight::{
     context_value_to_text, lookup_context_path, resolve_semantic_content,
     resolve_semantic_reference, resolve_wendao_uri_with_zhenfa,
@@ -10,12 +12,22 @@ use async_trait::async_trait;
 use quick_xml::de::from_str;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::sync::Arc;
-use xiuxian_qianhuan::orchestrator::ThousandFacesOrchestrator;
-use xiuxian_qianhuan::persona::{PersonaProfile, PersonaRegistry};
-use xiuxian_wendao_core::WendaoResourceUri;
+use std::collections::HashMap;
 
 const MAX_SNAPSHOT_COMPACTION_DEPTH: usize = 4;
+
+#[derive(Debug, Clone)]
+pub(super) struct PersonaProfile {
+    pub(super) id: String,
+    pub(super) name: String,
+    pub(super) voice_tone: String,
+    pub(super) background: Option<String>,
+    pub(super) guidelines: Vec<String>,
+    pub(super) style_anchors: Vec<String>,
+    pub(super) cot_template: String,
+    pub(super) forbidden_words: Vec<String>,
+    pub(super) metadata: HashMap<String, String>,
+}
 
 #[derive(Debug, Default, Deserialize)]
 struct PromptInjectionSnapshot {
@@ -34,16 +46,12 @@ struct PromptInjectionNarrativeContext {
 /// Mechanism responsible for transmuting raw facts into persona-aligned context snapshots.
 /// Semantic field boundary: this public DTO preserves externally serialized field names.
 pub struct ContextAnnotator {
-    /// Reference to the `ThousandFaces` orchestrator.
-    pub orchestrator: Arc<ThousandFacesOrchestrator>,
-    /// Reference to the Persona Registry.
-    pub registry: Arc<PersonaRegistry>,
     /// Target persona ID defined in the registry.
     pub persona_id: String,
     /// Optional logical template target associated with this node.
     pub template_target: Option<String>,
     /// Context window behavior for this annotation node.
-    pub execution_mode: NodeQianhuanExecutionMode,
+    pub execution_mode: NodeAnnotationExecutionMode,
     /// Whitelisted context keys that can be marshaled into narrative blocks.
     pub input_keys: Vec<String>,
     /// History key used when execution mode is `appended`.
@@ -132,8 +140,8 @@ impl ContextAnnotator {
 
     fn resolve_history_seed(&self, context: &Value) -> String {
         match self.execution_mode {
-            NodeQianhuanExecutionMode::Isolated => String::new(),
-            NodeQianhuanExecutionMode::Appended => context
+            NodeAnnotationExecutionMode::Isolated => String::new(),
+            NodeAnnotationExecutionMode::Appended => context
                 .get(&self.history_key)
                 .and_then(Value::as_str)
                 .unwrap_or("")
@@ -154,7 +162,7 @@ impl ContextAnnotator {
         current_history: &str,
         snapshot: &str,
     ) -> Option<String> {
-        if self.execution_mode != NodeQianhuanExecutionMode::Appended {
+        if self.execution_mode != NodeAnnotationExecutionMode::Appended {
             return None;
         }
         if current_history.is_empty() {
@@ -163,26 +171,71 @@ impl ContextAnnotator {
         Some(format!("{current_history}\n{snapshot}"))
     }
 
-    fn resolve_persona_profile(&self, persona_reference: &str) -> Result<PersonaProfile, String> {
+    fn resolve_persona_profile(persona_reference: &str) -> Result<PersonaProfile, String> {
         if persona_reference.trim_start().starts_with("wendao://") {
-            return self.resolve_wendao_persona_profile(persona_reference);
+            return Self::resolve_wendao_persona_profile(persona_reference);
         }
-        self.registry
-            .get(persona_reference)
-            .ok_or_else(|| format!("Persona '{persona_reference}' not found"))
+        persona_profile_from_reference(persona_reference)
     }
 
-    fn resolve_wendao_persona_profile(&self, uri: &str) -> Result<PersonaProfile, String> {
-        let parsed_uri = WendaoResourceUri::parse(uri)
-            .map_err(|error| format!("invalid persona semantic URI '{uri}': {error}"))?;
-        let canonical_uri = parsed_uri.canonical_uri();
-        let markdown = resolve_wendao_uri_with_zhenfa(canonical_uri.as_str())?;
-        let parsed_profile =
-            persona_profile_from_markdown(canonical_uri.as_str(), markdown.as_str());
-        if let Some(existing) = self.registry.get(parsed_profile.id.as_str()) {
-            return Ok(existing);
+    fn resolve_wendao_persona_profile(uri: &str) -> Result<PersonaProfile, String> {
+        let canonical_uri = uri.trim();
+        if canonical_uri.is_empty() {
+            return Err("persona semantic URI must not be empty".to_string());
         }
-        Ok(parsed_profile)
+        let markdown = resolve_wendao_uri_with_zhenfa(canonical_uri)?;
+        Ok(persona_profile_from_markdown(
+            canonical_uri,
+            markdown.as_str(),
+        ))
+    }
+
+    fn assemble_snapshot(persona: &PersonaProfile, blocks: &[String], history: &str) -> String {
+        let mut snapshot = String::from("<system_prompt_injection>\n");
+        push_xml_text_element(&mut snapshot, "persona_id", persona.id.as_str(), 1);
+        push_xml_text_element(&mut snapshot, "persona_name", persona.name.as_str(), 1);
+        push_xml_text_element(&mut snapshot, "voice_tone", persona.voice_tone.as_str(), 1);
+        if let Some(background) = persona.background.as_deref() {
+            push_xml_text_element(&mut snapshot, "background", background, 1);
+        }
+        push_xml_list_element(&mut snapshot, "guidelines", "item", &persona.guidelines, 1);
+        push_xml_list_element(
+            &mut snapshot,
+            "style_anchors",
+            "item",
+            &persona.style_anchors,
+            1,
+        );
+        push_xml_text_element(
+            &mut snapshot,
+            "cot_template",
+            persona.cot_template.as_str(),
+            1,
+        );
+        push_xml_list_element(
+            &mut snapshot,
+            "forbidden_words",
+            "item",
+            &persona.forbidden_words,
+            1,
+        );
+        if !persona.metadata.is_empty() {
+            snapshot.push_str("  <metadata>\n");
+            let mut metadata = persona.metadata.iter().collect::<Vec<_>>();
+            metadata.sort_by(|left, right| left.0.cmp(right.0));
+            for (key, value) in metadata {
+                snapshot.push_str("    <entry key=\"");
+                snapshot.push_str(escape_xml(key).as_str());
+                snapshot.push_str("\">");
+                snapshot.push_str(escape_xml(value).as_str());
+                snapshot.push_str("</entry>\n");
+            }
+            snapshot.push_str("  </metadata>\n");
+        }
+        push_xml_list_element(&mut snapshot, "narrative_context", "entry", blocks, 1);
+        push_xml_text_element(&mut snapshot, "working_history", history, 1);
+        snapshot.push_str("</system_prompt_injection>");
+        snapshot
     }
 }
 
@@ -193,7 +246,7 @@ impl QianjiMechanism for ContextAnnotator {
         let history_seed = self.resolve_history_seed(context);
         let persona_reference = resolve_semantic_reference(&self.persona_id, context)?;
 
-        let persona = self.resolve_persona_profile(persona_reference.as_str())?;
+        let persona = Self::resolve_persona_profile(persona_reference.as_str())?;
         let persona_id = persona.id.clone();
 
         // --- REAL-TIME BATTLE REPORTING ---
@@ -201,16 +254,12 @@ impl QianjiMechanism for ContextAnnotator {
             "\n\033[1;34m[Node: {}]\033[0m Activating Avatar: \033[1;33m{}\033[0m",
             self.output_key, persona_id
         );
-        if self.execution_mode == NodeQianhuanExecutionMode::Appended {
+        if self.execution_mode == NodeAnnotationExecutionMode::Appended {
             println!("  > Mode: Appended (Preserving Session Context)");
         }
         // ----------------------------------
 
-        let snapshot = self
-            .orchestrator
-            .assemble_snapshot(&persona, narrative_blocks, &history_seed)
-            .await
-            .map_err(|e| format!("Qianhuan annotation failed: {e}"))?;
+        let snapshot = Self::assemble_snapshot(&persona, &narrative_blocks, &history_seed);
 
         let mut data = serde_json::Map::new();
         data.insert(self.output_key.clone(), json!(snapshot));
@@ -223,7 +272,7 @@ impl QianjiMechanism for ContextAnnotator {
             self.metadata_key("input_keys"),
             json!(self.input_keys.clone()),
         );
-        if self.execution_mode == NodeQianhuanExecutionMode::Appended {
+        if self.execution_mode == NodeAnnotationExecutionMode::Appended {
             data.insert(
                 self.metadata_key("history_key"),
                 json!(self.history_key.clone()),
@@ -250,4 +299,85 @@ impl QianjiMechanism for ContextAnnotator {
     fn weight(&self) -> f32 {
         8.0
     }
+}
+
+fn persona_profile_from_reference(persona_reference: &str) -> Result<PersonaProfile, String> {
+    let id = persona_reference.trim();
+    if id.is_empty() {
+        return Err("persona reference must not be empty".to_string());
+    }
+    let name = id
+        .split(['-', '_'])
+        .filter(|part| !part.trim().is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            chars.next().map_or_else(String::new, |first| {
+                let mut out = String::new();
+                out.push(first.to_ascii_uppercase());
+                out.push_str(chars.as_str());
+                out
+            })
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    Ok(PersonaProfile {
+        id: id.to_string(),
+        name,
+        voice_tone: "Calm, practical, and context-grounded.".to_string(),
+        background: None,
+        guidelines: vec!["Respond with concise and actionable guidance.".to_string()],
+        style_anchors: Vec::new(),
+        cot_template:
+            "Extract constraints, reason about feasibility, then produce one executable output."
+                .to_string(),
+        forbidden_words: Vec::new(),
+        metadata: HashMap::new(),
+    })
+}
+
+fn push_xml_text_element(snapshot: &mut String, tag: &str, value: &str, indent: usize) {
+    let padding = "  ".repeat(indent);
+    snapshot.push_str(padding.as_str());
+    snapshot.push('<');
+    snapshot.push_str(tag);
+    snapshot.push('>');
+    snapshot.push_str(escape_xml(value).as_str());
+    snapshot.push_str("</");
+    snapshot.push_str(tag);
+    snapshot.push_str(">\n");
+}
+
+fn push_xml_list_element(
+    snapshot: &mut String,
+    tag: &str,
+    item_tag: &str,
+    values: &[String],
+    indent: usize,
+) {
+    let padding = "  ".repeat(indent);
+    snapshot.push_str(padding.as_str());
+    snapshot.push('<');
+    snapshot.push_str(tag);
+    snapshot.push_str(">\n");
+    for value in values {
+        push_xml_text_element(snapshot, item_tag, value, indent + 1);
+    }
+    snapshot.push_str(padding.as_str());
+    snapshot.push_str("</");
+    snapshot.push_str(tag);
+    snapshot.push_str(">\n");
+}
+
+fn escape_xml(raw: &str) -> String {
+    raw.chars().fold(String::new(), |mut escaped, ch| {
+        match ch {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' => escaped.push_str("&quot;"),
+            '\'' => escaped.push_str("&apos;"),
+            _ => escaped.push(ch),
+        }
+        escaped
+    })
 }

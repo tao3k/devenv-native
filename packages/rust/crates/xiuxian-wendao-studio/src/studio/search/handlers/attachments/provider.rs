@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use xiuxian_wendao_server::transport::{
-    AttachmentSearchFlightRouteProvider, SearchFlightRouteResponse,
+    AttachmentSearchFlightRouteProvider, AttachmentSearchFlightRouteRequest,
+    SearchFlightRouteResponse,
 };
 
 use super::batch::build_attachment_hits_flight_batch;
@@ -31,26 +32,22 @@ impl std::fmt::Debug for StudioAttachmentSearchFlightRouteProvider {
 
 #[async_trait]
 impl AttachmentSearchFlightRouteProvider for StudioAttachmentSearchFlightRouteProvider {
-    async fn attachment_search_batch(
+    async fn attachment_search_batch_for_request(
         &self,
-        query_text: &str,
-        limit: usize,
-        ext_filters: &std::collections::HashSet<String>,
-        kind_filters: &std::collections::HashSet<String>,
-        case_sensitive: bool,
+        request: AttachmentSearchFlightRouteRequest<'_>,
     ) -> Result<SearchFlightRouteResponse, String> {
-        let mut ext = ext_filters.iter().cloned().collect::<Vec<_>>();
+        let mut ext = request.ext_filters.iter().cloned().collect::<Vec<_>>();
         ext.sort();
-        let mut kind = kind_filters.iter().cloned().collect::<Vec<_>>();
+        let mut kind = request.kind_filters.iter().cloned().collect::<Vec<_>>();
         kind.sort();
         let response = load_attachment_search_response_from_studio(
             self.studio.as_ref(),
             AttachmentSearchQuery {
-                q: Some(query_text.to_string()),
-                limit: Some(limit),
+                q: Some(request.query_text.to_string()),
+                limit: Some(request.limit),
                 ext,
                 kind,
-                case_sensitive,
+                case_sensitive: request.case_sensitive,
             },
         )
         .await

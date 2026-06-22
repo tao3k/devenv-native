@@ -22,7 +22,7 @@ fn modelica_plugin_docs_retrieval_hit_resolves_node_hit() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-retrieval-hit]
+            r#"[sources.projects.modelica-docs-retrieval-hit]
 root = "{}"
 plugins = ["modelica"]
 "#,

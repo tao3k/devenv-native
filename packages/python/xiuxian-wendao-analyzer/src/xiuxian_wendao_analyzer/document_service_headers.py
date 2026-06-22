@@ -72,15 +72,11 @@ def document_extract_page_range(
         return None
     parts = value.split(":")
     if len(parts) != 2:
-        raise ValueError(
-            "document extract page range must use 1-based inclusive `start:end`"
-        )
+        raise ValueError("document extract page range must use 1-based inclusive `start:end`")
     try:
         start, end = (int(part) for part in parts)
     except ValueError as exc:
-        raise ValueError(
-            "document extract page range must use integer page numbers"
-        ) from exc
+        raise ValueError("document extract page range must use integer page numbers") from exc
     if start <= 0 or end <= 0 or start > end:
         raise ValueError("document extract page range must satisfy 1 <= start <= end")
     return (start, end)

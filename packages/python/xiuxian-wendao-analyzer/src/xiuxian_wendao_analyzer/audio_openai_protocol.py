@@ -10,9 +10,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-AUDIO_OPENAI_DEFAULT_PROMPT = (
-    "Transcribe this audio shard faithfully. Return only transcript text."
-)
+AUDIO_OPENAI_DEFAULT_PROMPT = "Transcribe this audio shard faithfully. Return only transcript text."
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,11 +27,12 @@ def build_chat_audio_payload(
     audio_path: Path,
     audio_format: str = "wav",
     prompt: str = AUDIO_OPENAI_DEFAULT_PROMPT,
+    disable_reasoning: bool = False,
 ) -> dict[str, Any]:
     """Build an OpenAI-compatible chat completion payload with audio input."""
 
     audio_data = base64.b64encode(audio_path.read_bytes()).decode("ascii")
-    return {
+    payload: dict[str, Any] = {
         "model": model,
         "messages": [
             {
@@ -52,6 +51,31 @@ def build_chat_audio_payload(
         ],
         "stream": False,
     }
+    if disable_reasoning:
+        payload["reasoning"] = {"effort": "none"}
+    return payload
+
+
+def build_audio_transcription_payload(
+    *,
+    model: str,
+    audio_path: Path,
+    audio_format: str = "wav",
+    language: str | None = None,
+) -> dict[str, Any]:
+    """Build an OpenRouter/OpenAI-compatible STT transcription payload."""
+
+    audio_data = base64.b64encode(audio_path.read_bytes()).decode("ascii")
+    payload: dict[str, Any] = {
+        "model": model,
+        "input_audio": {
+            "data": audio_data,
+            "format": audio_format.strip().lower() or "wav",
+        },
+    }
+    if language and language.strip().lower() != "unknown":
+        payload["language"] = language.strip().lower()
+    return payload
 
 
 def extract_input_audio(
@@ -128,3 +152,12 @@ def extract_openai_message_content(payload: Mapping[str, Any]) -> str:
         if parts:
             return "".join(parts)
     raise ValueError("OpenAI-compatible audio response content is not text")
+
+
+def extract_audio_transcription_text(payload: Mapping[str, Any]) -> str:
+    """Extract text content from a STT transcription response."""
+
+    text = payload.get("text")
+    if isinstance(text, str):
+        return text
+    raise ValueError("OpenAI-compatible audio transcription response lacks text")

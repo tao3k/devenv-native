@@ -244,7 +244,7 @@ Current implementation status:
     `src/analyzers/plugin.rs`, `src/analyzers/records.rs`,
     `src/analyzers/errors.rs`, `src/analyzers/registry.rs`, and the enum
     ownership under `src/analyzers/projection/contracts.rs`
-12. `xiuxian-wendao-julia` now consumes repo-intelligence contracts from
+12. `xiuxian-julia-core` now consumes repo-intelligence contracts from
     `xiuxian-wendao-core`, and that now includes the Julia Arrow analyzer
     transport contract; the Julia package no longer depends on the monolithic
     host crate directly

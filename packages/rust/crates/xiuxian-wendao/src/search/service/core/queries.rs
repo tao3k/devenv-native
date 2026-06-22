@@ -84,7 +84,7 @@ impl SearchPlaneService {
         &self,
         query: &str,
         limit: usize,
-    ) -> Result<Vec<crate::search::contracts::AstSearchHit>, LocalSymbolSearchError> {
+    ) -> Result<Vec<crate::search::contracts::SourceSymbolHit>, LocalSymbolSearchError> {
         crate::search::local_symbol::search_local_symbols(self, query, limit).await
     }
 

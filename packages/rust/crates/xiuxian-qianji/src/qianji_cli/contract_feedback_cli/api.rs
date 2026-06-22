@@ -7,8 +7,6 @@ pub(crate) use super::execute::{
 };
 pub(crate) use super::parse::parse_contract_feedback_command;
 #[cfg(test)]
-pub(crate) use super::support::sanitize_prj_cache_home;
-#[cfg(test)]
 pub(crate) use super::types::{
     ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, REST_DOCS_PACK_ID,
     RestDocsCliCommand,

@@ -1,7 +1,7 @@
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use crate::contracts::{AstSearchHit, StudioNavigationTarget, UiProjectConfig};
+use crate::contracts::{SourceSymbolHit, StudioNavigationTarget, UiProjectConfig};
 use crate::studio::symbol_index::state::{SymbolIndexCoordinator, fingerprint_projects};
 use crate::studio::symbol_index::{SymbolIndexPhase, SymbolIndexStatus};
 use xiuxian_wendao::search::{SearchMaintenancePolicy, SearchManifestKeyspace, SearchPlaneService};
@@ -150,29 +150,30 @@ async fn ensure_started_restores_symbol_index_from_local_symbol_artifact() {
         SearchManifestKeyspace::new("xiuxian:test:symbol-index:restore-writer"),
         SearchMaintenancePolicy::default(),
     );
-    let hits = crate::contracts::domain_ast_hits_for_search_plane(vec![AstSearchHit {
-        name: "WarmRestoreSymbol".to_string(),
-        signature: "fn WarmRestoreSymbol()".to_string(),
-        path: "src/lib.rs".to_string(),
-        language: "rust".to_string(),
-        crate_name: "kernel".to_string(),
-        project_name: None,
-        root_label: None,
-        node_kind: Some("function".to_string().into()),
-        owner_title: None,
-        navigation_target: StudioNavigationTarget {
-            path: "src/lib.rs".to_string().into(),
-            category: "symbol".to_string().into(),
+    let hits =
+        crate::contracts::domain_source_symbol_hits_for_search_plane(vec![SourceSymbolHit {
+            name: "WarmRestoreSymbol".to_string(),
+            signature: "fn WarmRestoreSymbol()".to_string(),
+            path: "src/lib.rs".to_string(),
+            language: "rust".to_string(),
+            crate_name: "kernel".to_string(),
             project_name: None,
             root_label: None,
-            line: Some(7),
-            line_end: Some(7),
-            column: Some(1),
-        },
-        line_start: 7,
-        line_end: 7,
-        score: 0.0,
-    }]);
+            node_kind: Some("function".to_string().into()),
+            owner_title: None,
+            navigation_target: StudioNavigationTarget {
+                path: "src/lib.rs".to_string().into(),
+                category: "symbol".to_string().into(),
+                project_name: None,
+                root_label: None,
+                line: Some(7),
+                line_end: Some(7),
+                column: Some(1),
+            },
+            line_start: 7,
+            line_end: 7,
+            score: 0.0,
+        }]);
     writer
         .publish_local_symbol_hits("fp-local-symbol-restore", hits.as_slice())
         .await

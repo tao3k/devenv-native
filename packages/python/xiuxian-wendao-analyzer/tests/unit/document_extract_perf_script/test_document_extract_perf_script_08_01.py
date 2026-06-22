@@ -24,9 +24,7 @@ def test_pdf_render_shard_features_are_not_duplicated() -> None:
     benchmark = _load_benchmark_module()
 
     assert (
-        benchmark.cargo_features_with_pdf_render(
-            "performance document-extract-pdf-render"
-        )
+        benchmark.cargo_features_with_pdf_render("performance document-extract-pdf-render")
         == "performance,document-extract-pdf-render"
     )
 
@@ -35,9 +33,7 @@ def test_hybrid_source_range_features_do_not_pull_pdfium() -> None:
     benchmark = _load_benchmark_module()
 
     assert (
-        benchmark.cargo_features_for_flight_mode(
-            "performance studio", "hybrid-page-ocr"
-        )
+        benchmark.cargo_features_for_flight_mode("performance studio", "hybrid-page-ocr")
         == "performance,studio,document-extract-pdf-source-range"
     )
 
@@ -67,9 +63,7 @@ def test_audio_shards_provider_mode_enables_studio_audio_feature() -> None:
 def test_normalize_render_selection_accepts_cli_spelling() -> None:
     benchmark = _load_benchmark_module()
 
-    assert benchmark.normalize_render_selection("shard-fallback-pages") == (
-        "shard_fallback_pages"
-    )
+    assert benchmark.normalize_render_selection("shard-fallback-pages") == ("shard_fallback_pages")
     assert benchmark.normalize_render_selection("region-shards") == "region_shards"
 
 
@@ -85,6 +79,75 @@ def test_auto_local_ocr_endpoint_count_uses_machine_profile(monkeypatch) -> None
     )
 
     assert benchmark.resolve_local_python_ocr_endpoint_count(args) == 4
+
+
+def test_parse_args_marks_default_port_as_implicit(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark._args.sys, "argv", ["benchmark"])
+
+    args = benchmark.parse_args()
+
+    assert args.port == 50051
+    assert args.port_was_explicit is False
+
+
+def test_parse_args_marks_cli_port_as_explicit(monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    monkeypatch.setattr(benchmark._args.sys, "argv", ["benchmark", "--port", "62051"])
+
+    args = benchmark.parse_args()
+
+    assert args.port == 62051
+    assert args.port_was_explicit is True
+
+
+def test_parse_args_accepts_rust_audio_artifact_cache_dir(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    cache_dir = tmp_path / "audio-artifacts"
+    monkeypatch.setattr(
+        benchmark._args.sys,
+        "argv",
+        ["benchmark", "--rust-audio-artifact-cache-dir", str(cache_dir)],
+    )
+
+    args = benchmark.parse_args()
+
+    assert args.rust_audio_artifact_cache_dir == cache_dir
+
+
+def test_parse_args_accepts_rust_audio_transcript_admission_dir(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    benchmark = _load_benchmark_module()
+    admission_dir = tmp_path / "audio-transcript-admissions"
+    monkeypatch.setattr(
+        benchmark._args.sys,
+        "argv",
+        ["benchmark", "--rust-audio-transcript-admission-dir", str(admission_dir)],
+    )
+
+    args = benchmark.parse_args()
+
+    assert args.rust_audio_transcript_admission_dir == admission_dir
+
+
+def test_reset_process_log_dir_removes_stale_trace_files(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    process_log_dir = tmp_path / "process-logs"
+    process_log_dir.mkdir()
+    stale_trace = process_log_dir / "python-worker-0.hosted-vlm-ocr.jsonl"
+    stale_trace.write_text('{"requestKind":"region"}\n', encoding="utf-8")
+    stale_subdir = process_log_dir / "old"
+    stale_subdir.mkdir()
+
+    benchmark.reset_process_log_dir(process_log_dir)
+
+    assert process_log_dir.is_dir()
+    assert list(process_log_dir.iterdir()) == []
 
 
 def test_auto_local_ocr_endpoint_count_keeps_non_hybrid_modes_single_endpoint(
@@ -126,7 +189,7 @@ def test_local_rust_provider_port_uses_free_port_unless_explicit(
     monkeypatch,
 ) -> None:
     benchmark = _load_benchmark_module()
-    monkeypatch.setattr(benchmark._cli, "pick_free_port", lambda host: 62052)
+    monkeypatch.setattr(benchmark._provider_lifecycle, "pick_free_port", lambda host: 62052)
 
     assert (
         benchmark.resolve_local_rust_provider_port(

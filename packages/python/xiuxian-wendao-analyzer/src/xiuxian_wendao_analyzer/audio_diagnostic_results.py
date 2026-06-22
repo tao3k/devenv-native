@@ -1,4 +1,4 @@
-"""Audio diagnostic result identity, cache, and summary helpers."""
+"""Audio diagnostic identity, admission cache, and summary helpers."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-OPENAI_COMPATIBLE_AUDIO_BACKENDS = {"openrouter-chat-audio", "local-openai-audio"}
+OPENAI_COMPATIBLE_AUDIO_BACKENDS = {"openrouter-audio", "local-openai-audio"}
 
 
 @dataclass(frozen=True)
@@ -31,7 +31,7 @@ class AsrResult:
     error: str
     shard_id: str = ""
     shard_cache_key: str = ""
-    result_cache_key: str = ""
+    task_admission_key: str = ""
     segments_path: str = ""
     segment_count: int = 0
 
@@ -39,20 +39,18 @@ class AsrResult:
 def stable_json_hash(value: object) -> str:
     """Return a stable SHA-256 for JSON-serializable identity data."""
 
-    payload = json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def audio_result_cache_key(
+def audio_task_admission_key(
     *,
     shard_cache_key: str,
     task_profile: str,
     backend_id: str,
     backend_config_hash: str,
 ) -> str:
-    """Return the Rust-compatible downstream audio result cache key."""
+    """Return the Rust-compatible downstream audio task admission key."""
 
     payload = f"{shard_cache_key}:{task_profile}:{backend_id}:{backend_config_hash}"
     return f"{task_profile}:{backend_id}:{hashlib.sha256(payload.encode('utf-8')).hexdigest()}"
@@ -110,19 +108,19 @@ def backend_config_hash(
     return stable_json_hash(identity)
 
 
-def result_cache_path(cache_dir: Path, result_cache_key: str) -> Path:
-    """Return a filesystem-safe path for one result cache key."""
+def admission_cache_path(cache_dir: Path, task_admission_key: str) -> Path:
+    """Return a filesystem-safe path for one task admission key."""
 
-    key_hash = hashlib.sha256(result_cache_key.encode("utf-8")).hexdigest()
+    key_hash = hashlib.sha256(task_admission_key.encode("utf-8")).hexdigest()
     return cache_dir / f"{key_hash}.json"
 
 
-def read_result_cache(
-    cache_dir: Path, result_cache_key: str
+def read_admitted_transcript(
+    cache_dir: Path, task_admission_key: str
 ) -> tuple[str, str, list[dict[str, object]]] | None:
-    """Return cached transcript and model label when available."""
+    """Return an admitted transcript and model label when available."""
 
-    path = result_cache_path(cache_dir, result_cache_key)
+    path = admission_cache_path(cache_dir, task_admission_key)
     if not path.exists():
         return None
     row = json.loads(path.read_text(encoding="utf-8"))
@@ -149,23 +147,23 @@ def write_json(path: Path, value: object) -> None:
     )
 
 
-def write_result_cache(
+def write_admitted_transcript(
     cache_dir: Path,
     *,
-    result_cache_key: str,
+    task_admission_key: str,
     backend: str,
     model: str,
     transcript: str,
     segments: list[dict[str, object]] | None = None,
 ) -> None:
-    """Persist a successful downstream audio result for reuse."""
+    """Persist a successful downstream audio task output for reuse."""
 
     write_json(
-        result_cache_path(cache_dir, result_cache_key),
+        admission_cache_path(cache_dir, task_admission_key),
         {
             "backend": backend,
             "model": model,
-            "resultCacheKey": result_cache_key,
+            "taskAdmissionKey": task_admission_key,
             "segments": [] if segments is None else segments,
             "transcript": transcript,
         },
@@ -183,7 +181,7 @@ def summarize_results(results: Sequence[AsrResult]) -> dict[str, object]:
             {
                 "chunks": 0,
                 "errors": 0,
-                "wallSeconds": 0.0,
+                "requestCumulativeSeconds": 0.0,
                 "audioSeconds": 0.0,
                 "transcriptChars": 0,
                 "segmentCount": 0,
@@ -191,15 +189,17 @@ def summarize_results(results: Sequence[AsrResult]) -> dict[str, object]:
         )
         item["chunks"] = int(item["chunks"]) + 1
         item["errors"] = int(item["errors"]) + (1 if result.status != "ok" else 0)
-        item["wallSeconds"] = float(item["wallSeconds"]) + result.wall_seconds
+        item["requestCumulativeSeconds"] = (
+            float(item["requestCumulativeSeconds"]) + result.wall_seconds
+        )
         item["audioSeconds"] = float(item["audioSeconds"]) + result.duration_seconds
         item["transcriptChars"] = int(item["transcriptChars"]) + result.transcript_chars
         item["segmentCount"] = int(item["segmentCount"]) + result.segment_count
         backend_latencies.setdefault(result.backend, []).append(result.wall_seconds)
     for item in by_backend.values():
         audio_seconds = float(item["audioSeconds"])
-        item["realTimeFactor"] = (
-            float(item["wallSeconds"]) / audio_seconds if audio_seconds else None
+        item["requestCumulativeRealTimeFactor"] = (
+            float(item["requestCumulativeSeconds"]) / audio_seconds if audio_seconds else None
         )
     for backend, latencies in backend_latencies.items():
         item = by_backend[backend]

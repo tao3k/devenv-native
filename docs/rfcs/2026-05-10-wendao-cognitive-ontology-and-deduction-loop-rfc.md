@@ -7,6 +7,7 @@ authors:
   - auditor_neuron
   - sovereign
 created: 2026-05-10
+updated: 2026-05-23
 tags:
   - rfc
   - ontology
@@ -51,12 +52,29 @@ wendao-episteme/ontology/
 
 ## 3. The BPMN Deductive Loop (Implicit Schema Discovery)
 
-For legacy systems lacking explicit schemas, the architecture employs a "Scan-Hypothesize-Validate" loop orchestrated by the `qianji-bpmn-engine`:
+For legacy systems lacking explicit schemas, the architecture employs a "Scan-Hypothesize-Validate" loop orchestrated by the `xiuxian-qianji-bpmn-engine`:
 
-1.  **Physical Scanner (Rust)**: Extracts high-frequency physical entities and noun phrases across the data swamp.
-2.  **Episteme Priors**: Maps extracted terms to L1 Domain hypotheses (e.g., guessing 'Gateway' maps to `Service`).
-3.  **Deductive Validation (BPMN)**: Orchestrates targeted, micro-context LLM queries to confirm relationships without full-text reading.
-4.  **Materialization**: Verified relationships are implicitly written into the L2 Application ontology, transforming unstructured text into queryable knowledge graphs.
+1. **Physical Scanner (Rust)**: Extracts structural facts from files, pages,
+   sections, tables, attachments, source spans, links, and cache evidence
+   without asking an LLM to read the full corpus.
+2. **Org Reasoning Ledger**: Emits or updates Org review ledgers that preserve
+   candidate state, property drawers, dates, source spans, evidence anchors,
+   tables, and appendable agent/LLM reasoning. Org is the working ledger for
+   human and model collaboration, not a disposable text prompt.
+3. **Episteme Priors**: Maps extracted terms and structural evidence to L1
+   Domain hypotheses (for example, guessing `Gateway` maps to `Service`) while
+   keeping each hypothesis reviewable in Org.
+4. **Deductive Validation (BPMN)**: Orchestrates targeted, micro-context LLM or
+   workflow queries to confirm relationships without full-text reading.
+5. **Semantic Materialization**: Verified relationships are written as RDF or
+   RDF-shaped proposal artifacts only after review and validation.
+6. **Runtime Read Model**: Accepted Org/RDF/structural facts are compiled into
+   Arrow/Parquet read-model rows for DuckDB/DataFusion validation, WendaoGraph
+   proof/search, Julia computation, and Arrow Flight handoff.
+
+TSV is not part of the cognitive contract. Existing TSV artifacts may remain as
+legacy compatibility projections, but new graph semantics, provenance, or
+search-critical fields must be represented in Org and Arrow/Parquet surfaces.
 
 ## 4. Academic References & Extensions
 

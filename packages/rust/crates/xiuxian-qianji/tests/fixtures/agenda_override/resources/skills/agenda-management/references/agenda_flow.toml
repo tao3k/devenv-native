@@ -5,7 +5,7 @@ id = "Override_Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "$wendao://skills/agenda-management/references/steward.md"
 template_target = "$wendao://skills/agenda-management/references/draft_agenda.j2"
 output_key = "annotated_prompt"

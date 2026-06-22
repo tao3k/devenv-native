@@ -1,0 +1,80 @@
+#+TITLE: Wendao Repo Content Chunk Arrow Schema Contract
+#+AUTHOR: CyberXiuXian Artisan workshop
+#+FILETAGS: :agent:arrow:wendao:search:
+#+DATE: 2026-05-26 Tue 00:00:00
+
+* DONE Wendao repo-content chunk Arrow schema contract :agent:
+:PROPERTIES:
+:ID: 53F8B3ED-81EC-43B5-ACA5-FFD59424B231
+:SDD: .cache/agent/sdd/db_store_arrow_schema_contract.org
+:STABLE_REF: packages/rust/crates/xiuxian-wendao/README.md
+:PACKAGE: packages/rust/crates/xiuxian-wendao
+:SLICE: wendao-repo-content-chunk-arrow-schema-contract
+:COMMAND_POLICY: RTK.md
+:COOKIE_DATA: direct
+:NEXT_ACTION: Archived after repo-content chunk engine Arrow schema moved to db-store ArrowSchemaContract helpers and targeted validation passed.
+:GRAPH: flowchart LR;T["task:53F8B3ED-81EC-43B5-ACA5-FFD59424B231"]-->S["sdd:db-store-arrow-schema-contract"];T-->P["xiuxian-wendao:repo-content-chunk-engine-schema"]
+:EVIDENCE: targeted repo-content schema/build tests, targeted Wendao clippy, fmt check, README hidden-path scan, Org lint, SDD status
+:END:
+SCHEDULED: <2026-05-26 Tue>
+CLOSED: [2026-05-26 Tue 17:48]
+
+- [x] Scope and recovery anchor confirmed.
+- [x] RTK command policy confirmed.
+- [x] Task-local research complete.
+- [x] Implementation complete.
+- [x] Validation complete.
+- [x] Related package or canonical docs synced or explicitly judged unchanged.
+- [x] Evidence, reflection questions, and archive readiness updated.
+
+** Context
+
+Repo-content chunk publication writes per-repo Parquet partitions and exposes
+them through DuckDB-backed SQL/FlightSQL query surfaces. This slice moves only
+the engine-facing Arrow schema for those normalized batches into db-store Arrow
+schema contracts and keeps Lance index schema, search semantics, and publication
+planning unchanged.
+
+** Validation
+
+- [x] Repo-content chunk targeted tests pass.
+- [x] Targeted Wendao fmt/check or clippy scope passes.
+- [x] Package docs and hidden-path scan pass.
+- [x] Tracking surfaces pass Org lint and SDD status.
+
+** Evidence
+
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao repo_content_chunk_engine_schema_uses_db_store_table_metadata`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo test -p xiuxian-wendao search::repo_content_chunk::build`
+- `DIRENV_SILENCE=1 direnv exec . cargo fmt -p xiuxian-wendao --check`
+- `DIRENV_SILENCE=1 direnv exec . rtk --ultra-compact cargo clippy -p xiuxian-wendao --all-targets -- -D warnings`
+- `rg -n "\\]\\((/Users|\\.cache|\\$PRJ_CACHE_HOME|\\$PRJ_DATA_HOME|\\$PRJ_RUNTIME_DIR)" packages/rust/crates/xiuxian-wendao/README.md`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize lint --format compact .cache/agent/org/archives/wendao_repo_content_chunk_arrow_schema_contract.org`
+- `DIRENV_SILENCE=1 direnv exec . wendao-client orgize sdd status .cache/agent/sdd/db_store_arrow_schema_contract.org`
+
+** Sync Docs
+
+- Checked: packages/rust/crates/xiuxian-wendao/README.md
+- Updated: repo SQL docs now state that repo-content chunk engine-facing
+  Arrow schema is built and validated through db-store `ArrowSchemaContract`
+  helpers while Lance index schema stays separate.
+- Unchanged rationale: repo-content search semantics and publication planning
+  are unchanged.
+
+** Reflection Questions
+
+| Question | Value |
+|---+---|
+| Did the implementation stay aligned with the governing SDD, or did the SDD need an audit/evidence update? | Yes; the SDD scenario, gate, and evidence log were updated for the repo-content chunk slice. |
+| Did the task meet its expected outcome and validation target? | Yes; targeted schema/build tests, fmt, clippy, docs scan, Org lint, and SDD status passed. |
+| Did the final implementation differ from the starting task, plan, or user intent? | No; only repo-content chunk engine-facing Arrow schema moved to db-store ArrowSchema contracts. |
+| Which stable docs or package docs were updated, checked unchanged, or intentionally deferred? | Updated packages/rust/crates/xiuxian-wendao/README.md. |
+| Are touched file names, module names, function names, command names, and Org properties accurate and non-redundant? | Yes; Lance schema and engine schema ownership remain distinct. |
+| Does this task improve future task-probe, orgid-show, SDD graph, or agent recovery understanding? | Yes; the task records the package, SDD, slice, and exact validation evidence. |
+| What should the next agent query, verify, or avoid? | Query db-store ArrowSchema adoption, verify the next concrete batch owner, and avoid collapsing Lance-specific schemas into ArrowSchema contracts. |
+
+** Recovery
+
+Use `wendao-repo-content-chunk-arrow-schema-contract` as the task-local recovery
+anchor.

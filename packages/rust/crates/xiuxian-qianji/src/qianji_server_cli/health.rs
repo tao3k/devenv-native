@@ -20,6 +20,7 @@ pub(crate) fn qianji_server_health_router(state: QianjiServerHealthState) -> Rou
     Router::new()
         .route("/healthz", get(healthz))
         .route("/readyz", get(readyz))
+        .route("/capabilities", get(capabilities))
         .with_state(state)
 }
 
@@ -30,6 +31,67 @@ async fn healthz() -> Json<QianjiServerHealthResponse> {
         checkpoint_default_backend: "valkey",
         valkey_configured: true,
     })
+}
+
+async fn capabilities() -> Json<QianjiServerCapabilitiesResponse> {
+    Json(QianjiServerCapabilitiesResponse {
+        service: "qianji-server",
+        checkpoint_default_backend: "valkey",
+        capabilities: qianji_server_capabilities(),
+    })
+}
+
+fn qianji_server_capabilities() -> Vec<&'static str> {
+    let mut capabilities = vec![
+        "health.healthz",
+        "health.readyz",
+        "flowhub.scenarios",
+        "bpmn.workflow.start",
+        "bpmn.workflow.resume",
+        "bpmn.workflow.status",
+        "bpmn.workflow.cancel",
+        "bpmn.workflow.events.poll",
+        "bpmn.workflow.task.complete",
+        "bpmn.workflow.task.complete-batch",
+        "bpmn.workflow.task.fail",
+        "bpmn.workflow.activity-evidence",
+        "bpmn.workflow.task.claim",
+        "bpmn.workflow.task.release",
+        "qianji.control.workflow-source.admit",
+        "qianji.control.bpmn-source.admit",
+        "qianji.control.bpmn-source",
+        "qianji.control.execution-graph",
+        "qianji.control.history",
+        "qianji.control.summary",
+        "qianji.control.recovery",
+        "qianji.control.diagnostics",
+    ];
+    #[cfg(feature = "duckdb")]
+    capabilities.push("qianji.control.run-console.arrow-flight");
+    capabilities.extend(qianji_server_valkey_capabilities());
+    capabilities
+}
+
+#[cfg(all(feature = "duckdb", feature = "valkey", feature = "qianji-full"))]
+fn qianji_server_valkey_capabilities() -> [&'static str; 3] {
+    [
+        "qianji.control.recovery.apply",
+        "qianji.control.worker.openai-compatible-llm.run",
+        "qianji.control.worker.openai-compatible-llm.run-and-complete",
+    ]
+}
+
+#[cfg(all(
+    feature = "valkey",
+    not(all(feature = "duckdb", feature = "qianji-full"))
+))]
+fn qianji_server_valkey_capabilities() -> [&'static str; 1] {
+    ["qianji.control.recovery.apply"]
+}
+
+#[cfg(not(feature = "valkey"))]
+fn qianji_server_valkey_capabilities() -> [&'static str; 0] {
+    []
 }
 
 async fn readyz(State(state): State<QianjiServerHealthState>) -> Response {
@@ -63,6 +125,7 @@ async fn readyz(State(state): State<QianjiServerHealthState>) -> Response {
     }
 }
 
+#[cfg(feature = "valkey")]
 pub(crate) async fn check_valkey_ready(valkey_url: &str) -> Result<(), String> {
     let client = redis::Client::open(valkey_url)
         .map_err(|error| format!("failed to open Valkey client: {error}"))?;
@@ -81,12 +144,24 @@ pub(crate) async fn check_valkey_ready(valkey_url: &str) -> Result<(), String> {
     }
 }
 
+#[cfg(not(feature = "valkey"))]
+pub(crate) async fn check_valkey_ready(_valkey_url: &str) -> Result<(), String> {
+    Err("qianji-server Valkey readiness requires the `valkey` feature".to_string())
+}
+
 #[derive(Debug, Serialize)]
 struct QianjiServerHealthResponse {
     status: &'static str,
     service: &'static str,
     checkpoint_default_backend: &'static str,
     valkey_configured: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct QianjiServerCapabilitiesResponse {
+    service: &'static str,
+    checkpoint_default_backend: &'static str,
+    capabilities: Vec<&'static str>,
 }
 
 #[derive(Debug, Serialize)]

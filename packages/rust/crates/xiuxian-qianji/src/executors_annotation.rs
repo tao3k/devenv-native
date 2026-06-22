@@ -1,4 +1,4 @@
-//! Context annotation mechanism using Qianhuan.
+//! Context annotation mechanism.
 
 #[path = "executors_annotation_context.rs"]
 mod context;

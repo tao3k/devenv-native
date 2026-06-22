@@ -13,9 +13,7 @@ from .audio_shard_workers import (
 
 
 def build_document_extract_argument_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Wendao document extraction Arrow Flight service"
-    )
+    parser = argparse.ArgumentParser(description="Wendao document extraction Arrow Flight service")
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
     parser.add_argument("--port", type=int, default=50051, help="Bind port")
     parser.add_argument(
@@ -39,7 +37,9 @@ def build_document_extract_argument_parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Audio worker used by the internal /analysis/audio-shards exchange. "
-            f"Defaults to {AUDIO_WORKER_ENV} or skip."
+            f"Defaults to {AUDIO_WORKER_ENV} or skip for direct CLI runs; "
+            "the managed Wendao analyzer service passes hosted and selects "
+            "OpenRouter by default."
         ),
     )
     parser.add_argument(

@@ -171,6 +171,62 @@ fn helper_records_step_scoped_agent_proposal_and_decision_events() -> Result<(),
 }
 
 #[test]
+fn agent_journal_record_into_event_preserves_scope_and_payloads() -> Result<(), Box<dyn Error>> {
+    let run_id = RunId::new("run-agent-builder")?;
+    let step_id = StepId::new("stage-agent-builder")?;
+    let activity_id = ActivityId::new("activity-agent-builder")?;
+    let proposal_id = AgentProposalId::new("proposal-agent-builder")?;
+    let decision_id = AgentDecisionId::new("decision-agent-builder")?;
+
+    let proposal_event = AgentProposalJournalRecord::new(
+        run_id.clone(),
+        AgentJournalScope::step(step_id.clone()),
+        10,
+        AgentProposal::new(
+            proposal_id.clone(),
+            step_id.clone(),
+            TokenId::new("token-agent-builder")?,
+            "call_tool",
+        )
+        .with_tool_name("web.fetch")
+        .with_tool_input_ref(artifact_ref("artifact-agent-builder-input")?),
+    )
+    .into_event();
+
+    assert_eq!(proposal_event.run_id, run_id);
+    assert_eq!(proposal_event.step_id.as_ref(), Some(&step_id));
+    assert!(matches!(
+        proposal_event.kind,
+        ControlEventKind::AgentProposalRecorded { proposal }
+            if proposal.proposal_id == proposal_id
+    ));
+
+    let decision_event = AgentDecisionJournalRecord::new(
+        proposal_event.run_id,
+        AgentJournalScope::run(),
+        11,
+        AgentDecision::new(
+            decision_id.clone(),
+            proposal_id,
+            AgentDecisionOutcome::Accepted,
+            DecisionReasonCode::new("tool_authorized")?,
+        )
+        .with_scheduled_activity_id(activity_id.clone()),
+    )
+    .into_event();
+
+    assert_eq!(decision_event.step_id, None);
+    assert!(matches!(
+        decision_event.kind,
+        ControlEventKind::AgentDecisionRecorded { decision }
+            if decision.decision_id == decision_id
+                && decision.scheduled_activity_id.as_ref() == Some(&activity_id)
+    ));
+
+    Ok(())
+}
+
+#[test]
 fn helper_records_run_scoped_agent_decision_event() -> Result<(), Box<dyn Error>> {
     let ledger = InMemoryControlLedger::new();
     let run_id = RunId::new("run-agent-helper-run-scope")?;

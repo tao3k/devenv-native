@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use orgize::ast::{SddNodeRecord, SddStatus};
+use orgize::ast::{SddNodeRecord, SddStatus, SddStatusValue};
 
 pub(super) fn sdd_status_roots(paths: &[PathBuf]) -> Vec<PathBuf> {
     if paths.is_empty() {
@@ -29,5 +29,5 @@ pub(super) fn non_blank(value: Option<&str>) -> Option<&str> {
 }
 
 pub(super) fn sdd_status_label(record: &SddNodeRecord) -> Option<&str> {
-    non_blank(record.status.as_deref())
+    non_blank(record.status.as_ref().map(SddStatusValue::as_str))
 }

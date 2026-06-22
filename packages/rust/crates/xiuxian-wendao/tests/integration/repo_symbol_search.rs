@@ -7,7 +7,6 @@ use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, sample_projection_analysis,
     write_repo_config,
 };
-use crate::support::wendao_command;
 use serde_json::json;
 use xiuxian_wendao::analyzers::{
     SymbolRecord, SymbolSearchQuery, build_symbol_search, symbol_search_from_config,
@@ -43,7 +42,7 @@ fn modelica_plugin_symbol_search_matches_external_symbols() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-symbol-search]
+            r#"[sources.projects.modelica-symbol-search]
 root = "{}"
 plugins = ["modelica"]
 "#,
@@ -152,22 +151,15 @@ fn cli_repo_symbol_search_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliSymbolPkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-symbol")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("symbol-search")
-        .arg("--repo")
-        .arg("cli-symbol")
-        .arg("--query")
-        .arg("Problem")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let payload = symbol_search_from_config(
+        &SymbolSearchQuery {
+            repo_id: "cli-symbol".to_string(),
+            query: "Problem".to_string(),
+            limit: 10,
+        },
+        Some(&config_path),
+        temp.path(),
+    )?;
     assert_repo_json_snapshot("repo_symbol_search_cli_json", payload);
     Ok(())
 }

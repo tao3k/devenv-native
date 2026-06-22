@@ -1,6 +1,8 @@
 //! Coordinates the Studio search handlers flight branch and keeps its child modules behind one documented reasoning-tree boundary.
 
+#[cfg(feature = "duckdb")]
 mod dataset_ontology;
+mod ontology_candidate_inspection;
 mod provider;
 mod repo_search;
 mod service;
@@ -8,6 +10,8 @@ mod service;
 #[path = "../../../../../tests/unit/gateway/studio/search/handlers/flight/mod.rs"]
 mod tests;
 
+#[cfg(test)]
+pub(crate) use self::ontology_candidate_inspection::candidate_inspection_report_batch;
 #[cfg(feature = "flight-server-bin-support")]
 pub(crate) use self::repo_search::build_studio_flight_service_for_roots_with_weights;
 #[cfg(feature = "cli-bin-support")]

@@ -58,11 +58,11 @@ pub(super) async fn recover_failed_page_ocr_results(
         .iter()
         .map(|(position, _input)| *position)
         .collect::<Vec<_>>();
-    let recovery_inputs = candidates
+    let recovery_inputs: Vec<PdfOcrShardInput> = candidates
         .into_iter()
         .map(|(_position, input)| input)
         .collect::<Vec<_>>();
-    let recovery_inputs =
+    let recovery_inputs: Vec<PdfOcrShardInput> =
         materialize_ocr2_recovery_page_images(render_report, recovery_inputs).await?;
     let response = pdf_ocr_scheduler
         .request_shards_with_endpoints(endpoint_urls, recovery_inputs.as_slice())

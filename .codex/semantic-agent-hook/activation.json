@@ -1,0 +1,120 @@
+{
+  "schemaId": "agent.semantic-protocols.semantic-agent-hook-activation",
+  "schemaVersion": "1",
+  "protocolId": "agent.semantic-protocols.agent-hooks",
+  "protocolVersion": "1",
+  "projectRoot": ".",
+  "generatedBy": {
+    "runtime": "semantic-agent-hook",
+    "version": "0.1.0"
+  },
+  "providers": [
+    {
+      "manifestId": "agent.semantic-protocols.providers.rust.rs-harness",
+      "manifestDigest": "sha256:11690ca0d48efa688dae8f026d464a4513d744602ba53ccf450862dfe4b790e8",
+      "languageId": "rust",
+      "providerId": "rs-harness",
+      "binary": "rs-harness",
+      "providerCommandPrefix": [],
+      "coverage": {
+        "packageRoots": [
+          ".",
+          "packages/rust/bindings/python",
+          "packages/rust/crates/xiuxian-ast",
+          "packages/rust/crates/xiuxian-code-intelligence",
+          "packages/rust/crates/xiuxian-config-core",
+          "packages/rust/crates/xiuxian-db-store",
+          "packages/rust/crates/xiuxian-edit",
+          "packages/rust/crates/xiuxian-git-repo",
+          "packages/rust/crates/xiuxian-graph-core",
+          "packages/rust/crates/xiuxian-io",
+          "packages/rust/crates/xiuxian-julia-core",
+          "packages/rust/crates/xiuxian-julia-runtime",
+          "packages/rust/crates/xiuxian-lance",
+          "packages/rust/crates/xiuxian-llm",
+          "packages/rust/crates/xiuxian-logging",
+          "packages/rust/crates/xiuxian-macros",
+          "packages/rust/crates/xiuxian-memory-engine",
+          "packages/rust/crates/xiuxian-polyglot-orchestrator",
+          "packages/rust/crates/xiuxian-qianhuan",
+          "packages/rust/crates/xiuxian-qianji",
+          "packages/rust/crates/xiuxian-qianji-bpmn-engine",
+          "packages/rust/crates/xiuxian-qianji-client",
+          "packages/rust/crates/xiuxian-qianji-control",
+          "packages/rust/crates/xiuxian-qianji-runtime",
+          "packages/rust/crates/xiuxian-sandbox",
+          "packages/rust/crates/xiuxian-security",
+          "packages/rust/crates/xiuxian-tokenizer",
+          "packages/rust/crates/xiuxian-types",
+          "packages/rust/crates/xiuxian-vector",
+          "packages/rust/crates/xiuxian-wendao",
+          "packages/rust/crates/xiuxian-wendao-attachments",
+          "packages/rust/crates/xiuxian-wendao-builtin",
+          "packages/rust/crates/xiuxian-wendao-client",
+          "packages/rust/crates/xiuxian-wendao-core",
+          "packages/rust/crates/xiuxian-wendao-episteme",
+          "packages/rust/crates/xiuxian-wendao-parsers",
+          "packages/rust/crates/xiuxian-wendao-runtime",
+          "packages/rust/crates/xiuxian-wendao-server",
+          "packages/rust/crates/xiuxian-wendao-sql",
+          "packages/rust/crates/xiuxian-wendao-studio",
+          "packages/rust/crates/xiuxian-zhenfa"
+        ],
+        "sourceRoots": ["src", "crates", "tests"],
+        "configFiles": ["Cargo.toml"],
+        "sourceExtensions": [".rs"],
+        "ignoredPathPrefixes": ["target"]
+      }
+    },
+    {
+      "manifestId": "agent.semantic-protocols.providers.typescript.ts-harness",
+      "manifestDigest": "sha256:eef2286edb05ad9a5a1dd414c2cbe94eb058a531dfdc32a73789740bb4c2317f",
+      "languageId": "typescript",
+      "providerId": "ts-harness",
+      "binary": "ts-harness",
+      "providerCommandPrefix": [],
+      "coverage": {
+        "packageRoots": ["."],
+        "sourceRoots": ["src", "tests", "app", "packages"],
+        "configFiles": ["package.json", "tsconfig.json", "pnpm-workspace.yaml"],
+        "sourceExtensions": [
+          ".ts",
+          ".tsx",
+          ".js",
+          ".jsx",
+          ".mts",
+          ".cts",
+          ".mjs",
+          ".cjs"
+        ],
+        "ignoredPathPrefixes": ["node_modules", "dist", "build", ".next"]
+      }
+    },
+    {
+      "manifestId": "agent.semantic-protocols.providers.python.py-harness",
+      "manifestDigest": "sha256:be1ebbc073f4bf2e6c8942797702ed477e0eeefd51e901d78e14d7403686cf80",
+      "languageId": "python",
+      "providerId": "py-harness",
+      "binary": "py-harness",
+      "providerCommandPrefix": [],
+      "coverage": {
+        "packageRoots": [
+          ".",
+          "wendao-episteme",
+          "packages/python/core",
+          "packages/python/foundation",
+          "packages/python/qianji-workflow-contracts",
+          "packages/python/wendao-arrow-interface",
+          "packages/python/wendao-core-lib",
+          "packages/python/wendao-knowledge-retrieval-benchmark",
+          "packages/python/xiuxian-wendao-analyzer",
+          "packages/rust/bindings/python"
+        ],
+        "sourceRoots": ["src", "tests"],
+        "configFiles": ["pyproject.toml", "setup.py", "setup.cfg"],
+        "sourceExtensions": [".py"],
+        "ignoredPathPrefixes": [".venv", "venv", "__pycache__", ".mypy_cache"]
+      }
+    }
+  ]
+}

@@ -36,9 +36,9 @@ impl std::fmt::Debug for StudioRepoOverviewFlightRouteProvider {
 impl RepoOverviewFlightRouteProvider for StudioRepoOverviewFlightRouteProvider {
     async fn repo_overview_batch(
         &self,
-        repo_id: &str,
+        repo_key: &str,
     ) -> Result<AnalysisFlightRouteResponse, String> {
-        let response = run_repo_overview(Arc::clone(&self.state), repo_id.to_string())
+        let response = run_repo_overview(Arc::clone(&self.state), repo_key.to_string())
             .await
             .map_err(|error| map_studio_api_error(&error))?;
         let batch = build_repo_overview_flight_batch(&response)?;

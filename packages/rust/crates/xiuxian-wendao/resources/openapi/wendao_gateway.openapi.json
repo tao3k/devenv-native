@@ -3,7 +3,7 @@
   "info": {
     "title": "Wendao Gateway",
     "version": "v1",
-    "description": "Stable contract surface for the Wendao HTTP gateway, including health, studio, VFS, graph, and search endpoints. Public callers use HTTPS JSON with bearer authentication. User-facing streaming routes use server-sent events through Accept: text/event-stream; Arrow Flight, FlightSQL, gRPC-Web, and HTTP/1 compatibility are deployment transport controls outside this OpenAPI surface."
+    "description": "Stable contract surface for the Wendao HTTP gateway, including health, studio, VFS, graph, and search endpoints. Public callers use HTTPS JSON/SSE with bearer authentication; streaming callers send Accept: text/event-stream. Gateway Arrow Flight is a parallel public protocol surface mounted at /arrow.flight.protocol.FlightService/{*grpc_method} with the same bearer-token semantics, but its gRPC schema is outside this OpenAPI artifact; FlightSQL, standalone Flight hosts, gRPC-Web, and HTTP/1 compatibility remain deployment transport controls outside this OpenAPI surface."
   },
   "security": [
     {
@@ -22,7 +22,7 @@
         "operationId": "gatewayCreateResponse",
         "tags": ["gateway"],
         "summary": "Create a public query response",
-        "description": "Execute one public Wendao query response over the HTTPS JSON gateway. This route is intentionally JSON/SSE-facing; Arrow Flight and gRPC-Web transport controls are not part of this public contract.",
+        "description": "Execute one public Wendao query response over the HTTPS JSON gateway. This route is intentionally JSON/SSE-facing; Gateway Arrow Flight is a parallel public protocol surface outside this OpenAPI schema, and gRPC-Web transport controls are not part of this HTTPS contract.",
         "requestBody": {
           "required": true,
           "content": {
@@ -84,6 +84,62 @@
           },
           "401": {
             "description": "Bearer authentication is enabled and the request did not provide the configured token."
+          }
+        }
+      }
+    },
+    "/v1/auth/tokens": {
+      "post": {
+        "operationId": "gatewayIssuePublicApiToken",
+        "tags": ["gateway-auth"],
+        "summary": "Issue a public API token",
+        "description": "Authenticate a Gateway-local user credential and issue one opaque public API token. The Gateway stores only verifier metadata and returns the presented token once for the caller to use with HTTPS JSON/SSE or Arrow Flight scopes.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatewayAuthTokenRequest"
+              },
+              "example": {
+                "username": "alice",
+                "password": "correct horse battery staple",
+                "scopes": ["gateway:https-json-sse"],
+                "environment": "test"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A newly issued public API token. The `token` value is shown once and should be stored by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayAuthTokenResponse"
+                },
+                "example": {
+                  "object": "api_key",
+                  "token": "wd_test_0000000000000000_0000000000000000000000000000000000000000000000000000000000000000000",
+                  "tokenPrefix": "wd_test_0000000000000000",
+                  "environment": "test",
+                  "scopes": ["gateway:https-json-sse"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The submitted Gateway login credential is invalid."
+          },
+          "403": {
+            "description": "The request asked for a scope outside the Gateway user's allowed public protocol surfaces."
+          },
+          "413": {
+            "description": "The login request exceeded the Gateway auth request body budget."
+          },
+          "429": {
+            "description": "The Gateway auth token issuance rate limit was exceeded."
           }
         }
       }
@@ -340,7 +396,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "pluginId": "xiuxian-wendao-julia",
+                  "pluginId": "xiuxian-julia-core",
                   "artifactId": "deployment",
                   "schemaVersion": "v1",
                   "baseUrl": "http://127.0.0.1:18080",
@@ -348,7 +404,7 @@
                 }
               },
               "text/plain": {
-                "example": "plugin_id = \"xiuxian-wendao-julia\"\nartifact_id = \"deployment\"\nschema_version = \"v1\"\nbase_url = \"http://127.0.0.1:18080\"\nroute = \"/rerank\"\n"
+                "example": "plugin_id = \"xiuxian-julia-core\"\nartifact_id = \"deployment\"\nschema_version = \"v1\"\nbase_url = \"http://127.0.0.1:18080\"\nroute = \"/rerank\"\n"
               }
             }
           },
@@ -6082,6 +6138,62 @@
             "type": "boolean",
             "default": false,
             "description": "When true, return server-sent response events."
+          }
+        }
+      },
+      "GatewayAuthTokenRequest": {
+        "type": "object",
+        "description": "Gateway-local login request used to issue an opaque public API token.",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["gateway:https-json-sse", "gateway:arrow-flight"]
+            },
+            "description": "Optional requested public protocol scopes. When omitted, the Gateway grants its configured default scopes."
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["live", "test"],
+            "default": "test"
+          }
+        }
+      },
+      "GatewayAuthTokenResponse": {
+        "type": "object",
+        "required": ["object", "token", "tokenPrefix", "environment", "scopes"],
+        "properties": {
+          "object": {
+            "type": "string",
+            "const": "api_key"
+          },
+          "token": {
+            "type": "string",
+            "description": "Opaque public API token returned once."
+          },
+          "tokenPrefix": {
+            "type": "string",
+            "description": "Public token prefix safe for audit display."
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["live", "test"]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

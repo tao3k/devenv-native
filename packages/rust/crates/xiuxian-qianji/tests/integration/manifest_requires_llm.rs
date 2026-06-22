@@ -1,6 +1,6 @@
 //! Tests for manifest LLM requirement inspection.
 
-use xiuxian_qianji::{manifest_declares_qianhuan_bindings, manifest_requires_llm};
+use xiuxian_qianji::{manifest_declares_annotation_bindings, manifest_requires_llm};
 
 #[test]
 fn manifest_requires_llm_returns_false_for_non_llm_workflows() {
@@ -59,7 +59,7 @@ id = "StrictTeacher"
 task_type = "formal_audit"
 weight = 1.0
 params = { retry_targets = ["Steward"] }
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "strict_teacher"
 template_target = "critique_agenda.j2"
 [nodes.llm]
@@ -80,7 +80,7 @@ fn manifest_requires_llm_returns_error_on_invalid_toml() {
 }
 
 #[test]
-fn manifest_declares_qianhuan_bindings_returns_true_when_present() {
+fn manifest_declares_annotation_bindings_returns_true_when_present() {
     let manifest = r#"
 name = "BindingManifest"
 
@@ -89,20 +89,20 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "artisan-engineer"
 template_target = "draft_reflection.md"
 "#;
 
     assert!(
-        manifest_declares_qianhuan_bindings(manifest).unwrap_or_else(|error| panic!(
-            "manifest with qianhuan binding should parse successfully: {error}"
+        manifest_declares_annotation_bindings(manifest).unwrap_or_else(|error| panic!(
+            "manifest with annotation binding should parse successfully: {error}"
         ))
     );
 }
 
 #[test]
-fn manifest_declares_qianhuan_bindings_returns_false_when_absent() {
+fn manifest_declares_annotation_bindings_returns_false_when_absent() {
     let manifest = r#"
 name = "NoBindingManifest"
 
@@ -114,8 +114,8 @@ params = { cmd = "echo ok", output_key = "stdout" }
 "#;
 
     assert!(
-        !manifest_declares_qianhuan_bindings(manifest).unwrap_or_else(|error| panic!(
-            "manifest without qianhuan binding should parse successfully: {error}"
+        !manifest_declares_annotation_bindings(manifest).unwrap_or_else(|error| panic!(
+            "manifest without annotation binding should parse successfully: {error}"
         ))
     );
 }

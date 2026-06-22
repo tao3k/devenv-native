@@ -9,10 +9,10 @@ use super::error::BpmnOrchestrationError;
 use super::scheduler::QianjiBpmnExecutionScheduler;
 use super::session::QianjiBpmnSession;
 use crate::scheduler_identity::SchedulerAgentIdentity;
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnExecutionTraceEvent, BpmnHostBridge, BpmnPackage,
 };
-use std::sync::Arc;
 
 /// Default lease TTL used when the host runtime enables scheduler-owned BPMN
 /// checkpoint lifecycle from `SchedulerAgentIdentity`.
@@ -211,6 +211,33 @@ impl QianjiBpmnExecutionFacade {
         self.driver()
             .complete_pending_host_work_from_checkpoint_until_host_boundary(
                 request, checkpoint, completion, host,
+            )
+            .await
+    }
+
+    /// Completes multiple explicit pending host-work results from a supplied
+    /// checkpoint, then stops at the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, any explicit result is rejected, or the checkpoint
+    /// backend cannot persist the resulting state.
+    pub async fn complete_pending_host_work_batch_from_checkpoint_until_host_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completions: Vec<QianjiBpmnPendingHostCompletion>,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        self.driver()
+            .complete_pending_host_work_batch_from_checkpoint_until_host_boundary(
+                request,
+                checkpoint,
+                completions,
+                host,
             )
             .await
     }

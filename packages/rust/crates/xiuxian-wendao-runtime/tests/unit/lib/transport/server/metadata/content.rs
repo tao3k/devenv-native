@@ -1,13 +1,13 @@
 use crate::transport::{
-    validate_autocomplete_request_metadata, validate_code_ast_analysis_request_metadata,
-    validate_definition_request_metadata, validate_sql_request_metadata,
-    validate_vfs_content_request_metadata, validate_vfs_resolve_request_metadata,
+    validate_autocomplete_request_metadata, validate_definition_request_metadata,
+    validate_sql_request_metadata, validate_vfs_content_request_metadata,
+    validate_vfs_resolve_request_metadata,
 };
 
 use crate::tests::transport::server::assertions::{must_err, must_ok};
 use crate::tests::transport::server::request_headers::{
-    build_autocomplete_metadata, build_code_ast_analysis_metadata, build_definition_metadata,
-    build_sql_metadata, build_vfs_content_metadata, build_vfs_resolve_metadata,
+    build_autocomplete_metadata, build_definition_metadata, build_sql_metadata,
+    build_vfs_content_metadata, build_vfs_resolve_metadata,
 };
 
 #[test]
@@ -32,47 +32,6 @@ fn validate_vfs_content_request_metadata_rejects_blank_path() {
     );
 
     assert_eq!(error.message(), "VFS content requires a non-empty path");
-}
-
-#[test]
-fn validate_code_ast_analysis_request_metadata_accepts_stable_request() {
-    let metadata = build_code_ast_analysis_metadata("src/lib.jl", "demo", Some("7"));
-
-    let (path, repo_id, line_hint) = must_ok(
-        validate_code_ast_analysis_request_metadata(&metadata),
-        "stable code-AST analysis metadata should validate",
-    );
-
-    assert_eq!(path, "src/lib.jl");
-    assert_eq!(repo_id, "demo");
-    assert_eq!(line_hint, Some(7));
-}
-
-#[test]
-fn validate_code_ast_analysis_request_metadata_rejects_blank_repo() {
-    let metadata = build_code_ast_analysis_metadata("src/lib.jl", "   ", None);
-
-    let error = must_err(
-        validate_code_ast_analysis_request_metadata(&metadata),
-        "blank code-AST repo should fail",
-    );
-
-    assert_eq!(error.message(), "code AST analysis repo must not be blank");
-}
-
-#[test]
-fn validate_code_ast_analysis_request_metadata_rejects_non_numeric_line_hint() {
-    let metadata = build_code_ast_analysis_metadata("src/lib.jl", "demo", Some("abc"));
-
-    let error = must_err(
-        validate_code_ast_analysis_request_metadata(&metadata),
-        "non-numeric code-AST line hint should fail",
-    );
-
-    assert_eq!(
-        error.message(),
-        "invalid analysis line header `x-wendao-analysis-line`: abc"
-    );
 }
 
 #[test]

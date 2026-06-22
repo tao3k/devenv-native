@@ -17,9 +17,15 @@ fn helper_records_worker_heartbeat_event() -> Result<(), Box<dyn Error>> {
         WorkerHeartbeatJournalRecord::new(run_id.clone(), heartbeat),
     )?;
     let records = ledger.load_events(&run_id)?;
+    let view = ledger.load_run_view(&run_id)?;
 
     assert_eq!(record.sequence, 1);
     assert_eq!(records.len(), 1);
+    assert_eq!(view.worker_heartbeats.len(), 1);
+    assert_eq!(
+        view.worker_heartbeats[0].worker_id.as_str(),
+        "worker-heartbeat"
+    );
     assert_eq!(records[0].event.occurred_at_ms, 100);
     assert_eq!(
         serde_json::to_value(&records[0].event.kind)?["heartbeat"]["worker_id"],

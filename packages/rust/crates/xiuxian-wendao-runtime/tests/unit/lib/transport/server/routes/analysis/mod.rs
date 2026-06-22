@@ -1,4 +1,3 @@
-mod code_ast;
 mod document;
 mod markdown;
 mod repo_projection;

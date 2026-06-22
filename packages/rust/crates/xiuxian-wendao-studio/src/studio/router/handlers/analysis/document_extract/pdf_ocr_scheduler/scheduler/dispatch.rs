@@ -42,8 +42,11 @@ struct SchedulerLiveShardResponse {
 const FAST_TEXT_ENDPOINT_AFFINITY_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_FAST_TEXT_ENDPOINT_AFFINITY";
 const FAST_TEXT_ENDPOINT_AFFINITY_SINGLE_PAGE_FIRST: &str = "single-page-first";
+pub(crate) const OCR_SCHEDULER_LANE_FAIRNESS_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS";
+const OCR_SCHEDULER_LANE_FAIRNESS_SOURCE_FIRST: &str = "source-first";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct SchedulerShardGroup {
     pub(super) positions: Vec<usize>,
     pub(super) inputs: Vec<PdfOcrShardInput>,
@@ -227,36 +230,42 @@ impl PdfOcrWorkerScheduler {
             .iter()
             .map(|group| group.positions.len())
             .sum::<usize>();
-        let mut requests = Vec::with_capacity(groups.len());
-        for group in groups {
-            let clients = clients.to_vec();
-            requests.push(async move {
-                let response = self
-                    .request_uncached_shard_group(clients.as_slice(), group.inputs.as_slice())
-                    .await?;
-                Ok::<_, String>((group.positions, response.results, response.trace))
-            });
-        }
-        let group_results = try_join_all(requests).await?;
         let mut slots = vec![None; input_count];
         let mut trace = Vec::new();
-        for (positions, results, group_trace) in group_results {
-            if positions.len() != results.len() {
-                return Err(format!(
-                    "PDF OCR scheduler group returned {} rows for {} inputs",
-                    results.len(),
-                    positions.len()
-                ));
+        let batches = scheduler_shard_group_execution_batches(
+            groups,
+            scheduler_lane_fairness_source_first_enabled(),
+        );
+        for batch in batches {
+            let mut requests = Vec::with_capacity(batch.len());
+            for group in batch {
+                let clients = clients.to_vec();
+                requests.push(async move {
+                    let response = self
+                        .request_uncached_shard_group(clients.as_slice(), group.inputs.as_slice())
+                        .await?;
+                    Ok::<_, String>((group.positions, response.results, response.trace))
+                });
             }
-            for (position, result) in positions.into_iter().zip(results) {
-                let Some(slot) = slots.get_mut(position) else {
+            let group_results = try_join_all(requests).await?;
+            for (positions, results, group_trace) in group_results {
+                if positions.len() != results.len() {
                     return Err(format!(
-                        "PDF OCR scheduler group result position {position} exceeded input count {input_count}"
+                        "PDF OCR scheduler group returned {} rows for {} inputs",
+                        results.len(),
+                        positions.len()
                     ));
-                };
-                *slot = Some(result);
+                }
+                for (position, result) in positions.into_iter().zip(results) {
+                    let Some(slot) = slots.get_mut(position) else {
+                        return Err(format!(
+                            "PDF OCR scheduler group result position {position} exceeded input count {input_count}"
+                        ));
+                    };
+                    *slot = Some(result);
+                }
+                trace.extend(group_trace);
             }
-            trace.extend(group_trace);
         }
         let results = slots
             .into_iter()
@@ -648,6 +657,56 @@ pub(crate) fn scheduler_shard_groups(inputs: &[PdfOcrShardInput]) -> Vec<Schedul
             inputs: chunk.iter().map(|(_, input)| (*input).clone()).collect(),
         })
         .collect()
+}
+
+pub(crate) fn scheduler_shard_group_execution_batches(
+    groups: Vec<SchedulerShardGroup>,
+    source_first: bool,
+) -> Vec<Vec<SchedulerShardGroup>> {
+    if !source_first || !has_source_and_rendered_region_groups(groups.as_slice()) {
+        return vec![groups];
+    }
+
+    let (source_groups, remaining_groups): (Vec<_>, Vec<_>) =
+        groups.into_iter().partition(|group| {
+            scheduler_shard_group_lane(group) == OcrSchedulerLane::SourcePdfPageRange
+        });
+
+    match (source_groups.is_empty(), remaining_groups.is_empty()) {
+        (true, true) => Vec::new(),
+        (true, false) => vec![remaining_groups],
+        (false, true) => vec![source_groups],
+        (false, false) => vec![source_groups, remaining_groups],
+    }
+}
+
+fn scheduler_lane_fairness_source_first_enabled() -> bool {
+    scheduler_lane_fairness_source_first_enabled_with_lookup(&|key| std::env::var(key).ok())
+}
+
+pub(crate) fn scheduler_lane_fairness_source_first_enabled_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> bool {
+    lookup(OCR_SCHEDULER_LANE_FAIRNESS_ENV).is_some_and(|value| {
+        value.trim().replace('_', "-").to_ascii_lowercase()
+            == OCR_SCHEDULER_LANE_FAIRNESS_SOURCE_FIRST
+    })
+}
+
+fn has_source_and_rendered_region_groups(groups: &[SchedulerShardGroup]) -> bool {
+    let (has_source, has_rendered_region) = groups.iter().fold(
+        (false, false),
+        |(has_source, has_rendered_region), group| match scheduler_shard_group_lane(group) {
+            OcrSchedulerLane::SourcePdfPageRange => (true, has_rendered_region),
+            OcrSchedulerLane::RenderedRegion => (has_source, true),
+            OcrSchedulerLane::RenderedPage => (has_source, has_rendered_region),
+        },
+    );
+    has_source && has_rendered_region
+}
+
+fn scheduler_shard_group_lane(group: &SchedulerShardGroup) -> OcrSchedulerLane {
+    classify_ocr_lane(group.inputs.as_slice())
 }
 
 fn scheduler_trace_for_local_results(

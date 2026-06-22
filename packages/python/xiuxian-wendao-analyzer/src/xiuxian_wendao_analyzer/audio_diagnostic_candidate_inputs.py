@@ -52,15 +52,13 @@ def _candidate_from_summary(
         weak_rows=_int_value(quality.get("weakRows")),
         short_utterance_rows=_int_value(quality.get("shortUtteranceRows")),
         avg_inaudible_per_minute=_float_or_none(quality.get("avgInaudiblePerMinute")),
-        max_observed_reference_cer=_float_or_none(
-            summary.get("maxObservedReferenceCer")
-        ),
+        max_observed_reference_cer=_float_or_none(summary.get("maxObservedReferenceCer")),
         reference_coverage_rows=_int_value(summary.get("referenceCoverageRows")),
         reference_fail_rows=_int_value(summary.get("referenceFailRows")),
         failed_rows=_int_value(summary.get("failedRows")),
         required_term_miss_rows=_int_value(summary.get("requiredTermMissRows")),
-        wall_seconds=_candidate_wall_seconds(summary, metrics),
-        request_wall_seconds=_float_or_none(metrics.get("wallSeconds")),
+        diagnostic_wall_seconds=_candidate_diagnostic_wall_seconds(summary),
+        request_cumulative_seconds=_float_or_none(metrics.get("requestCumulativeSeconds")),
         latency_p50_seconds=_float_or_none(metrics.get("latencyP50Seconds")),
         latency_p95_seconds=_float_or_none(metrics.get("latencyP95Seconds")),
         transcript_chars=_int_value(metrics.get("transcriptChars")),
@@ -126,13 +124,8 @@ def _model_label(summary: dict[str, object]) -> str:
     return ""
 
 
-def _candidate_wall_seconds(
-    summary: dict[str, object], metrics: dict[str, object]
-) -> float | None:
-    diagnostic_wall_seconds = _float_or_none(summary.get("diagnosticWallSeconds"))
-    if diagnostic_wall_seconds is not None:
-        return diagnostic_wall_seconds
-    return _float_or_none(metrics.get("wallSeconds"))
+def _candidate_diagnostic_wall_seconds(summary: dict[str, object]) -> float | None:
+    return _float_or_none(summary.get("diagnosticWallSeconds"))
 
 
 def _int_value(value: object) -> int:

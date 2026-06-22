@@ -1,8 +1,13 @@
 //! `search::queries::sql::registration::catalog` owns Wendao sql registration catalog behavior.
 
+mod batch_helpers;
+mod column_helpers;
 mod columns;
 mod tables;
 mod view_sources;
+
+pub(super) use batch_helpers::{catalog_schema_ref, validate_catalog_batch};
+pub(super) use column_helpers::{boolean_column, nullable_utf8_column, uint64_column, utf8_column};
 
 #[cfg(feature = "duckdb")]
 pub(crate) use columns::build_columns_catalog_batch;

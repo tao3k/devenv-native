@@ -59,7 +59,7 @@ fn modelica_plugin_projected_page_lookup_resolves_one_stable_page() -> TestResul
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-projected-page]
+            r#"[sources.projects.modelica-projected-page]
 root = "{}"
 plugins = ["modelica"]
 "#,

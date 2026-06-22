@@ -2,14 +2,17 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::{
-    DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, OcrSchedulerLane, PdfOcrWorkerScheduler,
+    DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV, HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE_ENV,
+    OCR_SCHEDULER_LANE_FAIRNESS_ENV, OcrSchedulerLane, PdfOcrWorkerScheduler,
     endpoint_index_for_request, local_backend_and_fast_text_results_for_tests,
     local_backend_text_error_fail_fast_results_for_tests, local_backend_text_results_for_tests,
     local_empty_backend_text_dispatch_python_results_for_tests,
     local_empty_backend_text_fail_fast_results_for_tests,
     local_partial_backend_text_error_fail_fast_results_for_tests, pdf_ocr_worker_limit_with_lookup,
-    rendered_region_shard_chunks, rendered_region_shard_chunks_with_composite_size,
-    scheduler_shard_groups, scheduler_trace_for_chunk,
+    rendered_region_dispatch_chunk_size_with_lookup, rendered_region_shard_chunks,
+    rendered_region_shard_chunks_with_composite_size,
+    scheduler_lane_fairness_source_first_enabled_with_lookup,
+    scheduler_shard_group_execution_batches, scheduler_shard_groups, scheduler_trace_for_chunk,
     source_pdf_page_range_chunk_endpoint_index_with_lookup,
     source_pdf_page_range_chunk_prefers_first_endpoint_with_lookup, source_pdf_page_range_chunks,
     source_pdf_page_range_chunks_with_fast_text_split, source_pdf_page_range_chunks_with_weights,

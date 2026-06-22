@@ -2,7 +2,7 @@
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use super::shared::{require_non_empty_argument, serialize_payload};
 use crate::analyzers::ProjectionPageKind;
@@ -27,11 +27,6 @@ pub struct WendaoDocsSearchArgs {
 /// service is missing from the native context, or the underlying docs lookup
 /// fails.
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.docs.search",
-    description = "Search docs-facing projected pages and return serialized candidate hits.",
-    tool_struct = "WendaoDocsSearchTool"
-)]
 pub fn wendao_docs_search(
     ctx: &ZhenfaContext,
     args: WendaoDocsSearchArgs,

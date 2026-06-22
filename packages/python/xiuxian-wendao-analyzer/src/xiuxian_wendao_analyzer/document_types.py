@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import pyarrow as pa
 
+from .arrow_schema_contracts import ArrowSchemaColumn, build_arrow_schema
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
@@ -29,10 +31,13 @@ DOCUMENT_RESOURCE_ARROW_CACHE_NAME = "_resources.arrow"
 DOCUMENT_STRUCTURE_ARROW_CACHE_NAME = "_structure.arrow"
 
 DOCUMENT_STRUCTURE_SCHEMA_VERSION = "xiuxian_wendao.document_structure.v1"
+DOCUMENT_RESOURCE_TABLE = "document_resource"
+DOCUMENT_STRUCTURE_TABLE = "pdf_document_structure"
 
 DOCLING_SUPPORTED_DOCUMENT_FORMATS = (
     "PDF",
     "DOCX",
+    "DOC (via Rust gateway legacy Office parser)",
     "XLSX",
     "PPTX",
     "Markdown",
@@ -59,6 +64,7 @@ DOCLING_SUPPORTED_DOCUMENT_FORMATS = (
 DOCLING_COMMON_SOURCE_SUFFIXES = (
     ".pdf",
     ".docx",
+    ".doc",
     ".xlsx",
     ".pptx",
     ".md",
@@ -92,43 +98,45 @@ DOCLING_COMMON_SOURCE_SUFFIXES = (
     ".m4a",
 )
 
-DOCUMENT_RESOURCE_SCHEMA = pa.schema(
-    [
-        pa.field("sourcePath", pa.utf8()),
-        pa.field("resourceType", pa.utf8()),
-        pa.field("resourcePath", pa.utf8()),
-        pa.field("pageIndex", pa.int32()),
-        pa.field("caption", pa.utf8()),
-        pa.field("content", pa.utf8()),
-        pa.field("mimeType", pa.utf8()),
-        pa.field("status", pa.utf8()),
-        pa.field("elementId", pa.utf8()),
-    ]
+DOCUMENT_RESOURCE_SCHEMA = build_arrow_schema(
+    DOCUMENT_RESOURCE_TABLE,
+    (
+        ArrowSchemaColumn("sourcePath", pa.utf8()),
+        ArrowSchemaColumn("resourceType", pa.utf8()),
+        ArrowSchemaColumn("resourcePath", pa.utf8()),
+        ArrowSchemaColumn("pageIndex", pa.int32()),
+        ArrowSchemaColumn("caption", pa.utf8()),
+        ArrowSchemaColumn("content", pa.utf8()),
+        ArrowSchemaColumn("mimeType", pa.utf8()),
+        ArrowSchemaColumn("status", pa.utf8()),
+        ArrowSchemaColumn("elementId", pa.utf8()),
+    ),
 )
 
-DOCUMENT_STRUCTURE_SCHEMA = pa.schema(
-    [
-        pa.field("contractVersion", pa.utf8()),
-        pa.field("sourcePath", pa.utf8()),
-        pa.field("sourceContentHash", pa.utf8()),
-        pa.field("blockId", pa.utf8()),
-        pa.field("parentBlockId", pa.utf8()),
-        pa.field("pageIndex", pa.int32()),
-        pa.field("blockIndex", pa.int32()),
-        pa.field("readingOrderKey", pa.utf8()),
-        pa.field("blockType", pa.utf8()),
-        pa.field("resourceElementId", pa.utf8()),
-        pa.field("content", pa.utf8()),
-        pa.field("mimeType", pa.utf8()),
-        pa.field("status", pa.utf8()),
-        pa.field("engine", pa.utf8()),
-        pa.field("confidence", pa.float64()),
-        pa.field("bboxLeft", pa.float64()),
-        pa.field("bboxTop", pa.float64()),
-        pa.field("bboxRight", pa.float64()),
-        pa.field("bboxBottom", pa.float64()),
-        pa.field("provenance", pa.utf8()),
-    ]
+DOCUMENT_STRUCTURE_SCHEMA = build_arrow_schema(
+    DOCUMENT_STRUCTURE_TABLE,
+    (
+        ArrowSchemaColumn("contractVersion", pa.utf8()),
+        ArrowSchemaColumn("sourcePath", pa.utf8()),
+        ArrowSchemaColumn("sourceContentHash", pa.utf8()),
+        ArrowSchemaColumn("blockId", pa.utf8()),
+        ArrowSchemaColumn("parentBlockId", pa.utf8()),
+        ArrowSchemaColumn("pageIndex", pa.int32()),
+        ArrowSchemaColumn("blockIndex", pa.int32()),
+        ArrowSchemaColumn("readingOrderKey", pa.utf8()),
+        ArrowSchemaColumn("blockType", pa.utf8()),
+        ArrowSchemaColumn("resourceElementId", pa.utf8()),
+        ArrowSchemaColumn("content", pa.utf8()),
+        ArrowSchemaColumn("mimeType", pa.utf8()),
+        ArrowSchemaColumn("status", pa.utf8()),
+        ArrowSchemaColumn("engine", pa.utf8()),
+        ArrowSchemaColumn("confidence", pa.float64()),
+        ArrowSchemaColumn("bboxLeft", pa.float64()),
+        ArrowSchemaColumn("bboxTop", pa.float64()),
+        ArrowSchemaColumn("bboxRight", pa.float64()),
+        ArrowSchemaColumn("bboxBottom", pa.float64()),
+        ArrowSchemaColumn("provenance", pa.utf8()),
+    ),
 )
 
 
@@ -234,11 +242,7 @@ def document_resources_to_table(
     """Convert document resource rows into the stable Arrow table shape."""
 
     rows = [
-        (
-            resource.to_mapping()
-            if isinstance(resource, DocumentResourceRow)
-            else dict(resource)
-        )
+        (resource.to_mapping() if isinstance(resource, DocumentResourceRow) else dict(resource))
         for resource in resources
     ]
     return pa.Table.from_pylist(rows, schema=DOCUMENT_RESOURCE_SCHEMA)

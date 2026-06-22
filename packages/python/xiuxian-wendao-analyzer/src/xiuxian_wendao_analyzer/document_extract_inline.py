@@ -83,8 +83,7 @@ def _extract_document_resources_inline(
             )
         if page_range is not None:
             resources = [
-                _normalize_page_range_resource_page_index(row, page_range)
-                for row in resources
+                _normalize_page_range_resource_page_index(row, page_range) for row in resources
             ]
         with timing.phase("structureRowsBuild"):
             structure = _document_structure_blocks(

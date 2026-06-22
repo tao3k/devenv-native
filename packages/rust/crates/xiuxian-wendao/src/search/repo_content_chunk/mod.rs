@@ -21,3 +21,4 @@ pub(crate) use query::{
     RepoContentChunkCandidate, RepoContentChunkSearchError, RepoContentChunkSearchFilters,
     search_repo_content_chunks_with_filters,
 };
+pub use schema::{COLUMN_ID as REPO_CONTENT_CHUNK_COLUMN_ID, repo_content_chunk_engine_schema};

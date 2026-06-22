@@ -54,7 +54,7 @@ pub(crate) mod real_repo_precision;
 mod reference_occurrence;
 #[cfg(feature = "search-runtime")]
 #[path = "repo_content_chunk/mod.rs"]
-mod repo_content_chunk;
+pub(crate) mod repo_content_chunk;
 #[cfg(feature = "search-runtime")]
 #[path = "repo_entity/mod.rs"]
 mod repo_entity;
@@ -147,6 +147,8 @@ pub(crate) use repo_content_chunk::RepoContentChunkSearchFilters;
 #[cfg(all(any(test, feature = "performance"), feature = "search-runtime"))]
 pub(crate) use repo_content_chunk::repo_content_chunk_file_fingerprints;
 #[cfg(feature = "search-runtime")]
+pub use repo_content_chunk::{REPO_CONTENT_CHUNK_COLUMN_ID, repo_content_chunk_engine_schema};
+#[cfg(feature = "search-runtime")]
 pub use repo_entity::{
     RepoEntityOverviewSummary, RepoEntitySearchError, summarize_repo_entity_overview,
 };
@@ -161,7 +163,7 @@ pub(crate) use repo_staging::{
 };
 #[cfg(feature = "search-runtime")]
 pub(crate) use semantic_fingerprint::{
-    ast_hits_fingerprint, attachment_hits_fingerprint, reference_hits_fingerprint,
+    attachment_hits_fingerprint, reference_hits_fingerprint, source_symbol_hits_fingerprint,
     stable_payload_fingerprint,
 };
 #[cfg(feature = "search-runtime")]

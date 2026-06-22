@@ -8,7 +8,7 @@
 ## 2. Heterogeneous Event Fusion
 
 - **Mechanism**: The `ZhenfaPipeline` polls the `SignalRegistry` non-blockingly during `process_line`.
-- **Injection**: External signals (e.g., `SemanticDrift` from Sentinel) are "plugged" into the primary LLM stream as `ExternalSignal` payloads.
+- **Injection**: External signals (e.g., `SemanticDrift` from Sentinel) are "plugged" into the primary agent stream as `ExternalSignal` payloads.
 
 ## 3. Neural Protection Layer (v3.5)
 

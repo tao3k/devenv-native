@@ -5,33 +5,22 @@
     clippy::unwrap_used,
     clippy::doc_markdown
 )]
+#![cfg(feature = "wendao-integration")]
 
 use serde_json::json;
 use std::sync::Arc;
-use xiuxian_qianhuan::{orchestrator::ThousandFacesOrchestrator, persona::PersonaRegistry};
 use xiuxian_qianji::executors::{ContextAnnotator, SynapseCalibrator};
-use xiuxian_qianji::{NodeQianhuanExecutionMode, QianjiEngine, QianjiScheduler};
-use xiuxian_wendao::link_graph::LinkGraphIndex;
+use xiuxian_qianji::{NodeAnnotationExecutionMode, QianjiEngine, QianjiScheduler};
 
 #[tokio::test]
 async fn test_qianji_trinity_integration() {
-    let temp = tempfile::tempdir().unwrap();
-    let _index = Arc::new(LinkGraphIndex::build(temp.path()).unwrap());
-    let orchestrator = Arc::new(ThousandFacesOrchestrator::new(
-        "Safety rules.".to_string(),
-        None,
-    ));
-    let registry = Arc::new(PersonaRegistry::with_builtins());
-
     let mut engine = QianjiEngine::new();
     let annotator = Arc::new(ContextAnnotator {
-        orchestrator: orchestrator.clone(),
-        registry: registry.clone(),
         persona_id: "artisan-engineer".to_string(),
         template_target: None,
-        execution_mode: NodeQianhuanExecutionMode::Isolated,
+        execution_mode: NodeAnnotationExecutionMode::Isolated,
         input_keys: vec!["raw_facts".to_string()],
-        history_key: "qianhuan_history".to_string(),
+        history_key: "annotation_history".to_string(),
         output_key: "annotated_prompt".to_string(),
     });
     let calibrator = Arc::new(SynapseCalibrator {

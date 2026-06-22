@@ -10,11 +10,15 @@
 
 **Wendao** is a next-generation knowledge management engine. While tools like Obsidian revolutionized human note-taking, **Wendao** is designed for the era of Autonomous Agents, providing a high-performance, programmable substrate for structured reasoning and massive-scale retrieval.
 
-Default Wendao builds do not depend on `xiuxian-vector`, `xiuxian-lance`, or
-LanceDB. SQL, document parsing, and Arrow Flight surfaces use the lightweight
-`xiuxian-db-store/engine` boundary; Lance-backed storage remains available only
-through the explicit `vector-store` feature for vector or retrieval-storage
-paths.
+Default Wendao builds are the lightweight product core and do not enable the
+local DuckDB cache, DataFusion query engine, Tantivy lexical index, Arrow Flight
+transport, Zhenfa gateway router, Julia bridge, or builtin plugin bundle. Use
+the explicit `full` feature to recover the previous all-in-one runtime surface,
+or enable narrower features such as `search-runtime`, `duckdb`,
+`zhenfa-router`, `julia`, `repo-lexical-index`, `builtin-plugins`, and
+`vector-store` only where those capabilities are needed. Lance-backed storage
+remains available only through the explicit `vector-store` feature for vector or
+retrieval-storage paths.
 
 ## Package Position In The Split
 
@@ -29,16 +33,18 @@ shared type or runtime helper.
 
 When the `julia` feature is enabled, `xiuxian-wendao` now exposes one thin
 memory-family bridge at `xiuxian_wendao::memory::julia`, while
-`xiuxian-wendao-julia` continues to own the actual Julia-specific memory ABI
-surface behind it. The product crate does not keep a second host-local profile
-implementation layer, but it can now resolve the current
-`memory.julia_compute` runtime and generic capability bindings through that
-thin bridge.
+`xiuxian-julia-runtime` owns inert Julia profile identities,
+`xiuxian-polyglot-orchestrator` owns cross-language profile refs and schedule
+projection, and `xiuxian-julia-core` continues to own the actual
+Julia-specific memory ABI surface behind it. The product crate does not keep a
+second host-local profile implementation layer, but it can now resolve the
+current `memory.julia_compute` runtime and generic capability bindings through
+that thin bridge.
 
 The same feature boundary now covers Modelica repo-intelligence too:
 `plugins = ["modelica"]` still selects the Modelica analyzer at runtime, but
 the Rust implementation now lives on the Julia line in
-`xiuxian-wendao-julia` instead of a standalone `xiuxian-wendao-modelica`
+`xiuxian-julia-core` instead of a standalone `xiuxian-wendao-modelica`
 crate. The same Julia-owned line now also owns parser-summary transport
 discovery for both languages, so plain `plugins = ["julia-code-parser"]` and
 `plugins = ["modelica"]` repository config can resolve the standard
@@ -95,18 +101,24 @@ longer needs a second Rust-local Julia or Modelica code-AST execution path.
 The memory-family Julia lane follows the same ownership rule as the RFC:
 
 1. `WendaoMemory.jl` owns high-performance memory compute only
-2. `xiuxian-wendao-julia` owns the Julia-specific ABI surface: typed rows,
+2. `xiuxian-julia-runtime` owns inert memory-family Julia profile identities,
+   default route facts, and schema identifiers
+3. `xiuxian-polyglot-orchestrator` owns memory-family profile references,
+   Julia admission, and schedule-plan projection from owner-supplied facts
+4. `xiuxian-julia-core` owns the Julia-specific ABI surface: typed rows,
    request/response batches, manifest projection, schema validation, decoding,
    route defaults, and plugin-owned host-adapter helpers over Rust memory
    read models or evidence
-3. `xiuxian-wendao` exposes only a thin host-facing bridge and delegates the
-   actual Julia memory ABI work into `xiuxian-wendao-julia`
-4. `xiuxian-memory-engine` and the Rust host remain authoritative for memory
+5. `xiuxian-wendao` exposes only a thin host-facing bridge and delegates the
+   actual Julia memory ABI work into `xiuxian-julia-core`
+6. `xiuxian-memory-engine` and the Rust host remain authoritative for memory
    state, lifecycle, fallback, audit, and final mutation decisions
 
-That means new memory-family profile semantics, schema fragments, manifest
-logic, decoder logic, or Julia-specific validation rules should land in
-`xiuxian-wendao-julia`, not in `xiuxian-wendao`.
+That means new memory-family profile identities belong in
+`xiuxian-julia-runtime`, cross-language scheduling contracts belong in
+`xiuxian-polyglot-orchestrator`, and Julia-specific manifest logic, decoder
+logic, or validation rules should land in `xiuxian-julia-core`, not in
+`xiuxian-wendao`.
 
 The product crate's side of that boundary is now explicit:
 `xiuxian_wendao::memory::julia` is the host-facing seam for
@@ -120,7 +132,7 @@ Host callers that only want configured memory-family Julia compute should stay
 on `xiuxian_wendao::memory::julia::*`, with
 `xiuxian_wendao::memory::julia::ComputeClient` as the primary host-facing
 entry. Raw downcall helpers, runtime-to-binding builders, and gate-evidence
-builder helpers remain plugin-owned in `xiuxian-wendao-julia` and are no
+builder helpers remain plugin-owned in `xiuxian-julia-core` and are no
 longer re-exported from the product crate.
 
 Use `xiuxian-wendao` for:
@@ -135,6 +147,21 @@ Use `xiuxian-wendao` for:
   event-row reads with benchmark coverage for append and query throughput;
   event payloads are serialized once into compact JSON text at record
   construction so append and query hot paths avoid repeated JSON conversion;
+  event-lake Arrow batches use the shared db-store schema contract helpers for
+  exact structural validation while Wendao keeps event semantics and query
+  ownership;
+  link-graph Arrow snapshot caches and core-stream performance probes use the
+  same shared schema contract helpers while link-graph keeps index and
+  benchmark semantics;
+  Flight-host projected page-index, retrieval-context, and graph-neighbor
+  response batches use the same shared schema contract helpers while Wendao
+  keeps projection semantics and route ownership;
+  search-index status diagnostics relation inputs also use the shared schema
+  contract helpers before DataFusion or DuckDB summary queries run, while
+  Wendao keeps status response semantics and local engine selection;
+  query-core graph-neighbor relation batches use the same shared schema
+  contract helpers while graph traversal, explain telemetry, and projection
+  semantics stay in Wendao;
   `WendaoEventLakeLocalConfig`
   resolves the local embedded path convention under
   `$PRJ_DATA_HOME/wendao/event_lake/`
@@ -159,13 +186,39 @@ Use `xiuxian-wendao` for:
   Rust Episteme implementation now belongs in
   [`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md), which
   validates the ontology source contract and selects the active source
-  manifest and mapping ledger from `ontology/manifest.toml`. During migration,
+  manifest and mapping ledger from `ontology/manifest.toml`. Common source
+  contracts use `episteme://` domain ids; private extension source contracts use
+  `episteme://private/` ids and declare their common-domain target through
+  `extends`.
+  It also admits compiler-produced `ontology/registry.json` snapshots through
+  `xiuxian-wendao-episteme` and materializes admitted snapshots into
+  `semantic_objects`, `semantic_relations`, and
+  `semantic_projection_state` read-model seed batches. The registry snapshot
+  materializer emits registry, domain, RDF term, rule, policy, dataset mapping,
+  and API-surface graph facts without asking Julia or Python to parse
+  `registry.json`. The stable Rust entry point for Gateway callers is
+  `admit_and_materialize_episteme_ontology_registry_snapshot_read_model_seed`,
+  which performs snapshot admission, semantic materialization, and relation
+  endpoint validation before returning read-model batches.
+  Document source contracts should keep Docling-native
+  `document_text_evidence` rows limited to modern supported formats and route
+  legacy Office binaries through a separate conversion route before cache
+  materialization. Rust source-contract validation rejects `doc`, `ppt`, and
+  `xls` rows or manifest route declarations that send legacy Office binaries
+  through `document_text_evidence`. The run planner can emit
+  `legacy_office_document_evidence` tasks for conversion-admission, while the
+  Episteme runtime crate validates those tasks before its bounded converter
+  runner executes an operator-supplied converter wrapper.
+  During migration,
   this crate may consume or
   re-export Episteme services, but it should not remain the long-term
   implementation home. Rust owns source hash validation, queue selection,
   persisted run-plan receipts, scheduling, cache identity, and compiled
   read-model seed materialization into `semantic_objects`,
-  `semantic_relations`, and `semantic_projection_state` Arrow batches. Customer
+  `semantic_relations`, and `semantic_projection_state` Arrow batches. Those
+  read-model batches are built through the db-store `ArrowSchemaContract`
+  helper so table metadata and column contracts stay deterministic while
+  Episteme retains source-contract semantics. Customer
   repository names, domain names, corpus-root environment variable
   names, source manifest paths, and mapping ledger paths are episteme
   configuration facts, not Rust defaults. A single-contract episteme repository
@@ -188,11 +241,37 @@ Use `xiuxian-wendao` for:
   evidence-only selection ledger from chosen `file_id` values before any
   extractor execution, and `wendao episteme source-contract plan-extraction-run`
   CLI command, which can consume that selection ledger as a hard `file_id`
-  constraint before writing extractor tasks. A bounded Studio Gateway admission
-  endpoint exposes the same Rust writer. Episteme repositories may also provide
-  `episteme.toml` with runtime defaults for corpus and run roots; Rust resolves
-  those defaults generically, while explicit CLI or Gateway values remain
-  overrides. Structure
+  constraint before writing extractor tasks. The run-plan write report exposes
+  total queue rows plus selected route/category counts so route coverage can be
+  audited from the command output without opening generated receipts. The same
+  source-contract CLI surface also exposes cache runners for image OCR, Docling
+  document extraction, and legacy Office conversion. After cache-local evidence
+  exists, `wendao episteme source-contract generate-ontology-candidates`
+  delegates to `xiuxian-wendao-episteme` to write review-required ontology
+  candidate TSV/Org artifacts without mutating RDF or promoting raw extracted
+  text. `wendao episteme source-contract review-ontology-candidates` then
+  delegates to the Episteme crate's review gate to produce deterministic
+  quality and integrity artifacts for the generated candidate run; this is a
+  promotion precondition, not RDF export. `wendao episteme source-contract
+  write-ontology-rdf-draft` can then write reviewable `rdf_draft.ttl`,
+  `promotion_proposal.org`, and `promotion_proposal.json` artifacts beside a
+  passing candidate run. These artifacts remain proposal surfaces with
+  raw-to-RDF promotion disabled and ontology truth set to false; the command
+  does not mutate private ontology source RDF. `wendao episteme source-contract
+  write-ontology-promotion-review` can then write pending review packets
+  (`promotion_review.tsv`, `promotion_review.org`, and
+  `promotion_review.json`) that keep source mutation disabled and ontology
+  truth false. `wendao episteme source-contract
+  write-ontology-promotion-apply-plan` consumes explicit review decisions and
+  writes non-mutating `promotion_apply_plan.*` artifacts; pending-only reviews
+  yield zero plan rows, approved rows require reviewer provenance and satisfied
+  preconditions, and the plan still has `sourceMutationAllowed=false` and
+  `ontologyTruth=false`. Bounded Studio Gateway admission
+  endpoints expose the same Rust writers and the ontology registry snapshot
+  read-model admission summary. Episteme repositories may also provide
+  `episteme.toml` with runtime defaults for corpus, run roots, and an optional
+  legacy Office converter wrapper path; Rust resolves those defaults
+  generically, while explicit CLI or Gateway values remain overrides. Structure
   TOC generation defaults to metadata-only validation for fast human/LLM
   orientation and keeps full sha256 validation as an explicit `full-hash` gate.
   Extraction run planning uses `contract_shape_only` validation: it validates
@@ -266,7 +345,7 @@ false`, while actual OCR execution remains a later Gateway/analyzer
 
 SearchStrategyFlow uses that same ownership split. The product crate owns the
 structured search backend, including DuckDB-backed candidate retrieval where
-configured. `xiuxian-wendao-julia` receives narrowed candidate batches for
+configured. `xiuxian-julia-core` receives narrowed candidate batches for
 Julia strategy/frontier selection; Julia does not own DuckDB access or full
 candidate discovery. The domain-owned Flight host also prewarms bootstrap
 projected pages and page-index trees, then serves projected page-index and
@@ -294,15 +373,20 @@ repo-index adapters and bootstrap seams. The same owner-path rule applies to
 search: `src/search/` is the only search implementation root.
 
 Detailed repo-intelligence rollout notes, repo-index performance proofs, and
-cache/runtime evolution now belong in the package docs and GTD tracking
-surfaces instead of this README. Local CLI/audit link-graph bootstrap now uses
-a DuckDB-backed snapshot cache under the project cache root; Valkey remains the
-explicit shared runtime cache path for gateway/service-backed link-graph cache
-use. The local DuckDB cache stores the high-cardinality link-graph core as
+cache/runtime evolution now belong in the package docs and tracking surfaces
+instead of this README. Local CLI/audit link-graph bootstrap now uses a
+DuckDB-backed snapshot cache under `$PRJ_DATA_HOME/xiuxian-wendao`; Valkey
+remains the explicit shared runtime cache path for gateway/service-backed
+link-graph cache use. The local DuckDB cache stores the high-cardinality
+link-graph core as
 native Arrow IPC streams and keeps a bounded page-index residual so warm hits
 avoid rebuilding every page-index tree. The page-index residual remains a
 single bounded payload until a measured columnar form beats it; cache schema
 validity is tracked by fingerprint rather than rolling local table versions.
+The docs, sections, edges, and aliases IPC streams are built and decoded
+through db-store `ArrowSchemaContract` helpers so table metadata and column
+contracts stay deterministic while link-graph owns index semantics and cache
+identity.
 Warm-hit lookup opens existing local cache files with DuckDB read-only access
 and lets the prepared payload SELECT validate the stable table shape before
 reading streams; cache writes still own table creation and
@@ -623,7 +707,8 @@ The SQL handler now follows the same folder-first rule at a finer granularity:
   logical views
 - `sql/registration/catalog/{tables,columns,view_sources}.rs`: stable
   `wendao_sql_tables`, `wendao_sql_columns`, and
-  `wendao_sql_view_sources` system catalogs
+  `wendao_sql_view_sources` system catalogs built through the db-store
+  `ArrowSchemaContract` helper
 - `sql/tests/provider.rs`: SQL execution plus app-metadata coverage
 - `sql/tests/catalog.rs`: SQL table/column catalog coverage
 - `sql/tests/information_schema.rs`: standard SQL introspection coverage
@@ -685,6 +770,9 @@ registers repo corpora under stable repo table names such as
 `SearchPlaneService::repo_content_chunk_table_name(repo_id)` and
 `SearchPlaneService::repo_entity_table_name(repo_id)`, while the catalog keeps
 the publication-derived `engine_table_name` for traceability.
+Repo-content chunk publication keeps the Lance index schema separate, but its
+engine-facing Arrow schema for Parquet/DuckDB normalization is built and
+validated through the db-store `ArrowSchemaContract` helper.
 
 The request-scoped repo logical views now also expose their source composition
 through `wendao_sql_view_sources`, ordered by `repo_id`, so clients can
@@ -822,7 +910,7 @@ Wendao is physically grounded in cutting-edge RAG research:
 ### Julia Arrow Adapter
 
 The Julia Arrow rerank exchange is plugin-owned in
-`xiuxian-wendao-julia`. Typed request rows, typed score rows, request-batch
+`xiuxian-julia-core`. Typed request rows, typed score rows, request-batch
 assembly, response decoding, repository fetch helpers, and graph-structural
 transport helpers now live in the plugin crate instead of under
 `xiuxian-wendao::analyzers`.
@@ -831,12 +919,12 @@ transport helpers now live in the plugin crate instead of under
 column-name constants and shared Arrow schema builders. For the memory-family
 Julia lane, host callers should prefer the thin bridge at
 `xiuxian_wendao::memory::julia`; anything below that bridge still belongs in
-`xiuxian-wendao-julia`.
+`xiuxian-julia-core`.
 
 The memory-family Julia compute lane follows the same rule. Julia-specific
 memory profile contracts, manifest semantics, validators, decoders, route
 defaults, host staging, transport, and composed downcalls belong in
-`xiuxian-wendao-julia`. `xiuxian-wendao` now keeps only the thin
+`xiuxian-julia-core`. `xiuxian-wendao` now keeps only the thin
 `memory::julia` bridge that points at those plugin-owned surfaces.
 
 For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` provides the local
@@ -844,7 +932,7 @@ For LinkGraph-to-WendaoGraph evidence, `xiuxian-wendao` provides the local
 `LinkGraphIndex` document links plus optional diffusion seeds and
 either `semantic_neighbors` rows or host-precomputed `semantic_overlay` rows
 into the existing `/graph/link/evidence` request tables by reusing the
-`xiuxian-wendao-julia` contract mirror. The semantic paths validate node
+`xiuxian-julia-core` contract mirror. The semantic paths validate node
 identity, one-based vertex indices, rank, distance, overlay weight, and edge
 kind before Arrow batch construction so Julia can derive `semantic_overlay`,
 `diffusion_scores`, and `link_frontier` deterministically. The two semantic
@@ -894,9 +982,11 @@ the stable request-row identity and assembles a Julia-ready Arrow batch from
 
 `OpenAiCompatibleSemanticIgnition` now exposes the same
 `build_julia_rerank_request_batch(...)` surface. It resolves the effective
-query vector from either an explicit `query_vector` or an
-OpenAI-compatible embedding call, then builds the canonical WendaoArrow `v1`
-request batch from the resulting anchors and stored embeddings.
+query vector from an explicit `query_vector` in default builds, then builds the
+canonical WendaoArrow `v1` request batch from the resulting anchors and stored
+embeddings. Text-to-vector OpenAI-compatible embedding transport is available
+only behind the explicit `llm` compatibility feature; default Wendao builds
+expect callers or external Agent/model services to provide the query vector.
 
 For the link-graph runtime, `link_graph.retrieval.julia_rerank` is now the
 dedicated config namespace for the future WendaoArrow post-processing step.
@@ -982,13 +1072,13 @@ The deployment artifact now also carries artifact-level inspection metadata:
 `artifact_schema_version` identifies the artifact contract itself, while
 `generated_at` records when a concrete JSON/TOML export instance was rendered.
 On top of that, the remaining Julia-shaped launch and deployment DTOs are now
-package-owned by `xiuxian-wendao-julia`, so callers that still need the
-legacy Julia compatibility records should import them from the Julia package
-rather than from `xiuxian-wendao` shims or selector re-exports.
+runtime-owned by `xiuxian-julia-runtime`, so callers that still need the
+legacy Julia compatibility records should import them from the Julia runtime
+package rather than from `xiuxian-wendao` shims or selector re-exports.
 
 For downstream Rust imports:
 
-- prefer `xiuxian_wendao_julia::compatibility::link_graph::*` for Julia-owned
+- prefer `xiuxian_julia_runtime::wendao::link_graph::*` for Julia-owned
   deployment and launch compatibility DTOs such as
   `LinkGraphJuliaRerankRuntimeConfig` and
   `LinkGraphJuliaDeploymentArtifact`
@@ -998,14 +1088,14 @@ For downstream Rust imports:
   that host migration shim is retired
 
 ```rust
-use xiuxian_wendao_julia::compatibility::link_graph::{
-    DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH, LinkGraphJuliaDeploymentArtifact,
+use xiuxian_julia_runtime::wendao::link_graph::{
+    DEFAULT_JULIA_SEARCH_LAUNCHER_PATH, LinkGraphJuliaDeploymentArtifact,
     LinkGraphJuliaRerankRuntimeConfig,
 };
 
 let _ = core::mem::size_of::<LinkGraphJuliaRerankRuntimeConfig>();
 let _ = core::mem::size_of::<LinkGraphJuliaDeploymentArtifact>();
-let _launcher = DEFAULT_JULIA_ANALYZER_LAUNCHER_PATH;
+let _launcher = DEFAULT_JULIA_SEARCH_LAUNCHER_PATH;
 ```
 
 For inspection surfaces, the same export is now visible through

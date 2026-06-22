@@ -1,25 +1,25 @@
 ---
-source: packages/rust/crates/xiuxian-wendao/tests/integration/../support/repo_intelligence.rs
-assertion_line: 22
+source: packages/rust/crates/xiuxian-wendao/tests/integration/support/../../support/repo_intelligence.rs
+assertion_line: 129
 expression: value
 ---
 {
   "example_hits": [
     {
       "example": {
-        "example_id": "repo:cli-example:example:test/runtests.jl",
+        "example_id": "repo:example-sample:example:test/runtests.jl",
         "path": "test/runtests.jl",
-        "repo_id": "cli-example",
+        "repo_id": "example-sample",
         "summary": null,
         "title": "runtests"
       },
-      "hierarchical_uri": "wendao://repo/unknown/cli-example/examples/test:runtests.jl/repo:cli-example:example:test/runtests.jl",
+      "hierarchical_uri": "wendao://repo/unknown/example-sample/examples/test:runtests.jl/repo:example-sample:example:test/runtests.jl",
       "hierarchy": [
         "test",
         "runtests.jl"
       ],
       "projection_page_ids": [
-        "repo:cli-example:projection:howto:example:repo:cli-example:example:test/runtests.jl"
+        "repo:example-sample:projection:howto:example:repo:example-sample:example:test/runtests.jl"
       ],
       "rank": 1,
       "saliency_score": 0.0,
@@ -28,12 +28,12 @@ expression: value
   ],
   "examples": [
     {
-      "example_id": "repo:cli-example:example:test/runtests.jl",
+      "example_id": "repo:example-sample:example:test/runtests.jl",
       "path": "test/runtests.jl",
-      "repo_id": "cli-example",
+      "repo_id": "example-sample",
       "summary": null,
       "title": "runtests"
     }
   ],
-  "repo_id": "cli-example"
+  "repo_id": "example-sample"
 }

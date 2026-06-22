@@ -2,12 +2,12 @@
 
 pub(super) use xiuxian_wendao_attachments::audio::{
     AudioRecoveryPatchCandidate, AudioRecoveryPatchDecisionKind, AudioRecoveryPatchGateOptions,
-    AudioRecoveryPatchMergeRequest, AudioResultCacheInput, AudioRiskParentSelectionOptions,
-    AudioShardInput, AudioShardMaterializationInput, AudioShardPlan, AudioShardPlannerInput,
+    AudioRecoveryPatchMergeRequest, AudioRiskParentSelectionOptions, AudioShardInput,
+    AudioShardMaterializationInput, AudioShardPlan, AudioShardPlannerInput,
     AudioShardRequestMetric, AudioShardResult, AudioShardResultStatus, AudioShardStrategy,
     AudioSourceIdentity, AudioSpeechSegment, AudioSpeechWindowPlannerInput,
-    AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
-    apply_audio_recovery_patch_decisions, audio_result_cache_key,
+    AudioTaskAdmissionInput, AudioTranscriptOrgLedgerOptions, DEFAULT_AUDIO_SHARD_PROFILE,
+    apply_audio_recovery_patch_decisions, audio_task_admission_key,
     build_audio_recovery_patch_candidates, build_audio_recovery_speech_window_plan_for_inputs,
     build_audio_recovery_split_plan, build_audio_recovery_split_plan_for_inputs,
     build_audio_shard_plan, build_audio_speech_window_plan, build_audio_transcript_org_ledger,
@@ -15,6 +15,9 @@ pub(super) use xiuxian_wendao_attachments::audio::{
     merge_audio_shard_results_with_recovery_patches, parse_audio_speech_segments_sidecar,
     plan_audio_shards, project_audio_transcript_org_evidence, select_audio_risk_parent_shards,
 };
+
+#[cfg(any(feature = "audio-shard-arrow", feature = "foyer-artifact-cache"))]
+pub(super) use xiuxian_wendao_attachments::audio::AudioShardMaterializationSource;
 
 #[cfg(feature = "audio-shard-arrow")]
 pub(super) use xiuxian_wendao_attachments::audio::{
@@ -32,6 +35,7 @@ mod planning;
 mod recovery_patch;
 mod recovery_select;
 mod speech_segments;
+mod transcript_admission;
 
 fn sample_plan() -> AudioShardPlan {
     AudioShardPlan {
@@ -49,6 +53,7 @@ fn sample_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "WAV".to_owned(),
+        audio_bitrate: None,
         strategy: "uniform".to_owned(),
     }
 }
@@ -89,11 +94,13 @@ fn speech_window_planner_input() -> AudioSpeechWindowPlannerInput {
         min_window_ms: 8_000,
         short_merge_gap_ms: Some(3_000),
         max_window_ms: Some(30_000),
+        boundary_snap_tolerance_ms: 0,
         context_before_ms: 500,
         context_after_ms: 700,
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
     }
 }
 
@@ -114,6 +121,7 @@ fn planner_input() -> AudioShardPlannerInput {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
     }
 }
 

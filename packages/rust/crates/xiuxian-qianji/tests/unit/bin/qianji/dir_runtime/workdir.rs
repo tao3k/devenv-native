@@ -43,10 +43,14 @@ fn run_check_workdir_command_blocks_invalid_surface() {
     assert_eq!(output.exit_code, 2);
     assert!(output.rendered.contains("# Validation Failed"));
     assert!(output.rendered.contains("Missing required glob matches"));
-    assert!(output.rendered.contains("## Follow-up Query"));
-    assert!(output.rendered.contains("Surfaces: plan"));
+    #[cfg(feature = "wendao-integration")]
+    {
+        assert!(output.rendered.contains("## Follow-up Query"));
+        assert!(output.rendered.contains("Surfaces: plan"));
+    }
 }
 
+#[cfg(feature = "wendao-integration")]
 #[test]
 fn run_check_workdir_command_renders_follow_up_query() {
     let temp_dir =

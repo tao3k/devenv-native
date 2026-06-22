@@ -49,7 +49,7 @@ fn modelica_plugin_projected_page_navigation_search_expands_reference_hits_into_
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-navigation-search]
+            r#"[sources.projects.modelica-navigation-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

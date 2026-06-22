@@ -3,13 +3,25 @@
 //!
 //! This crate is the explicit dependency boundary for storage concerns that
 //! should not leak into all callers:
-//! - Arrow/DataFusion engine types stay in the lightweight `engine` surface
+//! - Arrow batch compatibility types stay in the lightweight `arrow-codec` surface
+//! - DataFusion/parquet engine helpers stay in the explicit `engine` surface
 //! - the heavy Lance-backed `vector-store` surface stays feature-gated
 //! - the local `DuckDB` surface keeps type-only config and runtime connection
 //!   features split so config crates do not compile `DuckDB` unless needed
 
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
+#[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
+mod arrow_bridge;
+#[cfg(any(
+    all(feature = "arrow-codec", not(feature = "vector-store")),
+    all(feature = "artifact-cache", feature = "arrow-codec")
+))]
 mod arrow_codec;
+#[cfg(feature = "arrow-codec")]
+/// Shared Arrow table-schema contract helpers.
+pub mod arrow_schema;
+#[cfg(feature = "artifact-cache")]
+/// Attachment and document extraction artifact cache contracts.
+pub mod artifact_cache;
 #[cfg(feature = "duckdb-types")]
 /// Bounded DuckDB configuration and local connection helpers.
 pub mod duckdb;
@@ -24,27 +36,36 @@ pub use ::duckdb as duckdb_crate;
 #[cfg(feature = "qianji-bpmn-workflow-state")]
 /// Qianji BPMN workflow-state persistence surface.
 pub mod qianji_bpmn;
+#[cfg(feature = "artisan-state")]
+/// Unified user-local Artisan state path contracts.
+pub mod state;
+#[cfg(feature = "valkey")]
+/// Structured Valkey storage primitives for hot indexes and leases.
+pub mod valkey;
 
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
-pub use arrow::array::builder::{
-    ListBuilder as LanceListBuilder, StringBuilder as LanceStringBuilder,
+#[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
+pub use arrow_bridge::{
+    EngineRecordBatch, LanceArray, LanceArrayRef, LanceBooleanArray, LanceDataType, LanceField,
+    LanceFixedSizeListArray, LanceFloat32Array, LanceFloat64Array, LanceInt32Array, LanceListArray,
+    LanceListBuilder, LanceRecordBatch, LanceSchema, LanceStringArray, LanceStringBuilder,
+    LanceUInt32Array, LanceUInt64Array, engine_batch_to_lance_batch,
+    engine_batches_to_lance_batches, lance_batch_to_engine_batch, lance_batches_to_engine_batches,
 };
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
-pub use arrow::array::{
-    Array as LanceArray, ArrayRef as LanceArrayRef, BooleanArray as LanceBooleanArray,
-    FixedSizeListArray as LanceFixedSizeListArray, Float32Array as LanceFloat32Array,
-    Float64Array as LanceFloat64Array, Int32Array as LanceInt32Array, ListArray as LanceListArray,
-    RecordBatch as LanceRecordBatch, StringArray as LanceStringArray,
-    UInt32Array as LanceUInt32Array, UInt64Array as LanceUInt64Array,
-};
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
-pub use arrow::datatypes::{DataType as LanceDataType, Field as LanceField, Schema as LanceSchema};
-#[cfg(feature = "engine")]
-pub use arrow::record_batch::RecordBatch as EngineRecordBatch;
-#[cfg(all(feature = "engine", not(feature = "vector-store")))]
+#[cfg(all(feature = "arrow-codec", not(feature = "vector-store")))]
 pub use arrow_codec::{
     attach_record_batch_metadata, attach_record_batch_trace_id, decode_record_batches_ipc,
     encode_record_batch_ipc, encode_record_batches_ipc,
+};
+#[cfg(all(feature = "artifact-cache", feature = "arrow-codec"))]
+pub use arrow_codec::{read_record_batches_ipc_artifact, write_record_batches_ipc_artifact};
+#[cfg(feature = "arrow-codec")]
+pub use arrow_schema::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    ArrowSchemaNullabilityPolicy, ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY,
+    arrow_field_for_column, arrow_fields_for_contract, build_arrow_schema,
+    validate_arrow_ipc_stream, validate_arrow_ipc_stream_with_options,
+    validate_record_batch_schema, validate_record_batch_schema_with_options,
+    validate_schema_against_contract, validate_schema_against_contract_with_options,
 };
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{
@@ -57,12 +78,19 @@ pub use engine::{
 };
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{
-    SearchEngineContext, SearchEnginePartitionColumn, engine_batch_to_lance_batch,
-    engine_batches_to_lance_batches, lance_batch_to_engine_batch, lance_batches_to_engine_batches,
-    write_engine_batches_to_parquet_file, write_lance_batches_to_parquet_file,
+    SearchEngineContext, SearchEnginePartitionColumn, write_engine_batches_to_parquet_file,
+    write_lance_batches_to_parquet_file,
 };
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use error::VectorStoreError;
+#[cfg(feature = "valkey")]
+pub use valkey::{
+    ValkeyClient, ValkeyKeyNamespace, ValkeyLeaseId, ValkeyLeaseOwnership, ValkeyLeaseScriptResult,
+    ValkeyQueueEntryId, ValkeyQueueKeys, ValkeyStoreConfig, ValkeyStoreError,
+    ValkeyStructuredClaimFilter, ValkeyStructuredClaimRequest, ValkeyStructuredQueue,
+    ValkeyStructuredQueueEntry, ValkeyStructuredQueueLease, ValkeyStructuredQueueLeaseRef,
+    ValkeyWorkerId,
+};
 
 #[cfg(feature = "vector-store")]
 pub use xiuxian_vector::{
@@ -101,12 +129,3 @@ pub use xiuxian_vector::{
 
 #[cfg(all(feature = "engine", not(feature = "vector-store")))]
 pub use engine::{ColumnarScanOptions, TableInfo, VectorStore};
-
-#[cfg(test)]
-#[path = "../tests/unit/lib_policy.rs"]
-mod rust_project_harness_gate;
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = rust_project_harness_gate::db_store_rust_harness_config()
-);

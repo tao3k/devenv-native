@@ -18,28 +18,22 @@ import {
 
 test("extractRepoIds keeps only projects with non-empty plugins", () => {
   const workspaceConfig = `
-[link_graph.projects."alpha/Alpha.jl"]
+[sources.projects."alpha/Alpha.jl"]
 plugins = ["repo_intelligence"]
 
-[link_graph.projects.beta]
+[sources.projects.beta]
 plugins = []
 
-[link_graph.projects.gamma]
+[sources.projects.gamma]
 root = "/tmp/gamma"
 plugins = ["repo_intelligence", "semantic"]
 `;
 
-  assert.deepEqual(extractRepoIds(workspaceConfig), [
-    "alpha/Alpha.jl",
-    "gamma",
-  ]);
+  assert.deepEqual(extractRepoIds(workspaceConfig), ["alpha/Alpha.jl", "gamma"]);
 });
 
 test("normalizeCodeSearchQuery strips suffixes and separators", () => {
-  assert.equal(
-    normalizeCodeSearchQuery("JuliaLang/My_Package.jl"),
-    "JuliaLang My Package",
-  );
+  assert.equal(normalizeCodeSearchQuery("JuliaLang/My_Package.jl"), "JuliaLang My Package");
 });
 
 test("parseArgs returns defaults and validates overrides", () => {
@@ -50,17 +44,10 @@ test("parseArgs returns defaults and validates overrides", () => {
   assert.equal(defaults.stressDurationMs, 30_000);
   assert.equal(defaults.help, false);
 
-  const explicit = parseArgs([
-    "--report-path",
-    ".benchmark/custom.toml",
-    "--dry-run",
-  ]);
+  const explicit = parseArgs(["--report-path", ".benchmark/custom.toml", "--dry-run"]);
   assert.equal(explicit.reportPath, ".benchmark/custom.toml");
 
-  assert.throws(
-    () => parseArgs(["--repo-limit", "0"]),
-    /--repo-limit must be a positive integer/,
-  );
+  assert.throws(() => parseArgs(["--repo-limit", "0"]), /--repo-limit must be a positive integer/);
 });
 
 test("summariseSuite counts non-empty hits only when the metric exposes hit counts", () => {
@@ -156,10 +143,7 @@ test("createDryRunReport exposes operation counts and benchmark paths", () => {
     durationMs: 30_000,
     maxRequests: 5_000,
   });
-  assert.deepEqual(report.stressSuites, [
-    "stress_code_search",
-    "stress_mixed_user_hotset",
-  ]);
+  assert.deepEqual(report.stressSuites, ["stress_code_search", "stress_mixed_user_hotset"]);
   assert.deepEqual(report.benchmarkOperationPaths, [
     "/api/repo/index/status",
     "/api/repo/sync",
@@ -237,10 +221,7 @@ test("buildSmokeRequestPlan supplies markdown path for analysis smoke", () => {
   );
 
   assert.ok("url" in plan);
-  assert.equal(
-    plan.url.toString(),
-    "http://127.0.0.1:9517/api/analysis/markdown?path=README.md",
-  );
+  assert.equal(plan.url.toString(), "http://127.0.0.1:9517/api/analysis/markdown?path=README.md");
 });
 
 test("buildSmokeRequestPlan uses definitionQuery for definition smoke", () => {
@@ -370,8 +351,7 @@ test("renderBenchmarkReportToml records coverage, discovery, and failures", () =
           operationId: "setUiConfig",
           mode: "skip",
           status: "skipped",
-          skipReason:
-            "mutating OpenAPI operation is intentionally skipped in live benchmark",
+          skipReason: "mutating OpenAPI operation is intentionally skipped in live benchmark",
         },
       ],
       failures: [

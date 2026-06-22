@@ -33,16 +33,56 @@
     dependency="$2"
     tmp_manifest="''${manifest}.tmp"
     awk -v dependency="$dependency" '
+      function close_dependency_table() {
+        if (in_dependency_table && !table_has_features) {
+          print "features = [\"ffi\"]"
+        }
+        in_dependency_table = 0
+        table_has_features = 0
+      }
+      function ensure_features_line_has_ffi() {
+        compact = $0
+        gsub(/[[:space:]]/, "", compact)
+        if (compact ~ /features=\[\]/) {
+          sub(/features[[:space:]]*=[[:space:]]*\[[^]]*\]/, "features = [\"ffi\"]")
+        } else if (compact !~ /features=\[[^]]*"ffi"/) {
+          sub(/features[[:space:]]*=[[:space:]]*\[/, "features = [\"ffi\", ")
+        }
+      }
+      $0 ~ "^[[:space:]]*\\[dependencies\\." dependency "\\][[:space:]]*$" {
+        close_dependency_table()
+        in_dependency_table = 1
+        table_has_features = 0
+        print
+        next
+      }
+      $0 ~ "^\\[" {
+        close_dependency_table()
+        print
+        next
+      }
+      in_dependency_table && $0 ~ "^[[:space:]]*features[[:space:]]*=" {
+        ensure_features_line_has_ffi()
+        table_has_features = 1
+        print
+        next
+      }
       $0 ~ "^[[:space:]]*" dependency "[[:space:]]*=" && $0 ~ /\{.*\}/ {
+        close_dependency_table()
         compact = $0
         gsub(/[[:space:]]/, "", compact)
         if (compact !~ /features=\[/) {
           sub(/\}[[:space:]]*$/, ", features = [\"ffi\"] }")
+        } else if (compact ~ /features=\[\]/) {
+          sub(/features[[:space:]]*=[[:space:]]*\[[^]]*\]/, "features = [\"ffi\"]")
         } else if (compact !~ /features=\[[^]]*"ffi"/) {
           sub(/features[[:space:]]*=[[:space:]]*\[/, "features = [\"ffi\", ")
         }
       }
       { print }
+      END {
+        close_dependency_table()
+      }
     ' "$manifest" > "$tmp_manifest"
     mv "$tmp_manifest" "$manifest"
   }

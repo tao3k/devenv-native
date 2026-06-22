@@ -13,6 +13,12 @@ use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
+#[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::{
+    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
+    build_wendaograph_ontology_read_model_quality_flight_binding,
+    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
+};
 use xiuxian_wendao::duckdb::{
     DatasetOntologyArrowIpcSourceTableSpec, DatasetOntologyDuckDbMaterializer,
     DatasetOntologyRuntimeMaterialization, DatasetOntologyRuntimeMaterializationReport,
@@ -25,16 +31,10 @@ use xiuxian_wendao::duckdb::{
     build_dataset_ontology_wendaograph_quality_request_batches,
     summarize_dataset_ontology_wendaograph_quality_response,
 };
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
-    WendaoGraphOntologyReadModelQualityFlightBindingOptions,
-    build_wendaograph_ontology_read_model_quality_flight_binding,
-    roundtrip_wendaograph_ontology_read_model_quality_with_binding,
-};
 use xiuxian_wendao_runtime::config::{
     DEFAULT_SEARCH_DUCKDB_MATERIALIZE_THRESHOLD_ROWS, DEFAULT_SEARCH_DUCKDB_PARQUET_METADATA_CACHE,
     DEFAULT_SEARCH_DUCKDB_PREFER_VIRTUAL_ARROW, DEFAULT_SEARCH_DUCKDB_PRESERVE_INSERTION_ORDER,
-    DEFAULT_SEARCH_DUCKDB_THREADS,
+    DEFAULT_SEARCH_DUCKDB_THREADS, default_wendao_state_root,
 };
 use xiuxian_wendao_server::transport::{
     DatasetOntologyFlightManifest, DatasetOntologyMaterializeFlightRouteProvider,
@@ -46,7 +46,7 @@ use xiuxian_wendao_sql::dataset_ontology::{
 
 use crate::studio::GatewayState;
 #[cfg(feature = "julia")]
-use crate::studio::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
+use crate::studio::router::load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml;
 
 const HEALTHCARE_CONTRACT_ID: &str = "healthcare.synthetic_care_delivery.contract.v1";
 const HEALTHCARE_MAPPING_ID: &str = "healthcare.synthetic_care_delivery.v1";
@@ -124,11 +124,17 @@ impl DatasetOntologyMaterializeFlightRouteProvider
             ));
         }
         let batches = materialization_result_batches(&materialization)?;
+        #[cfg(feature = "julia")]
         let wendaograph_proof = dataset_ontology_wendaograph_proof_evidence(
             self.state.studio.config_root.as_path(),
             &materialization,
         )
         .await?;
+        #[cfg(not(feature = "julia"))]
+        let wendaograph_proof = dataset_ontology_wendaograph_proof_evidence(
+            self.state.studio.config_root.as_path(),
+            &materialization,
+        );
         let app_metadata =
             dataset_ontology_app_metadata(&materialization.report, wendaograph_proof.as_ref())?;
         Ok(
@@ -304,8 +310,7 @@ fn read_ontology_sql(ontology_root: &Path, relative_path: &str) -> Result<String
 fn dataset_ontology_duckdb_runtime(
     project_root: &Path,
 ) -> Result<SearchDuckDbRuntimeConfig, String> {
-    let temp_directory = project_root
-        .join(".cache")
+    let temp_directory = default_wendao_state_root(project_root)
         .join("duckdb")
         .join("dataset-ontology");
     fs::create_dir_all(&temp_directory).map_err(|error| {
@@ -417,11 +422,11 @@ async fn dataset_ontology_wendaograph_proof_evidence(
 }
 
 #[cfg(not(feature = "julia"))]
-async fn dataset_ontology_wendaograph_proof_evidence(
+fn dataset_ontology_wendaograph_proof_evidence(
     _project_root: &Path,
     _materialization: &DatasetOntologyRuntimeMaterialization,
-) -> Result<Option<DatasetOntologyWendaoGraphProofEvidence>, String> {
-    Ok(None)
+) -> Option<DatasetOntologyWendaoGraphProofEvidence> {
+    None
 }
 
 #[cfg(feature = "julia")]

@@ -7,6 +7,7 @@ authors:
   - auditor_neuron
   - sovereign
 created: 2026-05-11
+updated: 2026-05-23
 tags:
   - rfc
   - ontology
@@ -24,10 +25,22 @@ While W3C standards (RDF/OWL) provide a robust foundation for semantic modeling,
 
 This RFC outlines a pragmatic approach for the `xiuxian-artisan-workshop` architecture:
 
-1. **User-Friendly Expansion**: Utilizing TOML for zero-friction ontology extensions at the edge.
-2. **Domain-Encapsulated Validation**: Utilizing SQL (via DuckDB) as the primary engine for ontology constraint validation, co-located within specific domain directories.
+1. **Reviewable Expansion**: Using Org ledgers for human, agent, and LLM
+   ontology proposals because Org can carry state, property drawers, dates,
+   evidence, source spans, and appendable reasoning in one parseable format.
+2. **Stable Semantic Authority**: Using RDF or RDF-shaped proposal artifacts
+   for accepted ontology meaning after validation.
+3. **Domain-Encapsulated Validation**: Using SQL through DuckDB/DataFusion over
+   Arrow/Parquet read models as the primary engine for ontology constraint
+   validation, co-located within specific domain directories.
 
-## 2. Declarative TOML Interface
+## 2. Authoring and Extension Interfaces
+
+Org is the preferred proposal and reasoning interface. It is the durable ledger
+for mapping intent, candidate lifecycle state, evidence anchors, review
+decisions, and agent/LLM additions. TOML remains useful for compact extension
+configuration and bootstrap metadata, but it should not replace Org as the
+reviewable ontology reasoning surface.
 
 Users or external systems can extend the L1 Domain ontology simply by placing an `ontology.toml` file in their configuration directory.
 
@@ -47,7 +60,10 @@ target = "CustomDeploymentPipeline"
 type = "authorizes"
 ```
 
-The Rust orchestrator compiles this TOML into internal semantic triples, resolving inheritance and shadowing upstream defaults.
+The Rust orchestrator compiles reviewed Org/TOML inputs into internal semantic
+triples, resolving inheritance and shadowing upstream defaults. Accepted
+semantic outputs are materialized as RDF or RDF-shaped proposal artifacts, then
+compiled into Arrow/Parquet read-model tables for runtime validation and search.
 
 ## 3. Domain-Encapsulated SQL Validation
 
@@ -71,6 +87,11 @@ wendao-episteme/ontology/10-49_L1_Domain/
 ### The "Plug-and-Play" Validation Pipeline
 
 When a user extends an ontology (e.g., `extends = "episteme://10_Software_Engineering"`), the system mounts **only** the SQL rules located within that specific domain's `rules/` subdirectory. This ensures that validation is strictly sandboxed to the active business context.
+
+Validation queries run against typed Arrow/Parquet read models compiled from
+reviewed Org/RDF/structural-fact inputs. TSV files are not canonical validation
+inputs for new ontology flows; they may exist only as legacy compatibility
+projections while callers migrate to columnar read models.
 
 ## 4. The Agentic Self-Healing Loop
 

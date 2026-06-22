@@ -8,8 +8,8 @@ use xiuxian_wendao_attachments::pdf::profile::source_pdf_page_profiles_cached;
 
 pub(crate) const DOCUMENT_EXTRACT_PDF_OCR_WORKERS_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_OCR_WORKERS";
-const HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV: &str =
-    "WENDAO_HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE";
+pub(crate) const HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE_ENV: &str =
+    "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE";
 const HOSTED_VLM_REGION_PIPELINE_ENV: &str =
     "WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE";
 const HOSTED_VLM_REGION_PIPELINE_RENDER_DISPATCH: &str = "render-dispatch";
@@ -125,10 +125,16 @@ pub(crate) fn source_pdf_page_range_dispatch_budget_with_region_pipeline_and_fas
     inputs: &[PdfOcrShardInput],
     requested: usize,
     hosted_region_render_dispatch: bool,
-    _split_fast_text_single_pages: bool,
+    split_fast_text_single_pages: bool,
 ) -> usize {
     if inputs.is_empty() {
         return requested.max(1);
+    }
+    if hosted_region_render_dispatch
+        && split_fast_text_single_pages
+        && all_fast_text_source_pdf_pages(inputs)
+    {
+        return inputs.len().max(1);
     }
     if hosted_region_render_dispatch {
         return requested
@@ -184,7 +190,7 @@ pub(crate) fn rendered_region_shard_chunks(
 ) -> Vec<&[PdfOcrShardInput]> {
     rendered_region_shard_chunks_with_composite_size(
         inputs,
-        rendered_region_composite_size_from_environment(),
+        rendered_region_dispatch_chunk_size_from_environment(),
     )
 }
 
@@ -213,9 +219,14 @@ pub(crate) fn rendered_region_shard_chunks_with_composite_size(
     chunks
 }
 
-fn rendered_region_composite_size_from_environment() -> usize {
-    std::env::var(HOSTED_VLM_OCR_REGION_COMPOSITE_SIZE_ENV)
-        .ok()
+fn rendered_region_dispatch_chunk_size_from_environment() -> usize {
+    rendered_region_dispatch_chunk_size_with_lookup(&|key| std::env::var(key).ok())
+}
+
+pub(crate) fn rendered_region_dispatch_chunk_size_with_lookup(
+    lookup: &dyn Fn(&str) -> Option<String>,
+) -> usize {
+    lookup(HOSTED_VLM_REGION_DISPATCH_CHUNK_SIZE_ENV)
         .and_then(|value| value.trim().parse::<usize>().ok())
         .filter(|value| *value > 1)
         .unwrap_or(1)

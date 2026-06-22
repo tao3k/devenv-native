@@ -1,8 +1,9 @@
 use std::error::Error;
 
 use xiuxian_qianji_control::{
-    ControlError, HotStateStore, LeaseId, RunId, RunnableStep, StepId, StepLease,
-    ValkeyHotStateConfig, ValkeyHotStateStore, WorkerHeartbeat, WorkerId, WorkerRef,
+    ActivityId, ActivityType, ControlError, HotStateStore, IdempotencyKey, LeaseId, RunId,
+    RunnableActivityTask, RunnableStep, StepId, StepLease, TaskQueue, ValkeyHotStateConfig,
+    ValkeyHotStateStore, WorkerActivityTask, WorkerHeartbeat, WorkerId, WorkerRef,
 };
 
 #[test]
@@ -26,6 +27,22 @@ fn valkey_config_uses_stable_key_namespace() -> Result<(), Box<dyn Error>> {
     assert_eq!(
         config.heartbeat_key(&worker_id),
         "test:qianji:heartbeat:worker-c"
+    );
+    assert_eq!(
+        config.activity_pending_queue_key(),
+        "test:qianji:activity_pending"
+    );
+    assert_eq!(
+        config.activity_lease_deadlines_key(),
+        "test:qianji:activity_lease_deadlines"
+    );
+    assert_eq!(
+        config.activity_payload_key(&run_id, Some(&step_id), &ActivityId::new("activity-d")?),
+        "test:qianji:activity:run-a|step-b|activity-d"
+    );
+    assert_eq!(
+        config.activity_lease_key(&run_id, None, &ActivityId::new("activity-e")?),
+        "test:qianji:activity_lease:run-a||activity-e"
     );
     Ok(())
 }
@@ -73,12 +90,63 @@ fn valkey_hot_state_payload_contract_round_trips_as_json() -> Result<(), Box<dyn
 
     let step_payload = serde_json::to_string(&step)?;
     let heartbeat_payload = serde_json::to_string(&heartbeat)?;
+    let activity_task = RunnableActivityTask {
+        task: WorkerActivityTask {
+            run_id: RunId::new("run-activity-payload")?,
+            step_id: Some(StepId::new("step-activity-payload")?),
+            activity_id: ActivityId::new("activity-payload")?,
+            activity_type: ActivityType::new("llm.plan")?,
+            task_queue: TaskQueue::new("llm.openai")?,
+            next_attempt: 1,
+            scheduled_at_ms: 10,
+            input_ref: None,
+            idempotency_key: IdempotencyKey::new("run-activity-payload/activity/1")?,
+            retry_policy: None,
+            timeout_ms: Some(30_000),
+            metadata: serde_json::Value::Null,
+        },
+        priority: 3,
+        not_before_ms: 12,
+        metadata: serde_json::json!({"scope": "activity"}),
+    };
+    let activity_task_payload = serde_json::to_string(&activity_task)?;
 
     assert_eq!(serde_json::from_str::<RunnableStep>(&step_payload)?, step);
+    assert_eq!(
+        serde_json::from_str::<RunnableActivityTask>(&activity_task_payload)?,
+        activity_task
+    );
     assert_eq!(
         serde_json::from_str::<WorkerHeartbeat>(&heartbeat_payload)?,
         heartbeat
     );
+    Ok(())
+}
+
+#[tokio::test]
+async fn valkey_hot_state_rejects_zero_activity_task_lease_ttl_before_connecting()
+-> Result<(), Box<dyn Error>> {
+    let store = ValkeyHotStateStore::new(ValkeyHotStateConfig::new("redis://127.0.0.1:1")?);
+    let worker = WorkerRef {
+        worker_id: WorkerId::new("worker-zero-activity-ttl")?,
+        capabilities: Vec::new(),
+        metadata: serde_json::json!({}),
+    };
+    let queue = TaskQueue::new("llm.openai")?;
+    let Err(error) = store
+        .claim_activity_task(worker, Some(&queue), 100, 0)
+        .await
+    else {
+        panic!("expected zero activity task lease ttl to fail before connecting");
+    };
+
+    assert!(matches!(
+        error,
+        ControlError::Storage {
+            operation: "validate_valkey_activity_task_lease_ttl",
+            ..
+        }
+    ));
     Ok(())
 }
 

@@ -70,6 +70,9 @@ pub struct AudioShardPlan {
     pub channels: u8,
     /// Normalized audio container or codec token, such as `wav` or `flac`.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token, such as `96k`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
     /// Shard selection strategy, such as `head` or `uniform`.
     pub strategy: String,
 }
@@ -102,6 +105,9 @@ pub struct AudioShardPlannerInput {
     pub channels: u8,
     /// Normalized audio container or codec token, such as `wav` or `flac`.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token, such as `96k`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
 }
 
 /// Raw DTO boundary for one detected speech segment.
@@ -149,6 +155,14 @@ pub struct AudioSpeechWindowPlannerInput {
     /// to exceed `chunk_duration_ms` when the caller has not requested a hard
     /// cap.
     pub max_window_ms: Option<u64>,
+    /// Optional tolerance for preserving natural speech boundaries near the
+    /// maximum window duration.
+    ///
+    /// A non-zero value lets a VAD segment or merged speech window exceed
+    /// `max_window_ms` by this many milliseconds instead of creating a short
+    /// tail shard. The default `0` keeps the strict hard-cap behavior.
+    #[serde(default)]
+    pub boundary_snap_tolerance_ms: u64,
     /// Context included before each logical shard when materializing media.
     pub context_before_ms: u64,
     /// Context included after each logical shard when materializing media.
@@ -159,6 +173,9 @@ pub struct AudioSpeechWindowPlannerInput {
     pub channels: u8,
     /// Normalized audio container or codec token, such as `wav` or `flac`.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token, such as `96k`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
 }
 
 /// Raw DTO boundary and stringly state boundary for audio shard manifest rows.
@@ -193,6 +210,9 @@ pub struct AudioShardManifestItem {
     pub channels: u8,
     /// Normalized audio container or codec token.
     pub audio_format: String,
+    /// Optional audio encoder bitrate token used to materialize shard media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audio_bitrate: Option<String>,
     /// Cache key for normalized shard media and downstream result reuse.
     pub cache_key: String,
     /// Listening-order key stable across backend retries.
@@ -212,8 +232,26 @@ pub struct AudioShardMaterializationInput {
     pub output_dir: PathBuf,
     /// Media splitter executable, normally `ffmpeg`.
     pub ffmpeg_path: PathBuf,
-    /// Recreate an existing shard file when true.
+    /// Optional content-addressed artifact cache root for normalized shard
+    /// media bytes.
+    pub artifact_cache_dir: Option<PathBuf>,
+    /// Recreate an existing request-output shard file when true. Verified
+    /// content-addressed artifact cache entries may still satisfy the request.
     pub force: bool,
+}
+
+/// Source used to satisfy one normalized audio shard materialization request.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioShardMaterializationSource {
+    /// Existing normalized output file was reused from the request output
+    /// directory.
+    ExistingOutput,
+    /// Normalized bytes were restored from the artifact blob cache.
+    ArtifactCache,
+    /// Local media splitter produced the normalized shard.
+    #[default]
+    MediaSplitter,
 }
 
 /// Raw DTO boundary and stringly state boundary for one materialized audio shard.
@@ -229,14 +267,20 @@ pub struct AudioShardMaterializedItem {
     pub output_path: PathBuf,
     /// SHA-256 of the normalized shard media bytes.
     pub shard_sha256: String,
+    /// Byte length of the normalized shard media bytes.
+    #[serde(default)]
+    pub shard_byte_len: u64,
+    /// Materialization source used for this request.
+    #[serde(default)]
+    pub materialization_source: AudioShardMaterializationSource,
 }
 
-/// Raw DTO boundary and stringly state boundary for audio result cache inputs.
+/// Raw DTO boundary and stringly state boundary for audio task admission inputs.
 ///
-/// Backend/task identity for caching downstream audio processing results.
+/// Backend/task identity for admitting reusable downstream audio task outputs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AudioResultCacheInput {
+pub struct AudioTaskAdmissionInput {
     /// Cache key from the normalized audio shard manifest.
     pub shard_cache_key: String,
     /// Logical task profile, such as transcription, diarization, or summarization.

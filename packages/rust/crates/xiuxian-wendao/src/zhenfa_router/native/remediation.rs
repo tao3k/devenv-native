@@ -26,10 +26,9 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use async_trait::async_trait;
 use log::{info, warn};
 
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, ZhenfaSignal, ZhenfaSignalSink};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, ZhenfaSignal};
 
 use crate::LinkGraphIndex;
 
@@ -223,15 +222,13 @@ fn elapsed_millis_u64(elapsed: Duration) -> u64 {
     u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX)
 }
 
-/// Implement `ZhenfaSignalSink` to consume signals from the orchestrator.
-#[async_trait]
-impl ZhenfaSignalSink for RemediationWorker {
+impl RemediationWorker {
     /// Consume a signal and perform appropriate remediation.
     ///
     /// # Errors
     /// Returns `ZhenfaError` when remediation fails.
-    async fn emit(&self, _ctx: &ZhenfaContext, signal: ZhenfaSignal) -> Result<(), ZhenfaError> {
-        match &signal {
+    pub fn emit_signal(&self, signal: ZhenfaSignal) -> Result<(), ZhenfaError> {
+        match signal {
             ZhenfaSignal::SemanticDrift {
                 source_path,
                 file_stem: _,
@@ -239,7 +236,8 @@ impl ZhenfaSignalSink for RemediationWorker {
                 confidence,
                 summary,
             } => {
-                let result = self.process_drift(source_path, *affected_count, confidence, summary);
+                let result =
+                    self.process_drift(&source_path, affected_count, &confidence, &summary);
 
                 if result.success {
                     info!(

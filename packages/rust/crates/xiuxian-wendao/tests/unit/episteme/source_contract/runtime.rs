@@ -15,6 +15,8 @@ corpus_root = "../corpus-root"
 structure_run_root = "runs/structure"
 evidence_selection_run_root = "runs/evidence-selection"
 extraction_run_root = "runs/extraction"
+ontology_generation_run_root = "runs/ontology-generation"
+legacy_office_converter = "../tools/legacy-office-converter"
 "#,
     )?;
 
@@ -33,6 +35,20 @@ extraction_run_root = "runs/extraction"
     assert_eq!(
         config.extraction_runs,
         Some(fixture.episteme_root.join("runs/extraction"))
+    );
+    assert_eq!(
+        config.ontology_generation_runs,
+        Some(fixture.episteme_root.join("runs/ontology-generation"))
+    );
+    assert_eq!(
+        config.legacy_office_converter,
+        Some(
+            fixture
+                .episteme_root
+                .parent()
+                .ok_or("episteme fixture root must have a parent")?
+                .join("tools/legacy-office-converter")
+        )
     );
 
     Ok(())

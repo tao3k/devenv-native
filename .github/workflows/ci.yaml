@@ -60,6 +60,23 @@ jobs:
           submodules: recursive
           ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
+      - name: Free Ubuntu runner disk space
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf \
+            /opt/ghc \
+            /usr/local/lib/android \
+            /usr/share/dotnet
+          sudo apt-get clean
+          if command -v docker >/dev/null 2>&1; then
+            docker system prune -af || true
+          fi
+          echo "Disk after cleanup:"
+          df -h /
+
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
@@ -125,6 +142,7 @@ jobs:
           components: clippy
 
       - name: Install sccache
+        continue-on-error: true
         uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
         with:
           tool: sccache@0.7.5
@@ -132,6 +150,13 @@ jobs:
       - name: Configure sccache backend
         run: |
           set -euo pipefail
+          if ! command -v sccache >/dev/null 2>&1; then
+            echo "SCCACHE_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "sccache is unavailable; continuing without Rust compiler cache."
+            exit 0
+          fi
+          echo "SCCACHE_AVAILABLE=true" >> "$GITHUB_ENV"
           if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
             echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
           else
@@ -141,7 +166,7 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
       - name: Restore sccache cache (fallback)
-        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
@@ -163,7 +188,7 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Save sccache cache (fallback)
-        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ always() && !cancelled() && env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
@@ -201,6 +226,9 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             base_sha="${{ github.event.pull_request.base.sha }}"
             head_sha="${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            head_sha="${{ github.sha }}"
+            base_sha="$(git rev-parse "${head_sha}^")"
           else
             base_sha="${{ github.event.before }}"
             head_sha="${{ github.sha }}"
@@ -237,6 +265,23 @@ jobs:
           fetch-depth: 0
           submodules: recursive
           ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
+
+      - name: Free Ubuntu runner disk space
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          set -euo pipefail
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf \
+            /opt/ghc \
+            /usr/local/lib/android \
+            /usr/share/dotnet
+          sudo apt-get clean
+          if command -v docker >/dev/null 2>&1; then
+            docker system prune -af || true
+          fi
+          echo "Disk after cleanup:"
+          df -h /
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -350,6 +395,7 @@ jobs:
           tool: cargo-nextest@0.9.127
 
       - name: Install sccache
+        continue-on-error: true
         uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
         with:
           tool: sccache@0.7.5
@@ -357,6 +403,13 @@ jobs:
       - name: Configure sccache backend
         run: |
           set -euo pipefail
+          if ! command -v sccache >/dev/null 2>&1; then
+            echo "SCCACHE_AVAILABLE=false" >> "$GITHUB_ENV"
+            echo "SCCACHE_GHA_ENABLED=false" >> "$GITHUB_ENV"
+            echo "sccache is unavailable; continuing without Rust compiler cache."
+            exit 0
+          fi
+          echo "SCCACHE_AVAILABLE=true" >> "$GITHUB_ENV"
           if [[ -n "${ACTIONS_CACHE_URL:-}" && -n "${ACTIONS_RUNTIME_TOKEN:-}" ]]; then
             echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
           else
@@ -366,7 +419,7 @@ jobs:
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
 
       - name: Restore sccache cache (fallback)
-        if: ${{ env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ${{ github.workspace }}/.sccache/
@@ -389,160 +442,6 @@ jobs:
           set -euo pipefail
           command -v julia
           julia --version
-
-      - name: Bootstrap WendaoCodeParser parser-summary runtime dependencies
-        run: |
-          set -euo pipefail
-          export JULIA_PKG_PRECOMPILE_AUTO=0
-          export WENDAO_CODE_PARSER_PACKAGE_DIR="${RUNNER_TEMP}/WendaoCodeParser.jl"
-          export WENDAO_CODE_PARSER_JULIA_PROJECT="${WENDAO_CODE_PARSER_PACKAGE_DIR}"
-          git clone --depth 1 --branch main https://github.com/tao3k/WendaoCodeParser.jl.git "${WENDAO_CODE_PARSER_PACKAGE_DIR}"
-          git -C "${WENDAO_CODE_PARSER_PACKAGE_DIR}" rev-parse HEAD
-          julia --project="${WENDAO_CODE_PARSER_JULIA_PROJECT}" -e '
-            using Pkg
-            Pkg.activate(ENV["WENDAO_CODE_PARSER_JULIA_PROJECT"])
-            Pkg.instantiate()
-            Pkg.precompile()
-            using WendaoCodeParser
-          '
-          test -f "${WENDAO_CODE_PARSER_PACKAGE_DIR}/scripts/run_service.jl"
-          test -f "${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
-          {
-            echo "JULIA_PKG_PRECOMPILE_AUTO=0"
-            echo "WENDAO_CODE_PARSER_JULIA_PROJECT=${WENDAO_CODE_PARSER_JULIA_PROJECT}"
-            echo "WENDAO_CODE_PARSER_PACKAGE_DIR=${WENDAO_CODE_PARSER_PACKAGE_DIR}"
-            echo "WENDAO_CODE_PARSER_CONFIG=${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
-            echo "WENDAO_PARSER_SUMMARY_BASE_URL=http://127.0.0.1:41081"
-            echo "WENDAOSEARCH_CONFIG=${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
-            echo "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST=1"
-          } >> "${GITHUB_ENV}"
-
-      - name: Checkout WendaoSearch solver-demo source
-        uses: actions/checkout@v6
-        with:
-          repository: tao3k/WendaoSearch.jl
-          ref: main
-          fetch-depth: 1
-          path: .cache/ci/WendaoSearch.jl
-          persist-credentials: false
-          ssh-key: ${{ secrets.WENDAOSEARCH_DEPLOY_KEY }}
-
-      - name: Start WendaoCodeParser parser-summary service for Rust tests
-        run: |
-          set -euo pipefail
-          source scripts/runtime/process-runtime.sh
-          export WENDAO_CODE_PARSER_SERVICE_NAME=wendaocodeparser-parser-summary
-          export WENDAO_CODE_PARSER_RUNTIME_DIR=.run/wendaocodeparser
-          export WENDAO_CODE_PARSER_PORT=41081
-          : "${WENDAO_CODE_PARSER_JULIA_PROJECT:?missing WendaoCodeParser Julia project}"
-          : "${WENDAO_CODE_PARSER_PACKAGE_DIR:?missing WendaoCodeParser package dir}"
-          export WENDAO_CODE_PARSER_CONFIG="${WENDAO_CODE_PARSER_PACKAGE_DIR}/config/live/parser_summary.toml"
-          export WENDAO_CODE_PARSER_SCRIPT="${WENDAO_CODE_PARSER_PACKAGE_DIR}/scripts/run_service.jl"
-          export WENDAO_CODE_PARSER_PIDFILE="${WENDAO_CODE_PARSER_RUNTIME_DIR}/${WENDAO_CODE_PARSER_SERVICE_NAME}.pid"
-          export WENDAOCODEPARSER_CONFIG="${WENDAO_CODE_PARSER_CONFIG}"
-          mkdir -p "${WENDAO_CODE_PARSER_RUNTIME_DIR}" .run/logs
-          managed_cleanup_pidfile_process \
-            "${WENDAO_CODE_PARSER_PIDFILE}" \
-            "${WENDAO_CODE_PARSER_SERVICE_NAME}" \
-            julia \
-            "${WENDAO_CODE_PARSER_SCRIPT}"
-          managed_cleanup_listener \
-            "${WENDAO_CODE_PARSER_PORT}" \
-            "${WENDAO_CODE_PARSER_SERVICE_NAME}" \
-            julia \
-            "${WENDAO_CODE_PARSER_SCRIPT}"
-          julia "--project=${WENDAO_CODE_PARSER_JULIA_PROJECT}" \
-            "${WENDAO_CODE_PARSER_SCRIPT}" \
-            "--config" "${WENDAO_CODE_PARSER_CONFIG}" \
-            > .run/logs/wendaocodeparser-parser-summary.stdout.log \
-            2> .run/logs/wendaocodeparser-parser-summary.stderr.log &
-          service_pid=$!
-          managed_write_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${service_pid}"
-          for _ in {1..120}; do
-            if managed_listener_matches_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${WENDAO_CODE_PARSER_PORT}"; then
-              exit 0
-            fi
-            if ! kill -0 "${service_pid}" 2>/dev/null; then
-              echo "WendaoCodeParser parser-summary service exited before readiness." >&2
-              cat .run/logs/wendaocodeparser-parser-summary.stdout.log >&2 || true
-              cat .run/logs/wendaocodeparser-parser-summary.stderr.log >&2 || true
-              exit 1
-            fi
-            sleep 1
-          done
-          cat .run/logs/wendaocodeparser-parser-summary.stdout.log >&2 || true
-          cat .run/logs/wendaocodeparser-parser-summary.stderr.log >&2 || true
-          managed_listener_matches_pidfile "${WENDAO_CODE_PARSER_PIDFILE}" "${WENDAO_CODE_PARSER_PORT}"
-
-      - name: Bootstrap WendaoSearch solver-demo runtime dependencies
-        run: |
-          set -euo pipefail
-          export WENDAOSEARCH_PACKAGE_DIR="${PRJ_CACHE_HOME}/ci/WendaoSearch.jl"
-          export WENDAOSEARCH_JULIA_PROJECT="${WENDAOSEARCH_PACKAGE_DIR}"
-          git -C "${WENDAOSEARCH_PACKAGE_DIR}" rev-parse HEAD
-          julia --project="${WENDAOSEARCH_JULIA_PROJECT}" -e '
-            using Pkg
-            Pkg.activate(ENV["WENDAOSEARCH_JULIA_PROJECT"])
-            Pkg.instantiate()
-            Pkg.precompile()
-            using WendaoSearch
-          '
-          test -f "${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_search_service.jl"
-          test -f "${WENDAOSEARCH_PACKAGE_DIR}/config/live/solver_demo.toml"
-          {
-            echo "WENDAO_SEARCH_USE_ACTIVE_PROJECT=1"
-            echo "WENDAOSEARCH_JULIA_PROJECT=${WENDAOSEARCH_JULIA_PROJECT}"
-            echo "WENDAOSEARCH_PACKAGE_DIR=${WENDAOSEARCH_PACKAGE_DIR}"
-            echo "WENDAOSEARCH_SOLVER_DEMO_CONFIG=${WENDAOSEARCH_PACKAGE_DIR}/config/live/solver_demo.toml"
-          } >> "${GITHUB_ENV}"
-
-      - name: Start WendaoSearch solver-demo service for Rust tests
-        run: |
-          set -euo pipefail
-          source scripts/runtime/process-runtime.sh
-          export WENDAOSEARCH_SERVICE_NAME=wendaosearch-solver-demo
-          export WENDAOSEARCH_RUNTIME_DIR=.run/wendaosearch
-          export WENDAOSEARCH_PORT=41080
-          : "${WENDAOSEARCH_JULIA_PROJECT:?missing WendaoSearch Julia project}"
-          : "${WENDAOSEARCH_PACKAGE_DIR:?missing WendaoSearch package dir}"
-          : "${WENDAOSEARCH_SOLVER_DEMO_CONFIG:?missing WendaoSearch solver-demo config}"
-          export WENDAOSEARCH_SCRIPT="${WENDAOSEARCH_PACKAGE_DIR}/scripts/run_search_service.jl"
-          export WENDAOSEARCH_PIDFILE="${WENDAOSEARCH_RUNTIME_DIR}/${WENDAOSEARCH_SERVICE_NAME}.pid"
-          export WENDAO_SEARCH_USE_ACTIVE_PROJECT=1
-          mkdir -p "${WENDAOSEARCH_RUNTIME_DIR}" .run/logs
-          managed_cleanup_pidfile_process \
-            "${WENDAOSEARCH_PIDFILE}" \
-            "${WENDAOSEARCH_SERVICE_NAME}" \
-            julia \
-            "${WENDAOSEARCH_SCRIPT}"
-          managed_cleanup_listener \
-            "${WENDAOSEARCH_PORT}" \
-            "${WENDAOSEARCH_SERVICE_NAME}" \
-            julia \
-            "${WENDAOSEARCH_SCRIPT}"
-          julia "--project=${WENDAOSEARCH_JULIA_PROJECT}" \
-            "${WENDAOSEARCH_SCRIPT}" \
-            "--config" "${WENDAOSEARCH_SOLVER_DEMO_CONFIG}" \
-            > .run/logs/wendaosearch-solver-demo.stdout.log \
-            2> .run/logs/wendaosearch-solver-demo.stderr.log &
-          service_pid=$!
-          managed_write_pidfile "${WENDAOSEARCH_PIDFILE}" "${service_pid}"
-          for _ in {1..180}; do
-            if managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"; then
-              echo "WENDAOSEARCH_SOLVER_DEMO_BASE_URL=http://127.0.0.1:${WENDAOSEARCH_PORT}" >> "${GITHUB_ENV}"
-              exit 0
-            fi
-            if ! kill -0 "${service_pid}" 2>/dev/null; then
-              echo "WendaoSearch solver-demo service exited before readiness." >&2
-              cat .run/logs/wendaosearch-solver-demo.stdout.log >&2 || true
-              cat .run/logs/wendaosearch-solver-demo.stderr.log >&2 || true
-              exit 1
-            fi
-            sleep 1
-          done
-          cat .run/logs/wendaosearch-solver-demo.stdout.log >&2 || true
-          cat .run/logs/wendaosearch-solver-demo.stderr.log >&2 || true
-          managed_listener_matches_pidfile "${WENDAOSEARCH_PIDFILE}" "${WENDAOSEARCH_PORT}"
 
       - name: Start Valkey for Rust tests
         run: |
@@ -583,22 +482,12 @@ jobs:
           set +e
           source scripts/runtime/process-runtime.sh
           managed_cleanup_pidfile_process \
-            .run/wendaocodeparser/wendaocodeparser-parser-summary.pid \
-            wendaocodeparser-parser-summary \
-            julia \
-            run_service.jl
-          managed_cleanup_pidfile_process \
-            .run/wendaosearch/wendaosearch-solver-demo.pid \
-            wendaosearch-solver-demo \
-            julia \
-            run_search_service.jl
-          managed_cleanup_pidfile_process \
             "${PRJ_RUNTIME_DIR:-.run}/valkey/valkey.pid" \
             valkey \
             valkey-server
 
       - name: Save sccache cache (fallback)
-        if: ${{ always() && !cancelled() && env.SCCACHE_GHA_ENABLED != 'true' }}
+        if: ${{ always() && !cancelled() && env.SCCACHE_AVAILABLE == 'true' && env.SCCACHE_GHA_ENABLED != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:

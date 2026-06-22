@@ -8,11 +8,11 @@ use std::time::Duration;
 
 use toml::Value;
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::{
+use xiuxian_julia_core::integration_support::{
     JuliaServiceGuard, spawn_wendaosearch_all_parser_summary_service,
 };
 #[cfg(feature = "julia")]
-use xiuxian_wendao_julia::{
+use xiuxian_julia_core::{
     clear_modelica_parser_summary_transport_cache_for_tests,
     set_linked_julia_parser_summary_base_url_for_tests,
     set_linked_modelica_parser_summary_base_url_for_tests,
@@ -26,8 +26,22 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 const RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST_ENV: &str = "RUN_PROCESS_MANAGED_WENDAOSEARCH_TEST";
 const WENDAOSEARCH_CONFIG_ENV: &str = "WENDAOSEARCH_CONFIG";
 const WENDAOSEARCH_PACKAGE_DIR_ENV: &str = "WENDAOSEARCH_PACKAGE_DIR";
+const WENDAO_PARSER_SUMMARY_BASE_URL_ENV: &str = "WENDAO_PARSER_SUMMARY_BASE_URL";
+const WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY: &str =
+    "WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY";
+const WENDAO_INTELLIGENCE_FORCE_REAL_PARSER_SUMMARY: &str =
+    "WENDAO_INTELLIGENCE_FORCE_REAL_PARSER_SUMMARY";
 const PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME: &str = "wendaocodeparser-parser-summary";
-const PROCESS_MANAGED_READY_ATTEMPTS: usize = 600;
+const DEFAULT_PROCESS_MANAGED_PARSER_SUMMARY_READY_ATTEMPTS: usize = 80;
+const DEFAULT_PROCESS_MANAGED_PARSER_SUMMARY_BEST_EFFORT_READY_ATTEMPTS: usize = 12;
+const DEFAULT_PROCESS_MANAGED_PARSER_SUMMARY_QUICK_READY_ATTEMPTS: usize = 8;
+const DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS: u64 = 250;
+const DEFAULT_PARSER_SUMMARY_SERVICE_READY_DELAY_MILLIS: u64 = 200;
+const DEFAULT_PARSER_SUMMARY_SERVICE_READY_FAST_DELAY_MILLIS: u64 = 50;
+const PROCESS_MANAGED_PARSER_SUMMARY_READY_ATTEMPTS_ENV: &str =
+    "WENDAO_PARSER_SUMMARY_PROCESS_MANAGED_READY_ATTEMPTS";
+const PROCESS_MANAGED_PARSER_SUMMARY_BEST_EFFORT_READY_ATTEMPTS_ENV: &str =
+    "WENDAO_PARSER_SUMMARY_PROCESS_MANAGED_BEST_EFFORT_READY_ATTEMPTS";
 
 struct LinkedParserSummaryService {
     base_url: String,
@@ -51,8 +65,8 @@ enum ProcessManagedParserSummaryMode {
 impl ProcessManagedParserSummaryMode {
     fn already_running_attempts(self) -> usize {
         match self {
-            Self::Required => 600,
-            Self::BestEffort => 25,
+            Self::Required => parser_summary_process_managed_ready_attempts(),
+            Self::BestEffort => parser_summary_process_managed_best_effort_ready_attempts(),
         }
     }
 }
@@ -60,12 +74,28 @@ impl ProcessManagedParserSummaryMode {
 static LINKED_PARSER_SUMMARY_SERVICE: OnceLock<Result<LinkedParserSummaryService, String>> =
     OnceLock::new();
 static PROCESS_MANAGED_PARSER_SUMMARY_SERVICE: OnceLock<Result<(), String>> = OnceLock::new();
+static LINKED_PARSER_SUMMARY_TEST_FAKE: OnceLock<bool> = OnceLock::new();
+
+fn preserve_fake_parser_summary_for_tests() -> bool {
+    *LINKED_PARSER_SUMMARY_TEST_FAKE.get_or_init(|| {
+        if std::env::var_os(WENDAO_INTELLIGENCE_FORCE_REAL_PARSER_SUMMARY).is_some() {
+            return false;
+        }
+        if std::env::var_os(WENDAO_INTELLIGENCE_FORCE_FAKE_PARSER_SUMMARY).is_some() {
+            return true;
+        }
+
+        true
+    })
+}
 
 pub fn ensure_linked_parser_summary_service() -> TestResult {
+    preserve_fake_parser_summary_for_tests();
     linked_parser_summary_base_url().map(|_| ())
 }
 
 pub fn ensure_linked_modelica_parser_summary_service() -> TestResult {
+    preserve_fake_parser_summary_for_tests();
     linked_modelica_parser_summary_base_url().map(|_| ())
 }
 
@@ -74,7 +104,57 @@ pub fn linked_modelica_parser_summary_base_url() -> Result<String, Box<dyn std::
 }
 
 pub fn linked_parser_summary_base_url() -> Result<String, Box<dyn std::error::Error>> {
+    preserve_fake_parser_summary_for_tests();
+    if let Some(base_url) = explicit_parser_summary_base_url() {
+        if wait_for_service_ready_with_delay(
+            base_url.as_str(),
+            parser_summary_process_managed_quick_ready_attempts(),
+            parser_summary_service_ready_fast_delay(),
+            DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS,
+        )
+        .is_ok()
+        {
+            configure_linked_parser_summary_base_url(base_url.as_str()).map_err(|message| {
+                Box::new(IoError::other(message)) as Box<dyn std::error::Error>
+            })?;
+            return Ok(base_url);
+        }
+
+        if !process_managed_wendaosearch_test_enabled() {
+            if preserve_fake_parser_summary_for_tests() {
+                let (base_url, guard) = spawn_fake_julia_parser_summary_service()?;
+                let service = LinkedParserSummaryService {
+                    base_url: base_url.clone(),
+                    _guard: Mutex::new(LinkedParserSummaryGuard::Fake { _guard: guard }),
+                };
+                LINKED_PARSER_SUMMARY_SERVICE.set(Ok(service)).ok();
+                configure_linked_parser_summary_base_url(base_url.as_str()).map_err(|message| {
+                    Box::new(IoError::other(message)) as Box<dyn std::error::Error>
+                })?;
+                return Ok(base_url);
+            }
+            return Err(Box::new(IoError::other(format!(
+                "configured parser summary service `{base_url}` is not reachable"
+            ))));
+        }
+    }
+
     if process_managed_wendaosearch_test_enabled() {
+        if ensure_process_managed_parser_summary_service(ProcessManagedParserSummaryMode::Required)
+            .is_err()
+            && preserve_fake_parser_summary_for_tests()
+        {
+            let (base_url, guard) = spawn_fake_julia_parser_summary_service()?;
+            let service = LinkedParserSummaryService {
+                base_url: base_url.clone(),
+                _guard: Mutex::new(LinkedParserSummaryGuard::Fake { _guard: guard }),
+            };
+            LINKED_PARSER_SUMMARY_SERVICE.set(Ok(service)).ok();
+            configure_linked_parser_summary_base_url(base_url.as_str()).map_err(|message| {
+                Box::new(IoError::other(message)) as Box<dyn std::error::Error>
+            })?;
+            return Ok(base_url);
+        }
         ensure_process_managed_parser_summary_service(ProcessManagedParserSummaryMode::Required)?;
         return process_managed_parser_summary_base_url()
             .map_err(|message| Box::new(IoError::other(message)) as Box<dyn std::error::Error>);
@@ -116,8 +196,8 @@ fn spawn_in_process_linked_parser_summary_service()
 -> Result<(String, LinkedParserSummaryGuard), String> {
     #[cfg(not(feature = "julia"))]
     {
-        return spawn_fake_julia_parser_summary_service()
-            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard }));
+        spawn_fake_julia_parser_summary_service()
+            .map(|(base_url, guard)| (base_url, LinkedParserSummaryGuard::Fake { _guard: guard }))
     }
     #[cfg(feature = "julia")]
     {
@@ -151,6 +231,9 @@ fn spawn_in_process_linked_parser_summary_service()
 
 #[cfg(feature = "julia")]
 fn real_parser_summary_service_is_available() -> bool {
+    if preserve_fake_parser_summary_for_tests() {
+        return false;
+    }
     std::env::var_os(WENDAOSEARCH_PACKAGE_DIR_ENV)
         .filter(|value| !value.is_empty())
         .is_some_and(|path| Path::new(&path).exists())
@@ -163,7 +246,9 @@ fn configure_linked_parser_summary_base_url(base_url: &str) -> Result<(), String
         set_linked_modelica_parser_summary_base_url_for_tests(base_url)?;
     }
     #[cfg(not(feature = "julia"))]
-    let _ = base_url;
+    if base_url.trim().is_empty() {
+        return Err("linked parser summary base URL must not be empty".to_string());
+    }
     Ok(())
 }
 
@@ -180,10 +265,13 @@ fn ensure_process_managed_parser_summary_service(
 ) -> TestResult {
     let service = PROCESS_MANAGED_PARSER_SUMMARY_SERVICE.get_or_init(|| {
         let base_url = process_managed_parser_summary_base_url()?;
-        if !service_is_ready(base_url.as_str())? {
+        if !service_is_ready(
+            base_url.as_str(),
+            DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS,
+        )? {
             start_process_managed_parser_summary_service(base_url.as_str(), mode)?;
         }
-        wait_for_service_ready(base_url.as_str(), PROCESS_MANAGED_READY_ATTEMPTS)?;
+        wait_for_service_ready(base_url.as_str(), mode.already_running_attempts())?;
         configure_process_managed_parser_summary_base_url(base_url.as_str())?;
         Ok(())
     });
@@ -205,7 +293,9 @@ fn configure_process_managed_parser_summary_base_url(base_url: &str) -> Result<(
             .map_err(|error| error.clone())?;
     }
     #[cfg(not(feature = "julia"))]
-    let _ = base_url;
+    if base_url.trim().is_empty() {
+        return Err("process-managed parser summary base URL must not be empty".to_string());
+    }
     Ok(())
 }
 
@@ -234,7 +324,7 @@ fn start_process_managed_parser_summary_service(
             String::from_utf8_lossy(&output.stderr),
         ));
     }
-    wait_for_service_ready(base_url, PROCESS_MANAGED_READY_ATTEMPTS)
+    wait_for_service_ready(base_url, parser_summary_process_managed_ready_attempts())
 }
 
 fn output_mentions_processes_already_running(output: &std::process::Output) -> bool {
@@ -295,23 +385,78 @@ fn process_managed_parser_summary_config_path() -> PathBuf {
 }
 
 fn wait_for_service_ready(base_url: &str, attempts: usize) -> Result<(), String> {
+    wait_for_service_ready_with_delay(
+        base_url,
+        attempts,
+        parser_summary_service_ready_delay(),
+        parser_summary_service_ready_timeout(DEFAULT_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS),
+    )
+}
+
+fn wait_for_service_ready_with_delay(
+    base_url: &str,
+    attempts: usize,
+    delay_millis: u64,
+    timeout_millis: u64,
+) -> Result<(), String> {
     for _ in 0..attempts {
-        if service_is_ready(base_url)? {
+        if service_is_ready(base_url, timeout_millis)? {
             return Ok(());
         }
-        std::thread::sleep(Duration::from_millis(200));
+        std::thread::sleep(Duration::from_millis(delay_millis));
     }
     Err(format!(
         "process-managed `{PROCESS_MANAGED_PARSER_SUMMARY_SERVICE_NAME}` did not become ready in time"
     ))
 }
 
-fn service_is_ready(base_url: &str) -> Result<bool, String> {
+fn explicit_parser_summary_base_url() -> Option<String> {
+    std::env::var(WENDAO_PARSER_SUMMARY_BASE_URL_ENV)
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn service_is_ready(base_url: &str, timeout_millis: u64) -> Result<bool, String> {
     let socket_addr = socket_addr_from_base_url(base_url)?;
-    match TcpStream::connect_timeout(&socket_addr, Duration::from_secs(2)) {
+    match TcpStream::connect_timeout(
+        &socket_addr,
+        Duration::from_millis(parser_summary_service_ready_timeout(timeout_millis)),
+    ) {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
     }
+}
+
+fn parser_summary_service_ready_delay() -> u64 {
+    std::env::var("WENDAO_PARSER_SUMMARY_SERVICE_READY_DELAY_MILLIS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(DEFAULT_PARSER_SUMMARY_SERVICE_READY_DELAY_MILLIS)
+}
+
+fn parser_summary_service_ready_fast_delay() -> u64 {
+    std::env::var("WENDAO_PARSER_SUMMARY_SERVICE_READY_FAST_DELAY_MILLIS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(DEFAULT_PARSER_SUMMARY_SERVICE_READY_FAST_DELAY_MILLIS)
+}
+
+fn parser_summary_service_ready_timeout(timeout_override_millis: u64) -> u64 {
+    std::env::var("WENDAO_PARSER_SUMMARY_SERVICE_READY_TIMEOUT_MILLIS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(timeout_override_millis)
+}
+
+fn parser_summary_process_managed_quick_ready_attempts() -> usize {
+    parse_positive_usize_env(
+        "WENDAO_PARSER_SUMMARY_PROCESS_MANAGED_QUICK_ATTEMPTS",
+        DEFAULT_PROCESS_MANAGED_PARSER_SUMMARY_QUICK_READY_ATTEMPTS,
+    )
 }
 
 fn socket_addr_from_base_url(base_url: &str) -> Result<SocketAddr, String> {
@@ -322,6 +467,28 @@ fn socket_addr_from_base_url(base_url: &str) -> Result<SocketAddr, String> {
     socket_addr
         .parse::<SocketAddr>()
         .map_err(|error| format!("parse socket address `{socket_addr}`: {error}"))
+}
+
+fn parser_summary_process_managed_ready_attempts() -> usize {
+    parse_positive_usize_env(
+        PROCESS_MANAGED_PARSER_SUMMARY_READY_ATTEMPTS_ENV,
+        DEFAULT_PROCESS_MANAGED_PARSER_SUMMARY_READY_ATTEMPTS,
+    )
+}
+
+fn parser_summary_process_managed_best_effort_ready_attempts() -> usize {
+    parse_positive_usize_env(
+        PROCESS_MANAGED_PARSER_SUMMARY_BEST_EFFORT_READY_ATTEMPTS_ENV,
+        DEFAULT_PROCESS_MANAGED_PARSER_SUMMARY_BEST_EFFORT_READY_ATTEMPTS,
+    )
+}
+
+fn parse_positive_usize_env(name: &str, default: usize) -> usize {
+    std::env::var(name)
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(default)
 }
 
 fn repo_root() -> PathBuf {

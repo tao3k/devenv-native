@@ -1,7 +1,8 @@
 use super::{
-    CONFIDENCE_THRESHOLD, FuzzySuggestion, PatternSkeleton, SourceFile, cache_stats,
-    clear_candidate_cache, extract_capture_name, format_suggestion, jaccard_similarity,
-    levenshtein_distance, string_similarity, suggest_pattern_fix, tokenize_pattern,
+    CONFIDENCE_THRESHOLD, CodeLanguageId, FuzzySuggestion, PatternSkeleton, SourceFile,
+    cache_stats, clear_candidate_cache, extract_capture_name, format_suggestion,
+    jaccard_similarity, levenshtein_distance, string_similarity, suggest_pattern_fix,
+    tokenize_pattern,
 };
 
 #[test]
@@ -98,7 +99,7 @@ fn test_suggest_pattern_fix_finds_renamed_symbol() {
 
     let suggestion = suggest_pattern_fix(
         "fn process_data($$$)",
-        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+        &CodeLanguageId::from("rust"),
         &[source],
     );
 
@@ -122,7 +123,7 @@ fn test_candidate_cache_stats_and_clear() {
 
     let _suggestion = suggest_pattern_fix(
         "fn process_data($$$)",
-        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+        &CodeLanguageId::from("rust"),
         &[source],
     );
 
@@ -143,7 +144,7 @@ fn test_suggest_pattern_fix_no_similar_code() {
 
     let suggestion = suggest_pattern_fix(
         "fn process_data($$$)",
-        &xiuxian_code_intelligence::CodeLanguageId::from("rust"),
+        &CodeLanguageId::from("rust"),
         &[source],
     );
 

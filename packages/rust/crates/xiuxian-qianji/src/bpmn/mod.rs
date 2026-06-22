@@ -21,13 +21,19 @@ mod driver;
 mod error;
 #[path = "../bpmn_runtime_execution.rs"]
 mod execution;
+pub mod flowhub_activity_adapter;
+pub mod host_work_activity_adapter;
 #[path = "http/mod.rs"]
 mod http_transport;
 mod identity;
+pub mod llm_activity_adapter;
 #[path = "../bpmn_runtime_loader.rs"]
 mod loader;
 #[path = "../bpmn_runtime_ownership.rs"]
 mod ownership;
+#[cfg(feature = "run-console-flight")]
+pub mod run_console_flight;
+pub mod run_console_read_model;
 #[path = "../bpmn_runtime_scheduler.rs"]
 mod scheduler;
 #[path = "../bpmn_runtime_session.rs"]
@@ -61,24 +67,69 @@ pub use api::{
     QianjiBpmnWorkflowTaskClaimHttpPayload, QianjiBpmnWorkflowTaskClaimHttpRequest,
     QianjiBpmnWorkflowTaskClaimHttpResponse, QianjiBpmnWorkflowTaskClaimPayload,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
-    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompleteReport,
-    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
-    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskCompletionKind,
-    QianjiBpmnWorkflowTaskCompletionPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
-    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
-    QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,
-    QianjiBpmnWorkflowTaskReleaseRequest, QianjiBpmnWorkflowWorklistItem,
-    QianjiBpmnWorkflowWorklistReport, QianjiBpmnWorkflowWorklistRequest,
-    QianjiBpmnWorkflowWorklistRoutingFilter, dispatch_pending_host_work_request,
-    dispatch_pending_host_work_requests, load_bpmn_package_from_files,
-    load_bpmn_package_from_files_with_options, qianji_bpmn_workflow_router,
-    resolve_pending_host_work, resolve_waiting_external_event,
+    QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteBatchReport,
+    QianjiBpmnWorkflowTaskCompleteBatchRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
+    QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
+    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiBpmnWorkflowTaskReleasePayload,
+    QianjiBpmnWorkflowTaskReleaseReport, QianjiBpmnWorkflowTaskReleaseRequest,
+    QianjiBpmnWorkflowWorklistItem, QianjiBpmnWorkflowWorklistReport,
+    QianjiBpmnWorkflowWorklistRequest, QianjiBpmnWorkflowWorklistRoutingFilter,
+    QianjiControlBpmnSourceAdmissionHttpRequest, QianjiControlBpmnSourceAdmissionHttpResponse,
+    QianjiControlBpmnSourceHttpResponse, QianjiControlBpmnSourceMediaType,
+    QianjiControlDiagnosticsHttpResponse, QianjiControlHistoryHttpResponse,
+    QianjiControlRecoveryApplyHttpRequest, QianjiControlRecoveryApplyHttpResponse,
+    QianjiControlRecoveryHttpResponse, QianjiControlRunSummaryHttpResponse,
+    QianjiControlWorkflowSourceAdmissionHttpRequest,
+    QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
+    QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
+    dispatch_pending_host_work_request, dispatch_pending_host_work_requests,
+    load_bpmn_package_from_files, load_bpmn_package_from_files_with_options,
+    qianji_bpmn_workflow_router, resolve_pending_host_work, resolve_waiting_external_event,
 };
 #[cfg(feature = "duckdb")]
 pub use api::{
     DEFAULT_QIANJI_BPMN_DUCKDB_THREADS, QIANJI_BPMN_WORKFLOW_STATE_RECORD_KEY,
     QianjiBpmnDataRecord, QianjiBpmnDataStoreError, QianjiBpmnDuckDbDataStore,
     QianjiBpmnDuckDbDataStoreConfig,
+};
+pub use flowhub_activity_adapter::{
+    FLOWHUB_SERVICE_ACTIVITY_TYPE, FLOWHUB_SERVICE_COMPLETION_METADATA_KEY, FlowhubScenarioIdRef,
+    FlowhubServiceActivityHttpScheduleInput, FlowhubServiceActivityScheduleInput,
+    QianjiRuntimeBpmnInstanceIdRef, QianjiRuntimeInstantMs, QianjiRuntimeLeaseTtlMs,
+    QianjiRuntimeWorkerIdRef, build_flowhub_service_activity_schedule_record,
+    build_flowhub_service_activity_schedule_record_from_http_pending_work,
+    build_flowhub_service_task_complete_http_request,
+    build_flowhub_service_task_completion_payload,
+    build_flowhub_service_task_contract_activity_result,
+    build_flowhub_service_task_contract_completion_data,
+};
+pub use host_work_activity_adapter::{
+    BPMN_HOST_WORK_ACTIVITY_METADATA_KEY, BPMN_HOST_WORK_ACTIVITY_SCHEMA,
+    BPMN_HOST_WORK_ACTIVITY_TYPE, BPMN_HOST_WORK_COMPLETION_METADATA_KEY,
+    BPMN_HOST_WORK_COMPLETION_SCHEMA, BpmnHostWorkActivityScheduleInput,
+    build_bpmn_host_work_activity_result, build_bpmn_host_work_activity_schedule_record,
+};
+pub use llm_activity_adapter::{
+    BPMN_HOST_WORK_LLM_ACTIVITY_ROUTE_SCHEMA, BpmnHostWorkLlmActivityRouteInput,
+    BpmnHostWorkLlmEndpointDecision, BpmnHostWorkLlmRouteDecision,
+    build_bpmn_host_work_llm_activity_route,
+};
+#[cfg(feature = "run-console-flight")]
+pub use run_console_flight::{QIANJI_RUN_CONSOLE_RUN_ID_HEADER, QianjiRunConsoleFlightService};
+pub use run_console_read_model::{
+    QIANJI_RUN_CONSOLE_ELEMENT_STATE_ROUTE, QIANJI_RUN_CONSOLE_EVENT_ROUTE,
+    QIANJI_RUN_CONSOLE_SCHEMA_VERSION, QianjiControlRunStreamSource, QianjiRunConsoleElementState,
+    qianji_control_run_stream_rows,
+};
+#[cfg(feature = "run-console-flight")]
+pub use run_console_read_model::{
+    QianjiRunConsoleArrowReadModel, qianji_run_console_arrow_read_model,
+    qianji_run_console_element_state_arrow_contract, qianji_run_console_element_state_arrow_schema,
+    qianji_run_console_event_arrow_contract, qianji_run_console_event_arrow_schema,
 };
 
 #[cfg(test)]

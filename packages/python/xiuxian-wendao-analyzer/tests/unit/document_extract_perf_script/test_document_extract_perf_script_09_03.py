@@ -98,6 +98,7 @@ def test_start_rust_provider_forwards_audio_speech_sidecar_controls(
         rust_audio_sample_rate_hz=None,
         rust_audio_channels=None,
         rust_audio_format=None,
+        rust_audio_artifact_cache_dir=None,
         rust_audio_base_workers=None,
         rust_audio_recovery_workers=None,
         rust_audio_speech_segments_jsonl=sidecar,

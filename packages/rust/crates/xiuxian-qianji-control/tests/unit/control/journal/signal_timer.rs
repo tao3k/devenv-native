@@ -2,8 +2,9 @@ use std::error::Error;
 use std::io;
 
 use xiuxian_qianji_control::{
-    ControlEvent, ControlEventKind, ControlLedger, InMemoryControlLedger, RunId, SignalName,
-    SignalRecord, TimerId, TimerRecord, TimerStatus, VersionKey, VersionPin,
+    ControlEvent, ControlEventKind, ControlLedger, InMemoryControlLedger, RecoveryItemScope, RunId,
+    SignalName, SignalReceiveJournalRecord, SignalRecord, TimerId, TimerRecord, TimerStatus,
+    VersionKey, VersionPin, record_signal_received,
 };
 
 use crate::control::support::artifact_ref;
@@ -36,18 +37,20 @@ fn in_memory_ledger_replays_signal_timer_and_version_events() -> Result<(), Box<
             },
         },
     ))?;
-    ledger.append_event(ControlEvent::run(
-        run_id.clone(),
-        3,
-        ControlEventKind::SignalReceived {
-            signal: SignalRecord {
+    record_signal_received(
+        &ledger,
+        SignalReceiveJournalRecord::new(
+            run_id.clone(),
+            RecoveryItemScope::run(),
+            SignalRecord {
                 signal_name: SignalName::new("human.approval")?,
                 payload_ref: Some(artifact_ref("artifact-human-approval")?),
                 payload_hash: Some("sha256:approval".to_owned()),
                 metadata: serde_json::Value::Null,
             },
-        },
-    ))?;
+            3,
+        ),
+    )?;
     ledger.append_event(ControlEvent::run(
         run_id.clone(),
         4,

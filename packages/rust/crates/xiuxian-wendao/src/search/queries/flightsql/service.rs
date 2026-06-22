@@ -276,5 +276,5 @@ impl FlightSqlService for StudioFlightSqlService {
         Ok(response_stream(schema, vec![batch]))
     }
 
-    async fn register_sql_info(&self, _id: i32, _result: &arrow_flight::sql::SqlInfo) {}
+    async fn register_sql_info(&self, _sql_info_key: i32, _result: &arrow_flight::sql::SqlInfo) {}
 }

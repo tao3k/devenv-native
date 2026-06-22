@@ -1,113 +1,134 @@
 use super::{
-    FlowhubGraphTopology, flowhub_root, load_flowhub_module_manifest,
-    parse_flowhub_module_manifest, real_flowhub_fixture_available,
+    flowhub_root, load_flowhub_module_manifest, parse_flowhub_module_manifest,
+    real_flowhub_fixture_available,
 };
 
 #[test]
-fn load_flowhub_module_manifest_reads_real_plan_graph_topology_contract() {
+fn load_flowhub_module_manifest_reads_real_plan_org_bpmn_contract() {
     if !real_flowhub_fixture_available() {
         return;
     }
     let manifest = load_flowhub_module_manifest(flowhub_root().join("plan/qianji.toml"))
         .unwrap_or_else(|error| panic!("plan module manifest should load: {error}"));
 
-    assert_eq!(manifest.graph.len(), 1);
-    assert_eq!(manifest.graph[0].path, "codex-plan.mmd");
-    assert_eq!(manifest.graph[0].name, None);
-    assert_eq!(
-        manifest.graph[0].topology,
-        FlowhubGraphTopology::BoundedLoop
-    );
-    let workdir = manifest.graph[0]
-        .workdir
-        .as_ref()
-        .unwrap_or_else(|| panic!("plan graph should declare localized workdir contract"));
-    assert_eq!(workdir.root, "<plan-workdir>");
-    assert!(
-        workdir
-            .note
-            .as_deref()
-            .is_some_and(|note| note.contains("localized plan work surface"))
-    );
-    assert!(
-        workdir
-            .check
-            .require
-            .iter()
-            .any(|path| path == "flowchart.mmd")
-    );
-    assert!(
-        manifest.graph[0]
-            .resolved_workdir_name()
-            .is_some_and(|name| name == "codex-plan")
-    );
-    assert!(
-        manifest.graph[0]
-            .node
-            .iter()
-            .any(|node| node.label == "domain validators")
-    );
+    assert!(manifest.graph.is_empty());
+    assert!(manifest.contract.as_ref().is_some_and(|contract| {
+        contract.register.is_empty()
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "PLAN_POLICY.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "agent-coding.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "agent-coding.bpmn")
+    }));
 }
 
 #[test]
-fn load_flowhub_module_manifest_reads_real_wendao_graph_topology_contract() {
+fn load_flowhub_module_manifest_reads_real_wendao_org_bpmn_contract() {
     if !real_flowhub_fixture_available() {
         return;
     }
     let manifest = load_flowhub_module_manifest(flowhub_root().join("wendao/qianji.toml"))
         .unwrap_or_else(|error| panic!("wendao module manifest should load: {error}"));
 
-    assert_eq!(manifest.graph.len(), 1);
-    assert_eq!(manifest.graph[0].path, "docs-search.mmd");
-    assert_eq!(manifest.graph[0].name.as_deref(), Some("DOC_SEARCH"));
-    assert_eq!(
-        manifest.graph[0].topology,
-        FlowhubGraphTopology::BoundedLoop
-    );
-    assert!(
-        manifest.graph[0]
-            .node
-            .iter()
-            .any(|node| node.label == "diagnostics")
-    );
+    assert!(manifest.graph.is_empty());
+    assert!(manifest.contract.as_ref().is_some_and(|contract| {
+        contract.register == vec!["client".to_string()]
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "WENDAO_POLICY.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "docs-search.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "docs-search.bpmn")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "client/qianji.toml")
+    }));
 }
 
 #[test]
-fn load_flowhub_module_manifest_reads_real_research_graph_node_contracts() {
+fn load_flowhub_module_manifest_reads_real_research_org_bpmn_contracts() {
     if !real_flowhub_fixture_available() {
         return;
     }
     let manifest = load_flowhub_module_manifest(flowhub_root().join("research/paper/qianji.toml"))
         .unwrap_or_else(|error| panic!("research paper manifest should load: {error}"));
 
-    assert_eq!(manifest.graph.len(), 3);
-    assert_eq!(manifest.graph[0].path, "paper-canonicalize.mmd");
-    assert_eq!(manifest.graph[1].path, "paper-deep-read.mmd");
-    assert_eq!(manifest.graph[1].name.as_deref(), Some("PAPER_DEEP_READ"));
-    assert!(
-        manifest.graph[1].node.is_empty(),
-        "deep-read node annotations live in paper-deep-read.mmd, not in the module manifest"
-    );
-    assert_eq!(manifest.graph[2].path, "paper-compare.mmd");
-    assert!(manifest.graph[0].workdir.as_ref().is_some_and(|workdir| {
-        workdir.root == "runs/<run_id>"
-            && workdir
-                .check
-                .require
-                .iter()
-                .any(|path| path == "refs/paper.json")
-    }));
-    assert!(
-        manifest.graph[0]
-            .node
-            .iter()
-            .any(|node| node.label == "layout_regions_extract")
-    );
+    assert!(manifest.graph.is_empty());
     assert!(manifest.contract.as_ref().is_some_and(|contract| {
-        contract
-            .required
-            .iter()
-            .any(|path| path == "paper-deep-read.mmd")
+        contract.register.is_empty()
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "PAPER_POLICY.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "paper-canonicalize.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "paper-canonicalize.bpmn")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "paper-deep-read.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "paper-deep-read.bpmn")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "paper-compare.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "paper-compare.bpmn")
+    }));
+}
+
+#[test]
+fn load_flowhub_module_manifest_reads_real_wendao_client_plan_policy_bpmn_contract() {
+    if !real_flowhub_fixture_available() {
+        return;
+    }
+    let manifest =
+        load_flowhub_module_manifest(flowhub_root().join("wendao/client/plan/qianji.toml"))
+            .unwrap_or_else(|error| panic!("wendao client plan manifest should load: {error}"));
+
+    assert!(manifest.graph.is_empty());
+    assert!(manifest.contract.as_ref().is_some_and(|contract| {
+        contract.register.is_empty()
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "PLAN_POLICY.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "PLAN_POLICY.bpmn")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "_sdd_template.org")
+            && contract
+                .required
+                .iter()
+                .any(|path| path == "_execplan_template.org")
     }));
 }
 

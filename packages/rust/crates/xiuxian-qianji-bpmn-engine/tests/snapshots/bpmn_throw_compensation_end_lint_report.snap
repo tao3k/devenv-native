@@ -1,0 +1,32 @@
+---
+source: packages/rust/crates/xiuxian-qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-throw-compensation-end.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.unsupported_compensation_configuration",
+      "severity": "error",
+      "title": "Throw compensation end events outside the bounded subset are rejected",
+      "summary": "Process 'throw_compensation_flow' compensation node 'throw_end' uses `<endEvent><compensateEventDefinition ... /></endEvent>`, which is outside the bounded slice.",
+      "why_it_failed": "The current engine executes one bounded throw-compensation end-event subset: the event must run inside one supported transaction shell and must either reference one explicit `activityRef` that reuses an already valid boundary-to-handler compensation binding for that target activity or omit `activityRef` to replay every already compensable activity in reverse completion order. The event may stay synchronous or set `waitForCompletion=\"false\"` so the parent scope resumes while the bounded compensation queue drains. Any other end-event throw-compensation shape remains unsupported.",
+      "repair_guidance": [
+        "If compensation is really required, remodel the flow so the throwing end event lives inside one bounded transaction shell.",
+        "Use one explicit `activityRef` when only one already compensable activity should replay, or omit `activityRef` when every already compensable activity in the transaction shell should replay in reverse completion order.",
+        "Choose synchronous behavior when parent completion should wait for replay, or set `waitForCompletion=\"false\"` when the parent scope should resume while the bounded compensation queue drains.",
+        "If the flow only needs terminal completion, remove `<compensateEventDefinition>` and keep an ordinary `<bpmn:endEvent>`.",
+        "Do not rely on throw-compensation end events outside the bounded transaction-shell subset in this slice."
+      ],
+      "llm_fix_prompt": "Rewrite compensation node 'throw_end' in process 'throw_compensation_flow' so its `<bpmn:endEvent>` throw-compensation shape fits the bounded subset: place it inside one supported `<bpmn:transaction>` shell, and either use one explicit `activityRef` that targets one already compensable activity or omit `activityRef` so the bounded transaction shell replays every already compensable activity in reverse completion order. Choose synchronous behavior when parent completion should wait for replay, or set `waitForCompletion=\"false\"` when the parent scope should resume while the bounded compensation queue drains. Otherwise, preserve workflow intent with an ordinary end event.",
+      "evidence": {
+        "detail": "throw_compensation_end_event",
+        "node_id": "throw_end",
+        "process_id": "throw_compensation_flow"
+      }
+    }
+  ]
+}

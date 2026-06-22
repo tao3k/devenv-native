@@ -1,20 +1,19 @@
 use std::borrow::Cow;
 
+use crate::template_catalog::EmbeddedTemplateCatalog;
 use serde_json::json;
-use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
 
 const MARKDOWN_SHOW_SURFACE_TEMPLATE_NAME: &str = "qianji_show_surface.md.j2";
 const MARKDOWN_SHOW_SURFACE_TEMPLATE_SOURCE: &str =
     include_str!("../../resources/templates/control_plane/qianji_show_surface.md.j2");
 
-static SHOW_TEMPLATE_CATALOG: EmbeddedManifestationTemplateCatalog =
-    EmbeddedManifestationTemplateCatalog::new(
-        "qianhuan markdown show surface renderer",
-        &[(
-            MARKDOWN_SHOW_SURFACE_TEMPLATE_NAME,
-            MARKDOWN_SHOW_SURFACE_TEMPLATE_SOURCE,
-        )],
-    );
+static SHOW_TEMPLATE_CATALOG: EmbeddedTemplateCatalog = EmbeddedTemplateCatalog::new(
+    "Qianji markdown show surface renderer",
+    &[(
+        MARKDOWN_SHOW_SURFACE_TEMPLATE_NAME,
+        MARKDOWN_SHOW_SURFACE_TEMPLATE_SOURCE,
+    )],
+);
 
 /// One section in the shared markdown `qianji show` surface.
 #[derive(Debug, Clone, PartialEq, Eq)]

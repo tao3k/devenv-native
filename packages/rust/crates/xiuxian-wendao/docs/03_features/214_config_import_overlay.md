@@ -23,7 +23,7 @@ on conflicts. That means any legacy Studio wrapper must import the base file:
 ```toml
 imports = ["wendao.toml"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 dirs = ["docs", "src"]
 ```

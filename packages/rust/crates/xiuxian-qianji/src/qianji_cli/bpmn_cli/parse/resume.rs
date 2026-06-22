@@ -396,13 +396,14 @@ fn resolve_bpmn_task_checkpoint_backend(
 
 fn parse_task_complete_kind(raw: &str) -> io::Result<BpmnTaskCompleteCliKind> {
     match raw {
+        "task" => Ok(BpmnTaskCompleteCliKind::Task),
         "send" => Ok(BpmnTaskCompleteCliKind::Send),
         "service" => Ok(BpmnTaskCompleteCliKind::Service),
         "script" => Ok(BpmnTaskCompleteCliKind::Script),
         "user" => Ok(BpmnTaskCompleteCliKind::User),
         "manual" => Ok(BpmnTaskCompleteCliKind::Manual),
         other => Err(invalid_input(format!(
-            "unsupported `bpmn tasks complete --kind` value `{other}`; expected `send`, `service`, `script`, `user`, or `manual`"
+            "unsupported `bpmn tasks complete --kind` value `{other}`; expected `task`, `send`, `service`, `script`, `user`, or `manual`"
         ))),
     }
 }

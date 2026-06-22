@@ -79,9 +79,9 @@ pub struct SwarmAgentReport {
     pub context: Option<serde_json::Value>,
     /// Error message on failure.
     pub error: Option<String>,
-    /// Number of turns kept in the local session window.
+    /// Number of worker lifecycle turns reported by the runtime.
     pub window_turns: u64,
-    /// Number of tool calls tracked in the local session window.
+    /// Number of tool calls tracked by the runtime worker.
     pub window_tool_calls: u64,
 }
 

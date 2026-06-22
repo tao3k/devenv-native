@@ -22,7 +22,7 @@ fn modelica_plugin_docs_page_index_documents_resolve_parsed_projection_documents
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-page-index-documents]
+            r#"[sources.projects.modelica-docs-page-index-documents]
 root = "{}"
 plugins = ["modelica"]
 "#,

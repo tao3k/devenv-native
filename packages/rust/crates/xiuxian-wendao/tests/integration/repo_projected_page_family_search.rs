@@ -42,7 +42,7 @@ fn modelica_plugin_projected_page_family_search_matches_reference_family_cluster
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-family-search]
+            r#"[sources.projects.modelica-family-search]
 root = "{}"
 plugins = ["modelica"]
 "#,

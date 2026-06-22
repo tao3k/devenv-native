@@ -36,10 +36,79 @@ This crate owns:
 - Studio OpenAPI and route-contract exports.
 - Studio Flight route providers backed by Wendao services.
 - Frontend-facing API response shaping and gateway startup health checks.
+- Gateway bearer-token enforcement for both public protocol surfaces: HTTPS
+  JSON/SSE routes and the same-listener Gateway Arrow Flight route. Health
+  checks stay unauthenticated.
+- Per-surface Gateway admission policy for auth scope, rate limit, and stream
+  budget. HTTPS JSON/SSE and Arrow Flight are configured independently.
+- Translation from a verified user bearer token into internal service identity
+  and signed-principal headers. The raw user bearer token is stripped before
+  internal routing; Qianji and other internal services do not validate user API
+  tokens.
+  The shared `XIUXIAN_INTERNAL_PRINCIPAL_SECRET` configures the Gateway-side
+  signer and internal-service verifiers; service-local secret variables may
+  override it for staged rollout.
 
 `xiuxian-wendao-server` owns only the high-throughput Flight/gRPC transport
 boundary. `xiuxian-wendao` continues to own graph, search, repository indexing,
 parser, analyzer, and domain-runtime behavior.
+Shared security primitives such as public-surface labels, internal identity
+headers, signed-principal generation, and admission policy helpers live in
+[`xiuxian-security`](../xiuxian-security/README.md).
+
+## Gateway Auth Data Boundary
+
+Gateway is the only public auth boundary. It terminates external credentials on
+the HTTPS JSON/SSE and Arrow Flight public protocol surfaces, checks surface
+scope, rate limit, quota, and stream budget, strips the raw public bearer
+token, then signs an internal principal for Wendao, Qianji, and other internal
+services. Internal services verify the Gateway-issued service identity and
+signed principal; they do not validate public user tokens directly.
+
+The local Gateway API-token issuer is a bootstrap surface for development and
+single-process deployments. Its in-memory token store is not a production
+authority, even though the local admission path still rejects revoked or
+expired token records before accepting a presented credential. Production token
+lifecycle truth should come from a
+PostgreSQL-compatible control-plane store as the first supported authority for
+users, organizations, projects, API-key metadata, verifier hashes, scopes,
+roles, quotas, expiration, revocation, billing authority, and outbox events.
+Managed AuthN/AuthZ services may be added later as adapters around that
+repository contract, but they are not the primary storage authority for this
+lane. Valkey is reserved for hot token/session cache, rate-limit counters,
+stream budgets, nonce, and replay guards.
+
+When the `postgres-auth` feature is enabled, Gateway reads
+`XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_DSN` and uses the
+PostgreSQL-compatible store as the API-token repository for both `/v1/*`
+HTTPS JSON/SSE admission and Gateway Arrow Flight admission. By default
+`XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_AUTO_MIGRATE` is enabled and creates the
+`wendao_gateway_api_tokens` table when Gateway starts; set it to `false` when
+schema migration is owned by deployment tooling. Operators can verify the
+control-plane table with:
+
+```bash
+psql "$XIUXIAN_WENDAO_GATEWAY_AUTH_POSTGRES_DSN" \
+  -c '\d wendao_gateway_api_tokens'
+```
+
+If the DSN is unset, Gateway keeps the local in-memory repository as the
+development fallback. That fallback is not durable and must not be treated as
+a production authorization authority.
+
+For development-only static token seeding, Gateway reads
+`XIUXIAN_WENDAO_GATEWAY_API_TOKEN_STATUS` (`active` or `revoked`) and
+`XIUXIAN_WENDAO_GATEWAY_API_TOKEN_EXPIRES_AT_UNIX_SECONDS` in addition to the
+token prefix, verifier hash, verifier secret, and scopes. Invalid lifecycle
+metadata disables the static seed instead of silently widening admission.
+
+DuckDB, DuckLake, and Arrow-SQL remain Wendao data-plane tools. They are the
+right place for read-models, ontology materialization, evidence, benchmark
+history, projection caches, and append-only audit projections. They must not be
+the final authority for public API tokens, revoke/expire decisions,
+organization membership, or user-facing authorization policy. If a DuckLake
+catalog uses PostgreSQL, its catalog schema and credentials should stay
+separate from the control-plane auth schema.
 
 ## Feature Boundaries
 
@@ -67,6 +136,7 @@ Runtime concerns are layered behind explicit features:
 - `local-runtime`: repository indexing, search-plane, DuckDB/DataFusion,
   watcher, parser, and local project integration.
 - `studio`: full Studio composition.
+- `postgres-auth`: PostgreSQL-compatible Gateway API-token repository.
 - `cli-bin-support`: binary-only support for commands that require the full
   Studio runtime.
 
@@ -75,10 +145,48 @@ The HTTP gateway/client features remain opt-in through `zhenfa-router` or
 `cli-bin-support`, so Studio's local runtime does not inherit Zhenfa HTTP
 composition by accident.
 
+## Document Extraction Artifact Cache
+
+Studio consumes the shared L2 artifact cache interface from
+[`xiuxian-db-store`](../xiuxian-db-store/README.md) for PDF OCR shard result
+bytes. The OCR scheduler stores successful shard result Arrow IPC batches under
+the `ArtifactBlobCache` contract, using the source digest, profile digest, and
+shard digest as cache identity. This keeps the cache owner in `xiuxian-db-store`
+while Studio remains responsible for scheduling, row-order restoration, and
+precision validation.
+
+Document extraction cache resource and status batches are generated from the
+shared db-store `ArrowSchemaContract` helpers and exact-validated before they
+are written as Arrow IPC. Studio owns the cache row semantics, but db-store owns
+the Arrow schema construction and table metadata convention.
+
+Legacy Office extraction uses the same shared artifact cache contract for its
+Rust parser projection. Studio writes a local projection report beside the
+resource output with source digest, parser profile, cache backend/status,
+character counts, line counts, tabular row counts, maximum visible columns, and
+Markdown fenced-block counts. These fields are diagnostics and precision-gate
+evidence only; the stable document resource Arrow schema is unchanged.
+
+Standalone image extraction stays on the primary document-extract resource
+schema. In Gateway `auto` mode, Studio keeps image files on the synchronous
+document route but rewrites the default `full` document profile to
+`hosted-vlm-image-extract-v1`, letting the analyzer call the configured
+OpenAI-compatible vision endpoint and return ordinary Markdown resource rows.
+Attachment-owned image audit and tile facts remain materialization inputs, not
+a separate public Flight schema.
+
+## Model Routing Boundary
+
+Studio no longer owns a public model-route admission endpoint. Chat, model selection, and provider policy have moved to the Marlin agent runtime and its language/provider services. Studio must not expose the retired chat model-route REST endpoint or keep local chat-routing smoke tests.
+
+Document extraction remains a transport boundary. Studio may pass explicit analyzer backend configuration on the existing Flight routes when the caller has already selected a concrete backend profile, but it does not decide model/provider policy locally. Analyzer workers execute the selected profile and return ordinary document extraction rows; cache identity and resource-order validation remain Studio responsibilities.
+
+Full document extraction artifact directories are still mirrored by the hybrid route because resource-path rewriting depends on directory context. Moving that directory mirror behind the L2 byte-cache contract requires a separate manifest or archive encoding slice; it must not bypass resource-order or precision gates.
+
 ## SearchStrategyFlow Flight Materialization
 
 Studio owns the native Arrow Flight materialization layer for
-SearchStrategyFlow retrieval routes. `xiuxian-wendao-julia` may emit the
+SearchStrategyFlow retrieval routes. `xiuxian-julia-core` may emit the
 graph-owned strategy trace and Rust bridge route receipts, but decoded payload
 proof remains here because Studio owns the service-backed `/search/repos/main`,
 `/analysis/repo-projected-page-index-tree`,
@@ -118,6 +226,22 @@ read-model rows encoded with their source table name and row JSON payload. This
 keeps the Flight stream schema stable while preserving the compiled ontology
 read-model facts for downstream graph/proof consumers.
 
+## Ontology Candidate Inspection Flight
+
+Studio owns the Gateway host provider for `/ontology/candidates/inspect`. The
+route contract and metadata admission live in `xiuxian-wendao-server`; Studio
+resolves the `epistemeRegistryId` from `wendao.toml`, loads the selected
+Episteme repository config, locates the requested ontology-generation `runId`,
+and delegates candidate Parquet inspection to `xiuxian-wendao-sql`.
+
+The provider returns a compact Arrow summary batch with DuckDB inspection
+counts and pass/fail status, while `FlightInfo.app_metadata` carries the
+bounded JSON inspection report for traceability. The route does not add a REST
+surface, read candidate TSV files, call Python DuckDB, mutate RDF, or promote
+raw candidates into ontology truth. It exists so pi-wendao, Julia, and other
+runtime callers can stay on the Arrow/Flight data plane when checking whether a
+candidate read model is ready for downstream proof.
+
 ## Episteme Source Contract Admission
 
 The first episteme onboarding command writes a structure/TOC Org ledger:
@@ -141,6 +265,135 @@ language, and unlisted corpus files without reading file contents for sha256.
 Use `--validation-mode full-hash` when the run must prove source-content
 fingerprints. The TOC ledger does not embed raw corpus text, execute OCR,
 execute ASR, call LLMs, export SQL/RDF, or promote ontology truth.
+
+The source-contract command surface can also compile the first structural facts
+seed for ontology work:
+
+```bash
+wendao episteme source-contract write-structural-facts \
+  --episteme-registry-id medical \
+  --validation-mode metadata-only \
+  --run-id structural_seed
+```
+
+This command resolves `episteme.toml` runtime defaults in the same way as the
+TOC command, then delegates implementation to
+[`xiuxian-wendao-episteme`](../xiuxian-wendao-episteme/README.md). It writes
+ignored `structural_facts.json`, `structural_facts.org`, document rows, path-anchor
+rows, and containment relation rows under
+`<episteme-root>/runs/structure/<run-id>/` by default. It does not read raw
+file text, execute OCR/ASR/LLM extraction, write RDF, or promote ontology truth.
+Use `--validation-mode full-hash` when the seed must prove all source
+fingerprints before LLM-assisted reasoning or later RDF proposal work.
+
+The same source-contract surface can compile the deterministic reasoning packet
+from a structural facts run:
+
+```bash
+wendao episteme source-contract write-structural-facts-reasoning-packet \
+  --episteme-registry-id medical \
+  --structural-facts-run-id structural_seed \
+  --run-id reasoning_seed
+```
+
+By default this reads
+`<episteme-root>/runs/structure/<structural-facts-run-id>/structural_facts.json`
+and writes `reasoning_packet.org`, `reasoning_packet.tsv`,
+`reasoning_packet.json`, and `reasoning_packet_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. The packet is still an
+evidence proposal input surface only: it does not read private source text,
+call an LLM, run OCR/ASR, write RDF, or promote ontology truth. It carries
+structure-targeting fields such as `evidenceTargetIntent`,
+`evidenceAnchorKind`, and `evidenceStructureHint` so downstream seed and
+fill-plan rows do not rely on prompt prose to decide the reasoning slot.
+
+After a reasoning packet exists, Studio can ask the Episteme crate to seed a
+fillable Org proposal ledger:
+
+```bash
+wendao episteme source-contract write-structural-facts-reasoning-ledger-seed \
+  --episteme-registry-id medical \
+  --reasoning-packet-run-id reasoning_seed \
+  --run-id reasoning_ledger_seed
+```
+
+The command reads
+`<episteme-root>/runs/ontology-generation/<reasoning-packet-run-id>/reasoning_packet.json`
+and writes `reasoning_ledger_seed.org`, `reasoning_ledger_seed.tsv`,
+`reasoning_ledger_seed.json`, and `reasoning_ledger_seed_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. It creates blank,
+review-gated proposal slots from the packet target intent. Coarse document
+rows still produce object and relation review slots, while service catalogs and
+row-like evidence are routed to service-catalog or object-instance review slots
+instead of object-model `ObjectType` slots. The command does not read private
+source text, call an LLM, write RDF, or promote ontology truth.
+
+After a ledger seed exists, Studio can compile a Qianji/BPMN-oriented fill plan
+without executing the workflow:
+
+```bash
+wendao episteme source-contract write-structural-facts-reasoning-fill-plan \
+  --episteme-registry-id medical \
+  --ledger-seed-run-id reasoning_ledger_seed \
+  --run-id reasoning_fill_plan
+```
+
+The command reads
+`<episteme-root>/runs/ontology-generation/<ledger-seed-run-id>/reasoning_ledger_seed.json`
+and writes `reasoning_fill_plan.org`, `reasoning_fill_plan.tsv`,
+`reasoning_fill_plan.json`, and `reasoning_fill_plan_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. The plan records workflow
+keys, activity kinds, seed ids, evidence anchors, target intents, and target
+ledger groups as typed data. It does not execute Qianji, read private source
+text, call an LLM, mutate source files, write RDF, or promote ontology truth.
+
+After a fill plan exists, Studio can compile Qianji schedule-admission inputs:
+
+```bash
+wendao episteme source-contract write-structural-facts-reasoning-qianji-schedule-plan \
+  --episteme-registry-id medical \
+  --fill-plan-run-id reasoning_fill_plan \
+  --run-id qianji_schedule_plan \
+  --target-ledger-field-group service_catalog_review \
+  --evidence-target-intent service_catalog_extraction \
+  --reasoning-context-shard-mode service-catalog-table-rows \
+  --reasoning-context-shard-row-limit 2 \
+  --evidence-extraction-run-id docling_document_cache \
+  --openai-compatible-max-tokens 1024
+```
+
+The command reads
+`<episteme-root>/runs/ontology-generation/<fill-plan-run-id>/reasoning_fill_plan.json`
+and writes `qianji_schedule_plan.org`, `qianji_schedule_plan.tsv`,
+`qianji_schedule_plan.json`, and `qianji_schedule_plan_report.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/`. It emits Qianji-shaped
+activity task payloads with stable activity ids, task queue, input claim-check
+reference, and idempotency key. It does not append Qianji control ledger events,
+enqueue hot-state work, execute workers, call an LLM, read private source text,
+mutate source files, write RDF, or promote ontology truth.
+The target filter flags are optional. When provided, Studio forwards them to
+the Episteme compiler so schedule selection happens before `--limit`; this is
+the preferred way to run a structure-specific live proof such as service
+catalog or object-instance review.
+The reasoning-context-shard flags are also optional and default to disabled. For
+service-catalog prompt-audit runs, `service-catalog-table-rows` asks the
+Episteme compiler to split a Docling Markdown table into deterministic row
+windows before Qianji admission. Each emitted schedule item carries a shard id
+and row range in JSON, TSV, Org, task metadata, and the generated context
+artifact. This is a latency and reliability guard for hosted model calls; it
+does not lower extraction DPI, change source evidence, or promote ontology
+truth.
+The OpenAI-compatible prompt-audit model defaults to
+`deepseek/deepseek-v4-pro`; pass `--openai-compatible-model` only for an
+intentional comparator run. The prompt-audit flags ask the Episteme crate to
+emit local prompt and context artifacts plus Qianji request-audit metadata. They
+require at least one `--evidence-extraction-run-id`; Studio resolves the
+extraction run root from `episteme.toml` or the episteme run layout unless
+`--evidence-extraction-run-root` is supplied. Provider execution still belongs
+to the Qianji worker. The generated context includes the same target intent and
+structure hint. Object-model review contracts are only emitted for object or
+relation target groups; service-catalog and object-instance target groups use
+review-only concrete `object_candidate` contracts.
 
 After TOC generation, callers can read one targeted evidence row by file id:
 
@@ -205,8 +458,9 @@ artifacts only. It does not execute OCR, ASR, LLM extraction, or RDF promotion,
 and it does not promote raw content into ontology truth. Planning uses
 `contract_shape_only` validation, so it checks manifest and mapping-ledger
 shape, queue/file consistency, filters, and selected `file_id` coverage without
-walking or hashing the source corpus. Full sha256 proof remains on explicit
-validation, read-model, or promotion paths. When
+walking or hashing the source corpus. The emitted report includes total queue
+rows plus selected route/category counts for direct route-census auditing. Full
+sha256 proof remains on explicit validation, read-model, or promotion paths. When
 `--selection-run-id` is supplied, the planner reads
 `<episteme-root>/runs/evidence-selection/<selection-run-id>/selection.tsv` by
 default and treats its `file_id` values as a hard constraint. Every selected id
@@ -240,6 +494,159 @@ OCR text is written only to the ignored evidence cache as review-required,
 promotion-blocked material. The command does not add a public Gateway/OpenAPI
 route and does not promote raw OCR output into RDF truth.
 
+For real private corpus probes, operators may split analyzer execution from
+Rust cache materialization. First run the package-owned analyzer adapter
+directly, writing queue-keyed JSONL under the run directory. Then ask Studio to
+reuse that result file:
+
+```bash
+wendao episteme source-contract run-image-ocr-cache \
+  --episteme-root <episteme-root> \
+  --run-id image_ocr_seed \
+  --ocr-results-jsonl <episteme-root>/runs/extraction/image_ocr_seed/ocr_results.jsonl \
+  --use-existing-results
+```
+
+The same split bridge is available for Docling document evidence:
+
+```bash
+wendao episteme source-contract run-docling-document-cache \
+  --episteme-root <episteme-root> \
+  --run-id docling_document_seed \
+  --document-results-jsonl <episteme-root>/runs/extraction/docling_document_seed/document_results.jsonl \
+  --use-existing-results
+```
+
+`--use-existing-results` skips analyzer process startup only. Studio still
+rewrites and validates the task plan, the Episteme crate still validates the
+queue-keyed JSONL against planned tasks and source hashes, and promotion into
+RDF remains blocked.
+
+After cache-local evidence exists, Studio can ask the Episteme crate to generate
+review-gated ontology candidates:
+
+```bash
+wendao episteme source-contract generate-ontology-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed \
+  --extraction-run-id docling_document_seed \
+  --extraction-run-id image_ocr_seed
+```
+
+The command writes `candidate_objects.tsv`, `candidate_relations.tsv`,
+`candidate_evidence.tsv`, `ontology_candidate_objects.parquet`,
+`ontology_candidate_relations.parquet`, `ontology_candidate_evidence.parquet`,
+`review_ledger.org`, and `receipt.json` under
+`<episteme-root>/runs/ontology-generation/<run-id>/` by default. It consumes
+source-contract metadata, mapping-ledger terms, and ignored cache outputs, then
+emits candidate rows with promotion blocked. The TSV files are compatibility
+projections; the Parquet files are the typed read model for downstream SQL,
+search, and proof slices. It does not write RDF, mutate the source ontology,
+persist raw extracted text in the candidate artifacts, or create a Gateway
+route.
+
+Studio can also import canonical Qianji review artifacts into the same
+candidate-review surface:
+
+```bash
+wendao episteme source-contract import-qianji-review-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed_from_qianji \
+  --qianji-review-artifact <episteme-root>/runs/ontology-generation/<qianji-run>/review.json
+```
+
+The command delegates parsing and validation to `xiuxian-wendao-episteme`. It
+requires a Qianji OpenAI-compatible response envelope with a canonical
+`episteme_review` object, imports only review-only object or relation candidate
+patches, writes the normal candidate TSVs plus
+`qianji_review_candidate_import_report.json`, and runs the deterministic
+candidate review gate. Relation patches are expanded into endpoint object rows
+plus a relation row so endpoint references are checked before promotion. It
+stores source ids, paths, evidence hashes, and evidence character counts; it
+does not persist raw private quote text in the candidate TSVs, mutate RDF, or
+mark rows as ontology truth.
+Canonical zero-candidate reviews are accepted only when they include model
+blockers. In that case the command writes header-only candidate TSVs, records
+the blocker count in the import report, and leaves promotion surfaces empty.
+
+The generated run can then be reviewed through the deterministic quality gate:
+
+```bash
+wendao episteme source-contract review-ontology-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This writes `candidate_review.tsv` and `quality_report.json` under the same
+ontology-generation run directory. The report flags duplicate candidate ids,
+missing relation references, unsafe promotion flags, ontology-truth flags, and
+evidence strength. A passing review report is only a precondition for a later
+promotion-review slice; it is not RDF export and does not promote private
+content into ontology truth.
+
+Studio can also inspect the typed candidate Parquet read model through the
+bounded DuckDB surface in `xiuxian-wendao-sql`:
+
+```bash
+wendao episteme source-contract inspect-ontology-candidates \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This resolves
+`<episteme-root>/runs/ontology-generation/<run-id>/`, reads the standard
+candidate Parquet files, and reports row counts, kind counts, blocked-review
+checks, ontology-truth checks, raw-to-RDF promotion checks, and relation
+endpoint integrity. The command does not read candidate TSV projections and
+does not mutate RDF or start a Gateway route.
+
+After the review gate passes, Studio can ask the Episteme crate to write a
+reviewable RDF draft and promotion proposal:
+
+```bash
+wendao episteme source-contract write-ontology-rdf-draft \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This command writes `rdf_draft.ttl`, `promotion_proposal.org`, and
+`promotion_proposal.json` beside the reviewed candidate run. It fails if the
+review report is missing, failed, or inconsistent with the candidate rows. The
+artifacts are proposal surfaces only: Studio does not mutate source ontology
+RDF, does not embed raw extracted text, and does not mark candidates as
+ontology truth.
+
+The next command writes the pending promotion review packet:
+
+```bash
+wendao episteme source-contract write-ontology-promotion-review \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This command consumes the clean RDF draft proposal and writes
+`promotion_review.tsv`, `promotion_review.org`, and `promotion_review.json`.
+All rows are initialized with `promotion_decision=pending_review`,
+`source_mutation_allowed=false`, and `ontology_truth=false`. The packet is the
+input for human or LLM review; it still does not mutate ontology source RDF.
+
+After review decisions are written, Studio can ask the Episteme crate to write
+a non-mutating promotion apply plan:
+
+```bash
+wendao episteme source-contract write-ontology-promotion-apply-plan \
+  --episteme-root <episteme-root> \
+  --run-id ontology_seed
+```
+
+This command consumes `promotion_review.tsv` and writes
+`promotion_apply_plan.tsv`, `promotion_apply_plan.org`, and
+`promotion_apply_plan.json`. Pending-only reviews produce an empty apply plan.
+Approved rows require reviewer provenance and satisfied preconditions, and the
+generated plan still carries `sourceMutationAllowed=false` and
+`ontologyTruth=false`; it is a source-patch proposal plan, not source RDF
+mutation.
+
 The selected source manifest and mapping ledger come from
 `<episteme-root>/ontology/manifest.toml`. Runtime defaults may come from
 `<episteme-root>/episteme.toml`; if no `[runtime].corpus_root` is configured and
@@ -271,6 +678,22 @@ from the same deployment config, asks the Wendao backend to validate the
 manifest reference graph, and only then selects the requested episteme root.
 That graph validation checks unique domain ids and manifest extension targets;
 it does not require additional user-facing registry syntax.
+
+For approved source-patch preview runs, Studio can ask the Episteme crate to
+compile a non-mutating semantic read-model preview:
+
+```bash
+wendao episteme source-contract write-ontology-source-patch-semantic-preview \
+  --episteme-root <episteme-root> \
+  --run-id source_patch_seed
+```
+
+This command writes `semantic_objects.tsv`, `semantic_relations.tsv`,
+`semantic_evidence.tsv`, `semantic_projection_state.json`, and JSON
+projections under the source-patch run directory. Studio only resolves the
+episteme root and run id; the Episteme crate owns source-patch validation and
+read-model compilation. The command does not mutate RDF source files and does
+not make approved preview rows ontology truth.
 
 Studio can also discover the optional WendaoGraph ontology quality proof
 service from the effective deployment `wendao.toml`:
@@ -353,6 +776,27 @@ is the Rust-owned evidence selection write report, and the written
 `selectionRunId`. This route writes a reviewable selection ledger only; it does
 not execute extraction, OCR, ASR, LLM inference, or RDF promotion.
 
+Studio also exposes ontology registry snapshot read-model admission through a
+bounded operational Gateway path:
+
+```http
+POST /api/episteme/ontology-registry/read-model
+```
+
+The JSON body accepts either `epistemeRoot` or `epistemeRegistryId`, plus
+optional `qualityProofMode` (`disabled` or `if-configured`). The Gateway
+resolves the selected Episteme root, delegates `ontology/registry.json`
+admission to `xiuxian-wendao-episteme`, asks `xiuxian-wendao` to materialize
+the admitted snapshot into `semantic_objects`, `semantic_relations`, and
+`semantic_projection_state`, and returns only schema, status, source revision,
+and row-count summaries. By default the route stays local and does not run a
+WendaoGraph proof. When `qualityProofMode="if-configured"` and the Julia
+bridge plus WendaoGraph quality endpoint are available, the response includes
+a bounded `qualityProof` summary with request row counts, Arrow IPC payload
+byte sizes, selected transport, and response batch/row counts. The route does
+not return Arrow batches through JSON, parse registry files in Julia or
+Python, execute extractors, or promote RDF truth.
+
 ## Polyglot Docling Scheduling
 
 The Polyglot Compute Orchestrator boundary is tracked in
@@ -366,18 +810,25 @@ adaptive pressure observations, queue wait observation, and the
 including source-range auto worker sizing from owner-supplied system facts.
 Studio consumes that plan through the attachment polyglot bridge while keeping
 live dispatch local to this crate.
-For audio shard execution, Studio owns the live Flight dispatch and merge gate
-over the analyzer `/analysis/audio-shards` route. Attachments supplies the
-model-neutral shard plans and Arrow rows; analyzer workers supply Docling or
-hosted transcript rows. Studio keeps backend selection as data/configuration,
-forwards `x-wendao-audio-workers` when it needs to bound analyzer parallelism,
-and merges results by `readingOrderKey` while surfacing failed, skipped,
-missing, or duplicate shard coverage to the precision gate.
-Studio can start from attachment-owned speech-segment timing facts, build the
-Rust speech-window plan, materialize normalized shards, and submit the stable
-audio shard input rows over Flight. Python/analyzer remains the model invocation
-and result normalization boundary, not the owner of shard timing or cache
-identity.
+For audio shard execution, Studio owns live Flight dispatch over the analyzer
+`/analysis/audio-shards` route. Attachments supplies the model-neutral shard
+plans, Arrow rows, transcript admission, and merge/precision gates; analyzer
+workers supply Docling or hosted transcript rows. Studio keeps backend selection
+as data/configuration, uses the attachment polyglot bridge to select
+`x-wendao-audio-workers` when it needs to bound analyzer parallelism, and
+invokes the attachment-owned merge helpers while surfacing failed, skipped,
+missing, or duplicate shard coverage to the route precision gate.
+The audio route also owns the runtime feedback controller for that worker
+budget. Workflow transport failures, incomplete shard coverage, and precision
+gate failures reduce the next Rust-selected budget; consecutive healthy
+workflows can increase it up to the host cap. This keeps production audio
+dispatch pressure in Studio/polyglot instead of analyzer-side Python
+heuristics.
+Studio can start from attachment-owned speech-segment timing facts, ask
+attachments to build the Rust speech-window plan, materialize normalized shards,
+and submit the stable audio shard input rows over Flight. Python/analyzer
+remains the model invocation and result normalization boundary, not the owner of
+shard timing or transcript admission identity.
 The same optional speech timing facts can now constrain recovery planning:
 `execute_recovery_split` accepts model-neutral speech windows, clips them to
 selected failed parent shards, and skips the second Flight pass when no speech
@@ -418,32 +869,71 @@ checkpoints for audio shard input and result Arrow batches. Those checkpoints
 keep same-process `RecordBatch` buffers available for retry or precision
 rechecks, while the wire contract, analyzer boundary, and durable checkpoint
 ownership stay unchanged.
-The Gateway document-extract route now has an explicit opt-in
-`audio-shards` mode. In this mode Studio probes the source duration, builds a
-full-timeline Rust audio shard plan, materializes normalized shard files,
-calls analyzer `/analysis/audio-shards`, runs the recovery workflow, and
-returns the existing `audio-transcript` `text/plain` document resource row plus
-a parallel `audio-transcript-ledger` `text/org` evidence resource row only when
-shard coverage is complete. The Org ledger uses standard `attachment:` links to
-the materialized shard files so downstream Org tooling can export Markdown or
-HTML without changing the audio Arrow shard schemas. The mode is model-neutral:
-backend identity comes from configuration, while concrete local or hosted model
-invocation remains inside the analyzer worker registry.
+The Gateway document-extract route now has an explicit opt-in `audio-shards`
+mode. In this mode Studio probes the source duration, asks attachments to build
+a full-timeline Rust audio shard plan, invokes attachment-owned planned
+transcript admission before byte materialization, materializes normalized shard
+files for misses, calls analyzer `/analysis/audio-shards` only for non-admitted
+rows, runs the recovery workflow, and returns the existing `audio-transcript`
+`text/plain` document resource row plus a parallel `audio-transcript-ledger`
+`text/org` evidence resource row only when shard coverage is complete. The Org
+ledger uses standard `attachment:` links when materialized shard files exist, so
+downstream Org tooling can export Markdown or HTML without changing the audio
+Arrow shard schemas. The mode is model-neutral: backend identity comes from
+configuration, while concrete local or hosted model invocation remains inside
+the analyzer worker registry.
+Audio shard materialization enables the db-store Foyer-backed
+`ArtifactBlobCache` substrate in the `document-extract-audio-shards` feature.
+Studio passes the resolved artifact root into attachments, and attachments
+builds the configured db-store backend. `WENDAO_DOCUMENT_EXTRACT_AUDIO_ARTIFACT_CACHE_DIR`
+remains a route-specific override; otherwise Studio uses
+`WENDAO_ARTIFACT_CACHE_ROOT`, then `$PRJ_CACHE_HOME/wendao/artifacts` when the
+project cache root is available. Explicit `WENDAO_ARTIFACT_CACHE_BACKEND` values
+can still select `filesystem` or `foyer`, but the Foyer feature path defaults
+to Foyer through the shared db-store config. The cache is byte reuse only and
+does not affect analyzer request schemas, worker selection, transcript merge
+rules, or precision gates.
+Attachments also owns accepted transcript admission and a planned admission
+index for accepted rows. Studio supplies route/runtime identity and calls that
+API before materialization. The planned admission index can satisfy warm rows
+before byte materialization on force refresh. Mixed warm/cold runs materialize
+only planned miss manifests and send only those rows to analyzer Flight, while
+stale or failed planned admissions continue through the existing materialization
+and analyzer route.
+This admission layer is also the restart-stable rebuild path for audio
+attachments. If the route-local output directory is missing but planned
+transcript admission has complete accepted coverage for the source, shard plan,
+backend profile, and selected route metadata, Studio reconstructs the document
+resource rows without rebuilding shard bytes and without replaying analyzer or
+hosted model requests. The regenerated materialization report records zero
+materialized shards and the transcript-admission report records planned hits
+with zero misses.
 The document-extract benchmark harness can now exercise this same route with
 `--flight-mode audio-shards`. Local provider and Gateway benchmark starts add
 the `document-extract-audio-shards` feature automatically for this mode and
 forward `--rust-audio-*` controls into model-neutral Studio environment
 variables for chunk duration, context windows, materialization format,
-base-worker budget, recovery-worker budget, and optional speech-timestamp
-recovery planning. `--rust-audio-speech-segments-jsonl` and its merge,
-minimum-window, and chunk-limit companions are forwarded to the same Studio
-environment variables used by production startup, so benchmark evidence covers
-the Rust-owned speech-window recovery path. Analyzer backend selection still
-comes from the Python worker flags such as `--audio-worker hosted` or
-`--audio-worker docling`.
+optional materialization bitrate, base-worker budget, recovery-worker budget,
+and optional speech-timestamp recovery planning. `--rust-audio-speech-segments-jsonl` and its merge,
+minimum-window, optional max-window, boundary-snap tolerance, and chunk-limit
+companions are forwarded to the same Studio environment variables used by
+production startup, so benchmark evidence covers the Rust-owned speech-window
+recovery path without changing the audio shard Arrow schema. Analyzer backend
+selection still
+comes from data-driven request metadata or Python worker flags such as
+`--audio-worker hosted`; the managed Wendao analyzer startup selects hosted
+OpenRouter audio by default, while local Qwen3-compatible testing uses the same
+hosted worker with an OpenAI-compatible local base URL. Docling audio remains an
+explicit comparator, not the managed default.
 The current source-range auto policy targets seven source PDF pages per worker
 before clamping to the adaptive budget, machine cap, remaining permits, and
 shard count; diagnostic worker overrides remain benchmark-only.
+For legacy Microsoft Office inputs, Studio routes `.doc`, `.xls`, and `.ppt`
+through the attachment-owned Rust parser feature before Python analyzer
+dispatch. The default managed gateway feature set includes
+`document-extract-legacy-office` together with PDF render and audio shards, so
+legacy Office support is a Rust gateway capability rather than a Python
+source-preparation header.
 Studio also owns the opt-in source-range OCR profile planner exposed through
 `WENDAO_DOCUMENT_EXTRACT_PDF_OCR_PROFILE_PLANNER` and the benchmark flag
 `--rust-pdf-ocr-profile-planner`. The proven `fast-risk-window` mode uses
@@ -666,6 +1156,16 @@ attachments PDFium rotation hardening, r78 reran `regionMaxTokens=1536` and
 passed precision at `12726.140916 ms`; this is valid near-baseline diagnostic
 evidence below the locked `12856.546292 ms` floor, but it is slower than the
 current `7338.796584/8322.027792 ms` OpenRouter envelope and is not promoted.
+The current-rev scheduler fairness canary adds
+`WENDAO_DOCUMENT_EXTRACT_PDF_OCR_SCHEDULER_LANE_FAIRNESS=source-first`, also
+forwarded by the analyzer benchmark as
+`--rust-pdf-ocr-scheduler-lane-fairness source-first`. It lets source-PDF
+page-range OCR groups enter the Python Flight endpoints before rendered-region
+fanout when both lanes coexist. The valid r32d run preserved precision with
+zero errors, stable `28` rows, `21/7` page/region OCR blocks,
+`metricsResultChars=115704`, and `forceRefreshMs=10874.933208`, but it is not
+promoted over the current direct-crop r26 candidate at `8463.964667 ms` because
+the source-range fast-text chunks became the critical path.
 Studio also exposes two opt-in source-range diagnostics for this canary. Set
 `WENDAO_DOCUMENT_EXTRACT_PDF_LOCAL_BACKEND_TEXT=rust-lopdf`, or pass
 `--rust-pdf-local-backend-text rust-lopdf`, to let Rust satisfy
@@ -698,6 +1198,19 @@ chunk-shape diagnostic. It keeps Rust scheduler permits as the final admission
 owner and preserves precision on the milestone fixture, but it is rejected
 because page `5` fast-text conversion alone regressed force refresh to
 `23629.474667 ms`.
+The current safe source-range tail lever is analyzer-side prewarm cache reuse,
+not local fast-text replacement. When benchmark workers receive
+`--pdf-ocr-prewarm-profile docling-fast-text-ocr`,
+`--pdf-ocr-prewarm-source-path`, and matching
+`--pdf-ocr-prewarm-page-indices`, the Python worker stores fingerprinted
+Docling Markdown for those exact source pages and the Rust scheduler can route
+single-page fast-text chunks back to the prewarmed endpoint through
+`--rust-pdf-fast-text-endpoint-affinity single-page-first`. The May 21, 2026
+r40 canary preserved zero errors, stable `28` rows, `21/7` page/region OCR
+blocks, and `metricsResultChars=108850`; source-range max chunk latency fell
+to `280.219583 ms` and force refresh measured `9037.577666 ms`. r26 remains
+the fastest global baseline at `8463.964667 ms`, so this remains an explicit
+readiness lever.
 Set
 `WENDAO_DOCUMENT_EXTRACT_PDF_BACKEND_TEXT_TOPUP=disabled`, or pass
 `--rust-pdf-backend-text-topup disabled`, only for character-floor canaries.
@@ -735,6 +1248,13 @@ low-complexity neighbor pages can stay as one region. The goal is to avoid
 both a broad single-region provider tail and blanket three-slice request
 overhead while keeping 300 DPI, semantic padding, parent binding, and the
 stable shard schema.
+Advanced benchmark runs can tune the adaptive slice planner with
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS` and
+`WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES`. These controls are
+opt-in, preserve the default planner when unset, and enter the artifact cache
+signature so region image reuse cannot cross incompatible patch-sizing
+settings. Smaller patches remain diagnostic unless the benchmark also proves
+lower hosted wall span under the existing precision and row-order gates.
 The benchmark can also opt into
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PIPELINE=render-dispatch`, or
 pass `--rust-pdf-hosted-vlm-region-pipeline render-dispatch`, to start the
@@ -761,11 +1281,34 @@ zero errors, stable order, `9/1` page/region blocks, force refresh around
 `9.3s`, hosted request p95 around `7.4s`, and rendered-region queue wait near
 zero. `qwen/qwen3-vl-8b-instruct` preserved correctness on the same probe but
 tailed around `27.3s`, so it is not a promotion candidate for this region.
+A May 20, 2026 private LTC image-route probe found the historical free
+OpenRouter aliases for Qianfan OCR returned no live endpoints, while
+`baidu/qianfan-ocr-fast` produced one queue-keyed OCR JSONL row that the Rust
+source-contract cache bridge consumed with attempted 1, succeeded 1, and
+failed 0.
+The live Gateway route now uses the same hosted VLM configuration family through
+`hosted-vlm-image-extract-v1` on `/analysis/document-extract`, so chat
+attachments are converted into resource evidence before a non-vision chat model
+sees the conversation context.
 Within that opt-in pipeline, the benchmark can set
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_AHEAD` above `1`, or pass
 `--rust-pdf-hosted-vlm-region-render-ahead`, to pre-render multiple page-region
 chunks while hosted requests are in flight. Final OCR inputs are normalized
 back to deterministic reading order before the Rust row/order gate runs.
+When the override is omitted, Studio now treats the render-ahead window as a
+Rust scheduling decision: it reserves one live endpoint for the base OCR batch,
+uses the remaining endpoint capacity for region render-ahead, and clamps the
+window by the planned render chunk count. Timing reports expose the planned
+chunk count, endpoint count, effective render-ahead limit, and render spawn
+count so benchmark evidence can distinguish default scheduler behavior from an
+explicit operator override.
+The analyzer can also opt into OpenRouter provider routing for hosted-region
+tail studies by setting `WENDAO_HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON`, or by
+passing `--hosted-vlm-ocr-openrouter-provider-json` in the benchmark harness.
+The JSON object is sent as OpenRouter's request-body `provider` field and is
+reported back in benchmark JSON and Markdown. This route-control knob is
+diagnostic by default; it does not change Studio's OCR shard schemas, rendered
+DPI, merge gates, or Docling structure authority.
 The benchmark can additionally set
 `WENDAO_DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_RENDER_CHUNK=region`, or pass
 `--rust-pdf-hosted-vlm-region-render-chunk region`, to split each recovery
@@ -824,6 +1367,15 @@ Benchmark reports expose that decision through `hostedVlmPromotionGate`, which
 keeps hosted profile promotion tied to the frozen precision, row/order,
 character-floor, hosted-request, force-refresh, shard-cache reuse, and zero
 scaffold-validation-failure gates.
+Hybrid OCR timing reports keep route-local region render cache counters
+separate from shared artifact-substrate counters. `ocr2RegionRenderCache*`
+describes reuse of an already materialized region render directory, while
+`ocr2RegionRenderArtifactCacheHitCount`,
+`ocr2RegionRenderArtifactCacheMissCount`,
+`ocr2RegionRenderArtifactCacheThrottledCount`, and
+`ocr2RegionRenderArtifactCacheByteCount` describe the underlying
+`ArtifactBlobCache` read-through work performed by the attachment-owned raster
+and crop renderer.
 
 The active Studio `rust-lang-project-harness` lib-policy profile marks the OCR
 capacity-control file as the polyglot Docling scheduler adoption point. That

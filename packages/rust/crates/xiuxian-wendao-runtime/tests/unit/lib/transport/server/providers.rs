@@ -12,20 +12,19 @@ use xiuxian_db_store::{
 };
 
 use crate::transport::{
-    AnalysisFlightRouteResponse, AstSearchFlightRouteProvider, AttachmentSearchFlightRouteProvider,
+    AnalysisFlightRouteResponse, AttachmentSearchFlightRouteProvider,
     AutocompleteFlightRouteProvider, AutocompleteFlightRouteResponse,
-    CodeAstAnalysisFlightRouteProvider, DatasetOntologyFlightManifest,
-    DatasetOntologyMaterializeFlightRouteProvider, DatasetOntologyMaterializeFlightRouteResponse,
-    DefinitionFlightRouteProvider, DefinitionFlightRouteResponse,
-    DocumentExtractFlightRouteProvider, DocumentExtractFlightRouteResponse,
-    GraphNeighborsFlightRouteProvider, GraphNeighborsFlightRouteResponse,
-    MarkdownAnalysisFlightRouteProvider, RepoDocCoverageFlightRouteProvider,
-    RepoIndexStatusFlightRouteProvider, RepoOverviewFlightRouteProvider,
-    RepoProjectedRetrievalContextFlightRouteProvider, RepoSearchFlightRequest,
-    RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider, SearchFlightRouteProvider,
-    SearchFlightRouteResponse, SqlFlightRouteProvider, SqlFlightRouteResponse,
-    VfsContentFlightRouteProvider, VfsContentFlightRouteResponse, VfsResolveFlightRouteProvider,
-    VfsResolveFlightRouteResponse,
+    DatasetOntologyFlightManifest, DatasetOntologyMaterializeFlightRouteProvider,
+    DatasetOntologyMaterializeFlightRouteResponse, DefinitionFlightRouteProvider,
+    DefinitionFlightRouteResponse, DocumentExtractFlightRouteProvider,
+    DocumentExtractFlightRouteResponse, GraphNeighborsFlightRouteProvider,
+    GraphNeighborsFlightRouteResponse, MarkdownAnalysisFlightRouteProvider,
+    RepoDocCoverageFlightRouteProvider, RepoIndexStatusFlightRouteProvider,
+    RepoOverviewFlightRouteProvider, RepoProjectedRetrievalContextFlightRouteProvider,
+    RepoSearchFlightRequest, RepoSearchFlightRouteProvider, RepoSyncFlightRouteProvider,
+    SearchFlightRouteProvider, SearchFlightRouteResponse, SqlFlightRouteProvider,
+    SqlFlightRouteResponse, VfsContentFlightRouteProvider, VfsContentFlightRouteResponse,
+    VfsResolveFlightRouteProvider, VfsResolveFlightRouteResponse,
 };
 
 type SearchRequestRecord = (String, String, usize, Option<String>, Option<String>);
@@ -33,8 +32,6 @@ type DefinitionRequestRecord = (String, Option<String>, Option<usize>);
 type AutocompleteRequestRecord = (String, usize);
 type GraphNeighborsRequestRecord = (String, String, usize, usize);
 type AttachmentSearchRequestRecord = (String, usize, Vec<String>, Vec<String>, bool);
-type AstSearchRequestRecord = (String, usize);
-type CodeAstAnalysisRequestRecord = (String, String, Option<usize>);
 type RepoOverviewRequestRecord = String;
 type RepoIndexStatusRequestRecord = Option<String>;
 type RepoSyncRequestRecord = (String, String);
@@ -590,52 +587,6 @@ impl AttachmentSearchFlightRouteProvider for RecordingAttachmentSearchProvider {
 }
 
 #[derive(Debug, Default)]
-pub(super) struct RecordingAstSearchProvider {
-    request: Mutex<Option<AstSearchRequestRecord>>,
-}
-
-impl RecordingAstSearchProvider {
-    pub(super) fn recorded_request(&self) -> Option<AstSearchRequestRecord> {
-        lock_or_panic(&self.request, "AST-search provider record should lock").clone()
-    }
-}
-
-#[async_trait]
-impl AstSearchFlightRouteProvider for RecordingAstSearchProvider {
-    async fn ast_search_batch(
-        &self,
-        query_text: &str,
-        limit: usize,
-    ) -> Result<SearchFlightRouteResponse, String> {
-        *lock_or_panic(&self.request, "AST-search provider record should lock") =
-            Some((query_text.to_string(), limit));
-        let batch = LanceRecordBatch::try_new(
-            Arc::new(LanceSchema::new(vec![
-                LanceField::new("doc_id", LanceDataType::Utf8, false),
-                LanceField::new("query_text", LanceDataType::Utf8, false),
-                LanceField::new("score", LanceDataType::Float64, false),
-            ])),
-            vec![
-                Arc::new(StringArray::from(vec![format!("ast:{query_text}:{limit}")])),
-                Arc::new(StringArray::from(vec![query_text.to_string()])),
-                Arc::new(LanceFloat64Array::from(vec![0.81_f64])),
-            ],
-        )
-        .map_err(|error| error.to_string())?;
-        Ok(SearchFlightRouteResponse::new(batch).with_app_metadata(
-            serde_json::json!({
-                "query": query_text,
-                "hitCount": 1,
-                "selectedScope": "definitions",
-                "partial": false,
-            })
-            .to_string()
-            .into_bytes(),
-        ))
-    }
-}
-
-#[derive(Debug, Default)]
 pub(super) struct RecordingMarkdownAnalysisProvider {
     request: Mutex<Option<String>>,
     call_count: Mutex<usize>,
@@ -694,67 +645,6 @@ impl MarkdownAnalysisFlightRouteProvider for RecordingMarkdownAnalysisProvider {
                 "nodes": [],
                 "edges": [],
                 "projections": [],
-                "diagnostics": [],
-            })
-            .to_string()
-            .into_bytes(),
-        ))
-    }
-}
-
-#[derive(Debug, Default)]
-pub(super) struct RecordingCodeAstAnalysisProvider {
-    request: Mutex<Option<CodeAstAnalysisRequestRecord>>,
-}
-
-impl RecordingCodeAstAnalysisProvider {
-    pub(super) fn recorded_request(&self) -> Option<CodeAstAnalysisRequestRecord> {
-        lock_or_panic(
-            &self.request,
-            "code-AST analysis provider record should lock",
-        )
-        .clone()
-    }
-}
-
-#[async_trait]
-impl CodeAstAnalysisFlightRouteProvider for RecordingCodeAstAnalysisProvider {
-    async fn code_ast_analysis_batch(
-        &self,
-        path: &str,
-        repo_id: &str,
-        line_hint: Option<usize>,
-    ) -> Result<AnalysisFlightRouteResponse, String> {
-        *lock_or_panic(
-            &self.request,
-            "code-AST analysis provider record should lock",
-        ) = Some((path.to_string(), repo_id.to_string(), line_hint));
-        let batch = LanceRecordBatch::try_new(
-            Arc::new(LanceSchema::new(vec![
-                LanceField::new("ownerId", LanceDataType::Utf8, false),
-                LanceField::new("chunkId", LanceDataType::Utf8, false),
-                LanceField::new("semanticType", LanceDataType::Utf8, false),
-            ])),
-            vec![
-                Arc::new(StringArray::from(vec![format!(
-                    "code-ast:{repo_id}:{path}"
-                )])),
-                Arc::new(StringArray::from(vec!["chunk:0"])),
-                Arc::new(StringArray::from(vec!["declaration"])),
-            ],
-        )
-        .map_err(|error| error.to_string())?;
-        Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(
-            serde_json::json!({
-                "repoId": repo_id,
-                "path": path,
-                "language": "julia",
-                "nodeCount": 1,
-                "edgeCount": 0,
-                "nodes": [],
-                "edges": [],
-                "projections": [],
-                "focusNodeId": line_hint.map(|line| format!("line:{line}")),
                 "diagnostics": [],
             })
             .to_string()

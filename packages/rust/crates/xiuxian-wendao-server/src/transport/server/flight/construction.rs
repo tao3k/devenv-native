@@ -11,6 +11,7 @@ use crate::transport::server::{
 };
 
 use super::ServiceCore as WendaoFlightService;
+use super::WendaoFlightInternalSecurity;
 
 impl WendaoFlightService {
     /// Create one transport-owned Wendao Flight service.
@@ -120,5 +121,12 @@ impl WendaoFlightService {
             rerank_weights,
             rerank_dimension,
         )
+    }
+
+    /// Require Gateway-issued internal principal metadata for Flight calls.
+    #[must_use]
+    pub fn with_internal_security(mut self, security: WendaoFlightInternalSecurity) -> Self {
+        self.internal_security = Some(security);
+        self
     }
 }

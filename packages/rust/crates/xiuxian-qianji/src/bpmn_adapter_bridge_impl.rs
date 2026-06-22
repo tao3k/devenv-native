@@ -1,14 +1,21 @@
-use qianji_bpmn_engine::{
+use xiuxian_qianji_bpmn_engine::{
     BpmnHostBridge, BusinessRuleTaskOutcome, BusinessRuleTaskRequest, EventPollOutcome,
     EventPollRequest, HostBridgeError, ManualTaskOutcome, ManualTaskRequest, ScriptTaskOutcome,
     ScriptTaskRequest, SendTaskOutcome, SendTaskRequest, ServiceTaskOutcome, ServiceTaskRequest,
-    UserTaskOutcome, UserTaskRequest,
+    TaskOutcome, TaskRequest, UserTaskOutcome, UserTaskRequest,
 };
 
 use super::api::QianjiBpmnHostBridge;
 
 #[async_trait::async_trait]
 impl BpmnHostBridge for QianjiBpmnHostBridge {
+    async fn dispatch_task(
+        &self,
+        request: TaskRequest,
+    ) -> std::result::Result<TaskOutcome, HostBridgeError> {
+        (self.task)(request).await
+    }
+
     async fn dispatch_send_task(
         &self,
         request: SendTaskRequest,

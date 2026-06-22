@@ -160,7 +160,7 @@ id = "Annotator"
 task_type = "annotation"
 weight = 1.0
 params = {}
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "semantic://personas/Steward.md"
 "#;
 
@@ -184,7 +184,6 @@ weight = 1.0
 params = { retry_targets = ["Steward"], max_retries = 2 }
 "#;
 
-#[cfg(not(feature = "llm"))]
 pub(super) const LLM_TASK_MANIFEST: &str = r#"
 name = "LlmDispatch"
 
@@ -245,7 +244,6 @@ weight = 1.0
 params = { endpoint = "http://127.0.0.1:39001/query" }
 "#;
 
-#[cfg(not(feature = "llm"))]
 pub(super) const FORMAL_AUDIT_LLM_MANIFEST: &str = r#"
 name = "FormalAuditDispatch"
 
@@ -254,7 +252,7 @@ id = "Teacher"
 task_type = "formal_audit"
 weight = 1.0
 params = { retry_targets = ["Steward"] }
-[nodes.qianhuan]
+[nodes.annotation]
 persona_id = "strict_teacher"
 template_target = "critique_agenda.j2"
 [nodes.llm]

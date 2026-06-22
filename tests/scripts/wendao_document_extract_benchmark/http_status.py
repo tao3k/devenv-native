@@ -25,6 +25,15 @@ def pick_free_port(host: str) -> int:
         return int(listener.getsockname()[1])
 
 
+def can_bind_port(host: str, port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        try:
+            listener.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
 def wait_for_http_endpoint(
     url: str,
     server: subprocess.Popen[str],

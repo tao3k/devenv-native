@@ -1,15 +1,22 @@
 //! Document structure Arrow sidecar schema and projection API.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::array::{Array, ArrayRef, Float64Array, Int32Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    validate_record_batch_schema_with_options,
+};
 
 /// Stable Arrow filename for document structure sidecars.
 pub const DOCUMENT_STRUCTURE_ARROW_CACHE_NAME: &str = "_structure.arrow";
 /// Stable schema version for document structure sidecars.
 pub const DOCUMENT_STRUCTURE_SCHEMA_VERSION: &str = "xiuxian_wendao.document_structure.v1";
+const DOCUMENT_STRUCTURE_TABLE: &str = "pdf_document_structure";
 
 /// Raw DTO boundary and stringly state boundary for document structure rows.
 ///
@@ -43,28 +50,7 @@ pub struct DocumentStructureBlock {
 /// Return the stable Arrow schema for document structure rows.
 #[must_use]
 pub fn document_structure_schema() -> SchemaRef {
-    Arc::new(Schema::new(vec![
-        Field::new("contractVersion", DataType::Utf8, true),
-        Field::new("sourcePath", DataType::Utf8, true),
-        Field::new("sourceContentHash", DataType::Utf8, true),
-        Field::new("blockId", DataType::Utf8, true),
-        Field::new("parentBlockId", DataType::Utf8, true),
-        Field::new("pageIndex", DataType::Int32, true),
-        Field::new("blockIndex", DataType::Int32, true),
-        Field::new("readingOrderKey", DataType::Utf8, true),
-        Field::new("blockType", DataType::Utf8, true),
-        Field::new("resourceElementId", DataType::Utf8, true),
-        Field::new("content", DataType::Utf8, true),
-        Field::new("mimeType", DataType::Utf8, true),
-        Field::new("status", DataType::Utf8, true),
-        Field::new("engine", DataType::Utf8, true),
-        Field::new("confidence", DataType::Float64, true),
-        Field::new("bboxLeft", DataType::Float64, true),
-        Field::new("bboxTop", DataType::Float64, true),
-        Field::new("bboxRight", DataType::Float64, true),
-        Field::new("bboxBottom", DataType::Float64, true),
-        Field::new("provenance", DataType::Utf8, true),
-    ]))
+    schema_ref(&document_structure_contract())
 }
 
 /// # Errors
@@ -82,8 +68,7 @@ pub fn build_document_structure_batch(
             .then(left.block_id.cmp(&right.block_id))
     });
 
-    RecordBatch::try_new(
-        document_structure_schema(),
+    record_batch(
         vec![
             string_column(ordered.iter().map(|block| block.contract_version.as_str())),
             string_column(ordered.iter().map(|block| block.source_path.as_str())),
@@ -124,8 +109,8 @@ pub fn build_document_structure_batch(
             optional_float_column(ordered.iter().map(|block| block.bbox_bottom)),
             string_column(ordered.iter().map(|block| block.provenance.as_str())),
         ],
+        "build document structure Arrow batch",
     )
-    .map_err(|error| format!("build document structure Arrow batch: {error}"))
 }
 
 /// # Errors
@@ -225,6 +210,73 @@ fn i32_value(column: &Int32Array, row: usize) -> i32 {
     } else {
         column.value(row)
     }
+}
+
+fn record_batch(columns: Vec<ArrayRef>, context: &'static str) -> Result<RecordBatch, String> {
+    let contract = document_structure_contract();
+    let batch = RecordBatch::try_new(schema_ref(&contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        &contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("{context} schema validation: {error}"))?;
+    Ok(batch)
+}
+
+fn document_structure_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        DOCUMENT_STRUCTURE_TABLE,
+        true,
+        vec![
+            nullable_utf8_column("contractVersion"),
+            nullable_utf8_column("sourcePath"),
+            nullable_utf8_column("sourceContentHash"),
+            nullable_utf8_column("blockId"),
+            nullable_utf8_column("parentBlockId"),
+            nullable_int32_column("pageIndex"),
+            nullable_int32_column("blockIndex"),
+            nullable_utf8_column("readingOrderKey"),
+            nullable_utf8_column("blockType"),
+            nullable_utf8_column("resourceElementId"),
+            nullable_utf8_column("content"),
+            nullable_utf8_column("mimeType"),
+            nullable_utf8_column("status"),
+            nullable_utf8_column("engine"),
+            nullable_float64_column("confidence"),
+            nullable_float64_column("bboxLeft"),
+            nullable_float64_column("bboxTop"),
+            nullable_float64_column("bboxRight"),
+            nullable_float64_column("bboxBottom"),
+            nullable_utf8_column("provenance"),
+        ],
+    )
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int32)
+}
+
+const fn nullable_float64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Float64)
 }
 
 #[cfg(test)]

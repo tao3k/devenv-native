@@ -1,16 +1,23 @@
 //! Wendao event-lake table and `Arrow` schema contracts.
 
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
 use arrow::array::{ArrayRef, StringBuilder, TimestampMillisecondBuilder};
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef, TimeUnit};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
-use xiuxian_db_store::duckdb::{ensure_duckdb_identifier, quoted_duckdb_identifier};
+use xiuxian_db_store::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, WENDAO_TABLE_METADATA_KEY, build_arrow_schema,
+    duckdb::{ensure_duckdb_identifier, quoted_duckdb_identifier},
+    validate_record_batch_schema_with_options,
+};
 
 use super::record::WendaoEventRecord;
 
 /// Wendao-owned event table name inside an attached `DuckLake` catalog.
 pub const WENDAO_EVENT_LAKE_EVENTS_TABLE: &str = "events";
+const WENDAO_EVENT_LAKE_EVENTS_ARROW_TABLE: &str = "wendao_event_lake_events";
 
 pub(crate) const TENANT_ID_COLUMN: &str = "tenant_id";
 pub(crate) const CASE_ID_COLUMN: &str = "case_id";
@@ -24,19 +31,7 @@ const DEFAULT_STRING_VALUE_BYTES: usize = 32;
 #[must_use]
 pub fn wendao_event_schema() -> SchemaRef {
     static SCHEMA: OnceLock<SchemaRef> = OnceLock::new();
-    Arc::clone(SCHEMA.get_or_init(|| {
-        Arc::new(Schema::new(vec![
-            Field::new(TENANT_ID_COLUMN, DataType::Utf8, false),
-            Field::new(CASE_ID_COLUMN, DataType::Utf8, false),
-            Field::new(EVENT_TYPE_COLUMN, DataType::Utf8, false),
-            Field::new(PAYLOAD_COLUMN, DataType::Utf8, false),
-            Field::new(
-                CREATED_AT_COLUMN,
-                DataType::Timestamp(TimeUnit::Millisecond, None),
-                false,
-            ),
-        ]))
-    }))
+    Arc::clone(SCHEMA.get_or_init(|| schema_ref(&wendao_event_contract())))
 }
 
 /// Build the `DuckLake` table DDL for the Wendao event-lake table.
@@ -82,7 +77,7 @@ pub fn wendao_event_record_batch(events: &[WendaoEventRecord]) -> Result<RecordB
         created_at.append_value(event.created_at.timestamp_millis());
     }
 
-    RecordBatch::try_new(
+    let batch = RecordBatch::try_new(
         wendao_event_schema(),
         vec![
             Arc::new(tenant_ids.finish()) as ArrayRef,
@@ -92,7 +87,9 @@ pub fn wendao_event_record_batch(events: &[WendaoEventRecord]) -> Result<RecordB
             Arc::new(created_at.finish()),
         ],
     )
-    .map_err(|error| format!("failed to build Wendao event Arrow batch: {error}"))
+    .map_err(|error| format!("failed to build Wendao event Arrow batch: {error}"))?;
+    validate_wendao_event_batch(&batch)?;
+    Ok(batch)
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -130,13 +127,41 @@ fn string_builder_for(row_count: usize, exact_capacity: usize) -> StringBuilder 
 /// Returns an error when the incoming batch schema differs from the event-lake
 /// append contract.
 pub fn validate_wendao_event_batch(batch: &RecordBatch) -> Result<(), String> {
-    let expected = wendao_event_schema();
-    if batch.schema().as_ref() != expected.as_ref() {
-        return Err(format!(
-            "Wendao event batch schema mismatch: expected {:?}, got {:?}",
-            expected,
-            batch.schema()
-        ));
-    }
-    Ok(())
+    validate_record_batch_schema_with_options(
+        batch,
+        &wendao_event_contract(),
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("Wendao event batch schema validation failed: {error}"))
+}
+
+fn wendao_event_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        WENDAO_EVENT_LAKE_EVENTS_ARROW_TABLE,
+        true,
+        vec![
+            utf8_column(TENANT_ID_COLUMN),
+            utf8_column(CASE_ID_COLUMN),
+            utf8_column(EVENT_TYPE_COLUMN),
+            utf8_column(PAYLOAD_COLUMN),
+            ArrowSchemaColumn::new(CREATED_AT_COLUMN, ArrowSchemaDataType::TimestampMillisecond),
+        ],
+    )
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> SchemaRef {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
 }

@@ -7,6 +7,11 @@ import json
 from xiuxian_wendao_analyzer.pdf_ocr import (
     PDF_OCR_FAST_TEXT_PROFILE,
 )
+from xiuxian_wendao_analyzer.pdf_ocr_workers import (
+    PDF_OCR_FAST_TEXT_SOURCE_BACKEND_TABLE_PROFILE,
+    PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE,
+    PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV,
+)
 
 from .support import (
     DoclingPdfOcrShardWorker,
@@ -94,6 +99,76 @@ def test_docling_pdf_ocr_worker_uses_fast_converter_for_fast_profile(
     table = build_pdf_ocr_shard_result_table(
         _sample_pdf_ocr_input_table(
             source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert requested_profiles == [PDF_OCR_FAST_TEXT_PROFILE]
+    assert table.to_pylist()[0]["text"] == f"OCR {PDF_OCR_FAST_TEXT_PROFILE}\n"
+
+
+def test_docling_pdf_ocr_worker_uses_source_backend_table_converter_only_for_source_pdf(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source = tmp_path / "source.pdf"
+    source.write_bytes(b"%PDF fixture")
+    requested_profiles: list[str] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(f"OCR {profile}\n")
+
+    monkeypatch.setenv(
+        PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV,
+        PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers._new_docling_converter",
+        fake_converter_factory,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(source),
+            ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    assert requested_profiles == [PDF_OCR_FAST_TEXT_SOURCE_BACKEND_TABLE_PROFILE]
+    assert (
+        table.to_pylist()[0]["text"]
+        == f"OCR {PDF_OCR_FAST_TEXT_SOURCE_BACKEND_TABLE_PROFILE}\n"
+    )
+
+
+def test_docling_pdf_ocr_worker_keeps_rendered_images_on_fast_converter(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "page.png"
+    image.write_bytes(b"image")
+    requested_profiles: list[str] = []
+
+    def fake_converter_factory(profile: str) -> FakeDoclingConverter:
+        requested_profiles.append(profile)
+        return FakeDoclingConverter(f"OCR {profile}\n")
+
+    monkeypatch.setenv(
+        PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_ENV,
+        PDF_OCR_FAST_TEXT_SOURCE_CONVERTER_BACKEND_TABLE,
+    )
+    monkeypatch.setattr(
+        "xiuxian_wendao_analyzer.pdf_ocr_workers._new_docling_converter",
+        fake_converter_factory,
+    )
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            source_path=str(tmp_path / "source.not-pdf"),
+            image_path=str(image),
             ocr_profile=PDF_OCR_FAST_TEXT_PROFILE,
         ),
         worker=DoclingPdfOcrShardWorker(max_workers=1),

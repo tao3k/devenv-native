@@ -29,12 +29,29 @@ pub(crate) use docs::{
     DocsPageIndexArgs, DocsPageIndexOutlineArgs, DocsSearchArgs, DocsSearchPageIndexArgs,
     DocsSegmentArgs, DocsTocArgs, DocsTreeArgs,
 };
+#[cfg(feature = "episteme-foyer-artifact-cache")]
+pub(crate) use episteme::EpistemeBootstrapArtifactCacheModeArg;
 pub(crate) use episteme::{
-    EpistemeCommand, EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
-    EpistemeEvidenceSelectionValidationModeArg, EpistemePlanExtractionRunArgs,
-    EpistemeReadEvidenceArgs, EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
-    EpistemeSourceContractCommand, EpistemeStructureCommand, EpistemeStructureTocValidationModeArg,
-    EpistemeWriteEvidenceSelectionPlanArgs, EpistemeWriteStructureTocArgs,
+    EpistemeApplyOntologySourcePatchArgs, EpistemeBootstrapPipelineArgs, EpistemeCommand,
+    EpistemeEvidenceCommand, EpistemeEvidenceReadValidationModeArg,
+    EpistemeEvidenceSelectionValidationModeArg, EpistemeGenerateOntologyCandidatesArgs,
+    EpistemeImportQianjiReviewCandidatesArgs, EpistemeInspectOntologyCandidatesArgs,
+    EpistemePlanExtractionRunArgs, EpistemeReadEvidenceArgs, EpistemeReviewOntologyCandidatesArgs,
+    EpistemeRunDoclingDocumentCacheArgs, EpistemeRunImageOcrCacheArgs,
+    EpistemeRunLegacyOfficeConversionArgs, EpistemeSourceContractCommand,
+    EpistemeStructuralFactsValidationModeArg, EpistemeStructureCommand,
+    EpistemeStructureTocValidationModeArg, EpistemeWriteEvidenceSelectionPlanArgs,
+    EpistemeWriteOntologyPromotionApplyPlanArgs, EpistemeWriteOntologyPromotionReviewArgs,
+    EpistemeWriteOntologyRdfDraftArgs, EpistemeWriteOntologySourcePatchApplyPlanArgs,
+    EpistemeWriteOntologySourcePatchApplyPreviewArgs, EpistemeWriteOntologySourcePatchDraftArgs,
+    EpistemeWriteOntologySourcePatchPreflightArgs,
+    EpistemeWriteOntologySourcePatchRdfReadModelArgs,
+    EpistemeWriteOntologySourcePatchReviewPacketArgs,
+    EpistemeWriteOntologySourcePatchSemanticPreviewArgs, EpistemeWriteStructuralFactsArgs,
+    EpistemeWriteStructuralFactsReasoningFillPlanArgs,
+    EpistemeWriteStructuralFactsReasoningLedgerSeedArgs,
+    EpistemeWriteStructuralFactsReasoningPacketArgs,
+    EpistemeWriteStructuralFactsReasoningQianjiSchedulePlanArgs, EpistemeWriteStructureTocArgs,
 };
 pub(crate) use fix::FixArgs;
 #[cfg(feature = "zhenfa-router")]

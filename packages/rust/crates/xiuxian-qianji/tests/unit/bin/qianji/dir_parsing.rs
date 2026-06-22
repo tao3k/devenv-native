@@ -1,9 +1,13 @@
+#[cfg(feature = "wendao-integration")]
 use super::{
-    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME, DirCliCommand,
-    MaterializeCliTarget, PathBuf, ShowCliTarget, must_ok, must_some,
-    parse_contract_feedback_command, parse_dir_command, to_args,
+    ContractFeedbackCliCommand, DEFAULT_CONTRACT_FEEDBACK_TABLE_NAME,
+    parse_contract_feedback_command,
+};
+use super::{
+    DirCliCommand, PathBuf, ShowCliTarget, must_ok, must_some, parse_dir_command, to_args,
 };
 
+#[cfg(feature = "wendao-integration")]
 #[test]
 fn parse_rest_docs_contract_feedback_command_uses_defaults() {
     let command = must_some(
@@ -27,6 +31,7 @@ fn parse_rest_docs_contract_feedback_command_uses_defaults() {
     assert!(command.roles.is_empty());
 }
 
+#[cfg(feature = "wendao-integration")]
 #[test]
 fn parse_rest_docs_contract_feedback_command_supports_advisory_flags() {
     let command = must_some(
@@ -159,68 +164,49 @@ fn parse_check_workdir_command_requires_dir_flag() {
 }
 
 #[test]
-fn parse_materialize_anchored_command_requires_anchor_scenario_and_dir() {
-    let command = must_some(
-        must_ok(
-            parse_dir_command(&to_args(&[
-                "qianji",
-                "materialize",
-                "--anchor",
-                "./qianji-flowhub/research/paper/qianji.toml",
-                "--scenario",
-                "deep_read",
-                "--dir",
-                "runs/run_001",
-            ])),
-            "materialize parse should succeed",
-        ),
-        "materialize command should be detected",
-    );
+fn parse_materialize_command_points_to_xiuxian_qianji_client_flowhub_init() {
+    let error = parse_dir_command(&to_args(&[
+        "qianji",
+        "materialize",
+        "--anchor",
+        "./qianji-flowhub/research/paper/qianji.toml",
+        "--scenario",
+        "deep_read",
+        "--dir",
+        "runs/run_001",
+    ]))
+    .err()
+    .unwrap_or_else(|| panic!("retired materialize command should fail"));
 
-    assert_eq!(
-        command,
-        DirCliCommand::Materialize {
-            target: MaterializeCliTarget::AnchoredScenario {
-                anchor: PathBuf::from("./qianji-flowhub/research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
-                dir: PathBuf::from("runs/run_001"),
-                current_node: None,
-            }
-        }
+    assert!(error.to_string().contains("qianji materialize"));
+    assert!(
+        error
+            .to_string()
+            .contains("qianji-client flowhub --mode plan --scenario agent-coding init")
     );
 }
 
 #[test]
-fn parse_materialize_anchored_command_accepts_current_node() {
-    let command = must_some(
-        must_ok(
-            parse_dir_command(&to_args(&[
-                "qianji",
-                "materialize",
-                "--anchor",
-                "./qianji-flowhub/research/paper/qianji.toml",
-                "--scenario",
-                "deep_read",
-                "--dir",
-                "runs/run_003",
-                "--current-node",
-                "claim_extract",
-            ])),
-            "materialize parse with current node should succeed",
-        ),
-        "materialize command should be detected",
-    );
+fn parse_materialize_command_rejects_current_node_variant() {
+    let error = parse_dir_command(&to_args(&[
+        "qianji",
+        "materialize",
+        "--anchor",
+        "./qianji-flowhub/research/paper/qianji.toml",
+        "--scenario",
+        "deep_read",
+        "--dir",
+        "runs/run_003",
+        "--current-node",
+        "claim_extract",
+    ]))
+    .err()
+    .unwrap_or_else(|| panic!("retired materialize command should fail"));
 
-    assert_eq!(
-        command,
-        DirCliCommand::Materialize {
-            target: MaterializeCliTarget::AnchoredScenario {
-                anchor: PathBuf::from("./qianji-flowhub/research/paper/qianji.toml"),
-                scenario: "deep_read".to_string(),
-                dir: PathBuf::from("runs/run_003"),
-                current_node: Some("claim_extract".to_string()),
-            }
-        }
+    assert!(
+        error
+            .to_string()
+            .contains("qianji-client flowhub --mode plan --scenario agent-coding init")
     );
 }
 

@@ -30,14 +30,14 @@ impl fmt::Display for WorkflowId {
 }
 
 impl From<String> for WorkflowId {
-    fn from(workflow_id: String) -> Self {
-        Self::new(workflow_id)
+    fn from(value: String) -> Self {
+        Self::new(value)
     }
 }
 
 impl From<&str> for WorkflowId {
-    fn from(workflow_id: &str) -> Self {
-        Self::new(workflow_id)
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 
@@ -67,14 +67,14 @@ impl fmt::Display for WorkflowStageId {
 }
 
 impl From<String> for WorkflowStageId {
-    fn from(stage_id: String) -> Self {
-        Self::new(stage_id)
+    fn from(value: String) -> Self {
+        Self::new(value)
     }
 }
 
 impl From<&str> for WorkflowStageId {
-    fn from(stage_id: &str) -> Self {
-        Self::new(stage_id)
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 
@@ -104,14 +104,14 @@ impl fmt::Display for WorkflowCheckpointId {
 }
 
 impl From<String> for WorkflowCheckpointId {
-    fn from(checkpoint_id: String) -> Self {
-        Self::new(checkpoint_id)
+    fn from(value: String) -> Self {
+        Self::new(value)
     }
 }
 
 impl From<&str> for WorkflowCheckpointId {
-    fn from(checkpoint_id: &str) -> Self {
-        Self::new(checkpoint_id)
+    fn from(value: &str) -> Self {
+        Self::new(value)
     }
 }
 

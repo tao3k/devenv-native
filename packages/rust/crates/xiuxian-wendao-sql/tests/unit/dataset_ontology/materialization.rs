@@ -62,3 +62,58 @@ async fn dataset_ontology_validation_reports_missing_provider_links() -> TestRes
     assert_eq!(report.validation_failures[0].row_count, 2);
     Ok(())
 }
+
+#[tokio::test]
+async fn dataset_ontology_rejects_semantic_read_model_schema_drift() -> TestResult {
+    let engine = DuckDbLocalRelationEngine::new_in_memory().map_err(std::io::Error::other)?;
+    let mut mapping_sql = healthcare_mapping_sql(true);
+    mapping_sql.semantic_objects = "select object_id as id from ontology_object_observation".into();
+
+    let Err(error) = materialize_dataset_ontology_with_engine(
+        &engine,
+        &healthcare_source_tables()?,
+        &mapping_sql,
+    )
+    .await
+    else {
+        return Err("semantic read-model schema drift must fail".into());
+    };
+
+    assert!(
+        error.contains("dataset ontology `semantic_objects` output schema"),
+        "{error}"
+    );
+    assert!(
+        error.contains("expected 18 columns but received 1"),
+        "{error}"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn dataset_ontology_rejects_object_observation_schema_drift() -> TestResult {
+    let engine = DuckDbLocalRelationEngine::new_in_memory().map_err(std::io::Error::other)?;
+    let mut mapping_sql = healthcare_mapping_sql(true);
+    mapping_sql.object_observations =
+        "select patient_id as object_id from raw_patients order by object_id".into();
+
+    let Err(error) = materialize_dataset_ontology_with_engine(
+        &engine,
+        &healthcare_source_tables()?,
+        &mapping_sql,
+    )
+    .await
+    else {
+        return Err("object observation schema drift must fail".into());
+    };
+
+    assert!(
+        error.contains("dataset ontology `ontology_object_observation` output schema"),
+        "{error}"
+    );
+    assert!(
+        error.contains("expected 9 columns but received 1"),
+        "{error}"
+    );
+    Ok(())
+}

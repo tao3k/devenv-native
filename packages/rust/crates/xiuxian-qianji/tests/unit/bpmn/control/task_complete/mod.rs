@@ -3,13 +3,13 @@
 pub(super) use super::support::{
     BpmnAdvanceOutcome, QianjiBpmnHostBridge, QianjiBpmnWorkflowCheckpointBackend,
     QianjiBpmnWorkflowControlService, QianjiBpmnWorkflowResumeRequest,
-    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowTaskCompleteRequest,
-    QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
-    QianjiRuntimeEnv, TempDir, json, ok_of, write_form_user_task_bundle,
-    write_user_service_user_bundle, write_user_task_bundle,
+    QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowTaskCompleteBatchRequest,
+    QianjiBpmnWorkflowTaskCompleteRequest, QianjiBpmnWorkflowTaskCompletionKind,
+    QianjiBpmnWorkflowTaskCompletionPayload, QianjiRuntimeEnv, TempDir, json, ok_of,
+    write_form_user_task_bundle, write_user_service_user_bundle, write_user_task_bundle,
 };
 pub(super) use crate::{QianjiBpmnCheckpointStore, load_bpmn_package_from_files};
-pub(super) use qianji_bpmn_engine::{
+pub(super) use xiuxian_qianji_bpmn_engine::{
     BpmnCheckpointEnvelope, BpmnInstanceInit, PendingHostWorkApplyInput, PendingHostWorkKind,
     PendingHostWorkResult, ServiceTaskOutcome, UserTaskOutcome, advance_instance,
     apply_pending_host_work_result, create_instance,
@@ -159,4 +159,5 @@ async fn seed_pending_service_task_checkpoint_with_instance(
 mod claims;
 mod completion;
 mod prepared;
+mod request_model;
 mod validation;

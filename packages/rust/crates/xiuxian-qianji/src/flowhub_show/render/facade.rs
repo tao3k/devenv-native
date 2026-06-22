@@ -1,6 +1,6 @@
 use crate::markdown::{MarkdownShowSection, render_show_surface};
+use crate::template_catalog::EmbeddedTemplateCatalog;
 use serde_json::json;
-use xiuxian_qianhuan::EmbeddedManifestationTemplateCatalog;
 
 use crate::flowhub::{
     FlowhubModuleKind, FlowhubModuleShow, FlowhubModuleSummary, FlowhubRootShow, FlowhubShow,
@@ -19,28 +19,27 @@ const FLOWHUB_MODULE_CONTRACT_TEMPLATE_NAME: &str = "flowhub_module_contract.md.
 const FLOWHUB_MODULE_CONTRACT_TEMPLATE_SOURCE: &str =
     include_str!("../../../resources/templates/control_plane/flowhub_module_contract.md.j2");
 
-static FLOWHUB_TEMPLATE_CATALOG: EmbeddedManifestationTemplateCatalog =
-    EmbeddedManifestationTemplateCatalog::new(
-        "Flowhub show template renderer",
-        &[
-            (
-                FLOWHUB_SCENARIO_CASE_TEMPLATE_NAME,
-                FLOWHUB_SCENARIO_CASE_TEMPLATE_SOURCE,
-            ),
-            (
-                FLOWHUB_ROOT_MODULE_TEMPLATE_NAME,
-                FLOWHUB_ROOT_MODULE_TEMPLATE_SOURCE,
-            ),
-            (
-                FLOWHUB_MODULE_EXPORTS_TEMPLATE_NAME,
-                FLOWHUB_MODULE_EXPORTS_TEMPLATE_SOURCE,
-            ),
-            (
-                FLOWHUB_MODULE_CONTRACT_TEMPLATE_NAME,
-                FLOWHUB_MODULE_CONTRACT_TEMPLATE_SOURCE,
-            ),
-        ],
-    );
+static FLOWHUB_TEMPLATE_CATALOG: EmbeddedTemplateCatalog = EmbeddedTemplateCatalog::new(
+    "Flowhub show template renderer",
+    &[
+        (
+            FLOWHUB_SCENARIO_CASE_TEMPLATE_NAME,
+            FLOWHUB_SCENARIO_CASE_TEMPLATE_SOURCE,
+        ),
+        (
+            FLOWHUB_ROOT_MODULE_TEMPLATE_NAME,
+            FLOWHUB_ROOT_MODULE_TEMPLATE_SOURCE,
+        ),
+        (
+            FLOWHUB_MODULE_EXPORTS_TEMPLATE_NAME,
+            FLOWHUB_MODULE_EXPORTS_TEMPLATE_SOURCE,
+        ),
+        (
+            FLOWHUB_MODULE_CONTRACT_TEMPLATE_NAME,
+            FLOWHUB_MODULE_CONTRACT_TEMPLATE_SOURCE,
+        ),
+    ],
+);
 
 pub(crate) fn render_flowhub_show_impl(show: &FlowhubShow) -> String {
     match show {
@@ -127,7 +126,7 @@ fn render_flowhub_module_exports_section_lines(summary: &FlowhubModuleSummary) -
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub exports section through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub exports section through Qianji template catalog; falling back to inline format: {error}"
         );
         vec![
             format!("Entry export: {}", summary.exports_entry),
@@ -148,7 +147,7 @@ pub(crate) fn render_flowhub_module_contract_section_lines(
     )
     .unwrap_or_else(|error| {
         log::warn!(
-            "failed to render Flowhub contract section through qianhuan; falling back to inline format: {error}"
+            "failed to render Flowhub contract section through Qianji template catalog; falling back to inline format: {error}"
         );
         vec![
             format!("Registered children: {}", show.registered_child_count),

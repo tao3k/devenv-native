@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
+#[cfg(feature = "duckdb")]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::types::DocumentExtractJobStatus;
 use crate::studio::router::handlers::analysis::document_extract::arrow_cache::DOCUMENT_RESOURCE_ARROW_CACHE_NAME;
 
 impl DocumentExtractJobStatus {
+    #[cfg(feature = "duckdb")]
     pub(super) fn with_output_dir(&self, output_dir: &Path) -> Self {
         Self {
             output_dir: output_dir.to_string_lossy().to_string(),
@@ -29,6 +31,7 @@ pub(crate) fn artifact_ready(status: &DocumentExtractJobStatus) -> bool {
             .exists()
 }
 
+#[cfg(feature = "duckdb")]
 pub(super) fn now_ms() -> i64 {
     let duration = SystemTime::now()
         .duration_since(UNIX_EPOCH)

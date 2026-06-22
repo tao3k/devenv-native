@@ -1,13 +1,12 @@
 //! Spider ingress unit tests.
 
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use super::content::build_document_description;
 use super::locking::lock_slot_for_hash;
 use super::{
     InMemoryContentHashStore, PartialReindexHook, SpiderIngressError, SpiderPagePayload,
-    SpiderWendaoBridge, WebAssimilationSink, WebIngestionSignal, canonical_web_uri,
+    SpiderWendaoBridge, WebAssimilationInput, WebAssimilationSink, canonical_web_uri,
     web_namespace_from_url,
 };
 use crate::{KnowledgeGraphAssimilationSink, RelationType, SyncEngine};
@@ -29,18 +28,11 @@ impl RecordingSink {
 }
 
 impl WebAssimilationSink for RecordingSink {
-    fn assimilate(
-        &self,
-        _canonical_uri: &str,
-        washed_markdown: &str,
-        _signal: &WebIngestionSignal,
-        _title: Option<&str>,
-        _metadata: &HashMap<String, String>,
-    ) -> Result<(), SpiderIngressError> {
+    fn assimilate(&self, input: WebAssimilationInput<'_>) -> Result<(), SpiderIngressError> {
         self.payloads
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .push(washed_markdown.to_string());
+            .push(input.washed_markdown.to_string());
         Ok(())
     }
 }

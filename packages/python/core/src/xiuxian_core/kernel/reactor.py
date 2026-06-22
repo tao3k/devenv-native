@@ -1,13 +1,13 @@
 """
 xiuxian_core.kernel.reactor - Event-Driven Kernel Reactor
 
-Reactive architecture bridge between Rust Event Bus and Python components.
-Consumes events from the Rust GLOBAL_BUS and dispatches to Python handlers.
+Reactive architecture bridge between runtime event producers and Python components.
+Consumes normalized event dictionaries and dispatches them to Python handlers.
 
 # Architecture
 
 ```text
-Rust GLOBAL_BUS (tokio broadcast)
+Runtime event source
               ↓
 KernelReactor (Python async consumer)
               ↓
@@ -36,10 +36,14 @@ async def handle_file_change(event):
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
-from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
 from typing import Any
 
 from xiuxian_foundation.config.logging import get_logger
@@ -51,7 +55,7 @@ OmniEvent = dict[str, Any]
 
 
 class EventTopic(Enum):
-    """Core event topics matching Rust xiuxian-event crate."""
+    """Core event topics used by the Python reactor."""
 
     FILE_CHANGED = "file/changed"
     FILE_CREATED = "file/created"
@@ -100,7 +104,7 @@ class KernelReactor:
     """
     Event-Driven Kernel Reactor.
 
-    Consumes events from Rust Event Bus and dispatches to registered Python handlers.
+    Consumes normalized events and dispatches them to registered Python handlers.
     Provides:
     - Topic-based subscription
     - Handler priority ordering
@@ -224,10 +228,8 @@ class KernelReactor:
         # Cancel consumer task
         if self._consumer_task:
             self._consumer_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._consumer_task
-            except asyncio.CancelledError:
-                pass
             self._consumer_task = None
 
         # Send shutdown event to handlers
@@ -336,5 +338,5 @@ def reset_reactor() -> None:
     if _reactor and _reactor.is_running:
         import warnings
 
-        warnings.warn("Resetting running reactor", RuntimeWarning)
+        warnings.warn("Resetting running reactor", RuntimeWarning, stacklevel=2)
     _reactor = None

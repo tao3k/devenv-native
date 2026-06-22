@@ -3,9 +3,72 @@ use std::error::Error;
 use xiuxian_qianji_control::{
     ActivityId, ActivityTask, ActivityType, AgentDecisionId, AgentDecisionOutcome, AgentProposal,
     AgentProposalId, ApprovalRequestId, ArtifactId, ArtifactKind, ArtifactRef, ControlError,
-    DecisionReasonCode, IdempotencyKey, PermissionScope, StepId, TaskQueue, TokenId,
-    ToolActivityAdmission, ToolAuthorizationDecision, ToolName, ToolRiskLevel,
+    DecisionReasonCode, IdempotencyKey, LlmActivityAdmission, LlmActivityRequest, LlmActivityTask,
+    LlmModelId, PermissionScope, StepId, TaskQueue, TokenId, ToolActivityAdmission,
+    ToolAuthorizationDecision, ToolName, ToolRiskLevel,
 };
+
+#[test]
+fn llm_activity_admission_accepts_claim_check_task() -> Result<(), Box<dyn Error>> {
+    let prompt_ref = input_ref("input-llm-prompt")?;
+    let activity = LlmActivityTask::new(
+        activity_task("llm.plan", "llm.openai")?.with_input_ref(prompt_ref.clone()),
+        LlmActivityRequest::new(LlmModelId::new("openai/gpt-5.2")?, prompt_ref)
+            .with_context_ref(input_ref("input-llm-context")?)
+            .with_tool_schema_hash("sha256:tool-schema")
+            .with_response_schema_ref(input_ref("input-response-schema")?),
+    );
+
+    let admission = LlmActivityAdmission::from_activity(activity)?;
+
+    admission.validate()?;
+    assert_eq!(admission.activity.task.activity_type.as_str(), "llm.plan");
+    assert_eq!(admission.activity.task.task_queue.as_str(), "llm.openai");
+
+    Ok(())
+}
+
+#[test]
+fn llm_activity_admission_rejects_missing_or_mismatched_prompt_input_ref()
+-> Result<(), Box<dyn Error>> {
+    let prompt_ref = input_ref("input-llm-prompt")?;
+    let missing_input = LlmActivityTask::new(
+        activity_task("llm.plan", "llm.openai")?,
+        LlmActivityRequest::new(LlmModelId::new("openai/gpt-5.2")?, prompt_ref.clone()),
+    );
+    assert!(matches!(
+        LlmActivityAdmission::from_activity(missing_input),
+        Err(ControlError::InvalidEventSequence { .. })
+    ));
+
+    let mismatched_input = LlmActivityTask::new(
+        activity_task("llm.plan", "llm.openai")?.with_input_ref(input_ref("input-other")?),
+        LlmActivityRequest::new(LlmModelId::new("openai/gpt-5.2")?, prompt_ref),
+    );
+    assert!(matches!(
+        LlmActivityAdmission::from_activity(mismatched_input),
+        Err(ControlError::InvalidEventSequence { .. })
+    ));
+
+    Ok(())
+}
+
+#[test]
+fn llm_activity_admission_exposes_generic_activity_task() -> Result<(), Box<dyn Error>> {
+    let prompt_ref = input_ref("input-llm-prompt")?;
+    let admission = LlmActivityAdmission::from_activity(LlmActivityTask::new(
+        activity_task("llm.plan", "llm.openai")?.with_input_ref(prompt_ref.clone()),
+        LlmActivityRequest::new(LlmModelId::new("openai/gpt-5.2")?, prompt_ref),
+    ))?;
+
+    assert_eq!(
+        admission.activity_task().activity_id,
+        ActivityId::new("activity-llm-plan")?
+    );
+    assert_eq!(admission.activity_task().activity_type.as_str(), "llm.plan");
+
+    Ok(())
+}
 
 #[test]
 fn tool_activity_admission_accepts_authorized_tool_task() -> Result<(), Box<dyn Error>> {

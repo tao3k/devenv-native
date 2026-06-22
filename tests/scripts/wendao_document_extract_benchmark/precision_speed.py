@@ -33,9 +33,7 @@ PDF_OCR_MILESTONE_BASELINE = {
 HOSTED_VLM_PROMOTION_BASELINE = {
     "id": "arxiv-2604.17337-fast-risk-window-r9",
     "forceRefreshMs": 12_856.546292,
-    "maxShardCacheReuseForceMs": PDF_OCR_MILESTONE_BASELINE[
-        "maxShardCacheReuseForceMs"
-    ],
+    "maxShardCacheReuseForceMs": PDF_OCR_MILESTONE_BASELINE["maxShardCacheReuseForceMs"],
     "minMetricsResultChars": PDF_OCR_MILESTONE_BASELINE["minMetricsResultChars"],
     "expectedOcrPageBlocks": PDF_OCR_MILESTONE_BASELINE["ocrPageBlocks"],
     "minMetricsRows": PDF_OCR_MILESTONE_BASELINE["metricsRows"],
@@ -62,6 +60,10 @@ def precision_speed_summary(
     docling_groundtruth_passed: bool | None,
     docling_groundtruth_failure_count: int,
 ) -> dict[str, Any]:
+    pdf_milestone_guard = pdf_ocr_milestone_guard(results)
+    pdf_milestone_precision_passed = (
+        not pdf_milestone_guard["checked"] or pdf_milestone_guard["passed"]
+    )
     precision_gate_passed = (
         total_error_rows == 0
         and artifact_error_count == 0
@@ -72,6 +74,7 @@ def precision_speed_summary(
         and structure_order_mismatch_count == 0
         and structure_parity_passed is not False
         and docling_groundtruth_passed is not False
+        and pdf_milestone_precision_passed
     )
     return {
         "precisionGatePassed": precision_gate_passed,
@@ -85,18 +88,12 @@ def precision_speed_summary(
         "doclingGroundtruthPassed": docling_groundtruth_passed,
         "doclingGroundtruthFailures": docling_groundtruth_failure_count,
         "structureRows": sum(result.get("structureRows", 0) for result in results),
-        "ocrPageBlocks": sum(
-            result.get("structureOcrPageBlocks", 0) for result in results
-        ),
-        "ocrRegionBlocks": sum(
-            result.get("structureOcrRegionBlocks", 0) for result in results
-        ),
+        "ocrPageBlocks": sum(result.get("structureOcrPageBlocks", 0) for result in results),
+        "ocrRegionBlocks": sum(result.get("structureOcrRegionBlocks", 0) for result in results),
         "bboxBlocks": sum(result.get("structureBboxBlocks", 0) for result in results),
         "metricsRows": sum(result.get("metricsRows", 0) for result in results),
-        "metricsResultChars": sum(
-            result.get("metricsResultChars", 0) for result in results
-        ),
-        "pdfOcrMilestoneGuard": pdf_ocr_milestone_guard(results),
+        "metricsResultChars": sum(result.get("metricsResultChars", 0) for result in results),
+        "pdfOcrMilestoneGuard": pdf_milestone_guard,
         **speed_observation_summary(results, distinct_miss_report),
     }
 
@@ -108,9 +105,7 @@ def pdf_ocr_milestone_guard(results: list[dict[str, Any]]) -> dict[str, Any]:
         if is_pdf_ocr_milestone_candidate(result)
     ]
     regressions = [
-        regression
-        for observation in observations
-        for regression in observation["regressions"]
+        regression for observation in observations for regression in observation["regressions"]
     ]
     return {
         "checked": bool(observations),
@@ -119,9 +114,7 @@ def pdf_ocr_milestone_guard(results: list[dict[str, Any]]) -> dict[str, Any]:
         "observations": observations,
         "regressions": regressions,
         "reason": (
-            None
-            if observations
-            else "no OCR-positive 21-page PDF milestone fixture observed"
+            None if observations else "no OCR-positive 21-page PDF milestone fixture observed"
         ),
     }
 
@@ -140,17 +133,13 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
             "passed": False,
             "baseline": HOSTED_VLM_PROMOTION_BASELINE,
             "reasons": ["not a hosted VLM/OCR promotion candidate"],
-            "observed": hosted_vlm_promotion_observed(
-                payload, precision_speed, request_summary
-            ),
+            "observed": hosted_vlm_promotion_observed(payload, precision_speed, request_summary),
         }
 
     if precision_speed.get("precisionGatePassed") is not True:
         reasons.append("precision gate did not pass")
     if precision_speed.get("errorRows") != 0:
-        reasons.append(
-            f"expected zero error rows, observed {precision_speed.get('errorRows')}"
-        )
+        reasons.append(f"expected zero error rows, observed {precision_speed.get('errorRows')}")
     if precision_speed.get("structureReadingOrderSorted") is not True:
         reasons.append("structure reading order is not sorted")
     if precision_speed.get("structureOrderStable") is not True:
@@ -183,10 +172,7 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
             f"{HOSTED_VLM_PROMOTION_BASELINE['expectedOcrPageBlocks']} OCR page blocks, "
             f"observed {precision_speed.get('ocrPageBlocks')}"
         )
-    if (
-        precision_speed.get("metricsRows", 0)
-        < HOSTED_VLM_PROMOTION_BASELINE["minMetricsRows"]
-    ):
+    if precision_speed.get("metricsRows", 0) < HOSTED_VLM_PROMOTION_BASELINE["minMetricsRows"]:
         reasons.append(
             "metricsRows "
             f"{precision_speed.get('metricsRows')} below promotion floor "
@@ -210,9 +196,7 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
             f"{force_ms:.3f} exceeded promotion baseline "
             f"{HOSTED_VLM_PROMOTION_BASELINE['forceRefreshMs']:.3f}"
         )
-    shard_cache_reuse_ms = numeric_or_none(
-        precision_speed.get("maxShardCacheReuseForceMs")
-    )
+    shard_cache_reuse_ms = numeric_or_none(precision_speed.get("maxShardCacheReuseForceMs"))
     shard_cache_reuse_scheduler_ms = numeric_or_none(
         precision_speed.get("maxShardCacheReuseSchedulerElapsedMs")
     )
@@ -231,10 +215,7 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
                 f"{shard_cache_reuse_scheduler_ms:.3f} exceeded promotion baseline "
                 f"{HOSTED_VLM_PROMOTION_BASELINE['maxShardCacheReuseForceMs']:.3f}"
             )
-    elif (
-        shard_cache_reuse_ms
-        > HOSTED_VLM_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]
-    ):
+    elif shard_cache_reuse_ms > HOSTED_VLM_PROMOTION_BASELINE["maxShardCacheReuseForceMs"]:
         reasons.append(
             "maxShardCacheReuseForceMs "
             f"{shard_cache_reuse_ms:.3f} exceeded promotion baseline "
@@ -249,12 +230,24 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
             f"{request_summary.get('requestCount')}"
         )
     if request_summary.get("failureCount", 0) != 0:
-        reasons.append(
-            f"Hosted VLM/OCR failure count was {request_summary.get('failureCount')}"
-        )
+        reasons.append(f"Hosted VLM/OCR failure count was {request_summary.get('failureCount')}")
     if request_summary.get("parseErrorCount", 0) != 0:
         reasons.append(
             f"Hosted VLM/OCR parse error count was {request_summary.get('parseErrorCount')}"
+        )
+    composite_size = hosted_vlm_ocr.get("regionCompositeSize")
+    composite_mode = hosted_vlm_ocr.get("regionCompositeMode") or "fixed"
+    composite_request_count = hosted_vlm_region_composite_request_count(request_summary)
+    if (
+        isinstance(composite_size, int)
+        and composite_size > 1
+        and composite_mode == "fixed"
+        and request_summary.get("regionShardCount", 0) >= composite_size
+        and composite_request_count <= 0
+    ):
+        reasons.append(
+            "Hosted VLM/OCR fixed region composite was configured but no composite "
+            "request kind was observed"
         )
     scaffold_mode = hosted_vlm_ocr.get("scaffoldMode") or "disabled"
     if scaffold_mode != "disabled":
@@ -275,16 +268,13 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
     if atlas_mode != "disabled":
         atlas_failures = request_summary.get("scaffoldValidationFailureCount", 0)
         if atlas_failures != 0:
-            reasons.append(
-                f"Hosted VLM/OCR atlas validation failure count was {atlas_failures}"
-            )
+            reasons.append(f"Hosted VLM/OCR atlas validation failure count was {atlas_failures}")
     if hosted_vlm_ocr.get("provider") == "openrouter" and not hosted_vlm_ocr.get(
         "openRouterApiKeyConfigured"
     ):
         reasons.append("OpenRouter key was not configured")
     if (
-        payload.get("rustPdfHostedVlmRegionPlanner")
-        in HOSTED_VLM_AUTOMATIC_REGION_PLANNERS
+        payload.get("rustPdfHostedVlmRegionPlanner") in HOSTED_VLM_AUTOMATIC_REGION_PLANNERS
         and request_summary.get("regionShardCount", 0) <= 0
     ):
         reasons.append(
@@ -296,9 +286,7 @@ def hosted_vlm_promotion_gate(payload: dict[str, Any]) -> dict[str, Any]:
         "passed": not reasons,
         "baseline": HOSTED_VLM_PROMOTION_BASELINE,
         "reasons": reasons,
-        "observed": hosted_vlm_promotion_observed(
-            payload, precision_speed, request_summary
-        ),
+        "observed": hosted_vlm_promotion_observed(payload, precision_speed, request_summary),
     }
 
 
@@ -309,6 +297,8 @@ def candidate_taxonomy(payload: dict[str, Any]) -> dict[str, Any]:
     max_force_ms = numeric_or_none(precision_speed.get("maxForceRefreshMs"))
     precision_candidate = _precision_candidate(precision_speed)
     rejected_structure_loss = _rejected_structure_loss(precision_speed, summary)
+    promotion_candidate = promotion_gate.get("passed") is True
+    opt_in_controls = hosted_vlm_opt_in_promotion_controls(payload)
     speed_candidate = (
         precision_candidate
         and not rejected_structure_loss
@@ -318,7 +308,9 @@ def candidate_taxonomy(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "precisionCandidate": precision_candidate,
         "speedCandidate": speed_candidate,
-        "promotionCandidate": promotion_gate.get("passed") is True,
+        "promotionCandidate": promotion_candidate,
+        "defaultPromotionCandidate": promotion_candidate and not opt_in_controls,
+        "optInPromotionControls": opt_in_controls,
         "rejectedStructureLoss": rejected_structure_loss,
         "structureAuthorityPages": summary.get("structureAuthorityPages", 0),
         "textShortcutPages": summary.get("textShortcutPages", 0),
@@ -329,10 +321,34 @@ def candidate_taxonomy(payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "fullDoclingFallbackCount": summary.get("fullDoclingFallbackCount", 0),
         "maxForceRefreshMs": precision_speed.get("maxForceRefreshMs"),
-        "promotionBaselineForceRefreshMs": HOSTED_VLM_PROMOTION_BASELINE[
-            "forceRefreshMs"
-        ],
+        "promotionBaselineForceRefreshMs": HOSTED_VLM_PROMOTION_BASELINE["forceRefreshMs"],
     }
+
+
+def hosted_vlm_opt_in_promotion_controls(payload: dict[str, Any]) -> list[str]:
+    hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
+    controls: list[str] = []
+    if (hosted_vlm_ocr.get("regionPromptMode") or "default") != "default":
+        controls.append("hosted_vlm_region_prompt_mode")
+    if hosted_vlm_ocr.get("openRouterProvider"):
+        controls.append("openrouter_provider_routing")
+    region_max_tokens = hosted_vlm_ocr.get("regionMaxTokens")
+    if region_max_tokens not in (None, 2048):
+        controls.append("hosted_vlm_region_max_tokens")
+    retry_delay = hosted_vlm_ocr.get("speculativeRetryDelaySeconds")
+    if retry_delay not in (None, 5.0):
+        controls.append("hosted_vlm_speculative_retry_delay")
+    if (hosted_vlm_ocr.get("scaffoldMode") or "disabled") != "disabled":
+        controls.append("hosted_vlm_scaffold_mode")
+    if (hosted_vlm_ocr.get("regionAtlasMode") or "disabled") != "disabled":
+        controls.append("hosted_vlm_region_atlas_mode")
+    if hosted_vlm_ocr.get("regionCompositeSize") is not None:
+        controls.append("hosted_vlm_region_composite_size")
+    if hosted_vlm_ocr.get("pageWindowSize") is not None:
+        controls.append("hosted_vlm_page_window_size")
+    if hosted_vlm_ocr.get("prompt"):
+        controls.append("hosted_vlm_prompt")
+    return controls
 
 
 def _precision_candidate(precision_speed: dict[str, Any]) -> bool:
@@ -346,8 +362,7 @@ def _precision_candidate(precision_speed: dict[str, Any]) -> bool:
         and precision_speed.get("structureParityErrors", 0) == 0
         and precision_speed.get("doclingGroundtruthPassed") is not False
         and precision_speed.get("doclingGroundtruthFailures", 0) == 0
-        and precision_speed.get("metricsRows", 0)
-        >= HOSTED_VLM_PROMOTION_BASELINE["minMetricsRows"]
+        and precision_speed.get("metricsRows", 0) >= HOSTED_VLM_PROMOTION_BASELINE["minMetricsRows"]
         and precision_speed.get("metricsResultChars", 0)
         >= HOSTED_VLM_PROMOTION_BASELINE["minMetricsResultChars"]
     )
@@ -382,14 +397,22 @@ def hosted_vlm_promotion_candidate(
         "docling-structure-recovery",
     }:
         return True
-    if (
-        payload.get("rustPdfHostedVlmRegionPlanner")
-        in HOSTED_VLM_AUTOMATIC_REGION_PLANNERS
-    ):
+    if payload.get("rustPdfHostedVlmRegionPlanner") in HOSTED_VLM_AUTOMATIC_REGION_PLANNERS:
         return True
     if precision_speed.get("ocrRegionBlocks", 0) > 0:
         return True
     return request_summary.get("requestCount", 0) > 0
+
+
+def hosted_vlm_region_composite_request_count(request_summary: dict[str, Any]) -> int:
+    request_kind_counts = request_summary.get("requestKindCounts")
+    if not isinstance(request_kind_counts, dict):
+        return 0
+    return sum(
+        int(count)
+        for kind, count in request_kind_counts.items()
+        if isinstance(kind, str) and kind.startswith("region-composite") and isinstance(count, int)
+    )
 
 
 def hosted_vlm_promotion_observed(
@@ -398,11 +421,12 @@ def hosted_vlm_promotion_observed(
     request_summary: dict[str, Any],
 ) -> dict[str, Any]:
     hosted_vlm_ocr = payload.get("hostedVlmOcr") or {}
+    summary = payload.get("summary", {})
+    first_result = _first_result(payload)
     force_ms = numeric_or_none(precision_speed.get("maxForceRefreshMs"))
     request_wall_ms = numeric_or_none(request_summary.get("requestWallSpanMs"))
-    force_phases = payload.get("summary", {}).get(
-        "forceHybridPageOcrTimingPhaseElapsedMs",
-        {},
+    force_phases = summary.get("forceHybridPageOcrTimingPhaseElapsedMs") or first_result.get(
+        "forceHybridPageOcrTimingPhaseElapsedMs", {}
     )
     force_region_materialize_ms = nested_mapping_numeric(
         force_phases,
@@ -449,37 +473,39 @@ def hosted_vlm_promotion_observed(
     return {
         "rustPdfOcrProfilePlanner": payload.get("rustPdfOcrProfilePlanner"),
         "rustPdfHostedVlmRegionPlanner": payload.get("rustPdfHostedVlmRegionPlanner"),
+        "rustPdfHostedVlmRegionTargetPixels": payload.get("rustPdfHostedVlmRegionTargetPixels"),
+        "rustPdfHostedVlmRegionMaxSlices": payload.get("rustPdfHostedVlmRegionMaxSlices"),
         "rustPdfHostedVlmRegionPipeline": payload.get("rustPdfHostedVlmRegionPipeline"),
-        "rustPdfHostedVlmRegionRenderAhead": payload.get(
-            "rustPdfHostedVlmRegionRenderAhead"
+        "rustPdfHostedVlmRegionRenderAhead": payload.get("rustPdfHostedVlmRegionRenderAhead"),
+        "rustPdfHostedVlmRegionRenderChunk": payload.get("rustPdfHostedVlmRegionRenderChunk"),
+        "rustPdfRegionRenderMode": payload.get("rustPdfRegionRenderMode"),
+        "rustPdfHostedVlmRegionDispatchChunkSize": payload.get(
+            "rustPdfHostedVlmRegionDispatchChunkSize"
         ),
-        "rustPdfHostedVlmRegionRenderChunk": payload.get(
-            "rustPdfHostedVlmRegionRenderChunk"
-        ),
-        "rustPdfFastTextEndpointAffinity": payload.get(
-            "rustPdfFastTextEndpointAffinity"
-        ),
+        "rustPdfFastTextEndpointAffinity": payload.get("rustPdfFastTextEndpointAffinity"),
+        "rustPdfOcrSchedulerLaneFairness": payload.get("rustPdfOcrSchedulerLaneFairness"),
+        "pdfOcrFastTextSourceConverter": payload.get("pdfOcrFastTextSourceConverter"),
         "provider": hosted_vlm_ocr.get("provider"),
         "openRouterModel": hosted_vlm_ocr.get("openRouterModel"),
         "openRouterApiKeyConfigured": hosted_vlm_ocr.get("openRouterApiKeyConfigured"),
+        "regionCompositeSize": hosted_vlm_ocr.get("regionCompositeSize"),
+        "regionCompositeMode": hosted_vlm_ocr.get("regionCompositeMode"),
+        "regionCompositeRequestCount": hosted_vlm_region_composite_request_count(request_summary),
+        "regionCompositeActivated": hosted_vlm_region_composite_request_count(request_summary) > 0,
         "regionAtlasMode": hosted_vlm_ocr.get("regionAtlasMode"),
         "scaffoldMode": hosted_vlm_ocr.get("scaffoldMode"),
-        "structureAuthorityPages": payload.get("summary", {}).get(
-            "structureAuthorityPages"
-        ),
+        "speculativeRetryMinSourcePixels": hosted_vlm_ocr.get("speculativeRetryMinSourcePixels"),
+        "speculativeRetryMinImageBytes": hosted_vlm_ocr.get("speculativeRetryMinImageBytes"),
+        "structureAuthorityPages": payload.get("summary", {}).get("structureAuthorityPages"),
         "textShortcutPages": payload.get("summary", {}).get("textShortcutPages"),
         "ocrPatchRegions": payload.get("summary", {}).get("ocrPatchRegions"),
         "pageRangeDoclingFallbackPages": payload.get("summary", {}).get(
             "pageRangeDoclingFallbackPages"
         ),
-        "fullDoclingFallbackCount": payload.get("summary", {}).get(
-            "fullDoclingFallbackCount"
-        ),
+        "fullDoclingFallbackCount": payload.get("summary", {}).get("fullDoclingFallbackCount"),
         "precisionGatePassed": precision_speed.get("precisionGatePassed"),
         "errorRows": precision_speed.get("errorRows"),
-        "structureReadingOrderSorted": precision_speed.get(
-            "structureReadingOrderSorted"
-        ),
+        "structureReadingOrderSorted": precision_speed.get("structureReadingOrderSorted"),
         "structureOrderStable": precision_speed.get("structureOrderStable"),
         "structureOrderMismatches": precision_speed.get("structureOrderMismatches"),
         "metricsRows": precision_speed.get("metricsRows"),
@@ -495,6 +521,116 @@ def hosted_vlm_promotion_observed(
         "maxShardCacheReuseRegionMaterializeMs": precision_speed.get(
             "maxShardCacheReuseRegionMaterializeMs"
         ),
+        "forceHostedVlmRegionRenderReportedElapsedMs": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs",
+        ),
+        "forceHostedVlmRegionRenderArtifactCacheHitCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount",
+        ),
+        "forceHostedVlmRegionRenderArtifactCacheMissCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount",
+        ),
+        "forceHostedVlmRegionRenderArtifactCacheThrottledCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount",
+        ),
+        "forceHostedVlmRegionRenderArtifactCacheByteCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount",
+        ),
+        "forceHostedVlmRegionPipelinePlannedRenderChunkCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount",
+        ),
+        "forceHostedVlmRegionPipelineEndpointCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount",
+        ),
+        "forceHostedVlmRegionPipelineRenderAheadLimit": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit",
+        ),
+        "forceHostedVlmRegionPipelineRenderSpawnCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount",
+        ),
+        "forceHostedVlmRegionPipelineRenderChunkCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount",
+        ),
+        "forceHostedVlmRegionPipelineRegionDispatchCount": _summary_or_result(
+            summary,
+            first_result,
+            "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount",
+        ),
+        "shardCacheReuseHostedVlmRegionRenderReportedElapsedMs": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs",
+        ),
+        "shardCacheReuseHostedVlmRegionRenderArtifactCacheHitCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount",
+        ),
+        "shardCacheReuseHostedVlmRegionRenderArtifactCacheMissCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount",
+        ),
+        "shardCacheReuseHostedVlmRegionRenderArtifactCacheThrottledCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount",
+        ),
+        "shardCacheReuseHostedVlmRegionRenderArtifactCacheByteCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount",
+        ),
+        "shardCacheReuseHostedVlmRegionPipelinePlannedRenderChunkCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount",
+        ),
+        "shardCacheReuseHostedVlmRegionPipelineEndpointCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount",
+        ),
+        "shardCacheReuseHostedVlmRegionPipelineRenderAheadLimit": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit",
+        ),
+        "shardCacheReuseHostedVlmRegionPipelineRenderSpawnCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount",
+        ),
+        "shardCacheReuseHostedVlmRegionPipelineRenderChunkCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount",
+        ),
+        "shardCacheReuseHostedVlmRegionPipelineRegionDispatchCount": _summary_or_result(
+            summary,
+            first_result,
+            "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount",
+        ),
         "maxCacheHitP95Ms": precision_speed.get("maxCacheHitP95Ms"),
         "requestCount": request_summary.get("requestCount"),
         "successCount": request_summary.get("successCount"),
@@ -502,38 +638,30 @@ def hosted_vlm_promotion_observed(
         "parseErrorCount": request_summary.get("parseErrorCount"),
         "regionShardCount": request_summary.get("regionShardCount"),
         "scaffoldAppliedCount": request_summary.get("scaffoldAppliedCount"),
-        "scaffoldValidationFailureCount": request_summary.get(
-            "scaffoldValidationFailureCount"
-        ),
+        "scaffoldValidationFailureCount": request_summary.get("scaffoldValidationFailureCount"),
         "scaffoldJsonCharCountTotal": request_summary.get("scaffoldJsonCharCountTotal"),
-        "canonicalMarkdownCharCountTotal": request_summary.get(
-            "canonicalMarkdownCharCountTotal"
-        ),
+        "canonicalMarkdownCharCountTotal": request_summary.get("canonicalMarkdownCharCountTotal"),
         "requestLatencyMsP95": request_summary.get("latencyMsP95"),
         "requestWallSpanMs": request_summary.get("requestWallSpanMs"),
         "requestLatencyOverlapRatio": request_summary.get("requestLatencyOverlapRatio"),
         "sourcePixelAreaTotal": request_summary.get("sourcePixelAreaTotal"),
+        "sourcePixelAreaMax": request_summary.get("sourcePixelAreaMax"),
+        "sourcePixelAreaPerRequestAvg": request_summary.get("sourcePixelAreaPerRequestAvg"),
+        "imageBytesTotal": request_summary.get("imageBytesTotal"),
+        "imageBytesMax": request_summary.get("imageBytesMax"),
+        "imageBytesPerRequestAvg": request_summary.get("imageBytesPerRequestAvg"),
+        "slowestRequests": request_summary.get("slowestRequests"),
         "forceHostedVlmLocalOverheadMs": subtract_numeric(force_ms, request_wall_ms),
         "forceHostedVlmRegionMaterializeMs": force_region_materialize_ms,
         "forceHostedVlmRegionPipelineMs": force_region_pipeline_ms,
-        "forceHostedVlmRegionPipelineFirstReadyMs": (
-            force_region_pipeline_first_ready_ms
-        ),
-        "forceHostedVlmRegionPipelineLastReadyMs": (
-            force_region_pipeline_last_ready_ms
-        ),
-        "forceHostedVlmRegionPipelineFirstDispatchMs": (
-            force_region_pipeline_first_dispatch_ms
-        ),
-        "forceHostedVlmRegionPipelineLastDispatchMs": (
-            force_region_pipeline_last_dispatch_ms
-        ),
+        "forceHostedVlmRegionPipelineFirstReadyMs": (force_region_pipeline_first_ready_ms),
+        "forceHostedVlmRegionPipelineLastReadyMs": (force_region_pipeline_last_ready_ms),
+        "forceHostedVlmRegionPipelineFirstDispatchMs": (force_region_pipeline_first_dispatch_ms),
+        "forceHostedVlmRegionPipelineLastDispatchMs": (force_region_pipeline_last_dispatch_ms),
         "forceHostedVlmRegionPipelineFirstBaseResultMs": (
             force_region_pipeline_first_base_result_ms
         ),
-        "forceHostedVlmRegionPipelineLastBaseResultMs": (
-            force_region_pipeline_last_base_result_ms
-        ),
+        "forceHostedVlmRegionPipelineLastBaseResultMs": (force_region_pipeline_last_base_result_ms),
         "forceHostedVlmRegionPipelineFirstRegionResultMs": (
             force_region_pipeline_first_region_result_ms
         ),
@@ -564,6 +692,24 @@ def hosted_vlm_promotion_observed(
     }
 
 
+def _first_result(payload: dict[str, Any]) -> dict[str, Any]:
+    results = payload.get("results")
+    if isinstance(results, list) and results and isinstance(results[0], dict):
+        return results[0]
+    return {}
+
+
+def _summary_or_result(
+    summary: dict[str, Any],
+    result: dict[str, Any],
+    key: str,
+) -> Any:
+    value = summary.get(key)
+    if value is not None:
+        return value
+    return result.get(key)
+
+
 def is_pdf_ocr_milestone_candidate(result: dict[str, Any]) -> bool:
     ocr_region_blocks = int(result.get("structureOcrRegionBlocks") or 0)
     expected_rows = PDF_OCR_MILESTONE_BASELINE["resourcesRows"] + ocr_region_blocks
@@ -572,8 +718,7 @@ def is_pdf_ocr_milestone_candidate(result: dict[str, Any]) -> bool:
         result.get("attachmentClass") == "pdf"
         and result.get("resourcesRows") == expected_rows
         and result.get("structureRows") == expected_rows
-        and result.get("structureOcrPageBlocks")
-        == PDF_OCR_MILESTONE_BASELINE["ocrPageBlocks"]
+        and result.get("structureOcrPageBlocks") == PDF_OCR_MILESTONE_BASELINE["ocrPageBlocks"]
         and result.get("structureBboxBlocks") == expected_bbox_blocks
         and result.get("metricsRows") == expected_rows
     )
@@ -584,8 +729,12 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
     force_ms = numeric_or_none(result.get("forceRefreshMs"))
     cache_p95_ms = numeric_or_none(result.get("cacheHitP95Ms"))
     shard_cache_reuse_ms = numeric_or_none(result.get("shardCacheReuseForceMs"))
+    region_projection_reuse_ms = numeric_or_none(result.get("regionProjectionReuseForceMs"))
     shard_cache_reuse_scheduler_ms = numeric_or_none(
         result.get("shardCacheReuseMetricsRustSchedulerElapsedMs")
+    )
+    region_projection_reuse_scheduler_ms = numeric_or_none(
+        result.get("regionProjectionReuseMetricsRustSchedulerElapsedMs")
     )
     ocr_region_blocks = int(result.get("structureOcrRegionBlocks") or 0)
     structure_stable = result.get("structureOrderStable")
@@ -593,6 +742,7 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
     error_rows = (
         int(result.get("forceErrorRows", 0))
         + int(result.get("shardCacheReuseErrorRows", 0))
+        + int(result.get("regionProjectionReuseErrorRows", 0))
         + int(result.get("artifactRegistryReuseErrorRows", 0))
         + int(result.get("cacheErrorRows", 0))
     )
@@ -615,10 +765,7 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
             f"{force_ms:.3f} exceeded baseline "
             f"{PDF_OCR_MILESTONE_BASELINE['referenceForceRefreshMs']:.3f}"
         )
-    if (
-        cache_p95_ms is not None
-        and cache_p95_ms > PDF_OCR_MILESTONE_BASELINE["maxCacheHitP95Ms"]
-    ):
+    if cache_p95_ms is not None and cache_p95_ms > PDF_OCR_MILESTONE_BASELINE["maxCacheHitP95Ms"]:
         regressions.append(
             "cacheHitP95Ms "
             f"{cache_p95_ms:.3f} exceeded baseline "
@@ -626,8 +773,7 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
         )
     if (
         shard_cache_reuse_ms is not None
-        and shard_cache_reuse_ms
-        > PDF_OCR_MILESTONE_BASELINE["maxShardCacheReuseForceMs"]
+        and shard_cache_reuse_ms > PDF_OCR_MILESTONE_BASELINE["maxShardCacheReuseForceMs"]
     ):
         if ocr_region_blocks > 0:
             if shard_cache_reuse_scheduler_ms is None:
@@ -664,6 +810,10 @@ def pdf_ocr_milestone_observation(result: dict[str, Any]) -> dict[str, Any]:
         "cacheHitP95Ms": cache_p95_ms,
         "shardCacheReuseForceMs": shard_cache_reuse_ms,
         "shardCacheReuseMetricsRustSchedulerElapsedMs": shard_cache_reuse_scheduler_ms,
+        "regionProjectionReuseForceMs": region_projection_reuse_ms,
+        "regionProjectionReuseMetricsRustSchedulerElapsedMs": (
+            region_projection_reuse_scheduler_ms
+        ),
         "resourcesRows": result.get("resourcesRows"),
         "structureRows": result.get("structureRows"),
         "ocrPageBlocks": result.get("structureOcrPageBlocks"),
@@ -722,9 +872,17 @@ def speed_observation_summary(
         "maxForceRefreshMs": max_numeric(results, "forceRefreshMs"),
         "maxCacheHitP95Ms": max_numeric(results, "cacheHitP95Ms"),
         "maxShardCacheReuseForceMs": max_numeric(results, "shardCacheReuseForceMs"),
+        "maxRegionProjectionReuseForceMs": max_numeric(
+            results,
+            "regionProjectionReuseForceMs",
+        ),
         "maxShardCacheReuseSchedulerElapsedMs": max_numeric(
             results,
             "shardCacheReuseMetricsRustSchedulerElapsedMs",
+        ),
+        "maxRegionProjectionReuseSchedulerElapsedMs": max_numeric(
+            results,
+            "regionProjectionReuseMetricsRustSchedulerElapsedMs",
         ),
         "maxShardCacheReuseRegionMaterializeMs": max_nested_numeric(
             results,
@@ -750,6 +908,24 @@ def speed_observation_summary(
             results,
             "forceHybridPageOcrTimingSchedulerTraceSummary",
             "sourceRangeLongestPageEnd",
+        ),
+        "maxForceHybridPageOcrSourceRangeChunkProfile": max_nested_mapping_string(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeLatencyMsMax",
+            "sourceRangeLongestOcrProfile",
+        ),
+        "maxForceHybridPageOcrSourceRangeChunkShardType": max_nested_mapping_string(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeLatencyMsMax",
+            "sourceRangeLongestShardType",
+        ),
+        "maxForceHybridPageOcrSourceRangeChunkTextChars": max_nested_mapping_numeric(
+            results,
+            "forceHybridPageOcrTimingSchedulerTraceSummary",
+            "sourceRangeLatencyMsMax",
+            "sourceRangeLongestTextCharCount",
         ),
         "totalForceHybridPageOcrSourceRangeChunkCount": sum_nested_numeric(
             results,
@@ -911,6 +1087,50 @@ def max_nested_numeric(
     return max(values) if values else None
 
 
+def max_nested_mapping_string(
+    results: list[dict[str, Any]],
+    mapping_key: str,
+    value_key: str,
+    string_key: str,
+) -> str | None:
+    best_value: float | None = None
+    best_string: str | None = None
+    for result in results:
+        mapping = result.get(mapping_key)
+        if not isinstance(mapping, dict):
+            continue
+        value = numeric_or_none(mapping.get(value_key))
+        string_value = mapping.get(string_key)
+        if value is None or not isinstance(string_value, str) or not string_value:
+            continue
+        if best_value is None or value > best_value:
+            best_value = value
+            best_string = string_value
+    return best_string
+
+
+def max_nested_mapping_numeric(
+    results: list[dict[str, Any]],
+    mapping_key: str,
+    value_key: str,
+    numeric_key: str,
+) -> float | None:
+    best_value: float | None = None
+    best_numeric: float | None = None
+    for result in results:
+        mapping = result.get(mapping_key)
+        if not isinstance(mapping, dict):
+            continue
+        value = numeric_or_none(mapping.get(value_key))
+        numeric_value = numeric_or_none(mapping.get(numeric_key))
+        if value is None or numeric_value is None:
+            continue
+        if best_value is None or value > best_value:
+            best_value = value
+            best_numeric = numeric_value
+    return best_numeric
+
+
 def sum_nested_numeric(
     results: list[dict[str, Any]],
     mapping_key: str,
@@ -921,9 +1141,7 @@ def sum_nested_numeric(
 
 def numeric_values(results: list[dict[str, Any]], key: str) -> list[float]:
     return [
-        float(value)
-        for result in results
-        if isinstance((value := result.get(key)), int | float)
+        float(value) for result in results if isinstance((value := result.get(key)), int | float)
     ]
 
 

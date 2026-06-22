@@ -2,15 +2,24 @@
 //!
 //! Start with `api`; request, response, and error DTOs stay leaf-owned.
 
+mod activity_evidence;
 mod api;
+mod bpmn_source_admission;
+mod control_projection;
+mod control_trace;
 #[path = "error/api.rs"]
 mod error_api;
+mod execution_graph;
+mod llm_host_work_schedule;
+pub(in crate::bpmn) mod llm_task_documentation;
 #[path = "request/api.rs"]
 mod request_api;
 #[path = "response/api.rs"]
 mod response_api;
 mod routes;
+mod source_authoring;
 mod state;
+mod workflow_source_admission;
 
 pub use api::{
     QianjiBpmnPendingHostWorkHttpResponse, QianjiBpmnWorkflowActionHttpRequest,
@@ -20,8 +29,17 @@ pub use api::{
     QianjiBpmnWorkflowStartHttpRequest, QianjiBpmnWorkflowStatusHttpQuery,
     QianjiBpmnWorkflowStatusHttpResponse, QianjiBpmnWorkflowTaskClaimHttpPayload,
     QianjiBpmnWorkflowTaskClaimHttpRequest, QianjiBpmnWorkflowTaskClaimHttpResponse,
-    QianjiBpmnWorkflowTaskCompleteHttpRequest, QianjiBpmnWorkflowTaskCompletionHttpKind,
-    QianjiBpmnWorkflowTaskCompletionHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpPayload,
-    QianjiBpmnWorkflowTaskReleaseHttpRequest, QianjiBpmnWorkflowTaskReleaseHttpResponse,
+    QianjiBpmnWorkflowTaskCompleteBatchHttpRequest, QianjiBpmnWorkflowTaskCompleteHttpRequest,
+    QianjiBpmnWorkflowTaskCompletionHttpKind, QianjiBpmnWorkflowTaskCompletionHttpPayload,
+    QianjiBpmnWorkflowTaskReleaseHttpPayload, QianjiBpmnWorkflowTaskReleaseHttpRequest,
+    QianjiBpmnWorkflowTaskReleaseHttpResponse, QianjiControlBpmnSourceAdmissionHttpRequest,
+    QianjiControlBpmnSourceAdmissionHttpResponse, QianjiControlBpmnSourceHttpResponse,
+    QianjiControlBpmnSourceMediaType, QianjiControlDiagnosticsHttpResponse,
+    QianjiControlHistoryHttpResponse, QianjiControlRecoveryApplyHttpRequest,
+    QianjiControlRecoveryApplyHttpResponse, QianjiControlRecoveryHttpResponse,
+    QianjiControlRunSummaryHttpResponse, QianjiControlWorkflowSourceAdmissionHttpRequest,
+    QianjiControlWorkflowSourceAdmissionHttpResponse,
+    QianjiControlWorkflowSourceAdmittedHttpResponse, QianjiControlWorkflowSourceAuthoringMediaType,
+    QianjiControlWorkflowSourceCompilerMode, QianjiControlWorkflowSourceRepairStartedHttpResponse,
     qianji_bpmn_workflow_router,
 };

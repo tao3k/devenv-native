@@ -1,4 +1,4 @@
-pub use super::bindings::{NodeLlmBinding, NodeQianhuanBinding, NodeQianhuanExecutionMode};
+pub use super::bindings::{NodeAnnotationBinding, NodeAnnotationExecutionMode, NodeLlmBinding};
 pub use super::execution::{FlowInstruction, NodeStatus, QianjiOutput};
 pub use super::flowhub_contract::FlowhubStructureContract;
 pub use super::flowhub_grammar::{TemplateLinkRef, TemplateLinkSpec, TemplateUseSpec};
@@ -14,6 +14,7 @@ pub use super::flowhub_validation::{
 };
 pub use super::manifest::{EdgeDefinition, NodeDefinition, NodeTaskType, QianjiManifest};
 pub use super::mechanism::QianjiMechanism;
+#[cfg(feature = "wendao-integration")]
 pub use super::wendao_docs::{
     WendaoDocsContractShow, render_wendao_docs_contract_show, show_wendao_docs_contract,
 };

@@ -1,0 +1,33 @@
+[package]
+name = "xiuxian-qianji-client"
+version.workspace = true
+edition.workspace = true
+description = "Xiuxian Qianji client CLI for Flowhub plan scenario operations"
+authors.workspace = true
+license.workspace = true
+publish = false
+default-run = "qianji-client"
+
+[dependencies]
+chrono = { workspace = true }
+sha2 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+toml = { workspace = true }
+orgize = { workspace = true }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+rust-lang-project-harness = { workspace = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "qianji-client"
+path = "src/bin/qianji_client.rs"

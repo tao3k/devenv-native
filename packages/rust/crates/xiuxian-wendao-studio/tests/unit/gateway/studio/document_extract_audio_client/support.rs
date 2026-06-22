@@ -18,10 +18,15 @@ use tokio_stream::wrappers::TcpListenerStream;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 use xiuxian_wendao_attachments::audio::{
-    AudioShardInput, AudioShardManifestItem, AudioShardMaterializedItem, AudioShardPlan,
-    AudioSourceIdentity, AudioSpeechSegment, AudioSpeechWindowPlannerInput,
+    AudioShardInput, AudioShardManifestItem, AudioShardMaterializationSource,
+    AudioShardMaterializedItem, AudioShardPlan, AudioSourceIdentity, AudioSpeechSegment,
+    AudioSpeechWindowPlannerInput,
 };
-use xiuxian_wendao_server::transport::WENDAO_AUDIO_WORKERS_HEADER;
+use xiuxian_wendao_server::transport::{
+    WENDAO_AUDIO_HOSTED_BASE_URL_HEADER, WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER,
+    WENDAO_AUDIO_HOSTED_MODEL_HEADER, WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+    WENDAO_AUDIO_WORKER_HEADER, WENDAO_AUDIO_WORKERS_HEADER,
+};
 
 type BoxFlightStream<T> = Pin<Box<dyn Stream<Item = Result<T, Status>> + Send + 'static>>;
 
@@ -37,6 +42,11 @@ pub(crate) struct ObservedAudioShardRequest {
     pub(crate) source_path: String,
     pub(crate) backend_profile: String,
     pub(crate) worker_budget_header: Option<String>,
+    pub(crate) audio_worker_header: Option<String>,
+    pub(crate) hosted_provider_header: Option<String>,
+    pub(crate) hosted_base_url_header: Option<String>,
+    pub(crate) hosted_endpoint_header: Option<String>,
+    pub(crate) hosted_model_header: Option<String>,
     pub(crate) windows: Vec<ObservedAudioShardWindow>,
 }
 
@@ -125,11 +135,13 @@ impl FlightService for AudioShardTestFlightService {
         &self,
         request: Request<tonic::Streaming<FlightData>>,
     ) -> Result<Response<Self::DoExchangeStream>, Status> {
-        let worker_budget_header = request
-            .metadata()
-            .get(WENDAO_AUDIO_WORKERS_HEADER)
-            .and_then(|value| value.to_str().ok())
-            .map(ToOwned::to_owned);
+        let metadata = request.metadata().clone();
+        let worker_budget_header = metadata_value(&metadata, WENDAO_AUDIO_WORKERS_HEADER);
+        let audio_worker_header = metadata_value(&metadata, WENDAO_AUDIO_WORKER_HEADER);
+        let hosted_provider_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_PROVIDER_HEADER);
+        let hosted_base_url_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER);
+        let hosted_endpoint_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER);
+        let hosted_model_header = metadata_value(&metadata, WENDAO_AUDIO_HOSTED_MODEL_HEADER);
         let (descriptor_path, batches) = collect_request(request.into_inner()).await?;
         let batch = batches
             .first()
@@ -163,6 +175,11 @@ impl FlightService for AudioShardTestFlightService {
             source_path: string_column(batch, "sourcePath")?.value(0).to_owned(),
             backend_profile: string_column(batch, "backendProfile")?.value(0).to_owned(),
             worker_budget_header,
+            audio_worker_header,
+            hosted_provider_header,
+            hosted_base_url_header,
+            hosted_endpoint_header,
+            hosted_model_header,
             windows,
         };
         *self
@@ -291,7 +308,14 @@ fn next_response_batch(
         .ok_or_else(|| Status::internal("missing audio shard response batch"))
 }
 
-pub(super) fn sample_input() -> AudioShardInput {
+fn metadata_value(metadata: &tonic::metadata::MetadataMap, key: &'static str) -> Option<String> {
+    metadata
+        .get(key)
+        .and_then(|value| value.to_str().ok())
+        .map(ToOwned::to_owned)
+}
+
+pub(crate) fn sample_input() -> AudioShardInput {
     AudioShardInput {
         contract_version: "xiuxian_wendao.audio_shard_input.v1".to_owned(),
         source_path: "/tmp/source.mp3".to_owned(),
@@ -316,7 +340,7 @@ pub(super) fn sample_input() -> AudioShardInput {
     }
 }
 
-pub(super) fn sample_variable_window_plan() -> AudioShardPlan {
+pub(crate) fn sample_variable_window_plan() -> AudioShardPlan {
     AudioShardPlan {
         profile: "audio-shards-v1".to_owned(),
         source: AudioSourceIdentity {
@@ -332,11 +356,12 @@ pub(super) fn sample_variable_window_plan() -> AudioShardPlan {
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
         strategy: "speech-segments".to_owned(),
     }
 }
 
-pub(super) fn sample_speech_window_planner_input() -> AudioSpeechWindowPlannerInput {
+pub(crate) fn sample_speech_window_planner_input() -> AudioSpeechWindowPlannerInput {
     AudioSpeechWindowPlannerInput {
         profile: "audio-shards-v1".to_owned(),
         source: AudioSourceIdentity {
@@ -367,15 +392,17 @@ pub(super) fn sample_speech_window_planner_input() -> AudioSpeechWindowPlannerIn
         min_window_ms: 8_000,
         short_merge_gap_ms: Some(3_000),
         max_window_ms: Some(30_000),
+        boundary_snap_tolerance_ms: 0,
         context_before_ms: 500,
         context_after_ms: 700,
         sample_rate_hz: 16_000,
         channels: 1,
         audio_format: "wav".to_owned(),
+        audio_bitrate: None,
     }
 }
 
-pub(super) fn sample_materialized_item() -> AudioShardMaterializedItem {
+pub(crate) fn sample_materialized_item() -> AudioShardMaterializedItem {
     AudioShardMaterializedItem {
         manifest: AudioShardManifestItem {
             shard_id: "materialized-audio-shard-id".to_owned(),
@@ -391,11 +418,14 @@ pub(super) fn sample_materialized_item() -> AudioShardMaterializedItem {
             sample_rate_hz: 16_000,
             channels: 1,
             audio_format: "wav".to_owned(),
+            audio_bitrate: None,
             cache_key: "audio-shards-v1:materialized-audio-shard-id".to_owned(),
             reading_order_key: "000001.000000009000".to_owned(),
         },
         output_path: std::path::PathBuf::from("/tmp/materialized.wav"),
         shard_sha256: "materialized-shardhash".to_owned(),
+        shard_byte_len: 128,
+        materialization_source: AudioShardMaterializationSource::MediaSplitter,
     }
 }
 
@@ -415,7 +445,7 @@ pub(crate) fn make_executable(_path: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) fn error_to_string(error: impl std::fmt::Display) -> String {
+pub(crate) fn error_to_string(error: impl std::fmt::Display) -> String {
     error.to_string()
 }
 

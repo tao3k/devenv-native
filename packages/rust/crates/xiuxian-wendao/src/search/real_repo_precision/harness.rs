@@ -20,9 +20,6 @@ use crate::search::real_repo_precision::types::{
     RealRepoPrecisionLinkGraphCorpusReceipt, RealRepoPrecisionQueryReceipt,
     RealRepoPrecisionRepositoryReceipt, RealRepoPrecisionRunOptions, RealRepoPrecisionRunStatus,
 };
-use crate::search::repo_search::{
-    RepoAstAnalysisIndex, build_repo_ast_analysis_index_from_checkout,
-};
 
 pub(crate) fn run_real_repo_precision_harness() -> Result<RealRepoPrecisionRunStatus, String> {
     let options = RealRepoPrecisionRunOptions::from_env();
@@ -90,16 +87,12 @@ fn run_repository(
     }
 
     let link_graph = build_link_graph_index(entry, options, &checkout_root, &repo_id)?;
-    let repo_ast_language_filters = merged_repo_ast_language_filters(entry.gold_queries.as_slice());
-    let repo_ast =
-        build_repo_ast_index(entry, &checkout_root, repo_ast_language_filters.as_slice());
     let mut markdown_knowledge_semantic_gate =
         evaluate_markdown_knowledge_semantic_gate_if_enabled(
             &checkout_root.join("semantic"),
             &entry.gold_queries,
         )?;
-    let query_result =
-        run_repository_queries(entry, link_graph.index.as_ref(), repo_ast.index.as_ref())?;
+    let query_result = run_repository_queries(entry, link_graph.index.as_ref())?;
 
     if let Some(gate) = markdown_knowledge_semantic_gate.as_mut() {
         attach_markdown_knowledge_semantic_query_evidence_if_enabled(gate, &query_result.receipts);
@@ -123,9 +116,6 @@ fn run_repository(
         link_graph_corpus: link_graph.corpus,
         markdown_knowledge_semantic_gate,
         knowledge_scenarios,
-        repo_ast_index_ms: repo_ast.index_ms,
-        repo_ast_index_file_count: repo_ast.file_count,
-        repo_ast_index_symbol_count: repo_ast.symbol_count,
         query_wall_ms: query_result.wall_ms,
         query_sum_ms: query_result.sum_ms,
         total_ms: elapsed_ms(repository_started_at.elapsed()),
@@ -259,9 +249,6 @@ fn empty_repository_receipt(
         link_graph_corpus: None,
         markdown_knowledge_semantic_gate: None,
         knowledge_scenarios: Vec::new(),
-        repo_ast_index_ms: None,
-        repo_ast_index_file_count: 0,
-        repo_ast_index_symbol_count: 0,
         query_wall_ms: 0,
         query_sum_ms: 0,
         total_ms: elapsed_ms(repository_started_at.elapsed()),
@@ -337,49 +324,6 @@ fn build_link_graph_index(
     })
 }
 
-struct RepoAstBuild {
-    index: Option<RepoAstAnalysisIndex>,
-    index_ms: Option<u128>,
-    file_count: usize,
-    symbol_count: usize,
-}
-
-fn build_repo_ast_index(
-    entry: &RealRepoPrecisionCatalogEntry,
-    checkout_root: &Path,
-    repo_ast_language_filters: &[String],
-) -> RepoAstBuild {
-    let repo_ast_started_at = Instant::now();
-    let repo_ast_index = entry
-        .gold_queries
-        .iter()
-        .any(|query| matches!(query.kind, RealRepoGoldQueryKind::RepoAst))
-        .then(|| {
-            build_repo_ast_analysis_index_from_checkout(
-                checkout_root,
-                &entry.repository,
-                repo_ast_language_filters,
-                entry.include_dirs.as_slice(),
-                entry.excluded_dirs.as_slice(),
-            )
-        });
-    let repo_ast_index_ms = repo_ast_index
-        .as_ref()
-        .map(|_| elapsed_ms(repo_ast_started_at.elapsed()));
-    let repo_ast_index_file_count = repo_ast_index
-        .as_ref()
-        .map_or(0, RepoAstAnalysisIndex::file_count);
-    let repo_ast_index_symbol_count = repo_ast_index
-        .as_ref()
-        .map_or(0, RepoAstAnalysisIndex::symbol_count);
-    RepoAstBuild {
-        index: repo_ast_index,
-        index_ms: repo_ast_index_ms,
-        file_count: repo_ast_index_file_count,
-        symbol_count: repo_ast_index_symbol_count,
-    }
-}
-
 struct QueryRun {
     receipts: Vec<crate::search::real_repo_precision::types::RealRepoPrecisionQueryReceipt>,
     wall_ms: u128,
@@ -389,19 +333,12 @@ struct QueryRun {
 fn run_repository_queries(
     entry: &RealRepoPrecisionCatalogEntry,
     link_graph_index: Option<&Arc<LinkGraphIndex>>,
-    repo_ast_index: Option<&RepoAstAnalysisIndex>,
 ) -> Result<QueryRun, String> {
     let query_started_at = Instant::now();
     let query_receipts = entry
         .gold_queries
         .iter()
-        .map(|gold_query| {
-            run_gold_query(
-                gold_query,
-                link_graph_index.map(Arc::as_ref),
-                repo_ast_index,
-            )
-        })
+        .map(|gold_query| run_gold_query(gold_query, link_graph_index.map(Arc::as_ref)))
         .collect::<Result<Vec<_>, _>>()?;
     let query_wall_ms = elapsed_ms(query_started_at.elapsed());
     let query_sum_ms = query_receipts
@@ -491,7 +428,6 @@ fn corpus_path_prefix(path: &str) -> String {
 fn run_gold_query(
     gold_query: &RealRepoGoldQuery,
     link_graph_index: Option<&LinkGraphIndex>,
-    repo_ast_index: Option<&RepoAstAnalysisIndex>,
 ) -> Result<crate::search::real_repo_precision::types::RealRepoPrecisionQueryReceipt, String> {
     let query_started_at = Instant::now();
     match gold_query.kind {
@@ -503,36 +439,50 @@ fn run_gold_query(
                 gold_query.limit,
                 LinkGraphSearchOptions::default(),
             );
+            let mut observed_paths = hits.1.into_iter().map(|hit| hit.path).collect::<Vec<_>>();
+            if !gold_query.language_filters.is_empty() {
+                observed_paths.retain(|path| {
+                    path_matches_language_filters(path, gold_query.language_filters.as_slice())
+                });
+            }
             Ok(evaluate_gold_query_paths_with_timing(
                 gold_query,
-                hits.1.into_iter().map(|hit| hit.path).collect(),
-                elapsed_ms(query_started_at.elapsed()),
-            ))
-        }
-        RealRepoGoldQueryKind::RepoAst => {
-            let index = repo_ast_index
-                .ok_or_else(|| format!("repo AST index is missing for `{}`", gold_query.id))?;
-            let hits = index.search(Some(gold_query.query.as_str()), gold_query.limit);
-            Ok(evaluate_gold_query_paths_with_timing(
-                gold_query,
-                hits.into_iter().map(|hit| hit.path).collect(),
+                observed_paths,
                 elapsed_ms(query_started_at.elapsed()),
             ))
         }
     }
 }
 
-fn merged_repo_ast_language_filters(gold_queries: &[RealRepoGoldQuery]) -> Vec<String> {
-    let mut filters = gold_queries
+fn path_matches_language_filters(path: &str, language_filters: &[String]) -> bool {
+    let Some(extension) = Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+    else {
+        return false;
+    };
+    language_filters
         .iter()
-        .filter(|query| matches!(query.kind, RealRepoGoldQueryKind::RepoAst))
-        .flat_map(|query| query.language_filters.iter())
-        .map(|filter| filter.trim().to_ascii_lowercase())
-        .filter(|filter| !filter.is_empty())
-        .collect::<Vec<_>>();
-    filters.sort();
-    filters.dedup();
-    filters
+        .any(|language| language_matches_extension(language.as_str(), extension))
+}
+
+fn language_matches_extension(language: &str, extension: &str) -> bool {
+    match language.trim().to_ascii_lowercase().as_str() {
+        "rust" => extension.eq_ignore_ascii_case("rs"),
+        "python" => extension.eq_ignore_ascii_case("py"),
+        "typescript" => {
+            extension.eq_ignore_ascii_case("ts") || extension.eq_ignore_ascii_case("tsx")
+        }
+        "javascript" => {
+            extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("jsx")
+        }
+        "julia" => extension.eq_ignore_ascii_case("jl"),
+        "modelica" => extension.eq_ignore_ascii_case("mo"),
+        "markdown" => {
+            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
+        }
+        other => extension.eq_ignore_ascii_case(other),
+    }
 }
 
 fn elapsed_ms(duration: Duration) -> u128 {

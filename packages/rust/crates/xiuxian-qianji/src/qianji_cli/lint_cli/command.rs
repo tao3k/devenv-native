@@ -2,7 +2,9 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use qianji_bpmn_engine::{BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source};
+use xiuxian_qianji_bpmn_engine::{
+    BpmnSourceFile, DmnSourceFile, lint_bpmn_source, lint_dmn_source,
+};
 
 use super::bpmn_json::render_bpmn_lint_json_output;
 use super::llm::render_lint_llm_output;

@@ -68,7 +68,7 @@ fn workspace_scope_does_not_match_prefix_sibling_crates() {
     let wendao_dir = temp.path().join("packages/rust/crates/xiuxian-wendao");
     let julia_dir = temp
         .path()
-        .join("packages/rust/crates/xiuxian-wendao-julia-sibling");
+        .join("packages/rust/crates/xiuxian-julia-runtime-sibling");
 
     for crate_dir in [&wendao_dir, &julia_dir] {
         fs::create_dir_all(crate_dir.join("docs/01_core")).or_panic("create docs dir");

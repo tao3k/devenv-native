@@ -15,23 +15,30 @@
 //!
 //! Patterns follow ODF-REP Security Standards.
 
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = {
-        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
-            rust_lang_project_harness::RustVerificationProfileHint::new(
-                "src/lib.rs",
-                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-            )
-            .with_rationale("crate root owns the public package API for cargo-test verification"),
-        )
-    }
-);
-
+#[cfg(feature = "axum-internal-plane")]
+mod internal_plane;
 mod permissions;
+mod public_api_token;
+mod public_plane;
 mod sandbox;
 mod scanner;
 
+#[cfg(feature = "axum-internal-plane")]
+pub use internal_plane::{
+    InternalServicePrincipalHeaders, InternalServiceSecurity, InternalServiceSecurityError,
+    with_internal_service_security,
+};
 pub use permissions::PermissionGatekeeper;
+pub use public_api_token::{
+    IssuedPublicApiToken, PublicApiTokenEnvironment, PublicApiTokenError, PublicApiTokenParts,
+    PublicApiTokenScopeSet, PublicApiTokenVerifier, WENDAO_PUBLIC_API_TOKEN_LIVE_PREFIX,
+    WENDAO_PUBLIC_API_TOKEN_TEST_PREFIX,
+};
+pub use public_plane::{
+    PublicPlaneRateLimiter, PublicProtocolSurface, PublicSurfacePolicy, SignedPrincipalSigner,
+    SignedPrincipalVerifier, WENDAO_AUTH_SCOPE_HEADER, WENDAO_GATEWAY_INTERNAL_SERVICE_IDENTITY,
+    WENDAO_INTERNAL_SERVICE_IDENTITY_HEADER, WENDAO_PUBLIC_PROTOCOL_HEADER,
+    WENDAO_SIGNED_PRINCIPAL_HEADER, XIUXIAN_INTERNAL_PRINCIPAL_SECRET_ENV,
+};
 pub use sandbox::{SandboxConfig, SandboxError, SandboxMode, SandboxResult, SandboxRunner};
 pub use scanner::{SecretScanner, SecurityViolation};

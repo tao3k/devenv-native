@@ -37,9 +37,9 @@ impl std::fmt::Debug for StudioRepoIndexStatusFlightRouteProvider {
 impl RepoIndexStatusFlightRouteProvider for StudioRepoIndexStatusFlightRouteProvider {
     async fn repo_index_status_batch(
         &self,
-        repo_id: Option<&str>,
+        repo_key: Option<&str>,
     ) -> Result<AnalysisFlightRouteResponse, String> {
-        let response = run_repo_index_status(&self.state, repo_id);
+        let response = run_repo_index_status(&self.state, repo_key);
         let response = repo_index_status_response_with_diagnostics(&response).await;
         let batch = build_repo_index_status_flight_batch(&response)?;
         let metadata = build_repo_index_status_flight_metadata(&response)?;

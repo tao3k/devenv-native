@@ -2,7 +2,7 @@
 //! `search::local_symbol::query::shared::restore` owns Wendao query shared restore behavior.
 
 use crate::search::SearchPlaneService;
-use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::SourceSymbolHit;
 use crate::search::local_symbol::query::shared::{
     LocalSymbolSearchError, PreparedLocalSymbolRead, prepare_local_symbol_read_tables,
 };
@@ -15,7 +15,7 @@ use crate::search::local_symbol::query::shared::{
 /// or decoded.
 pub async fn restore_local_symbol_hits(
     service: &SearchPlaneService,
-) -> Result<Vec<AstSearchHit>, LocalSymbolSearchError> {
+) -> Result<Vec<SourceSymbolHit>, LocalSymbolSearchError> {
     let prepared = prepare_local_symbol_read_tables(service).await?;
     if prepared.table_names.is_empty() {
         return Ok(Vec::new());
@@ -31,7 +31,7 @@ pub async fn restore_local_symbol_hits(
 async fn load_table_hits(
     prepared: &PreparedLocalSymbolRead,
     table_name: &str,
-) -> Result<Vec<AstSearchHit>, LocalSymbolSearchError> {
+) -> Result<Vec<SourceSymbolHit>, LocalSymbolSearchError> {
     let sql = format!(
         "SELECT {hit_json_column} FROM {table_name}",
         hit_json_column = crate::search::local_symbol::schema::hit_json_column(),

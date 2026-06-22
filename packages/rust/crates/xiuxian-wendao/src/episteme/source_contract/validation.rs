@@ -15,8 +15,9 @@ use xiuxian_wendao_parsers::{EpistemeExtractionQueueRow, EpistemeFileRow, Episte
 use super::{
     EXTRACTION_QUEUE_TSV, EpistemeError, FILES_TSV, VALIDATION_HASH_CACHE_REPORT_SCHEMA_VERSION,
     VALIDATION_HASH_CACHE_SCHEMA_VERSION, VALIDATION_SCHEMA_VERSION, discovered_corpus_paths,
-    extension_routes, read_files_tsv, read_queue_tsv, read_source_manifest, source_contract_paths,
-    validate_mapping_ledger, validate_queue_rows,
+    extension_routes, read_files_tsv, read_queue_tsv, read_source_manifest,
+    route_policy::validate_document_route_policy, source_contract_paths, validate_mapping_ledger,
+    validate_queue_rows,
 };
 
 /// Source-contract validation report emitted by the Rust backend boundary.
@@ -192,6 +193,7 @@ fn validate_contract_with_hash_cache(
     if manifest.extraction_queue != EXTRACTION_QUEUE_TSV {
         errors.push("source manifest extraction_queue must be extraction_queue.tsv".to_string());
     }
+    validate_document_route_policy(manifest, files, &mut errors);
     if !corpus_root.is_dir() {
         errors.push(format!(
             "corpus root does not exist: {}",

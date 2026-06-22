@@ -1,11 +1,10 @@
 //! Compatibility path boundary: this module preserves an established Wendao owner path while the API surface is being narrowed.
-//! Coordinates repository search across source discovery, AST extraction, and batch rendering.
+//! Coordinates repository search across source discovery and content-hit rendering.
 
 use std::collections::HashSet;
 use std::path::Path;
 
 use walkdir::{DirEntry, WalkDir};
-use xiuxian_code_intelligence::code_language_id_from_path;
 use xiuxian_git_repo::SyncMode;
 use xiuxian_wendao_runtime::transport::RepoSearchFlightRequest;
 
@@ -94,10 +93,6 @@ pub(crate) async fn search_repo_content_hits_with_repository(
     let Some(repository) = repository else {
         return Ok(published_hits);
     };
-    if !repository_supports_content_checkout_analysis(repository) {
-        return Ok(published_hits);
-    }
-
     search_repo_checkout_content_hits(search_plane, repository, request).await
 }
 
@@ -115,13 +110,6 @@ async fn search_repo_checkout_content_hits(
     })
     .await
     .map_err(|error| format!("repo-search checkout fallback task failed: {error}"))?
-}
-
-fn repository_supports_content_checkout_analysis(repository: &RegisteredRepository) -> bool {
-    repository
-        .plugins
-        .iter()
-        .any(|plugin| plugin.id().eq_ignore_ascii_case("ast-grep"))
 }
 
 fn search_repo_checkout_content_hits_blocking(
@@ -224,7 +212,23 @@ fn normalize_filters(filters: &HashSet<String>) -> HashSet<String> {
 }
 
 fn infer_repo_source_language(path: &str) -> Option<String> {
-    code_language_id_from_path(Path::new(path)).map(str::to_string)
+    source_language_id_from_path(Path::new(path)).map(str::to_string)
+}
+
+fn source_language_id_from_path(path: &Path) -> Option<&'static str> {
+    match path.extension().and_then(std::ffi::OsStr::to_str) {
+        Some(ext) if ext.eq_ignore_ascii_case("rs") => Some("rust"),
+        Some(ext) if ext.eq_ignore_ascii_case("py") => Some("python"),
+        Some(ext) if ext.eq_ignore_ascii_case("ts") || ext.eq_ignore_ascii_case("tsx") => {
+            Some("typescript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("jsx") => {
+            Some("javascript")
+        }
+        Some(ext) if ext.eq_ignore_ascii_case("jl") => Some("julia"),
+        Some(ext) if ext.eq_ignore_ascii_case("mo") => Some("modelica"),
+        _ => None,
+    }
 }
 
 fn source_search_score(line: &str, query: &str, exact_match: bool) -> f64 {

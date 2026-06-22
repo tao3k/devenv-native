@@ -1,60 +1,113 @@
 use std::sync::Arc;
 
 use arrow::array::{Float64Array, Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+
+use crate::arrow_contract::{ArrowFieldContract, ArrowFieldType, ArrowTableContract};
 
 use super::rows::{
     SemanticObjectReadModelRow, SemanticProjectionStateReadModelRow, SemanticRelationReadModelRow,
 };
 
-pub(super) fn semantic_objects_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new("id", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("confidence_score", DataType::Float64, false),
-        Field::new("confidence_source", DataType::Utf8, false),
-        Field::new("owner_count", DataType::Int64, false),
-        Field::new("owners_json", DataType::Utf8, false),
-        Field::new("provenance_source", DataType::Utf8, false),
-        Field::new("provenance_recorded_by", DataType::Utf8, false),
-        Field::new("provenance_recorded_at", DataType::Utf8, false),
-        Field::new("verification_required_json", DataType::Utf8, false),
-        Field::new("verification_evidence_json", DataType::Utf8, false),
-        Field::new("relation_count", DataType::Int64, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]))
+const SEMANTIC_READ_MODEL_SCHEMA_VERSION: &str = "xiuxian_wendao.semantic_read_model.v1";
+
+const SEMANTIC_OBJECT_FIELDS: [ArrowFieldContract; 18] = [
+    ArrowFieldContract::new("id", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("kind", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("title", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("status", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("confidence_score", ArrowFieldType::Float64, false),
+    ArrowFieldContract::new("confidence_source", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("owner_count", ArrowFieldType::Int64, false),
+    ArrowFieldContract::new("owners_json", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("provenance_source", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("provenance_recorded_by", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("provenance_recorded_at", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("verification_required_json", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("verification_evidence_json", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("relation_count", ArrowFieldType::Int64, false),
+    ArrowFieldContract::new("source_path", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("read_model_source_revision", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new(
+        "read_model_projection_revision",
+        ArrowFieldType::Utf8,
+        false,
+    ),
+    ArrowFieldContract::new(
+        "read_model_projection_staleness",
+        ArrowFieldType::Utf8,
+        false,
+    ),
+];
+
+const SEMANTIC_RELATION_FIELDS: [ArrowFieldContract; 7] = [
+    ArrowFieldContract::new("source", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("kind", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("target", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("source_path", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("read_model_source_revision", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new(
+        "read_model_projection_revision",
+        ArrowFieldType::Utf8,
+        false,
+    ),
+    ArrowFieldContract::new(
+        "read_model_projection_staleness",
+        ArrowFieldType::Utf8,
+        false,
+    ),
+];
+
+const SEMANTIC_PROJECTION_STATE_FIELDS: [ArrowFieldContract; 9] = [
+    ArrowFieldContract::new("projection", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("status", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("source_revision", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("current_source_revision", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("projection_revision", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("staleness", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("source_object_count", ArrowFieldType::Int64, false),
+    ArrowFieldContract::new("source_objects_json", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("source_path", ArrowFieldType::Utf8, false),
+];
+
+pub(crate) const fn semantic_objects_contract() -> ArrowTableContract {
+    ArrowTableContract::new(
+        "xiuxian_wendao.semantic_read_model.semantic_objects",
+        SEMANTIC_READ_MODEL_SCHEMA_VERSION,
+        "semantic_objects",
+        &SEMANTIC_OBJECT_FIELDS,
+    )
 }
 
-pub(super) fn semantic_relations_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new("source", DataType::Utf8, false),
-        Field::new("kind", DataType::Utf8, false),
-        Field::new("target", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-        Field::new("read_model_source_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_revision", DataType::Utf8, false),
-        Field::new("read_model_projection_staleness", DataType::Utf8, false),
-    ]))
+pub(crate) const fn semantic_relations_contract() -> ArrowTableContract {
+    ArrowTableContract::new(
+        "xiuxian_wendao.semantic_read_model.semantic_relations",
+        SEMANTIC_READ_MODEL_SCHEMA_VERSION,
+        "semantic_relations",
+        &SEMANTIC_RELATION_FIELDS,
+    )
 }
 
-pub(super) fn semantic_projection_state_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new("projection", DataType::Utf8, false),
-        Field::new("status", DataType::Utf8, false),
-        Field::new("source_revision", DataType::Utf8, false),
-        Field::new("current_source_revision", DataType::Utf8, false),
-        Field::new("projection_revision", DataType::Utf8, false),
-        Field::new("staleness", DataType::Utf8, false),
-        Field::new("source_object_count", DataType::Int64, false),
-        Field::new("source_objects_json", DataType::Utf8, false),
-        Field::new("source_path", DataType::Utf8, false),
-    ]))
+pub(crate) const fn semantic_projection_state_contract() -> ArrowTableContract {
+    ArrowTableContract::new(
+        "xiuxian_wendao.semantic_read_model.semantic_projection_state",
+        SEMANTIC_READ_MODEL_SCHEMA_VERSION,
+        "semantic_projection_state",
+        &SEMANTIC_PROJECTION_STATE_FIELDS,
+    )
+}
+
+pub(super) fn semantic_objects_schema() -> SchemaRef {
+    semantic_objects_contract().schema()
+}
+
+pub(super) fn semantic_relations_schema() -> SchemaRef {
+    semantic_relations_contract().schema()
+}
+
+pub(super) fn semantic_projection_state_schema() -> SchemaRef {
+    semantic_projection_state_contract().schema()
 }
 
 pub(super) fn build_semantic_objects_record_batch(

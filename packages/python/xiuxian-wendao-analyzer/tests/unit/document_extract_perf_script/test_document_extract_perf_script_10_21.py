@@ -119,7 +119,7 @@ def _hosted_vlm_promotion_payload(
         "summary": summary,
         "hostedVlmOcr": {
             "provider": "openrouter",
-            "openRouterModel": "baidu/qianfan-ocr-fast:free",
+            "openRouterModel": "baidu/qianfan-ocr-fast",
             "openRouterApiKeyConfigured": True,
             "regionAtlasMode": region_atlas_mode,
             "scaffoldMode": scaffold_mode,
@@ -157,3 +157,44 @@ def test_hosted_vlm_promotion_gate_requires_scaffold_count_coverage() -> None:
         "Hosted VLM/OCR scaffold applied count 2 did not match region shard count 3"
         in gate["reasons"]
     )
+
+
+def test_hosted_vlm_promotion_gate_requires_fixed_composite_activation() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(
+        benchmark, request_count=3, ocr_region_blocks=3
+    )
+    payload["hostedVlmOcr"]["regionCompositeSize"] = 3
+    payload["hostedVlmOcr"]["regionCompositeMode"] = "fixed"
+    payload["hostedVlmOcr"]["requestSummary"]["requestKindCounts"] = {"region": 3}
+
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
+
+    assert gate["checked"] is True
+    assert gate["passed"] is False
+    assert (
+        "Hosted VLM/OCR fixed region composite was configured but no composite "
+        "request kind was observed"
+    ) in gate["reasons"]
+    assert gate["observed"]["regionCompositeRequestCount"] == 0
+    assert gate["observed"]["regionCompositeActivated"] is False
+
+
+def test_hosted_vlm_promotion_gate_records_composite_activation() -> None:
+    benchmark = _load_benchmark_module()
+    payload = _hosted_vlm_promotion_payload(
+        benchmark, request_count=2, ocr_region_blocks=3
+    )
+    payload["hostedVlmOcr"]["regionCompositeSize"] = 3
+    payload["hostedVlmOcr"]["regionCompositeMode"] = "fixed"
+    payload["hostedVlmOcr"]["requestSummary"]["requestKindCounts"] = {
+        "region-composite": 1,
+        "region": 1,
+    }
+
+    gate = benchmark.hosted_vlm_promotion_gate(payload)
+
+    assert gate["observed"]["regionCompositeSize"] == 3
+    assert gate["observed"]["regionCompositeMode"] == "fixed"
+    assert gate["observed"]["regionCompositeRequestCount"] == 1
+    assert gate["observed"]["regionCompositeActivated"] is True

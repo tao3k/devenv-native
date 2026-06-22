@@ -15,28 +15,57 @@ manages what is happening:
 - budget and cost observations
 - gate results
 - recovery attempts
-- hot scheduling leases and worker heartbeats
+- hot scheduling queues, leases, activity tasks, and worker heartbeats
 
 The core slice ships Rust contracts plus in-memory stores. The `duckdb`
 feature adds the durable append-only ledger adapter. The `valkey` feature adds
-the hot-state adapter for queues, leases, and worker heartbeats.
+the hot-state adapter for step queues, worker activity task queues, leases,
+and worker heartbeats by consuming the structured Valkey queue primitives from
+[`xiuxian-db-store`](../xiuxian-db-store/README.md).
+
+The DuckDB ledger adapter is an in-process store boundary. It is intended to
+support high-throughput Qianji worker execution by sharing one writable
+`DuckDbControlLedger` inside one Rust process while worker tasks run
+concurrently. It must not be treated as a multi-process writer contract for the
+same DuckDB file. If Qianji needs independent writer processes, the store
+boundary must move to a dedicated ledger service, DuckDB remote protocol, or a
+DuckLake-backed catalog design before the runtime exposes that deployment
+shape.
 
 ## Boundary
 
 This crate must stay independent from workflow implementations. It does not
-depend on `xiuxian-qianji`, `qianji-bpmn-engine`, `xiuxian-wendao`,
-`xiuxian-llm`, or `xiuxian-qianhuan`.
+depend on `xiuxian-qianji`, `xiuxian-qianji-bpmn-engine`, `xiuxian-wendao`,
+or provider-specific LLM/prompt-persona runtimes.
+It must not own BPMN `PendingHostWork`, Flowhub scenario semantics, checkpoint
+source paths, server routes, or CLI request parsing. Workflow-specific facts
+must be translated into this crate's workflow-neutral activity, ledger, queue,
+lease, evidence, cost, gate, and recovery contracts before they cross the
+control boundary.
 
 The intended split is:
 
-- DuckDB: durable append-only control ledger and replayable run views
+- DuckDB: durable append-only control ledger and replayable run views inside
+  one writable process boundary
 - Valkey: hot queues, leases, heartbeats, rate limits, and live progress
+  through explicit queue fields and typed payloads, not domain value recovery
+  from composite storage keys
+- [`xiuxian-qianji-runtime`](../xiuxian-qianji-runtime/README.md):
+  dependency-safe adapters that convert workflow host boundaries into control
+  activity tasks
 - Qianji workflow/BPMN/Flowhub: domain execution semantics
 - Agent workers: leased executors that attach evidence and observations
 
-Qianji workflow traces are projected into control events by
+Qianji workflow traces are mapped into workflow-neutral projection records by
 [`xiuxian-qianji`](../xiuxian-qianji/README.md). This crate does not depend on
-Qianji workflow types.
+Qianji workflow types. It owns the projection journal that turns those neutral
+records into `RunCreated`, `RunAdmitted`, `PlanRecorded`, step lifecycle,
+tool-call, and terminal run events before passing them through the shared
+same-run journal batch recorder.
+It also owns the workflow-neutral step observation and managed decision helpers
+used by those adapters: required-evidence declarations, evidence attachment,
+gate-result recording, cost observation, and recovery-attempt recording are
+durable control contracts, not workflow-kernel implementation details.
 
 Execution history is represented by the same append-only `ControlLedger`.
 Checkpoint or workflow-specific state should be treated as a materialized view
@@ -62,6 +91,10 @@ ordered plan actions so gateway, CLI, or UI surfaces can show recovery state
 without reimplementing action classification.
 `ControlLedger::load_recovery_snapshot` packages the replay-derived recovery
 view, ordered plan, and summary into one read-only management response.
+`ControlLedger::load_operator_summary` packages compact operator counters from
+the same durable history. `ControlLedger::load_operator_diagnostics` packages
+that summary together with the recovery snapshot from one event replay, so a
+management API does not need to issue split summary and recovery reads.
 
 Activity journal fields use typed identities for activity ids, activity types,
 task queues, idempotency keys, and error codes while preserving string-shaped
@@ -80,6 +113,18 @@ metadata through claim-check references, while `LlmActivityTask` binds that
 payload to an `llm.*` activity type and task queue. Provider adapters should
 disable provider-client retries and let `ActivityRetryPolicy` control retry
 behavior.
+LLM activity admission is represented by `LlmActivityAdmission`. It validates
+the complete `LlmActivityTask` and requires the generic `ActivityTask`
+`input_ref` to match the request `prompt_ref`, so model providers can only
+execute claim-check prompts that the deterministic controller admitted.
+`record_admitted_llm_activity_schedule` records an admitted LLM activity as a
+durable `ActivityScheduled` fact. It does not call providers, enqueue
+hot-state work, acquire leases, or start workers.
+The stored `ActivityTask.metadata.qianji_llm_activity_request` value carries a
+compact audit summary of the admitted model, prompt/context references,
+tool-schema hash, response-schema reference, token limits, and budget. It keeps
+LLM replay and operator history tied to claim-check references without storing
+provider prompt or context payloads in the ledger.
 
 Agent planner output is represented as `AgentProposal`; Qianji reducer output
 is represented as `AgentDecision`. Accepted decisions must name the scheduled
@@ -127,6 +172,14 @@ leases, start workers, or execute providers.
 `record_admitted_activity_schedule_idempotent` is the checked Worker-facing
 variant. It returns the already stored event for exact duplicate schedules and
 rejects conflicting schedules for the same activity id.
+Generic precompiled schedule plans use `ActivityScheduleAdmissionPlanItem`
+rows with workflow-neutral `ActivityTask` payloads. `admit_activity_schedule_plan`
+validates the plan contract, matching Qianji run id, safe non-execution flags,
+pending status, and claim-check input reference before recording idempotent
+`ActivityScheduled` facts through `AdmittedActivityTaskScheduleRecord`. This
+surface is for durable control-plane admission only: it does not depend on the
+plan producer, enqueue hot-state work, acquire leases, start workers, call
+models, read source text, or mutate ontology data.
 `record_activity_started`, `record_activity_completed`, and
 `record_activity_failed` record activity lifecycle facts after scheduling.
 They append durable journal events only; retry decisions, worker execution,
@@ -143,7 +196,60 @@ read-only worker management view and does not claim work, acquire leases,
 append lifecycle events, or mutate Valkey hot state. The projection also
 reports replayed activity lifecycle counts so operators can see scheduled,
 in-flight, completed, and failed activity state without loading the full run
-view.
+view. Each projection also exposes `WorkerActivityTask` envelopes with durable
+run, optional step, activity, queue, input, idempotency, timeout, retry policy,
+scheduled timestamp, and next-attempt fields. These envelopes are derived from
+the same replayed schedule events and are the worker-facing task contract; hot
+state may mirror them for polling, but it is not their source of truth.
+Worker task envelopes copy scheduled task metadata, so the LLM request audit
+summary remains visible in replay-derived queue inspection and hot-state mirror
+payloads.
+Activity completion results may carry an `ActivityResult.output_ref`
+claim-check alongside an `output_hash`; worker adapters should write large
+provider responses through referenced artifacts instead of embedding payloads
+inside terminal event metadata.
+`LlmActivityInventoryProjection` derives all replayed `llm.*` activity rows
+from the same run view. It reports lifecycle counts, missing request-audit
+coverage, extracted model ids, input references, and the stored request audit
+metadata without appending events, mutating hot state, or calling providers.
+The Qianji CLI can use this projection as an opt-in request-audit gate so
+operator checks fail deterministically when any replayed LLM activity lacks its
+admitted request audit metadata.
+`RunnableActivityTask`, `ActivityTaskLease`, and
+`HotStateLeasedActivityTask` are the hot-state mirror payloads for that
+worker-facing contract. `HotStateStore::enqueue_activity_task` and
+`HotStateStore::claim_activity_task` provide task-queue filtered worker
+delivery with lease ownership while preserving the ledger as the durable
+authority. `HotStateStore::release_activity_task_lease` removes a completed or
+failed hot-state activity lease after durable lifecycle recording, and
+`HotStateStore::reclaim_expired_activity_task_lease` returns only expired
+leases to the runnable activity queue.
+`mirror_worker_activity_tasks_to_hot_state` is the bounded bridge from durable
+replay to that hot-state mirror: it loads `WorkerActivityTask` envelopes from
+`ControlLedger::load_worker_activity_tasks` and enqueues `RunnableActivityTask`
+entries for worker polling without appending new ledger events. Hot-state
+enqueue is idempotent for pending activity tasks and will not re-enqueue a task
+that is already protected by an activity lease.
+The Qianji CLI exposes this bridge as an explicit mirror step before worker
+claiming, keeping replay-derived task identity separate from hot-state lease
+ownership.
+Worker-facing CLIs and adapters may claim one mirrored task from hot state, but
+the lease is only a polling and ownership guard. Durable lifecycle truth still
+comes from the append-only ledger through the worker activity start, complete,
+and fail helpers.
+`WorkerActivityStartRecord`, `WorkerActivityCompletedRecord`, and
+`WorkerActivityFailedRecord` let Worker adapters record lifecycle outcomes
+directly from a `WorkerActivityTask` envelope. The helpers recover run or step
+scope and attempt from replay-derived task facts, then delegate to the
+idempotent activity journal guards. Workers therefore do not reconstruct
+scope, activity id, or retry attempt by hand, and hot-state queue delivery
+cannot become the durable authority. The same records can derive their generic
+activity journal records before append, which keeps worker-facing request
+mapping inspectable without bypassing idempotent lifecycle guards.
+`WorkerActivityFailureInput::try_new` and
+`WorkerActivityFailedRecord::try_new` provide checked failure construction for
+adapters that need to reject blank failure diagnostics before they map an
+external protocol error into the control ledger.
 `record_worker_heartbeat` records a durable Worker liveness audit fact after
 validating heartbeat TTL. `record_worker_heartbeat_with_hot_state` first
 mirrors the heartbeat into a `HotStateStore` and then appends the durable
@@ -154,10 +260,10 @@ audit state through one governed helper.
 `HotStateStore` and then appends durable history, so scheduling and later
 recovery appliers can share the same queue mirror contract without executing
 Workers.
-`HotStateStore::load_snapshot` is a read-only operator query over hot queues,
-leases, and worker heartbeats. It reports `HotStateSnapshot` facts without
-reclaiming leases, reordering queues, renewing heartbeats, appending ledger
-events, or executing Workers.
+`HotStateStore::load_snapshot` is a read-only operator query over hot step
+queues, activity task queues, leases, and worker heartbeats. It reports
+`HotStateSnapshot` facts without reclaiming leases, reordering queues,
+renewing heartbeats, appending ledger events, or executing Workers.
 Replay-derived `StepView` records the current active `StepLease`, which lets
 read-only operator surfaces inspect lease ownership without touching hot state.
 Run-level replay also supports lease inventory views by collecting active
@@ -182,6 +288,44 @@ counters, cost totals, and recovery counters into one compact management view.
 It is assembled from the append-only ledger and remains a read-only projection;
 it does not execute recovery, fire timers, claim activities, append signals, or
 mutate hot state.
+`record_run_created` records the initial durable `RunCreated` fact for one
+control run. It captures intent, optional budget, and metadata, but does not
+admit the run, schedule work, create steps, mirror hot state, or execute
+workflow logic. `RunCreatedJournalRecord::into_event` exposes the same event
+shape for pure projection paths that need to build a replayable event vector
+before appending.
+`record_run_admitted`, `record_run_plan_recorded`, and
+`record_run_terminal` complete the run-level lifecycle journal surface for
+admission, plan summaries, and terminal completed, failed, blocked, or aborted
+facts. They append run-scoped durable facts only; they do not schedule
+activities, mutate hot state, execute recovery, or interpret workflow-specific
+meaning.
+`record_step_created`, `record_step_started`, `record_step_tool_call`, and
+`record_step_terminal` provide the matching step-level lifecycle journal
+surface for declared steps, running steps, tool-call audit facts, and terminal
+succeeded, failed, blocked, or cancelled step facts. They append step-scoped
+durable facts only; they do not enqueue steps, acquire leases, execute tools,
+or interpret workflow-specific semantics.
+`record_step_evidence`, `record_step_gate_result`, and
+`record_cost_observation` provide the evidence, gate, and cost observation
+journal surface. Evidence and gate observations are step-scoped because replay
+stores them on `StepView`; cost observations may be run-scoped or step-scoped
+for budget inspection. These helpers only append durable observation facts and
+do not evaluate gates, decide recovery, mutate hot state, or execute workflow
+logic.
+`record_control_event_batch` records a validated same-run event vector and
+returns the replayed `RunView`. It rejects empty or mixed-run batches before
+append, giving projection and managed-decision helpers one control-owned batch
+boundary instead of local append/replay loops.
+`record_workflow_trace_projection` records a complete workflow-neutral trace
+projection as a durable event batch. Callers provide typed run and stage
+identity, timestamps, required evidence, tool-call metadata, and terminal
+status; this crate owns the resulting event order and records it through the
+shared batch helper. It does not depend on BPMN, Flowhub, or the concrete
+Qianji workflow-kernel trace type.
+`record_signal_received` records a durable `SignalReceived` fact for a
+run-scoped or step-scoped external input. It does not validate workflow
+meaning, wake waiting workers, or mutate hot state.
 `record_timer_fired` records a durable `TimerFired` fact for a run-scoped or
 step-scoped timer. It does not poll timers, wait, notify, or enqueue work.
 `record_step_lease_released` records a durable `StepLeaseReleased` fact after
@@ -194,11 +338,13 @@ executable actions to `apply_recovery_action`; non-executable management
 actions remain explicit `NotApplicable` results.
 `apply_recovery_action` is the first bounded recovery applier. It applies only
 step-scoped `RetryActivity` actions by queueing the owning step after the
-retry backoff and recording `StepQueued`, and `FireTimer` actions by recording
-`TimerFired`. It also applies `ReclaimExpiredLease` by validating the replayed
-lease, reclaiming the expired hot lease back into the runnable queue, and
-recording `StepLeaseReleased`; run-scoped retries and other action kinds
-return `NotApplicable` without side effects.
+retry backoff and recording `StepQueued`; run-scoped `RetryActivity` actions
+requeue the failed activity task into the hot activity queue after the same
+backoff without appending a synthetic schedule event. It applies `FireTimer`
+actions by recording `TimerFired` and applies `ReclaimExpiredLease` by
+validating the replayed lease, reclaiming the expired hot lease back into the
+runnable queue, and recording `StepLeaseReleased`; other action kinds return
+`NotApplicable` without side effects.
 
 Agent proposals and deterministic Agent decisions can be recorded as control
 journal events and replay into run or step views. Recording an Agent decision
@@ -234,42 +380,97 @@ hot-state work, lease steps, or execute workers.
   `record_activity_started_idempotent`,
   `record_activity_completed_idempotent`, and
   `record_activity_failed_idempotent`
-- `ActivityQueueProjection` and `ActivityQueueItem`
+- `ActivityQueueProjection`, `ActivityQueueItem`, and `WorkerActivityTask`
+- `WorkerActivityHotStateMirrorRequest`,
+  `WorkerActivityHotStateMirrorOutcome`, and
+  `mirror_worker_activity_tasks_to_hot_state`
+- `WorkerActivityStartRecord`, `WorkerActivityCompletedRecord`,
+  `WorkerActivityFailureInput`, `WorkerActivityFailedRecord`,
+  `record_worker_activity_started_idempotent`,
+  `record_worker_activity_completed_idempotent`, and
+  `record_worker_activity_failed_idempotent`
 - `WorkerHeartbeatJournalRecord`, `record_worker_heartbeat`, and
   `record_worker_heartbeat_with_hot_state`
 - `StepLeaseReleaseJournalRecord` and `record_step_lease_released`
 - `StepQueueJournalRecord`, `record_step_queued`, and
   `record_step_queued_with_hot_state`
+- `RunCreatedJournalRecord`, `RunAdmittedJournalRecord`,
+  `RunPlanRecordedJournalRecord`, `RunTerminalJournalRecord`,
+  `RunTerminalJournalStatus`, `record_run_created`, `record_run_admitted`,
+  `record_run_plan_recorded`, and `record_run_terminal`
+- `StepCreatedJournalRecord`, `StepStartedJournalRecord`,
+  `StepToolCallJournalRecord`, `StepTerminalJournalRecord`,
+  `StepTerminalJournalStatus`, `record_step_created`, `record_step_started`,
+  `record_step_tool_call`, and `record_step_terminal`
+- `StepEvidenceJournalRecord`, `StepGateResultJournalRecord`,
+  `CostObservationJournalRecord`, `record_step_evidence`,
+  `record_step_gate_result`, and `record_cost_observation`
+- `ControlJournalBatchRecordingOutcome` and `record_control_event_batch`
+- `WorkflowTraceProjectionRecord`, `WorkflowTraceProjectionStage`,
+  `WorkflowTraceProjectionStageStatus`, and
+  `record_workflow_trace_projection`
 - `SignalInventoryProjection`, `SignalInventoryItem`, and
   `SignalInventorySummary`
 - `TimerInventoryProjection`, `TimerInventoryItem`, and
   `TimerInventorySummary`
+- `SignalReceiveJournalRecord` and `record_signal_received`
 - `TimerFireJournalRecord` and `record_timer_fired`
 - `RecoveryStartedJournalRecord` and `record_recovery_started`
+- `AdmittedLlmActivityScheduleRecord` and
+  `record_admitted_llm_activity_schedule`
+- `LlmActivityInventoryProjection`, `LlmActivityInventoryItem`, and
+  `LlmActivityInventorySummary`
 - `RecoveryLoopApplicationRequest`, `RecoveryLoopApplication`,
   `RecoveryLoopActionApplication`, and `apply_recovery_plan`
 - `RecoveryActionApplicationRequest`, `RecoveryActionApplication`,
   `RecoveryActionApplicationReason`, and `apply_recovery_action`
+- `WorkflowControlEvidenceRequirements`,
+  `WorkflowStageEvidenceRecordingRequest`,
+  `WorkflowStageGateResultRecordingRequest`,
+  `WorkflowStageCostObservationRecordingRequest`,
+  `WorkflowStageRecoveryAttemptRecordingRequest`,
+  `WorkflowRunCostObservationRecordingRequest`,
+  `WorkflowRunRecoveryAttemptRecordingRequest`,
+  `record_workflow_stage_evidence`, `record_workflow_stage_gate_result`,
+  `record_workflow_stage_cost_observation`,
+  `record_workflow_stage_recovery_attempt`,
+  `record_workflow_run_cost_observation`, and
+  `record_workflow_run_recovery_attempt`
+- `WorkflowStageDecisionRecord`,
+  `WorkflowStageDecisionRecordingOutcome`,
+  `WorkflowStageDecisionRecordingRequest`,
+  `WorkflowStageRecoveryDecisionRecord`,
+  `WorkflowStageRecoveryDecisionRecordingRequest`,
+  `record_workflow_stage_decision`, and
+  `record_workflow_stage_recovery_decision`
 - `HumanApprovalRequest`, `HumanApprovalResolution`, and
   `HumanApprovalDecision`
 - `CostInventoryProjection`, `CostInventoryItem`, and
   `CostInventorySummary`
-- `ActivityTask`, `ActivityRetryDecision`, `LlmActivityRequest`,
-  `LlmActivityTask`, `SignalRecord`, `TimerRecord`, and `VersionPin`
-- `HotStateSnapshot` and `HotStateLeasedStep`
+- `LlmActivityAdmission` and `ToolActivityAdmission`
+- `ActivityTask`, `ActivityRetryDecision`, `ActivityTaskLease`,
+  `LlmActivityRequest`, `LlmActivityTask`, `RunnableActivityTask`,
+  `SignalRecord`, `TimerRecord`, and `VersionPin`
+- `HotStateSnapshot`, `HotStateLeasedStep`, and
+  `HotStateLeasedActivityTask`
 - `ControlLedger`
 - `ControlLedger::load_run_view`
 - `ControlLedger::load_activity_queue_projection`
+- `ControlLedger::load_worker_activity_tasks`
 - `ControlLedger::load_cost_inventory_projection`
 - `ControlLedger::load_signal_inventory_projection`
 - `ControlLedger::load_timer_inventory_projection`
 - `ControlLedger::load_recovery_plan`
+- `ControlLedger::load_recovery_snapshot`
+- `ControlLedger::load_operator_summary`
+- `ControlLedger::load_operator_diagnostics`
 - `RunRecoveryView`, `RecoveryItemScope`, `ActivityRecoveryItem`,
   `FailedActivityRecoveryItem`, `TimerRecoveryItem`,
   `AgentDecisionRecoveryItem`, `StepRecoveryItem`, and `LeaseRecoveryItem`
 - `RunRecoveryPlan` and `RecoveryPlanAction`
 - `RunRecoveryPlanSummary`
 - `RunRecoverySnapshot`
+- `RunOperatorSummary` and `RunOperatorDiagnostics`
 - `HotStateStore`
 - `InMemoryControlLedger`
 - `InMemoryHotStateStore`

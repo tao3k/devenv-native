@@ -2,7 +2,7 @@
 
 #[cfg(feature = "semantic-sql")]
 use crate::SemanticCommand;
-use crate::{GetCommand, LintCommand, OrgizeCommand, OutputFormat};
+use crate::{GetCommand, LintCommand, OutputFormat};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use xiuxian_logging::LogCliArgs;
@@ -63,11 +63,5 @@ pub enum ClientCommand {
         /// Semantic-oriented subcommand selection.
         #[command(subcommand)]
         command: SemanticCommand,
-    },
-    /// Work with Org files through the upstream Orgize parser/tooling surface.
-    Orgize {
-        /// Orgize-oriented subcommand selection.
-        #[command(subcommand)]
-        command: OrgizeCommand,
     },
 }

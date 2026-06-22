@@ -18,6 +18,9 @@ if TYPE_CHECKING:
 
     from .documents import DocumentConverterProtocol
 
+PrewarmedSourcePageKey = tuple[str, str, int, int, int]
+PrewarmedSourcePageCache = dict[PrewarmedSourcePageKey, str]
+
 
 def _prewarm_profiles_from_env() -> list[str]:
     raw = os.environ.get(PDF_OCR_PREWARM_PROFILES_ENV, "")
@@ -32,14 +35,20 @@ def _prewarm_profiles_from_env() -> list[str]:
     return profiles
 
 
-def _prewarm_converter_from_env(converter: DocumentConverterProtocol) -> None:
+def _prewarm_converter_from_env(
+    converter: DocumentConverterProtocol,
+    *,
+    converter_profile: str,
+) -> PrewarmedSourcePageCache:
     source_path = os.environ.get(PDF_OCR_PREWARM_SOURCE_PATH_ENV)
     if not source_path:
-        return
+        return {}
+    source = Path(source_path)
+    cache: PrewarmedSourcePageCache = {}
     for page_index in _prewarm_page_indices_from_env(os.environ.get):
         page_number = page_index + 1
         result = converter.convert(
-            Path(source_path),
+            source,
             page_range=(page_number, page_number),
         )
         markdown = result.document.export_to_markdown()
@@ -47,6 +56,25 @@ def _prewarm_converter_from_env(converter: DocumentConverterProtocol) -> None:
             raise RuntimeError(
                 f"Docling OCR prewarm returned empty text for page index {page_index}"
             )
+        cache[_prewarmed_source_page_key(converter_profile, source, page_index)] = (
+            markdown
+        )
+    return cache
+
+
+def _prewarmed_source_page_key(
+    converter_profile: str,
+    source_path: Path,
+    page_index: int,
+) -> PrewarmedSourcePageKey:
+    stat = source_path.stat()
+    return (
+        converter_profile,
+        str(source_path.resolve()),
+        page_index,
+        stat.st_size,
+        stat.st_mtime_ns,
+    )
 
 
 def _prewarm_page_indices_from_env(lookup: Callable[[str], str | None]) -> list[int]:

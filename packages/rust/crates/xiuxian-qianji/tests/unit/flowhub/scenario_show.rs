@@ -9,7 +9,7 @@ use super::{
 };
 
 #[test]
-fn scenario_flowchart_section_lines_render_with_qianhuan_template() {
+fn scenario_flowchart_section_lines_render_with_template_catalog() {
     let lines = render_scenario_flowchart_section_lines(&FlowhubScenarioShow {
         plan_name: "demo".to_string(),
         scenario_dir: PathBuf::from("/tmp/demo"),
@@ -34,7 +34,7 @@ fn scenario_flowchart_section_lines_render_with_qianhuan_template() {
 }
 
 #[test]
-fn scenario_surface_section_lines_render_with_qianhuan_template() {
+fn scenario_surface_section_lines_render_with_template_catalog() {
     let lines = render_scenario_surface_section_lines(&FlowhubScenarioSurfacePreview {
         alias: "plan".to_string(),
         module_ref: "plan".to_string(),
@@ -53,7 +53,7 @@ fn scenario_surface_section_lines_render_with_qianhuan_template() {
 }
 
 #[test]
-fn scenario_hidden_aliases_and_links_render_with_qianhuan_template() {
+fn scenario_hidden_aliases_and_links_render_with_template_catalog() {
     let hidden_lines = render_scenario_hidden_aliases_section_lines(&[
         FlowhubScenarioHiddenAlias {
             alias: "constraints".to_string(),

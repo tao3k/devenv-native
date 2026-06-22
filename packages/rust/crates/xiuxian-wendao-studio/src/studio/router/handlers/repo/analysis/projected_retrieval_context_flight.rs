@@ -39,26 +39,26 @@ impl RepoProjectedRetrievalContextFlightRouteProvider
 {
     async fn repo_projected_retrieval_context_batch(
         &self,
-        repo_id: &str,
-        page_id: &str,
-        node_id: Option<&str>,
+        repo_key: &str,
+        page_key: &str,
+        node_key: Option<&str>,
         related_limit: usize,
     ) -> Result<AnalysisFlightRouteResponse, Status> {
         let response = run_repo_projected_retrieval_context(
             Arc::clone(&self.state),
             xiuxian_wendao::analyzers::RepoProjectedRetrievalContextQuery {
-                repo_id: repo_id.to_string(),
-                page_id: page_id.to_string(),
-                node_id: node_id.map(ToString::to_string),
+                repo_id: repo_key.to_string(),
+                page_id: page_key.to_string(),
+                node_id: node_key.map(ToString::to_string),
                 related_limit,
             },
         )
         .await
         .map_err(studio_api_error_to_tonic_status)?;
-        let batch = repo_projected_retrieval_context_batch_with_requested_node(&response, node_id)
+        let batch = repo_projected_retrieval_context_batch_with_requested_node(&response, node_key)
             .map_err(Status::internal)?;
         let metadata =
-            repo_projected_retrieval_context_metadata_with_requested_node(&response, node_id)
+            repo_projected_retrieval_context_metadata_with_requested_node(&response, node_key)
                 .map_err(Status::internal)?;
         Ok(AnalysisFlightRouteResponse::new(batch).with_app_metadata(metadata))
     }

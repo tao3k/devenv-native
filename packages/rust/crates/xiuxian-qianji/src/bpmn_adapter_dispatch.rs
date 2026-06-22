@@ -2,7 +2,7 @@
 
 use super::adapter_error::BpmnAdapterError;
 use futures::future::try_join_all;
-use qianji_bpmn_engine::{
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnHostBridge, BpmnInstanceState, BpmnPackage, PendingHostWorkApplyInput,
     PendingHostWorkRequest, PendingHostWorkResult, advance_instance,
     apply_pending_host_work_result, build_pending_host_work_requests,
@@ -18,6 +18,9 @@ pub async fn dispatch_pending_host_work_request<H: BpmnHostBridge>(
     request: PendingHostWorkRequest,
 ) -> Result<PendingHostWorkResult, BpmnAdapterError> {
     Ok(match request {
+        PendingHostWorkRequest::Task(request) => {
+            PendingHostWorkResult::Task(host.dispatch_task(request).await?)
+        }
         PendingHostWorkRequest::Send(request) => {
             PendingHostWorkResult::Send(host.dispatch_send_task(request).await?)
         }
@@ -94,6 +97,7 @@ pub async fn resolve_pending_host_work<H: BpmnHostBridge>(
 
 fn request_token_id(request: &PendingHostWorkRequest) -> u64 {
     match request {
+        PendingHostWorkRequest::Task(request) => request.token_id.get(),
         PendingHostWorkRequest::Send(request) => request.token_id,
         PendingHostWorkRequest::Service(request) => request.token_id,
         PendingHostWorkRequest::Script(request) => request.token_id,

@@ -2,10 +2,10 @@ use super::{
     EmitCliCommand, TempDir, must_ok, must_some, parse_emit_command, run_emit_command, to_args,
     write_file,
 };
-use qianji_bpmn_engine::{
+use std::path::PathBuf;
+use xiuxian_qianji_bpmn_engine::{
     BpmnParseOptions, BpmnSourceFile, lint_bpmn_source, parse_bpmn_package, snapshot_bpmn_source,
 };
-use std::path::PathBuf;
 
 const VALID_WORKFLOW_PLAN: &str = r#"{
   "version": 1,
@@ -112,9 +112,11 @@ fn run_emit_command_renders_native_bpmn_with_standard_di() {
         .unwrap_or_else(|| panic!("emitted BPMN should preserve a BPMNPlane"));
     assert_eq!(plane.shapes.len(), 5);
     assert_eq!(plane.edges.len(), 4);
-    assert!(!report.ok);
-    assert_eq!(report.issues.len(), 1);
-    assert_eq!(report.issues[0].code, "bpmn.metadata_di_surface");
+    assert!(
+        report.ok,
+        "emitted BPMN should lint clean with native BPMNDI: {report:?}"
+    );
+    assert!(report.issues.is_empty());
 }
 
 #[test]

@@ -8,10 +8,9 @@ use crate::support::repo_fixture::refresh_remote;
 use crate::support::repo_intelligence::{
     assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
 };
-use crate::support::wendao_command;
 use serde_json::json;
 use uuid::Uuid;
-use xiuxian_io::PrjDirs;
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_wendao::analyzers::{
     RepoSyncDriftState, RepoSyncHealthState, RepoSyncMode, RepoSyncQuery, RepoSyncStalenessState,
     repo_sync_from_config,
@@ -320,20 +319,14 @@ fn cli_repo_sync_returns_serialized_result() -> TestResult {
     let repo_dir = create_sample_julia_repo(temp.path(), "CliSyncPkg", true)?;
     let config_path = write_repo_config(temp.path(), &repo_dir, "cli-sync")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("sync")
-        .arg("--repo")
-        .arg("cli-sync")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let mut payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let mut payload = serde_json::to_value(repo_sync_from_config(
+        &RepoSyncQuery {
+            repo_id: "cli-sync".to_string(),
+            mode: RepoSyncMode::Ensure,
+        },
+        Some(&config_path),
+        temp.path(),
+    )?)?;
     redact_checkout_path(&mut payload);
     redact_sync_timestamps(&mut payload);
     redact_sync_revisions(&mut payload);
@@ -467,7 +460,7 @@ fn write_repo_url_config_with_refresh(
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 url = "{}"
 refresh = "{refresh}"
 plugins = ["julia-code-parser"]
@@ -494,7 +487,7 @@ fn append_repo_file_and_commit(
 }
 
 fn repo_cache_root(_cwd: &Path) -> std::path::PathBuf {
-    PrjDirs::data_home()
+    ProjectDirs::data_home()
         .join("xiuxian-wendao")
         .join("repo-intelligence")
 }

@@ -19,7 +19,7 @@ fn modelica_plugin_docs_planner_rank_executes_over_external_plugin_path() -> Tes
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-planner-rank]
+            r#"[sources.projects.modelica-docs-planner-rank]
 root = "{}"
 plugins = ["modelica"]
 "#,

@@ -29,7 +29,7 @@ search modules are not part of this dependency path.
 
 The `xiuxian-qianji` crate keeps this boundary explicit with a default
 `qianji-full` feature for the historical application, Flowhub, AST, Wendao,
-Qianhuan, Zhenfa, and CLI-heavy surfaces. A narrow local BPMN store build can
+annotation, Zhenfa, and CLI-heavy surfaces. A narrow local BPMN store build can
 use `--no-default-features --features duckdb`; that path exposes BPMN workflow
 control plus runtime config and telemetry, while the full application modules
 stay feature-gated.

@@ -79,7 +79,7 @@ schema_version = "v1"
     else {
         panic!("rendered artifact");
     };
-    assert!(rendered.contains("plugin_id = \"xiuxian-wendao-julia\""));
+    assert!(rendered.contains("plugin_id = \"xiuxian-julia-core\""));
     assert!(rendered.contains("artifact_id = \"deployment\""));
     assert!(rendered.contains("route = \"/rerank\""));
     assert!(rendered.contains("selected_transport = \"arrow_flight\""));

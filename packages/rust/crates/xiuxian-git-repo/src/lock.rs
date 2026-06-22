@@ -7,6 +7,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use chrono::Utc;
+use xiuxian_config_core::ProjectDirs;
 
 use crate::error::{RepoError, RepoErrorKind};
 use crate::layout::managed_mirror_root_for;
@@ -94,7 +95,7 @@ pub fn checkout_lock_max_wait_with_lookup(lookup: &dyn Fn(&str) -> Option<String
 /// Computes the managed checkout lock path for a repository.
 #[must_use]
 pub fn managed_lock_path_for(spec: &RepoSpec) -> PathBuf {
-    let intelligence_root = xiuxian_io::PrjDirs::data_home()
+    let intelligence_root = ProjectDirs::data_home()
         .join("xiuxian-wendao")
         .join("repo-intelligence");
     let mirrors_root = intelligence_root.join("mirrors");

@@ -116,6 +116,7 @@ pub(crate) fn build_full_coverage_audio_plan(
         sample_rate_hz: config.sample_rate_hz,
         channels: config.channels,
         audio_format: config.audio_format.clone(),
+        audio_bitrate: config.audio_bitrate.clone(),
         strategy: "full-coverage".to_owned(),
     })
 }
@@ -130,6 +131,7 @@ pub(super) fn audio_materialization_input(
         source_path: source,
         output_dir: output.join("audio_shards"),
         ffmpeg_path: config.ffmpeg_path.clone(),
+        artifact_cache_dir: config.artifact_cache_dir.clone(),
         force,
     }
 }

@@ -7,7 +7,7 @@ use arrow::array::{
 use arrow::datatypes::{DataType, Field, Schema};
 use arrow::record_batch::RecordBatch;
 use tonic::Status;
-use xiuxian_wendao_julia::{
+use xiuxian_julia_core::{
     GRAPH_STRUCTURAL_ACCEPTED_COLUMN, GRAPH_STRUCTURAL_CANDIDATE_ID_COLUMN,
     GRAPH_STRUCTURAL_CANDIDATE_NODE_IDS_COLUMN, GRAPH_STRUCTURAL_EXPLANATION_COLUMN,
     GRAPH_STRUCTURAL_FEASIBLE_COLUMN, GRAPH_STRUCTURAL_FILTER_ROUTE,
@@ -28,7 +28,7 @@ use xiuxian_wendao_julia::{
     JULIA_PLUGIN_CAPABILITY_MANIFEST_TRANSPORT_KIND_COLUMN,
 };
 
-const JULIA_PLUGIN_ID: &str = "xiuxian-wendao-julia";
+const JULIA_PLUGIN_ID: &str = "xiuxian-julia-core";
 const JULIA_CAPABILITY_MANIFEST_CAPABILITY_ID: &str = "plugin-capabilities";
 const JULIA_GRAPH_STRUCTURAL_CAPABILITY_ID: &str = "graph-structural";
 const ARROW_FLIGHT_TRANSPORT_KIND: &str = "arrow_flight";

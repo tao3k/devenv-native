@@ -56,6 +56,15 @@ Episteme runtime defaults from `episteme.toml` are also outside parser
 ownership. They configure runtime roots for corpus and generated artifacts;
 parser DTOs continue to cover source manifests, TSV rows, and Org ledgers only.
 
+Route names are source-contract facts, not parser behavior. Runtime crates may
+give routes concrete executors. For document evidence, `document_text_evidence`
+is the Docling-native route for modern supported formats such as `pdf`, `docx`,
+`pptx`, and `xlsx`. Legacy Office binaries such as `doc`, `ppt`, and `xls`
+should use a separate route such as `legacy_office_document_evidence` so a
+conversion contract can validate the converted artifact before it enters the
+Docling cache path. Parser DTOs do not decide conversion support; the Rust
+runtime validates conversion candidates before any converter runs.
+
 Deployment registry loading is outside the parser boundary. Studio and the
 Wendao Rust backend may load episteme repositories from `wendao.toml` entries
 with local `path` or Git `url` fields, then pass the materialized repository

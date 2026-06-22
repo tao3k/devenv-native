@@ -1,0 +1,44 @@
+[package]
+name = "xiuxian-julia-runtime"
+version.workspace = true
+edition.workspace = true
+description = "Julia runtime contracts and feature-scoped Wendao adapters"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = []
+wendao = [
+    "dep:arrow",
+    "dep:chrono",
+    "dep:serde",
+    "dep:serde_json",
+    "dep:serde_yaml",
+    "dep:toml",
+    "dep:xiuxian-polyglot-orchestrator",
+    "xiuxian-polyglot-orchestrator/julia-runtime",
+    "dep:xiuxian-wendao-core",
+    "dep:xiuxian-wendao-runtime",
+    "xiuxian-wendao-runtime/transport",
+]
+
+[dependencies]
+arrow = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_yaml = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", default-features = false, optional = true }
+xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
+xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
+[dev-dependencies]
+rust-lang-project-harness = { workspace = true }
+
+[lints]
+workspace = true

@@ -9,8 +9,7 @@ publish = false
 default-run = "wendao-client"
 
 [features]
-default = ["orgize-agent-read-model"]
-orgize-agent-read-model = ["dep:xiuxian-db-store", "xiuxian-db-store/duckdb"]
+default = []
 performance = []
 semantic-sql = ["dep:tokio", "dep:xiuxian-wendao-sql"]
 
@@ -23,18 +22,20 @@ anyhow = { workspace = true }
 ariadne = { workspace = true }
 clap = { workspace = true }
 schemars = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 toml = { workspace = true }
-tokio = { workspace = true, features = ["rt"], optional = true }
+tokio = { workspace = true, optional = true }
 walkdir = { workspace = true }
 rayon = { workspace = true }
 xiuxian-config-core = { path = "../xiuxian-config-core" }
-xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-logging = { path = "../xiuxian-logging" }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers" }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

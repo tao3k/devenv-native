@@ -1,12 +1,12 @@
 //! Julia selector and binding fixtures for builtin integration tests.
 
-use xiuxian_wendao_core::{
-    PluginCapabilityBinding, PluginProviderSelector, artifacts::PluginArtifactSelector,
-};
-use xiuxian_wendao_julia::compatibility::link_graph::{
+use xiuxian_julia_runtime::wendao::link_graph::{
     DEFAULT_JULIA_SEARCH_EXAMPLE_CONFIG_PATH, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
     LinkGraphJuliaRerankRuntimeConfig, build_rerank_provider_binding,
     julia_deployment_artifact_selector, julia_rerank_provider_selector,
+};
+use xiuxian_wendao_core::{
+    PluginCapabilityBinding, PluginProviderSelector, artifacts::PluginArtifactSelector,
 };
 
 /// Return the linked builtin Julia search example config path.

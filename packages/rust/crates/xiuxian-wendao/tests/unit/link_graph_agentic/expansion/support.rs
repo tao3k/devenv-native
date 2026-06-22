@@ -9,6 +9,8 @@ use xiuxian_wendao::{LinkGraphAgenticExpansionConfig, LinkGraphIndex};
 #[cfg(feature = "julia")]
 pub(super) use arrow::array::{Float64Array, Int32Array, ListArray, StringArray};
 #[cfg(feature = "julia")]
+use xiuxian_julia_core::integration_support::JuliaServiceGuard;
+#[cfg(feature = "julia")]
 pub(super) use xiuxian_wendao::{
     RegisteredRepository, RepositoryPluginConfig, RepositoryRefreshPolicy,
 };
@@ -29,8 +31,6 @@ use xiuxian_wendao_builtin::{
     linked_builtin_spawn_wendaosearch_solver_demo_multi_route_service as spawn_real_solver_demo_multi_route_service,
     linked_builtin_spawn_wendaosearch_solver_demo_structural_rerank_service as spawn_real_solver_demo_structural_rerank_service,
 };
-#[cfg(feature = "julia")]
-use xiuxian_wendao_julia::integration_support::JuliaServiceGuard;
 
 #[cfg(feature = "julia")]
 pub(super) use crate::link_graph_agentic::expansion_support::{

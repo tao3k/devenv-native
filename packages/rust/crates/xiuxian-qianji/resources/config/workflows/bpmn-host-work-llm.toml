@@ -1,0 +1,24 @@
+schema = "qianji.workflow.llm_task.v1"
+
+[llm]
+provider = "openai-compatible"
+model = "deepseek-chat"
+wire_api = "chat_completions"
+
+[task]
+activity_type = "llm.plan"
+task_queue = "llm.deepseek"
+idempotency_key_prefix = "qianji:bpmn:host-work:llm"
+prompt_artifact_kind = "qianji.bpmn.host_work.prompt"
+context_artifact_kind = "qianji.bpmn.host_work.context"
+response_schema_artifact_kind = "qianji.bpmn.host_work.response_schema"
+temperature_millis = 200
+max_tokens = 4096
+timeout_ms = 90000
+
+[task.retry]
+max_attempts = 2
+initial_interval_ms = 1000
+max_interval_ms = 30000
+backoff_multiplier_millis = 2000
+non_retryable_error_codes = ["SchemaInvalid", "PolicyDenied", "UserRejected"]

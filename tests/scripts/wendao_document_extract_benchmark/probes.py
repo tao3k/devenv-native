@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import shutil
+from typing import TYPE_CHECKING
+
 from xiuxian_wendao_analyzer.docling_groundtruth import (
     compare_report_artifacts_to_docling_groundtruth,
     summarize_docling_groundtruth_reports,
@@ -24,17 +27,55 @@ from .common import (
     Path,
     argparse,
     json,
+    subprocess,
 )
 from .fake_fixtures import distinct_miss_wait_ms
 from .features import cargo_features_for_flight_mode
 from .http_status import run_command_with_status_sampling
-from .providers import apply_rust_pdf_ocr_env
+from .providers import apply_rust_audio_env, apply_rust_pdf_ocr_env
 from .runtime import rust_process_env
 from .rust_status import (
     combine_rust_jobs_status_summaries,
     summarize_rust_jobs_status_samples,
 )
 from .structure_consistency import fixture_structure_order_consistency
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+OCR2_REGION_RENDER_CACHE_DIR_NAME = "hosted-vlm-region-renders"
+OCR2_REGION_RENDER_ARTIFACT_KIND_SUFFIXES = (
+    "PageRasterHitCount",
+    "PageRasterMissCount",
+    "PageRasterThrottledCount",
+    "PageRasterByteCount",
+    "RegionCropHitCount",
+    "RegionCropMissCount",
+    "RegionCropThrottledCount",
+    "RegionCropByteCount",
+    "RegionManifestProjectionHitCount",
+    "RegionManifestProjectionMissCount",
+    "RegionManifestProjectionThrottledCount",
+    "RegionManifestProjectionByteCount",
+    "RegionManifestProjectionRowHitCount",
+    "RegionManifestProjectionRowMissCount",
+    "RegionManifestProjectionRowThrottledCount",
+    "RegionManifestProjectionRowByteCount",
+)
+
+
+def _prefixed_ocr2_region_render_artifact_kind_counts(
+    result_prefix: str,
+    artifact_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    return {
+        f"{result_prefix}Ocr2RegionRenderArtifactCache{suffix}": (
+            artifact_summary.get(f"hybridPageOcrTimingOcr2RegionRenderArtifactCache{suffix}")
+            if artifact_summary
+            else None
+        )
+        for suffix in OCR2_REGION_RENDER_ARTIFACT_KIND_SUFFIXES
+    }
 
 
 def run_distinct_miss_probe(
@@ -99,12 +140,8 @@ def run_distinct_miss_probe(
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxRunningConversions": rust_jobs_status_summary[
-            "maxRunningConversions"
-        ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxRunningConversions": rust_jobs_status_summary["maxRunningConversions"],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
     }
 
 
@@ -171,9 +208,7 @@ def run_structure_baseline_probe(
                 "errorRows": error_rows,
                 "resourcesRows": artifact_summary["resourcesRows"],
                 "structureRows": artifact_summary["structureRows"],
-                "structureReadingOrderSorted": artifact_summary[
-                    "structureReadingOrderSorted"
-                ],
+                "structureReadingOrderSorted": artifact_summary["structureReadingOrderSorted"],
                 "doclingGroundtruth": summarize_docling_groundtruth_reports(
                     docling_groundtruth_reports,
                 ),
@@ -191,9 +226,7 @@ def run_structure_baseline_probe(
         "root": str(baseline_root),
         "fixtureCount": len(fixture_reports),
         "totalErrorRows": sum(report["errorRows"] for report in fixture_reports),
-        "totalStructureRows": sum(
-            report["structureRows"] for report in fixture_reports
-        ),
+        "totalStructureRows": sum(report["structureRows"] for report in fixture_reports),
         "allStructureReadingOrderSorted": (
             all(bool(value) for value in sorted_values) if sorted_values else None
         ),
@@ -206,6 +239,8 @@ def run_fixture_probe(
     fixture_name: str,
     fixture_path: Path,
     output_dir: Path,
+    *,
+    restart_provider: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     duplicate_report = None
     duplicate_miss_converter_calls = None
@@ -222,9 +257,7 @@ def run_fixture_probe(
         )
         converter_count_after = read_converter_count(args)
         if converter_count_before is not None and converter_count_after is not None:
-            duplicate_miss_converter_calls = (
-                converter_count_after - converter_count_before
-            )
+            duplicate_miss_converter_calls = converter_count_after - converter_count_before
         duplicate_error_rows = duplicate_report.get("errorRowCount", 0)
         if args.fail_on_error_rows and duplicate_error_rows:
             raise SystemExit(
@@ -265,6 +298,16 @@ def run_fixture_probe(
             concurrency=1,
             report_path=output_dir / "shard-cache-reuse.json",
         )
+    region_projection_reuse_report = None
+    region_projection_reuse_purge = {"path": None, "existed": False}
+    if getattr(args, "region_projection_reuse_probe", False):
+        region_projection_reuse_purge = purge_ocr2_region_render_cache(args)
+        region_projection_reuse_report = run_region_projection_reuse_perf_test(
+            args,
+            fixture_path,
+            output_dir,
+            restart_provider=restart_provider,
+        )
     artifact_registry_reuse_report = None
     if args.artifact_registry_reuse_probe:
         artifact_registry_reuse_report = run_cargo_perf_test(
@@ -290,12 +333,10 @@ def run_fixture_probe(
         fixture_name,
         output_dir,
     )
-    audio_transcript_reference_draft = (
-        export_audio_transcript_reference_draft_for_fixture(
-            args,
-            fixture_name,
-            output_dir,
-        )
+    audio_transcript_reference_draft = export_audio_transcript_reference_draft_for_fixture(
+        args,
+        fixture_name,
+        output_dir,
     )
     cached_latencies = cached_report["latenciesMs"]
     request_count = cached_report["requestCount"]
@@ -303,8 +344,11 @@ def run_fixture_probe(
     total_rows = row_count * request_count
     force_error_rows = force_report.get("errorRowCount", 0)
     shard_cache_reuse_error_rows = (
-        shard_cache_reuse_report.get("errorRowCount", 0)
-        if shard_cache_reuse_report
+        shard_cache_reuse_report.get("errorRowCount", 0) if shard_cache_reuse_report else 0
+    )
+    region_projection_reuse_error_rows = (
+        region_projection_reuse_report.get("errorRowCount", 0)
+        if region_projection_reuse_report
         else 0
     )
     artifact_registry_reuse_error_rows = (
@@ -313,21 +357,20 @@ def run_fixture_probe(
         else 0
     )
     cache_error_rows = cached_report.get("errorRowCount", 0)
-    force_artifact_summary = summarize_artifact_reports(
-        force_report.get("artifactReports", [])
-    )
-    artifact_summary = summarize_artifact_reports(
-        cached_report.get("artifactReports", [])
-    )
+    force_artifact_summary = summarize_artifact_reports(force_report.get("artifactReports", []))
+    artifact_summary = summarize_artifact_reports(cached_report.get("artifactReports", []))
     shard_cache_reuse_artifact_summary = (
         summarize_artifact_reports(shard_cache_reuse_report.get("artifactReports", []))
         if shard_cache_reuse_report
         else None
     )
+    region_projection_reuse_artifact_summary = (
+        summarize_artifact_reports(region_projection_reuse_report.get("artifactReports", []))
+        if region_projection_reuse_report
+        else None
+    )
     artifact_registry_reuse_artifact_summary = (
-        summarize_artifact_reports(
-            artifact_registry_reuse_report.get("artifactReports", [])
-        )
+        summarize_artifact_reports(artifact_registry_reuse_report.get("artifactReports", []))
         if artifact_registry_reuse_report
         else None
     )
@@ -336,22 +379,26 @@ def run_fixture_probe(
         "cache": artifact_summary["metricsRows"],
     }
     if shard_cache_reuse_artifact_summary:
-        metrics_rows_by_run["shard_cache_reuse"] = shard_cache_reuse_artifact_summary[
+        metrics_rows_by_run["shard_cache_reuse"] = shard_cache_reuse_artifact_summary["metricsRows"]
+    if region_projection_reuse_artifact_summary:
+        metrics_rows_by_run["region_projection_reuse"] = region_projection_reuse_artifact_summary[
             "metricsRows"
         ]
     if artifact_registry_reuse_artifact_summary:
-        metrics_rows_by_run["artifact_registry_reuse"] = (
-            artifact_registry_reuse_artifact_summary["metricsRows"]
-        )
+        metrics_rows_by_run["artifact_registry_reuse"] = artifact_registry_reuse_artifact_summary[
+            "metricsRows"
+        ]
     structure_order_consistency = fixture_structure_order_consistency(
         force_report,
         cached_report,
         shard_cache_reuse_report,
+        region_projection_reuse_report,
         artifact_registry_reuse_report,
     )
     if args.fail_on_error_rows and (
         force_error_rows
         or shard_cache_reuse_error_rows
+        or region_projection_reuse_error_rows
         or artifact_registry_reuse_error_rows
         or cache_error_rows
     ):
@@ -359,20 +406,20 @@ def run_fixture_probe(
             f"fixture `{fixture_name}` produced document extraction error rows: "
             f"force={force_error_rows}, "
             f"shard_cache_reuse={shard_cache_reuse_error_rows}, "
+            f"region_projection_reuse={region_projection_reuse_error_rows}, "
             f"artifact_registry_reuse={artifact_registry_reuse_error_rows}, "
             f"cache={cache_error_rows}"
         )
     if getattr(args, "fail_on_missing_ocr_metrics", False):
         missing_metrics_runs = [
-            name
-            for name, metrics_rows in metrics_rows_by_run.items()
-            if metrics_rows <= 0
+            name for name, metrics_rows in metrics_rows_by_run.items() if metrics_rows <= 0
         ]
         if missing_metrics_runs:
             fallback_reasons = hybrid_page_ocr_fallback_reasons_by_run(
                 force_report,
                 cached_report,
                 shard_cache_reuse_report,
+                region_projection_reuse_report,
                 artifact_registry_reuse_report,
             )
             reason_suffix = (
@@ -402,15 +449,16 @@ def run_fixture_probe(
         )
     rust_jobs_status_summary = combine_rust_jobs_status_summaries(
         [
-            (
-                duplicate_report.get("rustJobsStatusSummary", {})
-                if duplicate_report
-                else {}
-            ),
+            (duplicate_report.get("rustJobsStatusSummary", {}) if duplicate_report else {}),
             force_report.get("rustJobsStatusSummary", {}),
             (
                 shard_cache_reuse_report.get("rustJobsStatusSummary", {})
                 if shard_cache_reuse_report
+                else {}
+            ),
+            (
+                region_projection_reuse_report.get("rustJobsStatusSummary", {})
+                if region_projection_reuse_report
                 else {}
             ),
             (
@@ -454,21 +502,29 @@ def run_fixture_probe(
         "doclingGroundtruthMinMarkdownSimilarity": force_docling_groundtruth[
             "minMarkdownSimilarity"
         ],
-        "doclingGroundtruthMinCharCoverageRatio": force_docling_groundtruth[
-            "minCharCoverageRatio"
-        ],
+        "doclingGroundtruthMinCharCoverageRatio": force_docling_groundtruth["minCharCoverageRatio"],
         "shardCacheReuseEnabled": args.shard_cache_reuse_probe,
         "shardCacheReuseForceMs": (
-            shard_cache_reuse_report["latenciesMs"][0]
-            if shard_cache_reuse_report
-            else None
+            shard_cache_reuse_report["latenciesMs"][0] if shard_cache_reuse_report else None
         ),
         "shardCacheReuseErrorRows": shard_cache_reuse_error_rows,
         "shardCacheReuseStatusCounts": (
-            shard_cache_reuse_report.get("statusCounts", {})
-            if shard_cache_reuse_report
+            shard_cache_reuse_report.get("statusCounts", {}) if shard_cache_reuse_report else {}
+        ),
+        "regionProjectionReuseEnabled": getattr(args, "region_projection_reuse_probe", False),
+        "regionProjectionReuseForceMs": (
+            region_projection_reuse_report["latenciesMs"][0]
+            if region_projection_reuse_report
+            else None
+        ),
+        "regionProjectionReuseErrorRows": region_projection_reuse_error_rows,
+        "regionProjectionReuseStatusCounts": (
+            region_projection_reuse_report.get("statusCounts", {})
+            if region_projection_reuse_report
             else {}
         ),
+        "regionProjectionReusePurgePath": region_projection_reuse_purge["path"],
+        "regionProjectionReusePurgeExisted": region_projection_reuse_purge["existed"],
         "artifactRegistryReuseEnabled": args.artifact_registry_reuse_probe,
         "artifactRegistryReuseForceMs": (
             artifact_registry_reuse_report["latenciesMs"][0]
@@ -497,15 +553,11 @@ def run_fixture_probe(
         "rustJobsMaxInProcessRunningConversions": rust_jobs_status_summary[
             "maxInProcessRunningConversions"
         ],
-        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary[
-            "maxInProcessScheduledJobs"
-        ],
+        "rustJobsMaxInProcessScheduledJobs": rust_jobs_status_summary["maxInProcessScheduledJobs"],
         "rustJobsMinAvailableConversionPermits": rust_jobs_status_summary[
             "minAvailableConversionPermits"
         ],
-        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary[
-            "maxConversionDurationMs"
-        ],
+        "rustJobsMaxConversionDurationMs": rust_jobs_status_summary["maxConversionDurationMs"],
         "rows": row_count,
         "totalRows": total_rows,
         "batches": cached_report["batchCount"],
@@ -516,23 +568,253 @@ def run_fixture_probe(
         "audioTranscriptTimelineMarkerCount": artifact_summary[
             "audioTranscriptTimelineMarkerCount"
         ],
-        "audioTranscriptTimelineMarkedRows": artifact_summary[
-            "audioTranscriptTimelineMarkedRows"
+        "audioTranscriptTimelineMarkedRows": artifact_summary["audioTranscriptTimelineMarkedRows"],
+        "forceAudioMaterializationShardCount": force_artifact_summary[
+            "audioMaterializationShardCount"
+        ],
+        "forceAudioMaterializationByteCount": force_artifact_summary[
+            "audioMaterializationByteCount"
+        ],
+        "forceAudioMaterializationArtifactCacheBackendCounts": force_artifact_summary[
+            "audioMaterializationArtifactCacheBackendCounts"
+        ],
+        "forceAudioMaterializationArtifactCacheMemoryBytes": force_artifact_summary[
+            "audioMaterializationArtifactCacheMemoryBytes"
+        ],
+        "forceAudioMaterializationArtifactCacheStorageBytes": force_artifact_summary[
+            "audioMaterializationArtifactCacheStorageBytes"
+        ],
+        "forceAudioMaterializationArtifactCacheConfigErrorCount": force_artifact_summary[
+            "audioMaterializationArtifactCacheConfigErrorCount"
+        ],
+        "forceAudioMaterializationArtifactCacheHitCount": force_artifact_summary[
+            "audioMaterializationArtifactCacheHitCount"
+        ],
+        "forceAudioMaterializationArtifactCacheHitBytes": force_artifact_summary[
+            "audioMaterializationArtifactCacheHitBytes"
+        ],
+        "forceAudioMaterializationExistingOutputCount": force_artifact_summary[
+            "audioMaterializationExistingOutputCount"
+        ],
+        "forceAudioMaterializationExistingOutputBytes": force_artifact_summary[
+            "audioMaterializationExistingOutputBytes"
+        ],
+        "forceAudioMaterializationMediaSplitterCount": force_artifact_summary[
+            "audioMaterializationMediaSplitterCount"
+        ],
+        "forceAudioMaterializationMediaSplitterBytes": force_artifact_summary[
+            "audioMaterializationMediaSplitterBytes"
+        ],
+        "forceAudioMaterializationSourceCounts": force_artifact_summary[
+            "audioMaterializationSourceCounts"
+        ],
+        "forceAudioMaterializationSourceBytes": force_artifact_summary[
+            "audioMaterializationSourceBytes"
+        ],
+        "forceAudioMaterializationWorkflowIds": force_artifact_summary[
+            "audioMaterializationWorkflowIds"
+        ],
+        "forceAudioMaterializationWorkflowStageCount": force_artifact_summary[
+            "audioMaterializationWorkflowStageCount"
+        ],
+        "forceAudioMaterializationWorkflowTotalElapsedMs": force_artifact_summary[
+            "audioMaterializationWorkflowTotalElapsedMs"
+        ],
+        "forceAudioMaterializationWorkflowStageElapsedMs": force_artifact_summary[
+            "audioMaterializationWorkflowStageElapsedMs"
+        ],
+        "forceAudioTranscriptAdmissionEnabled": force_artifact_summary[
+            "audioTranscriptAdmissionEnabled"
+        ],
+        "forceAudioTranscriptAdmissionHitCount": force_artifact_summary[
+            "audioTranscriptAdmissionHitCount"
+        ],
+        "forceAudioTranscriptAdmissionMissCount": force_artifact_summary[
+            "audioTranscriptAdmissionMissCount"
+        ],
+        "forceAudioTranscriptAdmissionStoredCount": force_artifact_summary[
+            "audioTranscriptAdmissionStoredCount"
+        ],
+        "forceAudioTranscriptAdmissionStaleCount": force_artifact_summary[
+            "audioTranscriptAdmissionStaleCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedHitCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedHitCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedMissCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedMissCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedStoredCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedStoredCount"
+        ],
+        "forceAudioTranscriptAdmissionPlannedStaleCount": force_artifact_summary[
+            "audioTranscriptAdmissionPlannedStaleCount"
+        ],
+        "artifactRegistryReuseAudioMaterializationShardCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationShardCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationByteCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationByteCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheBackendCounts": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheBackendCounts"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheMemoryBytes": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationArtifactCacheMemoryBytes"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheStorageBytes": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheStorageBytes"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheConfigErrorCount": (
+            artifact_registry_reuse_artifact_summary[
+                "audioMaterializationArtifactCacheConfigErrorCount"
+            ]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheHitCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationArtifactCacheHitCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationArtifactCacheHitBytes": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationArtifactCacheHitBytes"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationExistingOutputCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationExistingOutputCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationExistingOutputBytes": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationExistingOutputBytes"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationMediaSplitterCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationMediaSplitterCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationMediaSplitterBytes": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationMediaSplitterBytes"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationSourceCounts": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationSourceCounts"]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioMaterializationSourceBytes": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationSourceBytes"]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowIds": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowIds"]
+            if artifact_registry_reuse_artifact_summary
+            else []
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowStageCount": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowStageCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowTotalElapsedMs": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowTotalElapsedMs"]
+            if artifact_registry_reuse_artifact_summary
+            else 0.0
+        ),
+        "artifactRegistryReuseAudioMaterializationWorkflowStageElapsedMs": (
+            artifact_registry_reuse_artifact_summary["audioMaterializationWorkflowStageElapsedMs"]
+            if artifact_registry_reuse_artifact_summary
+            else {}
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionEnabled": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionEnabled"]
+            if artifact_registry_reuse_artifact_summary
+            else False
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionHitCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionHitCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionMissCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionMissCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionStoredCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionStoredCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionStaleCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionStaleCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedHitCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedHitCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedMissCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedMissCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedStoredCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedStoredCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "artifactRegistryReuseAudioTranscriptAdmissionPlannedStaleCount": (
+            artifact_registry_reuse_artifact_summary["audioTranscriptAdmissionPlannedStaleCount"]
+            if artifact_registry_reuse_artifact_summary
+            else 0
+        ),
+        "cacheAudioMaterializationShardCount": artifact_summary["audioMaterializationShardCount"],
+        "cacheAudioMaterializationSourceCounts": artifact_summary[
+            "audioMaterializationSourceCounts"
+        ],
+        "cacheAudioMaterializationWorkflowStageElapsedMs": artifact_summary[
+            "audioMaterializationWorkflowStageElapsedMs"
         ],
         "audioTranscriptOrgPath": audio_transcript_org["path"],
         "audioTranscriptOrgRows": audio_transcript_org["rows"],
         "audioTranscriptOrgChars": audio_transcript_org["chars"],
-        "audioTranscriptOrgTimelineMarkerCount": audio_transcript_org[
-            "timelineMarkerCount"
-        ],
-        "audioTranscriptReferenceDraftJsonlPath": audio_transcript_reference_draft[
-            "jsonlPath"
-        ],
-        "audioTranscriptReferenceDraftTsvPath": audio_transcript_reference_draft[
-            "tsvPath"
-        ],
+        "audioTranscriptOrgTimelineMarkerCount": audio_transcript_org["timelineMarkerCount"],
+        "audioTranscriptReferenceDraftJsonlPath": audio_transcript_reference_draft["jsonlPath"],
+        "audioTranscriptReferenceDraftTsvPath": audio_transcript_reference_draft["tsvPath"],
         "audioTranscriptReferenceDraftRows": audio_transcript_reference_draft["rows"],
         "audioTranscriptReferenceDraftChars": audio_transcript_reference_draft["chars"],
+        "audioTranscriptReferenceDraftEmptyRows": audio_transcript_reference_draft["emptyRows"],
+        "audioTranscriptReferenceDraftMinChars": audio_transcript_reference_draft["minChars"],
+        "audioTranscriptReferenceDraftMaxChars": audio_transcript_reference_draft["maxChars"],
+        "audioTranscriptReferenceDraftDuplicateTextHashCount": (
+            audio_transcript_reference_draft["duplicateTextHashCount"]
+        ),
+        "audioTranscriptReferenceDraftUniqueTextHashCount": (
+            audio_transcript_reference_draft["uniqueTextHashCount"]
+        ),
         "structureArrowExists": artifact_summary["structureArrowExists"],
         "structureRows": artifact_summary["structureRows"],
         "structureOcrPageBlocks": artifact_summary["structureOcrPageBlocks"],
@@ -547,9 +829,7 @@ def run_fixture_probe(
         "metricsRows": artifact_summary["metricsRows"],
         "metricsResultChars": artifact_summary["metricsResultChars"],
         "metricsBboxCount": artifact_summary["metricsBboxCount"],
-        "metricsRustSchedulerElapsedMs": artifact_summary[
-            "metricsRustSchedulerElapsedMs"
-        ],
+        "metricsRustSchedulerElapsedMs": artifact_summary["metricsRustSchedulerElapsedMs"],
         "forceHybridPageOcrTimingTotalElapsedMs": force_artifact_summary[
             "hybridPageOcrTimingTotalElapsedMs"
         ],
@@ -571,12 +851,47 @@ def run_fixture_probe(
         "forceHybridPageOcrTimingOcr2RegionRenderCacheMissCount": force_artifact_summary[
             "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
         ],
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"]
+        ),
+        **_prefixed_ocr2_region_render_artifact_kind_counts(
+            "forceHybridPageOcrTiming",
+            force_artifact_summary,
+        ),
+        "forceHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineEndpointCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"]
+        ),
+        "forceHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
+            force_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"]
+        ),
         "structureAuthorityPages": force_artifact_summary["structureAuthorityPages"],
         "textShortcutPages": force_artifact_summary["textShortcutPages"],
         "ocrPatchRegions": force_artifact_summary["ocrPatchRegions"],
-        "pageRangeDoclingFallbackPages": force_artifact_summary[
-            "pageRangeDoclingFallbackPages"
-        ],
+        "pageRangeDoclingFallbackPages": force_artifact_summary["pageRangeDoclingFallbackPages"],
         "pageRangeDoclingFallbackChunkCount": force_artifact_summary[
             "pageRangeDoclingFallbackChunkCount"
         ],
@@ -606,59 +921,210 @@ def run_fixture_probe(
             else {}
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionShardCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionShardCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionShardCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRequestCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRequestCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRequestCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderedShardCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderedShardCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRenderedShardCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRenderCacheHitCount"]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRenderCacheMissCount"]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": (
             shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        **_prefixed_ocr2_region_render_artifact_kind_counts(
+            "shardCacheReuseHybridPageOcrTiming",
+            shard_cache_reuse_artifact_summary,
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelinePlannedRenderChunkCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineEndpointCount": (
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionPipelineEndpointCount"]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderAheadLimit"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderSpawnCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRenderChunkCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRenderChunkCount"
+            ]
+            if shard_cache_reuse_artifact_summary
+            else None
+        ),
+        "shardCacheReuseHybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount": (
+            shard_cache_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionPipelineRegionDispatchCount"
             ]
             if shard_cache_reuse_artifact_summary
             else None
         ),
         "shardCacheReuseHybridPageOcrTimingSchedulerTraceSummary": (
-            shard_cache_reuse_artifact_summary[
-                "hybridPageOcrTimingSchedulerTraceSummary"
-            ]
+            shard_cache_reuse_artifact_summary["hybridPageOcrTimingSchedulerTraceSummary"]
             if shard_cache_reuse_artifact_summary
+            else {}
+        ),
+        "regionProjectionReuseMetricsRustSchedulerElapsedMs": (
+            region_projection_reuse_artifact_summary["metricsRustSchedulerElapsedMs"]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingTotalElapsedMs": (
+            region_projection_reuse_artifact_summary["hybridPageOcrTimingTotalElapsedMs"]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingPhaseElapsedMs": (
+            region_projection_reuse_artifact_summary["hybridPageOcrTimingPhaseElapsedMs"]
+            if region_projection_reuse_artifact_summary
+            else {}
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionShardCount": (
+            region_projection_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionShardCount"]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRequestCount": (
+            region_projection_reuse_artifact_summary["hybridPageOcrTimingOcr2RegionRequestCount"]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderedShardCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderedShardCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderCacheHitCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderCacheHitCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderCacheMissCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderCacheMissCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheHitCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheMissCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheThrottledCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderArtifactCacheByteCount"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        **_prefixed_ocr2_region_render_artifact_kind_counts(
+            "regionProjectionReuseHybridPageOcrTiming",
+            region_projection_reuse_artifact_summary,
+        ),
+        "regionProjectionReuseHybridPageOcrTimingOcr2RegionRenderReportedElapsedMs": (
+            region_projection_reuse_artifact_summary[
+                "hybridPageOcrTimingOcr2RegionRenderReportedElapsedMs"
+            ]
+            if region_projection_reuse_artifact_summary
+            else None
+        ),
+        "regionProjectionReuseHybridPageOcrTimingSchedulerTraceSummary": (
+            region_projection_reuse_artifact_summary["hybridPageOcrTimingSchedulerTraceSummary"]
+            if region_projection_reuse_artifact_summary
             else {}
         ),
         "documentTimingArrowExists": artifact_summary["documentTimingArrowExists"],
         "documentTimingRows": artifact_summary["documentTimingRows"],
-        "documentTimingTotalElapsedMs": artifact_summary[
-            "documentTimingTotalElapsedMs"
-        ],
+        "documentTimingTotalElapsedMs": artifact_summary["documentTimingTotalElapsedMs"],
         "documentTimingOverheadMs": document_timing_overhead_ms,
-        "documentTimingPhaseElapsedMs": artifact_summary[
-            "documentTimingPhaseElapsedMs"
-        ],
-        "hybridPageOcrFallbackReasons": artifact_summary[
-            "hybridPageOcrFallbackReasons"
-        ],
+        "documentTimingPhaseElapsedMs": artifact_summary["documentTimingPhaseElapsedMs"],
+        "hybridPageOcrFallbackReasons": artifact_summary["hybridPageOcrFallbackReasons"],
         "imageAttachmentAuditCount": artifact_summary["imageAttachmentAuditCount"],
         "imageKnownDimensionCount": artifact_summary["imageKnownDimensionCount"],
         "imageFormatCounts": artifact_summary["imageFormatCounts"],
@@ -674,18 +1140,50 @@ def run_fixture_probe(
         "archiveImageMemberCount": artifact_summary["archiveImageMemberCount"],
         "archiveTotalMemberSizeBytes": artifact_summary["archiveTotalMemberSizeBytes"],
         "archiveFormatCounts": artifact_summary["archiveFormatCounts"],
-        "archiveAccelerationCandidates": artifact_summary[
-            "archiveAccelerationCandidates"
-        ],
+        "archiveAccelerationCandidates": artifact_summary["archiveAccelerationCandidates"],
         "archiveExtensionCounts": artifact_summary["archiveExtensionCounts"],
-        "maxArchiveLargestMemberSizeBytes": artifact_summary[
-            "maxArchiveLargestMemberSizeBytes"
-        ],
+        "maxArchiveLargestMemberSizeBytes": artifact_summary["maxArchiveLargestMemberSizeBytes"],
         "artifactErrorCount": artifact_summary["artifactErrorCount"],
         "artifactReports": cached_report.get("artifactReports", []),
         "rowsPerSecond": rows_per_second(total_rows, cached_report["wallTimeMs"]),
         "cacheSpeedup": force_refresh_ms / max(percentile(cached_latencies, 50), 0.001),
     }
+
+
+def run_region_projection_reuse_perf_test(
+    args: argparse.Namespace,
+    fixture_path: Path,
+    output_dir: Path,
+    *,
+    restart_provider: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    report_path = output_dir / "region-projection-reuse.json"
+    last_error: subprocess.CalledProcessError | None = None
+    for attempt in range(2):
+        if report_path.exists():
+            report_path.unlink()
+        probe_output_dir = (
+            output_dir / "region-projection-reuse"
+            if attempt == 0
+            else output_dir / f"region-projection-reuse-retry-{attempt + 1}"
+        )
+        try:
+            return run_cargo_perf_test(
+                args,
+                fixture_path,
+                probe_output_dir,
+                force=True,
+                iterations=1,
+                concurrency=1,
+                report_path=report_path,
+            )
+        except subprocess.CalledProcessError as error:
+            last_error = error
+            if restart_provider is not None and attempt == 0:
+                restart_provider("region projection reuse probe retry")
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("region projection reuse probe failed without an error")
 
 
 def export_audio_transcript_org_for_fixture(
@@ -700,9 +1198,7 @@ def export_audio_transcript_org_for_fixture(
             "chars": 0,
             "timelineMarkerCount": 0,
         }
-    report_dir = Path(
-        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
-    )
+    report_dir = Path(getattr(args, "report_dir_path", getattr(args, "report_dir", ".")))
     org_path = report_dir / "audio-transcripts" / f"{fixture_name}.org"
     return export_audio_transcript_org(
         output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
@@ -721,10 +1217,13 @@ def export_audio_transcript_reference_draft_for_fixture(
             "tsvPath": None,
             "rows": 0,
             "chars": 0,
+            "emptyRows": 0,
+            "minChars": 0,
+            "maxChars": 0,
+            "duplicateTextHashCount": 0,
+            "uniqueTextHashCount": 0,
         }
-    report_dir = Path(
-        getattr(args, "report_dir_path", getattr(args, "report_dir", "."))
-    )
+    report_dir = Path(getattr(args, "report_dir_path", getattr(args, "report_dir", ".")))
     draft_dir = report_dir / "audio-transcripts"
     return export_audio_transcript_reference_drafts(
         output_dir / DOCUMENT_RESOURCES_ARROW_CACHE_NAME,
@@ -733,10 +1232,29 @@ def export_audio_transcript_reference_draft_for_fixture(
     )
 
 
+def purge_ocr2_region_render_cache(args: argparse.Namespace) -> dict[str, Any]:
+    root = ocr2_region_render_cache_root(args)
+    if root is None:
+        return {"path": None, "existed": False}
+    existed = root.exists()
+    if existed:
+        shutil.rmtree(root)
+    return {"path": str(root), "existed": existed}
+
+
+def ocr2_region_render_cache_root(args: argparse.Namespace) -> Path | None:
+    cache_root = getattr(args, "ocr_shard_cache_root", None)
+    if cache_root is None:
+        return None
+    cache_root_path = Path(cache_root)
+    return cache_root_path.parent / OCR2_REGION_RENDER_CACHE_DIR_NAME
+
+
 def hybrid_page_ocr_fallback_reasons_by_run(
     force_report: dict[str, Any],
     cached_report: dict[str, Any],
     shard_cache_reuse_report: dict[str, Any] | None,
+    region_projection_reuse_report: dict[str, Any] | None,
     artifact_registry_reuse_report: dict[str, Any] | None,
 ) -> list[str]:
     reports_by_run = {
@@ -745,6 +1263,8 @@ def hybrid_page_ocr_fallback_reasons_by_run(
     }
     if shard_cache_reuse_report is not None:
         reports_by_run["shard_cache_reuse"] = shard_cache_reuse_report
+    if region_projection_reuse_report is not None:
+        reports_by_run["region_projection_reuse"] = region_projection_reuse_report
     if artifact_registry_reuse_report is not None:
         reports_by_run["artifact_registry_reuse"] = artifact_registry_reuse_report
     reasons = []
@@ -818,7 +1338,19 @@ def run_cargo_perf_test(
             "WENDAO_DOCUMENT_EXTRACT_PERF_REPORT": str(report_path),
         }
     )
+    if (audio_worker := getattr(args, "audio_worker", None)) not in (None, "skip"):
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_WORKER"] = str(audio_worker)
+    audio_header_mappings = {
+        "audio_hosted_provider": "WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_PROVIDER",
+        "audio_hosted_base_url": "WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_BASE_URL",
+        "audio_hosted_model": "WENDAO_DOCUMENT_EXTRACT_PERF_AUDIO_HOSTED_MODEL",
+    }
+    for attr, key in audio_header_mappings.items():
+        value = getattr(args, attr, None)
+        if value is not None:
+            env[key] = str(value)
     apply_rust_pdf_ocr_env(args, env)
+    apply_rust_audio_env(args, env)
     if inputs is not None:
         env["WENDAO_DOCUMENT_EXTRACT_PERF_INPUTS_JSON"] = json.dumps(
             [
@@ -832,9 +1364,7 @@ def run_cargo_perf_test(
         )
     structure_baseline_root = getattr(args, "structure_baseline_root", None)
     if include_structure_baseline_root and structure_baseline_root is not None:
-        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(
-            structure_baseline_root
-        )
+        env["WENDAO_DOCUMENT_EXTRACT_PERF_STRUCTURE_BASELINE_ROOT"] = str(structure_baseline_root)
     command = [
         args.cargo,
         "test",
@@ -861,9 +1391,7 @@ def run_cargo_perf_test(
     report["maxRssKb"] = max_rss_kb()
     report["rustJobsStatusSamples"] = status_samples
     report["rustJobsStatusSummary"] = summarize_rust_jobs_status_samples(status_samples)
-    report_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True), encoding="utf-8"
-    )
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     return report
 
 

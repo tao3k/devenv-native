@@ -41,12 +41,6 @@ pub struct RepoSyncRequest {
     pub mode: RepoSyncMode,
 }
 
-impl PartialEq<(String, String)> for RepoSyncRequest {
-    fn eq(&self, other: &(String, String)) -> bool {
-        self.repo_id == other.0 && self.mode.as_str() == other.1
-    }
-}
-
 /// Validate the stable repo sync request contract.
 ///
 /// # Errors

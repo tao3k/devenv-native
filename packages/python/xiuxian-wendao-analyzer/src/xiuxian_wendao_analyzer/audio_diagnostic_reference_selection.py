@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any
 
 from xiuxian_wendao_analyzer.audio_diagnostic_report_writers import (
     write_jsonl,
-    write_text,
 )
 
 if TYPE_CHECKING:
@@ -24,7 +23,6 @@ def select_reference_draft_report(
     limit: int,
     quality_json: Path | None = None,
     selected_jsonl: Path | None = None,
-    selected_tsv: Path | None = None,
 ) -> dict[str, object]:
     """Select the most useful draft rows for manual CER curation."""
 
@@ -34,14 +32,11 @@ def select_reference_draft_report(
     selected = select_reference_rows(rows, limit=limit)
     if selected_jsonl is not None:
         write_jsonl(selected_jsonl, selected)
-    if selected_tsv is not None:
-        _write_selection_tsv(selected_tsv, selected)
     return {
         "schema": REFERENCE_SELECTION_SCHEMA,
         "draftJsonl": str(draft_jsonl),
         "qualityJson": "" if quality_json is None else str(quality_json),
         "selectedJsonl": "" if selected_jsonl is None else str(selected_jsonl),
-        "selectedTsv": "" if selected_tsv is None else str(selected_tsv),
         "totalRows": len(rows),
         "selectedRows": len(selected),
         "limit": limit,
@@ -71,27 +66,30 @@ def select_reference_rows(
 
     if limit <= 0:
         raise ValueError("reference selection limit must be positive")
-    sorted_rows = sorted(
-        rows, key=lambda row: (_float(row, "startSeconds"), _index(row))
-    )
+    sorted_rows = sorted(rows, key=lambda row: (_float(row, "startSeconds"), _index(row)))
     selected: dict[int, dict[str, object]] = {}
     for row in sorted_rows:
         reason = _priority_reason(row)
-        if reason:
+        if reason and len(selected) < limit:
             _add_selection(selected, row, reason)
     remaining_slots = max(0, limit - len(selected))
-    for row in _evenly_spaced_rows(sorted_rows, remaining_slots):
+    spread_candidates = [row for row in sorted_rows if _index(row) not in selected]
+    for row in _evenly_spaced_rows(spread_candidates, remaining_slots):
         _add_selection(selected, row, "timeline-spread")
-    return sorted(
-        selected.values(), key=lambda row: (_float(row, "startSeconds"), _index(row))
-    )
+    remaining_slots = max(0, limit - len(selected))
+    for row in sorted_rows:
+        if remaining_slots <= 0:
+            break
+        if _index(row) in selected:
+            continue
+        _add_selection(selected, row, "timeline-fill")
+        remaining_slots -= 1
+    return sorted(selected.values(), key=lambda row: (_float(row, "startSeconds"), _index(row)))
 
 
 def _load_draft_rows(path: Path) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
-    for line_number, raw_line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not raw_line.strip():
             continue
         row = json.loads(raw_line)
@@ -165,28 +163,6 @@ def _add_selection(
     reasons = {part for part in str(item.get("selectionReason", "")).split("|") if part}
     reasons.add(reason)
     item["selectionReason"] = "|".join(sorted(reasons))
-
-
-def _write_selection_tsv(path: Path, rows: Sequence[Mapping[str, object]]) -> None:
-    header = [
-        "source",
-        "sourceId",
-        "chunkIndex",
-        "startSeconds",
-        "durationSeconds",
-        "reviewStatus",
-        "selectionReason",
-        "referenceStatus",
-        "text",
-    ]
-    lines = ["\t".join(header)]
-    for row in rows:
-        lines.append("\t".join(_tsv_cell(row.get(name, "")) for name in header))
-    write_text(path, "\n".join(lines) + "\n")
-
-
-def _tsv_cell(value: object) -> str:
-    return str(value).replace("\t", " ").replace("\r", " ").replace("\n", "\\n")
 
 
 def _index(row: Mapping[str, object]) -> int:

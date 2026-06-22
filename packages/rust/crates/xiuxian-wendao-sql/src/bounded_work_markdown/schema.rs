@@ -1,22 +1,37 @@
 use std::sync::Arc;
 
 use arrow::array::{Int64Array, StringArray};
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::SchemaRef;
 use arrow::record_batch::RecordBatch;
+
+use crate::arrow_contract::{ArrowFieldContract, ArrowFieldType, ArrowTableContract};
 
 use super::rows::BoundedWorkMarkdownRow;
 
-pub(crate) fn bounded_work_markdown_schema() -> Arc<Schema> {
-    Arc::new(Schema::new(vec![
-        Field::new("path", DataType::Utf8, false),
-        Field::new("surface", DataType::Utf8, false),
-        Field::new("surface_kind", DataType::Utf8, false),
-        Field::new("heading_path", DataType::Utf8, false),
-        Field::new("title", DataType::Utf8, false),
-        Field::new("level", DataType::Int64, false),
-        Field::new("skeleton", DataType::Utf8, false),
-        Field::new("body", DataType::Utf8, false),
-    ]))
+const BOUNDED_WORK_MARKDOWN_SCHEMA_VERSION: &str = "xiuxian_wendao.bounded_work_markdown.v1";
+
+const BOUNDED_WORK_MARKDOWN_FIELDS: [ArrowFieldContract; 8] = [
+    ArrowFieldContract::new("path", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("surface", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("surface_kind", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("heading_path", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("title", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("level", ArrowFieldType::Int64, false),
+    ArrowFieldContract::new("skeleton", ArrowFieldType::Utf8, false),
+    ArrowFieldContract::new("body", ArrowFieldType::Utf8, false),
+];
+
+pub(crate) const fn bounded_work_markdown_contract() -> ArrowTableContract {
+    ArrowTableContract::new(
+        "xiuxian_wendao.bounded_work_markdown.markdown",
+        BOUNDED_WORK_MARKDOWN_SCHEMA_VERSION,
+        "markdown",
+        &BOUNDED_WORK_MARKDOWN_FIELDS,
+    )
+}
+
+pub(crate) fn bounded_work_markdown_schema() -> SchemaRef {
+    bounded_work_markdown_contract().schema()
 }
 
 pub(crate) fn build_markdown_record_batch(

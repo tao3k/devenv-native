@@ -15,7 +15,7 @@ fn test_qianji_manifest_schema_contract() -> Result<(), Box<dyn std::error::Erro
             base_url: None,
             query: None,
             argv: None,
-            qianhuan: None,
+            annotation: None,
             llm: None,
             consensus: None,
         }],

@@ -1,7 +1,7 @@
 //! Unified streaming parser for multi-agent CLI outputs.
 //!
 //! This module provides a common abstraction for parsing streaming output
-//! from various LLM CLI tools (Claude Code, Gemini CLI, Codex) into a unified
+//! from various agent CLI tools (Claude Code, Gemini CLI, Codex) into a unified
 //! event stream that can be consumed by Qianji nodes.
 //!
 //! # Zero-Copy Architecture

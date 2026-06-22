@@ -11,6 +11,7 @@ PIDFILE="${WENDAO_SENTINEL_PIDFILE:-$RUNTIME_DIR/wendao-sentinel.pid}"
 CONFIG_PATH="${WENDAO_GATEWAY_CONFIG:-$PROJECT_ROOT/wendao.toml}"
 WENDAO_BIN="${WENDAO_SENTINEL_BIN:-${WENDAO_GATEWAY_BIN:-$PROJECT_ROOT/target/debug/wendao}}"
 BUILD_ENABLED="${WENDAO_SENTINEL_BUILD:-1}"
+SENTINEL_FEATURES="${WENDAO_SENTINEL_FEATURES:-${WENDAO_GATEWAY_FEATURES:-cli-bin-support,zhenfa-router,document-extract-attachment-audit,document-extract-pdf-render,document-extract-audio-shards}}"
 
 CONFIG_PATH="$(process_abs_path "$PROJECT_ROOT" "$CONFIG_PATH")"
 RUNTIME_DIR="$(process_abs_path "$PROJECT_ROOT" "$RUNTIME_DIR")"
@@ -26,7 +27,7 @@ export VALKEY_URL="${VALKEY_URL:-redis://127.0.0.1:6379/0}"
 
 cd "$PROJECT_ROOT"
 if [ "$BUILD_ENABLED" != "0" ]; then
-  cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
+  cargo build -p xiuxian-wendao-studio --bin wendao --features "$SENTINEL_FEATURES" --locked
 fi
 
 "$WENDAO_BIN" --conf "$CONFIG_PATH" sentinel watch &

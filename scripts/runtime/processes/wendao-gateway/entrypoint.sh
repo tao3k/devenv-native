@@ -15,7 +15,8 @@ PORT_RESOLVER="${WENDAO_GATEWAY_PORT_RESOLVER:-$PROJECT_ROOT/scripts/runtime/res
 WENDAO_BIN="${WENDAO_GATEWAY_BIN:-$PROJECT_ROOT/target/debug/wendao}"
 STDOUT_LOG="${WENDAO_GATEWAY_STDOUT_LOG:-$LOG_DIR/wendao-gateway.stdout.log}"
 STDERR_LOG="${WENDAO_GATEWAY_STDERR_LOG:-$LOG_DIR/wendao-gateway.stderr.log}"
-BUILD_ENABLED="${WENDAO_GATEWAY_BUILD:-1}"
+BUILD_MODE="${WENDAO_GATEWAY_BUILD:-auto}"
+GATEWAY_FEATURES="${WENDAO_GATEWAY_FEATURES:-cli-bin-support,zhenfa-router,document-extract-attachment-audit,document-extract-pdf-render,document-extract-audio-shards,document-extract-legacy-office}"
 
 CONFIG_PATH="$(process_abs_path "$PROJECT_ROOT" "$CONFIG_PATH")"
 LOG_DIR="$(process_abs_path "$PROJECT_ROOT" "$LOG_DIR")"
@@ -34,13 +35,48 @@ rm -f "$PIDFILE"
 export VALKEY_URL="${VALKEY_URL:-redis://127.0.0.1:6379/0}"
 export XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING="${XIUXIAN_WENDAO_GATEWAY_BOOTSTRAP_BACKGROUND_INDEXING:-1}"
 export XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED="${XIUXIAN_WENDAO_GATEWAY_FLIGHT_GRPC_WEB_ENABLED:-true}"
-export XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS="${XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-120}"
+export XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS="${XIUXIAN_WENDAO_GATEWAY_FLIGHT_REQUEST_TIMEOUT_SECS:-600}"
+export WENDAO_MODEL_ROUTING_MODE="${WENDAO_MODEL_ROUTING_MODE:-deterministic}"
+export WENDAO_CHAT_ROUTE_PROVIDER="${WENDAO_CHAT_ROUTE_PROVIDER:-${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"
+export WENDAO_CHAT_ROUTE_MODEL="${WENDAO_CHAT_ROUTE_MODEL:-${WENDAO_VLLM_SR_DEFAULT_MODEL:-deepseek/deepseek-v4-pro}}"
+export WENDAO_CHAT_ROUTE_BACKEND_PROFILE="${WENDAO_CHAT_ROUTE_BACKEND_PROFILE:-openai-compatible-chat-v1}"
+export WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER="${WENDAO_AUDIO_TRANSCRIPT_ROUTE_PROVIDER:-${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"
+export WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL="${WENDAO_AUDIO_TRANSCRIPT_ROUTE_MODEL:-qwen/qwen3-asr-flash-2026-02-10}"
+export WENDAO_AUDIO_TRANSCRIPT_ROUTE_BACKEND_PROFILE="${WENDAO_AUDIO_TRANSCRIPT_ROUTE_BACKEND_PROFILE:-hosted-audio-transcript-v1}"
+export WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER="${WENDAO_IMAGE_EXTRACT_ROUTE_PROVIDER:-${WENDAO_VLLM_SR_DEFAULT_PROVIDER:-openrouter}}"
+export WENDAO_IMAGE_EXTRACT_ROUTE_MODEL="${WENDAO_IMAGE_EXTRACT_ROUTE_MODEL:-qwen/qwen3-vl-8b-instruct}"
+export WENDAO_IMAGE_EXTRACT_ROUTE_BACKEND_PROFILE="${WENDAO_IMAGE_EXTRACT_ROUTE_BACKEND_PROFILE:-hosted-vlm-image-extract-v1}"
 export WENDAO_GATEWAY_PIDFILE="$PIDFILE"
 
+build_wendao_gateway() {
+  cargo build -p xiuxian-wendao-studio --bin wendao --features "$GATEWAY_FEATURES" --locked
+}
+
 cd "$PROJECT_ROOT"
-if [ "$BUILD_ENABLED" != "0" ]; then
-  cargo build -p xiuxian-wendao-studio --bin wendao --features cli-bin-support,zhenfa-router --locked
-fi
+case "$BUILD_MODE" in
+  0|false|False|FALSE|off|OFF)
+    ;;
+  1|true|True|TRUE|on|ON)
+    if command -v cargo >/dev/null 2>&1; then
+      build_wendao_gateway
+    elif [ ! -x "$WENDAO_BIN" ]; then
+      echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
+      exit 1
+    fi
+    ;;
+  auto|"")
+    if command -v cargo >/dev/null 2>&1; then
+      build_wendao_gateway
+    elif [ ! -x "$WENDAO_BIN" ]; then
+      echo "Error: cargo not found and Wendao gateway binary is missing: $WENDAO_BIN" >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Error: unsupported WENDAO_GATEWAY_BUILD value: $BUILD_MODE" >&2
+    exit 1
+    ;;
+esac
 
 "$WENDAO_BIN" --conf "$CONFIG_PATH" gateway start \
   > >(tee -a "$STDOUT_LOG") \

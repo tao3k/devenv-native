@@ -42,7 +42,6 @@ Large search tasks are partitioned into discrete `WorkerPlans`, executing in par
 
 - [[docs/03_features/wendao-living-brain.md|Living Brain (Saliency Provider)]]
 - [[docs/03_features/wendao-context-snapshot.md|ContextSnap (State Recovery)]]
-- [[docs/03_features/qianhuan-audit-closure.md|Qianhuan Audit Loop]]
 
 ---
 

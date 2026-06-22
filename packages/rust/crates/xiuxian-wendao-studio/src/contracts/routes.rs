@@ -25,6 +25,10 @@ pub const API_STATS_OPENAPI_PATH: &str = "/api/stats";
 pub const API_NOTIFY_AXUM_PATH: &str = "/api/notify";
 /// `OpenAPI` path for the notify endpoint.
 pub const API_NOTIFY_OPENAPI_PATH: &str = "/api/notify";
+/// Axum runtime path for Gateway public API-token issuance.
+pub const API_AUTH_TOKENS_AXUM_PATH: &str = "/v1/auth/tokens";
+/// `OpenAPI` path for Gateway public API-token issuance.
+pub const API_AUTH_TOKENS_OPENAPI_PATH: &str = "/v1/auth/tokens";
 
 /// Axum runtime path for the docs projected-gap-report endpoint.
 pub const API_DOCS_PROJECTED_GAP_REPORT_AXUM_PATH: &str = "/api/docs/projected-gap-report";
@@ -278,6 +282,13 @@ const NOTIFY: RouteContract = RouteContract {
     axum_path: API_NOTIFY_AXUM_PATH,
     openapi_path: API_NOTIFY_OPENAPI_PATH,
     methods: &["get"],
+    path_params: &[],
+};
+
+const AUTH_TOKENS: RouteContract = RouteContract {
+    axum_path: API_AUTH_TOKENS_AXUM_PATH,
+    openapi_path: API_AUTH_TOKENS_OPENAPI_PATH,
+    methods: &["post"],
     path_params: &[],
 };
 
@@ -636,6 +647,7 @@ pub const WENDAO_GATEWAY_ROUTE_CONTRACTS: &[RouteContract] = route_contracts![
     HEALTH,
     STATS,
     NOTIFY,
+    AUTH_TOKENS,
     VFS_ROOT,
     VFS_SCAN,
     VFS_CAT,

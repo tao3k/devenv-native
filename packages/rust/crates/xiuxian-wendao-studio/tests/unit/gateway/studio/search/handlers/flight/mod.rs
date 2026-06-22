@@ -1,8 +1,8 @@
 mod analysis;
-mod ast;
 mod attachments;
 mod autocomplete;
 mod contracts;
+#[cfg(feature = "duckdb")]
 mod dataset_ontology;
 mod definition;
 mod fixtures;
@@ -12,6 +12,7 @@ mod headers;
 mod helpers;
 #[cfg(feature = "julia")]
 mod materialization;
+mod ontology_candidate_inspection;
 mod provider;
 mod vfs;
 
@@ -22,6 +23,8 @@ use fixtures::{
     build_analysis_route_service, build_service, make_gateway_state_with_attachments,
     make_gateway_state_with_docs, make_gateway_state_with_search_routes,
 };
+#[cfg(feature = "duckdb")]
+use headers::populate_dataset_ontology_headers;
 #[cfg(feature = "julia")]
 use headers::populate_repo_search_headers;
 use headers::{
@@ -32,12 +35,13 @@ use headers::{
     populate_vfs_resolve_headers, populate_vfs_scan_headers,
 };
 use headers::{
-    populate_code_ast_analysis_headers, populate_dataset_ontology_headers,
     populate_refine_doc_headers, populate_repo_doc_coverage_headers,
     populate_repo_overview_headers, populate_repo_projected_page_index_tree_headers,
     populate_repo_projected_retrieval_context_headers,
 };
+#[cfg(any(feature = "duckdb", feature = "julia"))]
+use helpers::collect_route_batches;
 use helpers::{
-    assert_route_ticket, assert_studio_flight_snapshot, collect_route_batches, fetch_flight_info,
-    first_string, first_ticket,
+    assert_route_ticket, assert_studio_flight_snapshot, fetch_flight_info, first_string,
+    first_ticket,
 };

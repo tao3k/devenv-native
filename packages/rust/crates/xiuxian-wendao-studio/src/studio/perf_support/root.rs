@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use xiuxian_config_core::{lookup_positive_parsed, resolve_path_from_value};
+use xiuxian_config_core::{ProjectDirs, lookup_positive_parsed, resolve_path_from_value};
 
 pub(crate) const REAL_WORKSPACE_ROOT_ENV: &str = "XIUXIAN_WENDAO_GATEWAY_PERF_WORKSPACE_ROOT";
 pub(crate) const REAL_WORKSPACE_READY_TIMEOUT_ENV: &str =
@@ -24,7 +24,7 @@ pub(crate) fn create_perf_root() -> anyhow::Result<PathBuf> {
 }
 
 pub(crate) fn resolve_real_workspace_root() -> Option<PathBuf> {
-    let project_root = xiuxian_io::PrjDirs::project_root();
+    let project_root = ProjectDirs::project_root();
     resolve_real_workspace_root_with_lookup(project_root.as_path(), &|key| std::env::var(key).ok())
 }
 

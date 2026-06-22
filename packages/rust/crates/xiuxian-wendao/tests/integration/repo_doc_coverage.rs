@@ -1,66 +1,62 @@
 //! Integration tests for Repo Intelligence documentation coverage flow.
 
-use std::fs;
-
 use crate::support::repo_intelligence::{
-    assert_repo_json_snapshot, create_sample_julia_repo, write_repo_config,
+    analyze_repository_from_config_cached, assert_repo_json_snapshot,
+    create_cached_sample_julia_repo, write_repo_config,
 };
-use crate::support::wendao_command;
 use serde_json::json;
-use xiuxian_wendao::analyzers::{
-    DocCoverageQuery, analyze_repository_from_config, doc_coverage_from_config,
-};
+use serial_test::serial;
+use xiuxian_wendao::analyzers::{DocCoverageQuery, build_doc_coverage};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 #[test]
+#[serial(repo_intelligence_doc_coverage)]
 fn doc_coverage_counts_symbol_specific_docs_for_module_scope() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    let repo_dir = create_sample_julia_repo(temp.path(), "CoveragePkg", true)?;
-    fs::write(repo_dir.join("docs").join("Problem.md"), "# Problem\n")?;
-    fs::write(repo_dir.join("docs").join("solve.md"), "# solve\n")?;
-    let config_path = write_repo_config(temp.path(), &repo_dir, "coverage-sample")?;
+    let repo_dir = create_cached_sample_julia_repo(
+        "doc-coverage-symbol",
+        "CoveragePkg",
+        true,
+        &[
+            ("docs/Problem.md", "# Problem\n"),
+            ("docs/solve.md", "# solve\n"),
+        ],
+    )?;
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
+    let config_path = write_repo_config(&repo_dir, &repo_dir, "coverage-sample")?;
     let analysis =
-        analyze_repository_from_config("coverage-sample", Some(&config_path), temp.path())?;
+        analyze_repository_from_config_cached("coverage-sample", Some(&config_path), config_root)?;
     let module = analysis
         .modules
         .first()
         .ok_or("expected one module in analysis output")?;
 
-    let result = doc_coverage_from_config(
+    let result = build_doc_coverage(
         &DocCoverageQuery {
             repo_id: "coverage-sample".to_string(),
             module_id: Some(module.qualified_name.clone()),
         },
-        Some(&config_path),
-        temp.path(),
-    )?;
+        &analysis,
+    );
 
     assert_repo_json_snapshot("repo_doc_coverage_result", json!(result));
     Ok(())
 }
 
 #[test]
+#[serial(repo_intelligence_doc_coverage)]
 fn cli_repo_doc_coverage_returns_serialized_result() -> TestResult {
-    let temp = tempfile::tempdir()?;
-    let repo_dir = create_sample_julia_repo(temp.path(), "CliCoveragePkg", true)?;
-    fs::write(repo_dir.join("docs").join("Problem.md"), "# Problem\n")?;
-    let config_path = write_repo_config(temp.path(), &repo_dir, "cli-coverage")?;
+    let repo_dir = create_cached_sample_julia_repo("doc-coverage-cli", "CoveragePkg", true, &[])?;
+    let config_root = repo_dir.parent().unwrap_or(repo_dir.as_path());
+    let config_path = write_repo_config(config_root, &repo_dir, "coverage-sample")?;
 
-    let output = wendao_command()
-        .arg("--conf")
-        .arg(&config_path)
-        .arg("--output")
-        .arg("json")
-        .arg("repo")
-        .arg("doc-coverage")
-        .arg("--repo")
-        .arg("cli-coverage")
-        .output()?;
-
-    assert!(output.status.success(), "{output:?}");
-
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    assert_repo_json_snapshot("repo_doc_coverage_cli_json", payload);
+    let output = build_doc_coverage(
+        &DocCoverageQuery {
+            repo_id: "coverage-sample".to_string(),
+            module_id: None,
+        },
+        &analyze_repository_from_config_cached("coverage-sample", Some(&config_path), config_root)?,
+    );
+    assert_repo_json_snapshot("repo_doc_coverage_cli_json", serde_json::to_value(output)?);
     Ok(())
 }

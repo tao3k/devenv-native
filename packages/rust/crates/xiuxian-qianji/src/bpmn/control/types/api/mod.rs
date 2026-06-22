@@ -22,6 +22,7 @@ pub use surface::{
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimPayload,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,

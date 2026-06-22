@@ -10,7 +10,9 @@ pub(super) fn build(
         ..
     } = context;
     match task_type {
+        #[cfg(feature = "wendao-integration")]
         task_type::TaskType::WendaoIngester => Some(Ok(task_mechanisms::wendao_ingester(node_def))),
+        #[cfg(feature = "wendao-integration")]
         task_type::TaskType::WendaoRefresh => Some(Ok(task_mechanisms::wendao_refresh(node_def))),
         task_type::TaskType::Router => Some(task_mechanisms::router(node_def)),
         _ => None,

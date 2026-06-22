@@ -20,6 +20,7 @@ transport = [
   "dep:tokio",
   "dep:tokio-stream",
   "dep:tonic",
+  "dep:xiuxian-security",
 ]
 
 [[bench]]
@@ -43,6 +44,10 @@ serde_json = { workspace = true }
 tokio = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
+xiuxian-security = { path = "../xiuxian-security", optional = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

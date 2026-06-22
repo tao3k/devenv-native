@@ -1,17 +1,4 @@
-//! Xiuxian-Zhenfa (Matrix Gateway): native-first tool microkernel with an optional JSON-RPC HTTP gateway.
-
-#[cfg(test)]
-rust_lang_project_harness::rust_project_harness_cargo_test_gate!(
-    config = {
-        rust_lang_project_harness::default_rust_harness_config().with_verification_profile_hint(
-            rust_lang_project_harness::RustVerificationProfileHint::new(
-                "src/lib.rs",
-                [rust_lang_project_harness::RustOwnerResponsibility::PublicApi],
-            )
-            .with_rationale("crate root owns the public package API for cargo-test verification"),
-        )
-    }
-);
+//! Xiuxian-Zhenfa (Matrix Gateway): contract and streaming gateway with optional JSON-RPC HTTP support.
 
 #[cfg(feature = "client")]
 mod client;
@@ -27,10 +14,6 @@ mod xml_lite;
 mod xml_transform;
 
 pub use async_trait;
-pub use schemars;
-pub use serde_json;
-pub use xiuxian_macros::zhenfa_tool;
-
 #[cfg(feature = "client")]
 pub use client::{ZhenfaClient, ZhenfaClientError, ZhenfaClientSuccess};
 pub use contracts::{
@@ -49,18 +32,15 @@ pub use gateway::{
 };
 pub use native::{
     BroadcastResult, ExternalSignal, ObservationSignalInput, SignalRegistry, SignalRegistryExt,
-    ZhenfaAuditSink, ZhenfaContext, ZhenfaDispatchEvent, ZhenfaDispatchOutcome, ZhenfaError,
-    ZhenfaMutationGuard, ZhenfaMutationLock, ZhenfaOrchestrator, ZhenfaOrchestratorHooks,
-    ZhenfaRegistry, ZhenfaResultCache, ZhenfaSignal, ZhenfaSignalSink, ZhenfaTool,
+    ZhenfaContext, ZhenfaError, ZhenfaSignal,
 };
 #[cfg(feature = "gateway")]
 pub use router::ZhenfaRouter;
 pub use router::{MethodRegistry, ZhenfaMethodHandler, method_handler};
+pub use schemars;
+pub use serde_json;
 pub use transmuter::{ZhenfaResolveAndWashError, ZhenfaTransmuter, ZhenfaTransmuterError};
-pub use types::{
-    ZhenfaElapsedMillis, ZhenfaSessionId, ZhenfaSignalType, ZhenfaToolId, ZhenfaToolIdRef,
-    ZhenfaTraceId, ZhenfaXmlLiteTagName,
-};
+pub use types::{ZhenfaSessionId, ZhenfaSignalType, ZhenfaTraceId, ZhenfaXmlLiteTagName};
 pub use xml_lite::{extract_tag_f32, extract_tag_value};
 #[cfg(feature = "xml-transform")]
 pub use xml_transform::{json_str_to_xml, json_to_xml, markdown_to_xml};

@@ -39,36 +39,7 @@ fn db_store_verification_profile_hints_bind_active_skill_tasks() {
             .all(|candidate| !candidate.hint_path.as_os_str().is_empty()),
         "profile index should expose compact parser-owned candidate paths"
     );
-    assert_bound_task(
-        &plan,
-        "src/duckdb/sql.rs",
-        RustVerificationTaskKind::Security,
-        "rust-verification-security@semgrep",
-    );
-    assert_bound_task(
-        &plan,
-        "src/duckdb/ducklake/mod.rs",
-        RustVerificationTaskKind::Regression,
-        "rust-verification-regression@insta",
-    );
-    assert_bound_task(
-        &plan,
-        "src/duckdb/ducklake/mod.rs",
-        RustVerificationTaskKind::Performance,
-        "rust-verification-performance@criterion",
-    );
-    assert_bound_task(
-        &plan,
-        "src/qianji_bpmn/store.rs",
-        RustVerificationTaskKind::Performance,
-        "rust-verification-performance@criterion",
-    );
-    assert_bound_task(
-        &plan,
-        "src/qianji_bpmn/state_log.rs",
-        RustVerificationTaskKind::Regression,
-        "rust-verification-regression@insta",
-    );
+    assert_bound_verification_tasks(&plan);
     assert!(
         plan.tasks
             .iter()
@@ -87,21 +58,81 @@ fn db_store_verification_profile_hints_bind_active_skill_tasks() {
         contracts.contains("[skill-contract] rust-verification-regression@insta"),
         "{contracts}"
     );
-    assert_task_requirement(
-        &plan,
-        "src/duckdb/ducklake/mod.rs",
-        RustVerificationTaskKind::Regression,
-        "local_live_smoke_command",
-        "ducklake_live_attach_smoke",
-    );
-    assert_task_requirement(
-        &plan,
-        "src/duckdb/ducklake/mod.rs",
-        RustVerificationTaskKind::Performance,
-        "benchmark_command",
-        "db_store_ducklake_arrow_appender",
-    );
+    assert_verification_task_requirements(&plan);
     write_verification_reports_when_requested(&manifest_dir, &plan);
+}
+
+fn assert_bound_verification_tasks(plan: &rust_lang_project_harness::RustVerificationPlan) {
+    for (owner_path, kind, expected_binding) in [
+        (
+            "src/duckdb/sql.rs",
+            RustVerificationTaskKind::Security,
+            "rust-verification-security@semgrep",
+        ),
+        (
+            "src/duckdb/ducklake/mod.rs",
+            RustVerificationTaskKind::Regression,
+            "rust-verification-regression@insta",
+        ),
+        (
+            "src/duckdb/ducklake/mod.rs",
+            RustVerificationTaskKind::Performance,
+            "rust-verification-performance@criterion",
+        ),
+        (
+            "src/qianji_bpmn/store.rs",
+            RustVerificationTaskKind::Performance,
+            "rust-verification-performance@criterion",
+        ),
+        (
+            "src/qianji_bpmn/state_log.rs",
+            RustVerificationTaskKind::Regression,
+            "rust-verification-regression@insta",
+        ),
+        (
+            "src/valkey/mod.rs",
+            RustVerificationTaskKind::Regression,
+            "rust-verification-regression@insta",
+        ),
+        (
+            "src/valkey/mod.rs",
+            RustVerificationTaskKind::Performance,
+            "rust-verification-performance@criterion",
+        ),
+    ] {
+        assert_bound_task(plan, owner_path, kind, expected_binding);
+    }
+}
+
+fn assert_verification_task_requirements(plan: &rust_lang_project_harness::RustVerificationPlan) {
+    for (owner_path, kind, expected_key, expected_fragment) in [
+        (
+            "src/duckdb/ducklake/mod.rs",
+            RustVerificationTaskKind::Regression,
+            "local_live_smoke_command",
+            "ducklake_live_attach_smoke",
+        ),
+        (
+            "src/duckdb/ducklake/mod.rs",
+            RustVerificationTaskKind::Performance,
+            "benchmark_command",
+            "db_store_ducklake_arrow_appender",
+        ),
+        (
+            "src/valkey/mod.rs",
+            RustVerificationTaskKind::Regression,
+            "default_test_command",
+            "cargo test -p xiuxian-db-store --features valkey valkey",
+        ),
+        (
+            "src/valkey/mod.rs",
+            RustVerificationTaskKind::Performance,
+            "benchmark_command",
+            "db_store_valkey_hot_queue",
+        ),
+    ] {
+        assert_task_requirement(plan, owner_path, kind, expected_key, expected_fragment);
+    }
 }
 
 fn db_store_manifest_dir() -> PathBuf {
@@ -114,6 +145,7 @@ pub(super) fn db_store_rust_harness_config() -> RustHarnessConfig {
         .with_verification_profile_hint(ducklake_chain_regression_hint())
         .with_verification_profile_hint(bpmn_store_performance_hint())
         .with_verification_profile_hint(state_log_regression_hint())
+        .with_verification_profile_hint(valkey_hot_queue_regression_hint())
         .with_verification_responsibility_task_kinds(
             RustOwnerResponsibility::LatencySensitive,
             [RustVerificationTaskKind::Performance],
@@ -321,6 +353,68 @@ fn state_log_regression_hint() -> RustVerificationProfileHint {
         ),
     )
     .with_rationale("workflow-state log owns replay and latest-state consistency")
+}
+
+fn valkey_hot_queue_regression_hint() -> RustVerificationProfileHint {
+    RustVerificationProfileHint::new(
+        "src/valkey/mod.rs",
+        [
+            RustOwnerResponsibility::AvailabilityCritical,
+            RustOwnerResponsibility::ExternalDependency,
+            RustOwnerResponsibility::LatencySensitive,
+        ],
+    )
+    .with_task_kinds([
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskKind::Performance,
+    ])
+    .with_task_contract(
+        RustVerificationTaskKind::Regression,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "regression skill must report structured Valkey queue key, filter, TTL, lease ownership, and no-domain-key-parsing contracts",
+            [
+                RustVerificationRequirement::new(
+                    "default_test_command",
+                    "cargo test -p xiuxian-db-store --features valkey valkey",
+                ),
+                RustVerificationRequirement::new(
+                    "structured_queue_contract",
+                    "explicit queue fields, typed payloads, atomic claim/renew/release/reclaim, and TTL validation before connect",
+                ),
+                RustVerificationRequirement::new(
+                    "domain_boundary",
+                    "domain crates own payload schema and durable truth; db-store owns Valkey command mechanics",
+                ),
+            ],
+        ),
+    )
+    .with_task_contract(
+        RustVerificationTaskKind::Performance,
+        RustVerificationTaskContract::new(
+            RustVerificationPhase::AfterUnitTestsPass,
+            "performance skill must report Valkey hot queue lease throughput once live Valkey benchmark coverage is enabled",
+            [
+                RustVerificationRequirement::new(
+                    "benchmark_command",
+                    "cargo bench -p xiuxian-db-store --features valkey --bench db_store_performance db_store_valkey_hot_queue",
+                ),
+                RustVerificationRequirement::new(
+                    "baseline",
+                    "Valkey hot queue throughput baseline name or commit",
+                ),
+                RustVerificationRequirement::new(
+                    "regression_threshold",
+                    "accepted enqueue/claim/release throughput regression threshold",
+                ),
+                RustVerificationRequirement::new(
+                    "latency_or_throughput",
+                    "operations per second or p95 lease claim latency",
+                ),
+            ],
+        ),
+    )
+    .with_rationale("Valkey hot queues own live scheduling latency for Qianji server workers")
 }
 
 fn security_skill_descriptor() -> RustVerificationSkillDescriptor {

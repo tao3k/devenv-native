@@ -1,5 +1,3 @@
-use redis::AsyncConnectionConfig;
-
 use crate::search::SearchManifestKeyspace;
 
 use super::config::SearchPlaneCacheConfig;
@@ -13,11 +11,11 @@ use std::sync::{Arc, RwLock};
 impl SearchPlaneCache {
     pub(crate) fn from_runtime(keyspace: SearchManifestKeyspace) -> Self {
         let runtime = resolve_search_plane_cache_runtime();
-        Self::new(runtime.client, runtime.config, keyspace)
+        Self::new(runtime.client, runtime.valkey_url, runtime.config, keyspace)
     }
 
     pub(crate) fn disabled(keyspace: SearchManifestKeyspace) -> Self {
-        Self::new(None, SearchPlaneCacheConfig::default(), keyspace)
+        Self::new(None, None, SearchPlaneCacheConfig::default(), keyspace)
     }
 
     #[cfg(any(test, feature = "test-support"))]
@@ -35,6 +33,7 @@ impl SearchPlaneCache {
                 redis::Client::open("redis://127.0.0.1/")
                     .unwrap_or_else(|error| panic!("client: {error}")),
             ),
+            None,
             config,
             keyspace,
         )
@@ -42,22 +41,18 @@ impl SearchPlaneCache {
 
     fn new(
         client: Option<redis::Client>,
+        valkey_url: Option<String>,
         config: SearchPlaneCacheConfig,
         keyspace: SearchManifestKeyspace,
     ) -> Self {
         Self {
             client,
+            valkey_url,
             config,
             keyspace,
             #[cfg(any(test, feature = "test-support"))]
             shadow: Arc::new(RwLock::new(TestCacheShadow::default())),
         }
-    }
-
-    pub(crate) fn async_connection_config(&self) -> AsyncConnectionConfig {
-        AsyncConnectionConfig::new()
-            .set_connection_timeout(Some(self.config.connection_timeout))
-            .set_response_timeout(Some(self.config.response_timeout))
     }
 
     #[cfg(any(test, feature = "test-support"))]

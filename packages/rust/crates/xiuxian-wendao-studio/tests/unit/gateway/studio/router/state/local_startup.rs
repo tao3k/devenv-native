@@ -204,7 +204,7 @@ async fn eager_bootstrap_uses_studio_bootstrap_source_instead_of_test_configured
     let config_path = project_root.join("wendao.toml");
     std::fs::write(
         &config_path,
-        r#"[link_graph.projects.kernel]
+        r#"[sources.projects.kernel]
 root = "."
 dirs = ["docs", "src"]
 "#,

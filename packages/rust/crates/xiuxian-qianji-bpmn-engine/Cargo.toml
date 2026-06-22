@@ -1,0 +1,37 @@
+[package]
+name = "xiuxian-qianji-bpmn-engine"
+version.workspace = true
+edition.workspace = true
+description = "Standalone BPMN engine scaffold for Qianji runtime integration"
+authors.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = ["valkey"]
+valkey = ["dep:redis", "dep:tokio"]
+
+[dependencies]
+async-trait = { workspace = true }
+chrono = { workspace = true }
+md5 = { workspace = true }
+quick-xml = { workspace = true }
+rayon = { workspace = true }
+redis = { workspace = true, optional = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, optional = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+insta = { workspace = true }
+rust-lang-project-harness = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
+
+[lints]
+workspace = true

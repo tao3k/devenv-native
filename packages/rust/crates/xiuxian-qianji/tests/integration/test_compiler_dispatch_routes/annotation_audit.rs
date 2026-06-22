@@ -3,7 +3,6 @@ use super::manifests::{
     ANNOTATION_DERIVED_AFFINITY_MANIFEST, ANNOTATION_EXPLICIT_AFFINITY_MANIFEST,
     FORMAL_AUDIT_NATIVE_MANIFEST, FORMAL_AUDIT_NATIVE_WITH_MAX_RETRIES_MANIFEST,
 };
-#[cfg(not(feature = "llm"))]
 use super::manifests::{FORMAL_AUDIT_LLM_MANIFEST, LLM_TASK_MANIFEST};
 
 #[test]
@@ -77,7 +76,6 @@ fn compiler_rejects_native_formal_audit_with_max_retries_without_llm_controller(
     Ok(())
 }
 
-#[cfg(not(feature = "llm"))]
 #[test]
 fn compiler_rejects_llm_augmented_formal_audit_without_llm_feature()
 -> Result<(), Box<dyn std::error::Error>> {
@@ -89,11 +87,11 @@ fn compiler_rejects_llm_augmented_formal_audit_without_llm_feature()
         .unwrap_or_else(|| panic!("manifest should fail without llm feature"));
     let message = error.to_string();
     assert!(message.contains("Task type `formal_audit`"));
-    assert!(message.contains("feature `llm`"));
+    assert!(message.contains("local Qianji LLM execution is retired"));
+    assert!(message.contains("marlin-agent-core"));
     Ok(())
 }
 
-#[cfg(not(feature = "llm"))]
 #[test]
 fn compiler_rejects_llm_task_without_llm_feature() -> Result<(), Box<dyn std::error::Error>> {
     let temp = tempfile::tempdir()?;
@@ -103,7 +101,7 @@ fn compiler_rejects_llm_task_without_llm_feature() -> Result<(), Box<dyn std::er
         .err()
         .unwrap_or_else(|| panic!("llm task manifest should fail without llm feature"));
     let message = error.to_string();
-    assert!(message.contains("Task type 'llm'"));
-    assert!(message.contains("feature 'llm'"));
+    assert!(message.contains("local Qianji LLM execution is retired"));
+    assert!(message.contains("marlin-agent-core"));
     Ok(())
 }

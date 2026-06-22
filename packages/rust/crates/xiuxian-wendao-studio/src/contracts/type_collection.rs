@@ -3,13 +3,12 @@
 use specta::TypeCollection;
 
 use super::{
-    ApiError, AstSearchResponse, AttachmentSearchResponse, AutocompleteResponse,
-    CodeAstAnalysisResponse, DefinitionResolveResponse, DocumentExtractJobStatus,
-    DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus, DocumentExtractResource,
-    DocumentExtractResult, GraphNeighborsResponse, MarkdownAnalysisResponse,
-    ReferenceSearchResponse, SearchResponse, SymbolSearchResponse, Topology3dPayload,
-    UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec, VfsContentResponse, VfsEntry,
-    VfsScanEntry, VfsScanResult,
+    ApiError, AttachmentSearchResponse, AutocompleteResponse, DefinitionResolveResponse,
+    DocumentExtractJobStatus, DocumentExtractJobSubmitRequest, DocumentExtractJobsStatus,
+    DocumentExtractResource, DocumentExtractResult, GraphNeighborsResponse,
+    MarkdownAnalysisResponse, ReferenceSearchResponse, SearchResponse, SymbolSearchResponse,
+    Topology3dPayload, UiCapabilities, UiConfig, UiPluginArtifact, UiPluginLaunchSpec,
+    VfsContentResponse, VfsEntry, VfsScanEntry, VfsScanResult,
 };
 
 /// Build the lightweight Studio Specta type collection.
@@ -45,13 +44,11 @@ pub fn studio_frontend_type_collection() -> TypeCollection {
         .register::<Topology3dPayload>()
         .register::<SearchResponse>()
         .register::<AttachmentSearchResponse>()
-        .register::<AstSearchResponse>()
         .register::<DefinitionResolveResponse>()
         .register::<ReferenceSearchResponse>()
         .register::<SymbolSearchResponse>()
         .register::<AutocompleteResponse>()
         .register::<MarkdownAnalysisResponse>()
-        .register::<CodeAstAnalysisResponse>()
         .register::<DocumentExtractResult>()
         .register::<DocumentExtractJobSubmitRequest>()
         .register::<DocumentExtractJobStatus>()

@@ -1,12 +1,18 @@
 //! Domain-owned test helpers for source-mounted unit tests.
 
+#[cfg(feature = "search-runtime")]
 use std::path::Path;
+#[cfg(feature = "search-runtime")]
 use std::process::Command;
 
+#[cfg(feature = "search-runtime")]
 use serde::Serialize;
 
+#[cfg(feature = "search-runtime")]
 const TEST_GIT_AUTHOR_NAME: &str = "Xiuxian Test";
+#[cfg(feature = "search-runtime")]
 const TEST_GIT_AUTHOR_EMAIL: &str = "test@example.com";
+#[cfg(feature = "search-runtime")]
 const TEST_GIT_COMMIT_TIME: &str = "1700000000 +0000";
 
 #[cfg(feature = "julia")]
@@ -17,6 +23,7 @@ pub(crate) mod repo_parser_summary;
 #[path = "../../support/linked_parser_summary.rs"]
 pub(crate) mod linked_parser_summary;
 
+#[cfg(feature = "search-runtime")]
 pub(crate) fn assert_wendao_json_snapshot(name: &str, value: impl Serialize) {
     insta::with_settings!({
         snapshot_path => "../../../snapshots/wendao",
@@ -27,10 +34,12 @@ pub(crate) fn assert_wendao_json_snapshot(name: &str, value: impl Serialize) {
     });
 }
 
+#[cfg(feature = "search-runtime")]
 pub(crate) fn round_f64(value: f64) -> f64 {
     (value * 10_000.0).round() / 10_000.0
 }
 
+#[cfg(feature = "search-runtime")]
 pub(crate) fn init_git_repository(path: impl AsRef<Path>) {
     let path = path.as_ref();
     let path_arg = path.display().to_string();
@@ -41,6 +50,7 @@ pub(crate) fn init_git_repository(path: impl AsRef<Path>) {
     );
 }
 
+#[cfg(feature = "search-runtime")]
 pub(crate) fn commit_all(path: impl AsRef<Path>, message: &str) {
     let path = path.as_ref();
     run_git(Some(path), &["add", "--all"], "stage git fixture contents");
@@ -56,6 +66,7 @@ pub(crate) fn commit_all(path: impl AsRef<Path>, message: &str) {
     );
 }
 
+#[cfg(feature = "search-runtime")]
 fn run_git(cwd: Option<&Path>, args: &[&str], context: &str) {
     let mut command = Command::new("git");
     if let Some(cwd) = cwd {

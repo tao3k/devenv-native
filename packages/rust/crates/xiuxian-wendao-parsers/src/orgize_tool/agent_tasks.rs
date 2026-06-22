@@ -1,8 +1,9 @@
 //! Source-grounded Org agent task read-model extraction.
 
 use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 
-use orgize::Org;
+use orgize::ParseConfig;
 use orgize::ast::{
     RepeaterKind, SparseTreeQuery, TimeUnit, Timestamp, TimestampRepeater, TodoState,
 };
@@ -53,10 +54,12 @@ pub struct OrgizeAgentTaskRepeater {
 /// source-grounded export shape consumed by the agent task read model.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OrgizeAgentTaskRow {
-    /// Stable task row identifier derived from source path and section range.
-    pub task_id: String,
+    /// Stable Org section ID from the task property drawer.
+    pub orgid: String,
     /// Source Org file path.
     pub source_path: String,
+    /// Source Org file modified time in Unix milliseconds.
+    pub source_modified_unix_ms: u64,
     /// One-based source line.
     pub source_line: u64,
     /// One-based source column.
@@ -130,22 +133,48 @@ pub fn collect_agent_task_rows(
     let mut rows = Vec::new();
     for path in files {
         let source = read_to_string(&path)?;
-        let document = Org::parse(&source).document();
+        let source_modified_unix_ms = source_modified_unix_ms(&path)?;
+        let document = agent_task_parse_config().parse(&source).document();
         let projection =
             document.sparse_tree_projection(&query.clone().source_file(path.display().to_string()));
-        rows.extend(
-            projection
-                .cards
-                .iter()
-                .filter(|card| card.todo.is_some() && card.tags.iter().any(|tag| tag == "agent"))
-                .map(|card| agent_task_row_from_card(&path, card)),
-        );
+        for card in projection
+            .cards
+            .iter()
+            .filter(|card| card.todo.is_some() && card.tags.iter().any(|tag| tag == "agent"))
+        {
+            rows.push(agent_task_row_from_card(
+                &source,
+                &path,
+                source_modified_unix_ms,
+                card,
+            )?);
+        }
     }
     Ok(OrgizeAgentTaskReadModelReport { rows })
 }
 
-fn agent_task_row_from_card(path: &Path, card: &orgize::ast::SparseTreeCard) -> OrgizeAgentTaskRow {
-    let task_id = stable_task_id(path, card);
+fn agent_task_parse_config() -> ParseConfig {
+    ParseConfig {
+        todo_keywords: (
+            ["TODO", "DOING", "NEXT", "WAITING"]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+            ["DONE", "CANCELLED"]
+                .into_iter()
+                .map(ToString::to_string)
+                .collect(),
+        ),
+        ..ParseConfig::default()
+    }
+}
+
+fn agent_task_row_from_card(
+    source: &str,
+    path: &Path,
+    source_modified_unix_ms: u64,
+    card: &orgize::ast::SparseTreeCard,
+) -> Result<OrgizeAgentTaskRow, OrgizeToolError> {
     let todo_state = card.todo.as_ref().map(|todo| todo.name.clone());
     let is_done = card
         .todo
@@ -159,10 +188,16 @@ fn agent_task_row_from_card(path: &Path, card: &orgize::ast::SparseTreeCard) -> 
             value: property.value.clone(),
         })
         .collect();
+    let orgid = section_orgid(source, card).ok_or_else(|| OrgizeToolError::MissingAgentOrgid {
+        path: path.to_path_buf(),
+        line: card.source.start.line,
+        title: card.title.clone(),
+    })?;
 
-    OrgizeAgentTaskRow {
-        task_id,
+    Ok(OrgizeAgentTaskRow {
+        orgid,
         source_path: path.display().to_string(),
+        source_modified_unix_ms,
         source_line: card.source.start.line as u64,
         source_column: card.source.start.column as u64,
         source_range_start: u64::from(card.source.range_start),
@@ -202,7 +237,65 @@ fn agent_task_row_from_card(path: &Path, card: &orgize::ast::SparseTreeCard) -> 
         archived: card.archive.archived,
         archive_location: card.archive.location.clone(),
         properties,
+    })
+}
+
+fn source_modified_unix_ms(path: &Path) -> Result<u64, OrgizeToolError> {
+    let modified = std::fs::metadata(path)
+        .map_err(|source| OrgizeToolError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?
+        .modified()
+        .map_err(|source| OrgizeToolError::Io {
+            path: path.to_path_buf(),
+            source,
+        })?;
+    Ok(modified
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .try_into()
+        .unwrap_or(u64::MAX))
+}
+
+fn section_orgid(source: &str, card: &orgize::ast::SparseTreeCard) -> Option<String> {
+    card.properties
+        .iter()
+        .find(|property| property.key == "ID")
+        .map(|property| property.value.trim())
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+        .or_else(|| section_text_orgid(source, card))
+}
+
+fn section_text_orgid(source: &str, card: &orgize::ast::SparseTreeCard) -> Option<String> {
+    let start = card.source.range_start as usize;
+    let end = card.source.range_end as usize;
+    let section = source.get(start..end)?;
+    let mut lines = section.lines();
+    lines.next()?;
+    let mut in_properties = false;
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.starts_with('*') {
+            return None;
+        }
+        if trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
+            in_properties = true;
+            continue;
+        }
+        if in_properties && trimmed.eq_ignore_ascii_case(":END:") {
+            return None;
+        }
+        if in_properties && let Some(value) = trimmed.strip_prefix(":ID:") {
+            let value = value.trim();
+            if !value.is_empty() {
+                return Some(value.to_string());
+            }
+        }
     }
+    None
 }
 
 fn repeater_from_timestamp(timestamp: &Timestamp) -> Option<OrgizeAgentTaskRepeater> {
@@ -258,16 +351,4 @@ fn time_unit_cookie(unit: TimeUnit) -> &'static str {
         TimeUnit::Month => "m",
         TimeUnit::Year => "y",
     }
-}
-
-fn stable_task_id(path: &Path, card: &orgize::ast::SparseTreeCard) -> String {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(path.display().to_string().as_bytes());
-    hasher.update(b"\0");
-    hasher.update(card.source.range_start.to_string().as_bytes());
-    hasher.update(b"\0");
-    hasher.update(card.source.range_end.to_string().as_bytes());
-    hasher.update(b"\0");
-    hasher.update(card.title.as_bytes());
-    hasher.finalize().to_hex().to_string()
 }

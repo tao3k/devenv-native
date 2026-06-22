@@ -1,14 +1,21 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use xiuxian_db_store::{
-    LanceArrayRef, LanceBooleanArray, LanceDataType, LanceField, LanceInt32Array, LanceRecordBatch,
-    LanceSchema, LanceStringArray, LanceUInt64Array,
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaDataType, ArrowSchemaNullabilityPolicy,
+    ArrowSchemaValidationOptions, LanceArrayRef, LanceBooleanArray, LanceInt32Array,
+    LanceRecordBatch, LanceSchema, LanceStringArray, LanceUInt64Array, WENDAO_TABLE_METADATA_KEY,
+    build_arrow_schema, validate_record_batch_schema_with_options,
 };
 
 use crate::analyzers::{
     ProjectionPageKind, RepoProjectedPageIndexTreeResult, RepoProjectedRetrievalContextResult,
 };
 use crate::query_core::WendaoGraphProjection;
+
+const PAGE_INDEX_TREE_TABLE: &str = "flight_repo_projected_page_index_tree";
+const RETRIEVAL_CONTEXT_TABLE: &str = "flight_repo_projected_retrieval_context";
+const GRAPH_NEIGHBORS_TABLE: &str = "flight_graph_neighbors_response";
 
 pub(crate) fn repo_projected_page_index_tree_batch(
     response: &RepoProjectedPageIndexTreeResult,
@@ -22,17 +29,8 @@ pub(crate) fn repo_projected_page_index_tree_batch(
     let root_count = u64::try_from(tree.root_count)
         .map_err(|error| format!("failed to represent projected page-index root count: {error}"))?;
 
-    LanceRecordBatch::try_new(
-        Arc::new(LanceSchema::new(vec![
-            LanceField::new("repoId", LanceDataType::Utf8, false),
-            LanceField::new("pageId", LanceDataType::Utf8, false),
-            LanceField::new("kind", LanceDataType::Utf8, false),
-            LanceField::new("path", LanceDataType::Utf8, false),
-            LanceField::new("docId", LanceDataType::Utf8, false),
-            LanceField::new("title", LanceDataType::Utf8, false),
-            LanceField::new("rootCount", LanceDataType::UInt64, false),
-            LanceField::new("rootsJson", LanceDataType::Utf8, false),
-        ])),
+    record_batch(
+        &page_index_tree_contract(),
         vec![
             Arc::new(LanceStringArray::from(vec![tree.repo_id.as_str()])),
             Arc::new(LanceStringArray::from(vec![tree.page_id.as_str()])),
@@ -45,8 +43,8 @@ pub(crate) fn repo_projected_page_index_tree_batch(
             Arc::new(LanceUInt64Array::from(vec![root_count])),
             Arc::new(LanceStringArray::from(vec![roots_json.as_str()])),
         ],
+        "failed to build projected page-index tree Flight batch",
     )
-    .map_err(|error| error.to_string())
 }
 
 pub(crate) fn repo_projected_page_index_tree_metadata(
@@ -86,16 +84,8 @@ pub(crate) fn repo_projected_retrieval_context_batch(
         .map_err(|error| format!("failed to represent related page count: {error}"))?;
     let node_id = response_node_id(response, requested_node_id);
 
-    LanceRecordBatch::try_new(
-        Arc::new(LanceSchema::new(vec![
-            LanceField::new("repoId", LanceDataType::Utf8, false),
-            LanceField::new("pageId", LanceDataType::Utf8, false),
-            LanceField::new("nodeId", LanceDataType::Utf8, true),
-            LanceField::new("centerJson", LanceDataType::Utf8, false),
-            LanceField::new("relatedCount", LanceDataType::UInt64, false),
-            LanceField::new("relatedPagesJson", LanceDataType::Utf8, false),
-            LanceField::new("nodeContextJson", LanceDataType::Utf8, true),
-        ])),
+    record_batch(
+        &retrieval_context_contract(),
         vec![
             Arc::new(LanceStringArray::from(vec![response.repo_id.as_str()])),
             Arc::new(LanceStringArray::from(vec![
@@ -107,8 +97,8 @@ pub(crate) fn repo_projected_retrieval_context_batch(
             Arc::new(LanceStringArray::from(vec![related_pages_json.as_str()])),
             Arc::new(LanceStringArray::from(vec![node_context_json.as_deref()])),
         ],
+        "failed to build projected retrieval-context Flight batch",
     )
-    .map_err(|error| error.to_string())
 }
 
 pub(crate) fn repo_projected_retrieval_context_metadata(
@@ -175,8 +165,11 @@ pub(crate) fn graph_neighbors_projection_batch(
         link_distance: Some(link.distance),
     }));
     let columns = graph_neighbors_response_columns(rows.as_slice())?;
-    LanceRecordBatch::try_new(graph_neighbors_response_schema(), columns)
-        .map_err(|error| format!("failed to build graph-neighbors Flight batch: {error}"))
+    record_batch(
+        &graph_neighbors_contract(),
+        columns,
+        "failed to build graph-neighbors Flight batch",
+    )
 }
 
 pub(crate) fn projection_page_kind_token(kind: ProjectionPageKind) -> &'static str {
@@ -224,27 +217,9 @@ pub(crate) fn preferred_label(title: &str, fallback_path: &str) -> String {
         .to_string()
 }
 
+#[cfg(test)]
 pub(crate) fn graph_neighbors_response_schema() -> Arc<LanceSchema> {
-    Arc::new(LanceSchema::new(vec![
-        LanceField::new("rowType", LanceDataType::Utf8, false),
-        LanceField::new("nodeId", LanceDataType::Utf8, true),
-        LanceField::new("nodeLabel", LanceDataType::Utf8, true),
-        LanceField::new("nodePath", LanceDataType::Utf8, true),
-        LanceField::new("nodeType", LanceDataType::Utf8, true),
-        LanceField::new("nodeIsCenter", LanceDataType::Boolean, true),
-        LanceField::new("nodeDistance", LanceDataType::Int32, true),
-        LanceField::new("navigationPath", LanceDataType::Utf8, true),
-        LanceField::new("navigationCategory", LanceDataType::Utf8, true),
-        LanceField::new("navigationProjectName", LanceDataType::Utf8, true),
-        LanceField::new("navigationRootLabel", LanceDataType::Utf8, true),
-        LanceField::new("navigationLine", LanceDataType::Int32, true),
-        LanceField::new("navigationLineEnd", LanceDataType::Int32, true),
-        LanceField::new("navigationColumn", LanceDataType::Int32, true),
-        LanceField::new("linkSource", LanceDataType::Utf8, true),
-        LanceField::new("linkTarget", LanceDataType::Utf8, true),
-        LanceField::new("linkDirection", LanceDataType::Utf8, true),
-        LanceField::new("linkDistance", LanceDataType::Int32, true),
-    ]))
+    schema_ref(&graph_neighbors_contract())
 }
 
 pub(crate) fn graph_neighbors_response_columns(
@@ -328,4 +303,113 @@ pub(crate) struct FlightGraphRow {
     link_target: Option<String>,
     link_direction: Option<String>,
     link_distance: Option<usize>,
+}
+
+fn record_batch(
+    contract: &ArrowSchemaContract,
+    columns: Vec<LanceArrayRef>,
+    context: &'static str,
+) -> Result<LanceRecordBatch, String> {
+    let batch = LanceRecordBatch::try_new(schema_ref(contract), columns)
+        .map_err(|error| format!("{context}: {error}"))?;
+    validate_record_batch_schema_with_options(
+        &batch,
+        contract,
+        ArrowSchemaValidationOptions::new()
+            .with_nullability_policy(ArrowSchemaNullabilityPolicy::Exact),
+    )
+    .map_err(|error| format!("{context} schema validation: {error}"))?;
+    Ok(batch)
+}
+
+fn page_index_tree_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        PAGE_INDEX_TREE_TABLE,
+        true,
+        vec![
+            utf8_column("repoId"),
+            utf8_column("pageId"),
+            utf8_column("kind"),
+            utf8_column("path"),
+            utf8_column("docId"),
+            utf8_column("title"),
+            uint64_column("rootCount"),
+            utf8_column("rootsJson"),
+        ],
+    )
+}
+
+fn retrieval_context_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        RETRIEVAL_CONTEXT_TABLE,
+        true,
+        vec![
+            utf8_column("repoId"),
+            utf8_column("pageId"),
+            nullable_utf8_column("nodeId"),
+            utf8_column("centerJson"),
+            uint64_column("relatedCount"),
+            utf8_column("relatedPagesJson"),
+            nullable_utf8_column("nodeContextJson"),
+        ],
+    )
+}
+
+fn graph_neighbors_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        GRAPH_NEIGHBORS_TABLE,
+        true,
+        vec![
+            utf8_column("rowType"),
+            nullable_utf8_column("nodeId"),
+            nullable_utf8_column("nodeLabel"),
+            nullable_utf8_column("nodePath"),
+            nullable_utf8_column("nodeType"),
+            nullable_bool_column("nodeIsCenter"),
+            nullable_int32_column("nodeDistance"),
+            nullable_utf8_column("navigationPath"),
+            nullable_utf8_column("navigationCategory"),
+            nullable_utf8_column("navigationProjectName"),
+            nullable_utf8_column("navigationRootLabel"),
+            nullable_int32_column("navigationLine"),
+            nullable_int32_column("navigationLineEnd"),
+            nullable_int32_column("navigationColumn"),
+            nullable_utf8_column("linkSource"),
+            nullable_utf8_column("linkTarget"),
+            nullable_utf8_column("linkDirection"),
+            nullable_int32_column("linkDistance"),
+        ],
+    )
+}
+
+fn schema_ref(contract: &ArrowSchemaContract) -> Arc<LanceSchema> {
+    Arc::new(build_arrow_schema(
+        contract,
+        [(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            contract.table_name().to_string(),
+        )]
+        .into_iter()
+        .collect::<HashMap<_, _>>(),
+    ))
+}
+
+const fn utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn uint64_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::new(name, ArrowSchemaDataType::UInt64)
+}
+
+const fn nullable_utf8_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Utf8)
+}
+
+const fn nullable_int32_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Int32)
+}
+
+const fn nullable_bool_column(name: &'static str) -> ArrowSchemaColumn {
+    ArrowSchemaColumn::nullable(name, ArrowSchemaDataType::Boolean)
 }

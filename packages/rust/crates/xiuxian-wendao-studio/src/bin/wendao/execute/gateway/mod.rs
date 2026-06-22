@@ -7,11 +7,16 @@
 //! - Webhook notification integration
 //! - Signal propagation to `NotificationService`
 
+mod auth;
 mod command;
 mod config;
 mod health;
+mod policy;
+#[cfg(feature = "postgres-auth")]
+mod postgres_auth;
 mod query;
 mod registry;
+mod security;
 pub(crate) mod state;
 mod status;
 

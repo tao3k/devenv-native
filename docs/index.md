@@ -1,14 +1,13 @@
 ---
 type: knowledge
-title: "Documentation Index"
+metadata:
+  title: "Documentation Index"
 category: "reference"
 tags:
   - docs
   - index
 saliency_base: 6.0
 decay_rate: 0.05
-metadata:
-  title: "Documentation Index"
 ---
 
 # Documentation Index
@@ -19,10 +18,10 @@ This file is the top-level entry for major documentation tracks.
 
 - [Testing Documentation](testing/README.md)
 
-## Xiuxian-Zhixing
+## Zhixing
 
-- [Xiuxian-Zhixing-Heyi Feature Plan (2026)](03_features/xiuxian_zhixing_heyi.md)
-- [Xiuxian-Zhixing Theoretical Foundations (2025-2026)](99_llm/xiuxian_zhixing_theory.md)
+- [Zhixing-Heyi Runtime Resource Surface](03_features/zhixing-heyi.md)
+- [Zhixing Theory Archive](99_llm/zhixing-theory.md)
 
 ## Wendao
 

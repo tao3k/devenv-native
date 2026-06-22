@@ -1,0 +1,114 @@
+---
+source: packages/rust/crates/xiuxian-qianji-bpmn-engine/tests/unit/lint/mod.rs
+assertion_line: 35
+expression: value
+---
+{
+  "domain": "bpmn",
+  "source_id": "invalid-default-reentry-loop.bpmn",
+  "ok": false,
+  "issues": [
+    {
+      "code": "bpmn.loop_risk.unbounded_control_cycle",
+      "severity": "error",
+      "title": "Workflow cycle is missing a complete loop-progress contract",
+      "summary": "Process 'default_reentry_loop' contains a cyclic path [evaluate_safety -> emergency_gate] that can re-enter host/user work without a complete native BPMN progress contract.",
+      "why_it_failed": "Cycle progress state is incomplete.",
+      "repair_guidance": [
+        "<sequenceFlow id=\"flow_normal\" sourceRef=\"emergency_gate\" targetRef=\"normal_intake\"/>"
+      ],
+      "llm_fix_prompt": "<sequenceFlow id=\"flow_normal\" sourceRef=\"emergency_gate\" targetRef=\"normal_intake\"/>",
+      "structured_repair": {
+        "actions": [
+          {
+            "nodes": [
+              "evaluate_safety",
+              "emergency_gate"
+            ],
+            "op": "inspect_cycle"
+          },
+          {
+            "default_reentry_flows": [
+              {
+                "flow_id": "flow_normal",
+                "gateway_id": "emergency_gate",
+                "suggested_exit_target_id": "normal_intake",
+                "target_id": "evaluate_safety"
+              }
+            ],
+            "op": "ensure_unconditional_default_exit",
+            "required": true
+          },
+          {
+            "op": "add_native_outputs_inside_cycle",
+            "variables": []
+          },
+          {
+            "op": "add_native_inputs_to_question_service",
+            "variables": []
+          }
+        ],
+        "contract": "bpmn.native.loop.progress.v1",
+        "contract_message": "native BPMN loop progress requires in-cycle tasks to consume user feedback and emit the gateway route state through standard IO metadata.",
+        "forbid": [
+          "repeating a userTask question without feeding the user's prior answer into the next in-cycle serviceTask",
+          "routing a cycle on variables that no task inside the cycle declares through native BPMN output metadata",
+          "using a conditional default branch instead of an unconditional exit"
+        ],
+        "line_fixes": [
+          {
+            "offset": 3986,
+            "target": "emergency_gate.default_exit_flow",
+            "xml": "<sequenceFlow id=\"flow_normal\" sourceRef=\"emergency_gate\" targetRef=\"normal_intake\"/>"
+          }
+        ],
+        "schema_version": 1,
+        "strategy": "make_cycle_progress_explicit_or_remove_back_edge"
+      },
+      "source_diagnostic": {
+        "source_id": "invalid-default-reentry-loop.bpmn",
+        "span": {
+          "start": 3118,
+          "end": 3185
+        },
+        "label": "cycle needs explicit progress state",
+        "help": "Default flow `flow_normal` from `emergency_gate` currently re-enters `evaluate_safety`. Retarget that default flow to `normal_intake`; keep repeat paths conditional."
+      },
+      "evidence": {
+        "cycle_node_ids": [
+          "evaluate_safety",
+          "emergency_gate"
+        ],
+        "default_reentry_flows": [
+          {
+            "flow_id": "flow_normal",
+            "gateway_id": "emergency_gate",
+            "suggested_exit_target_id": "normal_intake",
+            "target_id": "evaluate_safety"
+          }
+        ],
+        "gateway_ids": [
+          "emergency_gate"
+        ],
+        "has_conditionless_gateway_cycle": false,
+        "has_exit_path": true,
+        "missing_feedback_inputs": [],
+        "missing_progress_outputs": [],
+        "process_id": "default_reentry_loop",
+        "route_variables": [
+          "isEmergency"
+        ],
+        "task_node_ids": [
+          "evaluate_safety"
+        ],
+        "updated_variables_in_cycle": [
+          "isEmergency"
+        ],
+        "user_outputs_in_cycle": [],
+        "worker_inputs_in_cycle": [
+          "safetyAnswer"
+        ]
+      }
+    }
+  ]
+}

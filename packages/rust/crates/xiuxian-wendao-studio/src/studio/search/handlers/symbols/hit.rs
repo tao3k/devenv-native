@@ -3,14 +3,14 @@ use std::path::Path;
 use crate::studio::search::project_scope::project_metadata_for_path;
 use crate::studio::search::support::source_language_label;
 use crate::studio::types::{
-    AstSearchHit, StudioNavigationTarget, SymbolSearchHit, UiProjectConfig,
+    SourceSymbolHit, StudioNavigationTarget, SymbolSearchHit, UiProjectConfig,
 };
 
 pub(super) fn symbol_search_hit(
     project_root: &Path,
     config_root: &Path,
     projects: &[UiProjectConfig],
-    hit: &AstSearchHit,
+    hit: &SourceSymbolHit,
 ) -> Option<SymbolSearchHit> {
     let path = hit.path.clone();
     let language = source_language_label(Path::new(path.as_str()))?.to_string();
@@ -42,7 +42,7 @@ pub(super) fn symbol_search_hit(
     })
 }
 
-fn symbol_kind(hit: &AstSearchHit) -> Option<String> {
+fn symbol_kind(hit: &SourceSymbolHit) -> Option<String> {
     match hit.node_kind.as_deref() {
         Some("section" | "task" | "property" | "observation") => return None,
         Some(kind) if !kind.trim().is_empty() => return Some(kind.to_string()),

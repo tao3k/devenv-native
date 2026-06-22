@@ -39,7 +39,7 @@ fn write_repo_config(
     fs::write(
         base.join("wendao.toml"),
         format!(
-            r#"[link_graph.projects.{repo_id}]
+            r#"[sources.projects.{repo_id}]
 root = "{}"
 plugins = [
   {plugin}

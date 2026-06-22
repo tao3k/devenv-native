@@ -17,14 +17,21 @@ pub trait WebAssimilationSink: Send + Sync {
     /// # Errors
     ///
     /// Returns [`SpiderIngressError`] when persistence fails.
-    fn assimilate(
-        &self,
-        canonical_uri: &str,
-        washed_markdown: &str,
-        signal: &WebIngestionSignal,
-        title: Option<&str>,
-        metadata: &HashMap<String, String>,
-    ) -> Result<(), SpiderIngressError>;
+    fn assimilate(&self, input: SpiderWebAssimilationInput<'_>) -> Result<(), SpiderIngressError>;
+}
+
+/// Washed web payload ready for sink assimilation.
+pub struct SpiderWebAssimilationInput<'a> {
+    /// Canonical Wendao URI assigned to the washed document.
+    pub canonical_uri: &'a str,
+    /// Markdown content after washer normalization.
+    pub washed_markdown: &'a str,
+    /// Source ingestion signal that preserves fetch provenance.
+    pub signal: &'a WebIngestionSignal,
+    /// Optional title extracted from the web payload.
+    pub title: Option<&'a str>,
+    /// Additional source metadata preserved from the ingestion lane.
+    pub metadata: &'a HashMap<String, String>,
 }
 
 /// KnowledgeGraph-backed sink for web ingestion.
@@ -48,14 +55,12 @@ impl KnowledgeGraphAssimilationSink {
 }
 
 impl WebAssimilationSink for KnowledgeGraphAssimilationSink {
-    fn assimilate(
-        &self,
-        canonical_uri: &str,
-        washed_markdown: &str,
-        signal: &WebIngestionSignal,
-        title: Option<&str>,
-        metadata: &HashMap<String, String>,
-    ) -> Result<(), SpiderIngressError> {
+    fn assimilate(&self, input: SpiderWebAssimilationInput<'_>) -> Result<(), SpiderIngressError> {
+        let canonical_uri = input.canonical_uri;
+        let washed_markdown = input.washed_markdown;
+        let signal = input.signal;
+        let title = input.title;
+        let metadata = input.metadata;
         let namespace = super::url::web_namespace_from_url(signal.url.as_str())?;
         let cluster_id = format!("web-cluster:{namespace}");
         let cluster_name = format!("web://{namespace}");

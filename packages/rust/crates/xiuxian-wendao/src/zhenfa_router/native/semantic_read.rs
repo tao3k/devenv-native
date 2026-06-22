@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 use schemars::JsonSchema;
 use serde::Deserialize;
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use crate::link_graph::{
     Address, MatchType, PageIndexNode, ResolveMode, resolve_node, resolve_with_indices,
@@ -46,12 +46,6 @@ pub struct WendaoSemanticReadArgs {
 /// read, or the requested section lacks the metadata required for byte-precise extraction.
 #[allow(clippy::needless_pass_by_value, clippy::too_many_lines)]
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.semantic_read",
-    description = "Read a section from a document using semantic addressing (Triple-A protocol: #id, /path, or @hash).",
-    tool_struct = "WendaoSemanticReadTool",
-    mutation_scope = "wendao.semantic_read"
-)]
 pub fn wendao_semantic_read(
     ctx: &ZhenfaContext,
     args: WendaoSemanticReadArgs,

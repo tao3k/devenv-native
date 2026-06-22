@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 
 use crate::studio::arrow_types::{
     LanceArray, LanceRecordBatch, LanceStringArray, LanceUInt64Array,
@@ -11,6 +11,7 @@ use crate::transport::{
     ANALYSIS_REPO_PROJECTED_PAGE_INDEX_TREE_ROUTE, ANALYSIS_REPO_PROJECTED_RETRIEVAL_CONTEXT_ROUTE,
     GRAPH_NEIGHBORS_ROUTE, REPO_SEARCH_PATH_COLUMN, REPO_SEARCH_ROUTE,
 };
+use xiuxian_wendao_runtime::transport::WENDAO_ARROW_FLIGHT_DATA_PLANE;
 
 use super::{
     collect_route_batches, first_string, make_gateway_state_with_search_strategy_flow_routes,
@@ -21,6 +22,20 @@ use super::{
 const REPO_ID: &str = "gateway-sync";
 const PAGE_ID: &str =
     "repo:gateway-sync:projection:reference:doc:repo:gateway-sync:doc:docs/solve.md";
+
+#[test]
+fn materialization_receipt_uses_runtime_arrow_data_plane_constant() {
+    let receipt_source = fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/studio/search_strategy_flow/materialization/receipt.rs"
+    ))
+    .unwrap_or_else(|error| panic!("read materialization receipt source: {error}"));
+
+    assert!(
+        !receipt_source.contains(WENDAO_ARROW_FLIGHT_DATA_PLANE),
+        "Studio materialization receipt must import WENDAO_ARROW_FLIGHT_DATA_PLANE instead of spelling the token"
+    );
+}
 
 #[tokio::test]
 async fn search_strategy_flow_materializes_native_flight_route_sequence() {
@@ -180,7 +195,7 @@ fn assert_decoded_receipt(
         ],
     );
     assert_eq!(receipt.materialization_status, "executed");
-    assert_eq!(receipt.primary_transport, "arrow-flight");
+    assert_eq!(receipt.primary_transport, WENDAO_ARROW_FLIGHT_DATA_PLANE);
     assert!(!receipt.direct_file_read_allowed);
     assert_eq!(receipt.route_receipts.len(), 4);
     assert_eq!(receipt.decoded_payload_receipts.len(), 4);

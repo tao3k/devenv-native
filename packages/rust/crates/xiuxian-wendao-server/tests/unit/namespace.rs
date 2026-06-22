@@ -19,6 +19,7 @@ fn server_manifest_owns_only_transport_dependencies() -> Result<(), Box<dyn std:
         "tokio",
         "tokio-stream",
         "tonic",
+        "xiuxian-security",
     ];
 
     assert!(

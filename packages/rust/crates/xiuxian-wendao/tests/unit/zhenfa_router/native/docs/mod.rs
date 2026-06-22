@@ -2,5 +2,4 @@
 
 mod context;
 mod payloads;
-mod registry;
 mod support;

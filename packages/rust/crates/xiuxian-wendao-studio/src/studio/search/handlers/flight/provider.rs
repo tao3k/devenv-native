@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use xiuxian_wendao_server::transport::{
     SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE, SEARCH_SYMBOLS_ROUTE,
-    SearchFlightRouteProvider, SearchFlightRouteResponse,
+    SearchFlightRouteProvider, SearchFlightRouteRequest, SearchFlightRouteResponse,
 };
 
 use crate::studio::GatewayState;
@@ -37,68 +37,69 @@ impl std::fmt::Debug for StudioSearchFlightRouteProvider {
 
 #[async_trait]
 impl SearchFlightRouteProvider for StudioSearchFlightRouteProvider {
-    async fn search_batch(
+    async fn search_batch_for_request(
         &self,
-        route: &str,
-        query_text: &str,
-        limit: usize,
-        intent: Option<&str>,
-        repo_hint: Option<&str>,
+        request: SearchFlightRouteRequest<'_>,
     ) -> Result<SearchFlightRouteResponse, String> {
-        match route {
+        match request.route {
             SEARCH_INTENT_ROUTE => load_intent_search_flight_response(
                 Arc::clone(&self.state.studio),
-                query_text,
-                query_text,
-                repo_hint,
-                limit,
-                intent.map(ToString::to_string),
+                request.query_text,
+                request.query_text,
+                request.repo_hint,
+                request.limit,
+                request.intent.map(ToString::to_string),
             )
             .await
             .map_err(|error| {
                 format!(
-                    "studio aggregate Flight provider failed to build intent response for `{query_text}`: {error:?}"
+                    "studio aggregate Flight provider failed to build intent response for `{}`: {error:?}",
+                    request.query_text
                 )
             }),
             SEARCH_KNOWLEDGE_ROUTE => load_knowledge_search_flight_response(
                 Arc::clone(&self.state.studio),
-                query_text,
-                limit,
+                request.query_text,
+                request.limit,
             )
             .await
             .map_err(|error| {
                 format!(
-                    "studio aggregate Flight provider failed to build knowledge response for `{query_text}`: {error:?}"
+                    "studio aggregate Flight provider failed to build knowledge response for `{}`: {error:?}",
+                    request.query_text
                 )
             }),
             SEARCH_REFERENCES_ROUTE => load_reference_search_flight_response(
                 Arc::clone(&self.state),
                 ReferenceSearchQuery {
-                    q: Some(query_text.to_string()),
-                    limit: Some(limit),
+                    q: Some(request.query_text.to_string()),
+                    limit: Some(request.limit),
                 },
             )
             .await
             .map_err(|error| {
                 format!(
-                    "studio aggregate Flight provider failed to build reference response for `{query_text}`: {error:?}"
+                    "studio aggregate Flight provider failed to build reference response for `{}`: {error:?}",
+                    request.query_text
                 )
             }),
             SEARCH_SYMBOLS_ROUTE => load_symbol_search_flight_response(
                 self.state.as_ref(),
                 SymbolSearchQuery {
-                    q: Some(query_text.to_string()),
-                    limit: Some(limit),
+                    q: Some(request.query_text.to_string()),
+                    limit: Some(request.limit),
                 },
             )
             .await
             .map_err(|error| {
                 format!(
-                    "studio aggregate Flight provider failed to build symbol response for `{query_text}`: {error:?}"
+                    "studio aggregate Flight provider failed to build symbol response for `{}`: {error:?}",
+                    request.query_text
                 )
             }),
             _ => Err(format!(
-                "studio aggregate Flight provider does not support route `{route}`"
+                "studio aggregate Flight provider does not support route `{}`",
+                request.route
             )),
         }
     }

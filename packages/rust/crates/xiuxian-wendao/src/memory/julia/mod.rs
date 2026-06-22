@@ -1,9 +1,8 @@
 //! Thin bridge from `xiuxian-wendao` into plugin-owned Julia memory compute.
 //!
 //! Ownership rule:
-//! - `xiuxian-memory-engine` owns authoritative memory state and read models
 //! - `xiuxian-wendao-runtime` owns runtime config and transport negotiation
-//! - `xiuxian-wendao-julia` owns host staging, typed contracts, transport, and
+//! - `xiuxian-julia-runtime` owns host staging, typed contracts, transport, and
 //!   composed downcalls
 //! - `xiuxian-wendao` exposes only this thin host-facing namespace
 
@@ -16,12 +15,12 @@ mod tests;
 
 pub use client::ComputeClient;
 pub use runtime::{resolve_memory_julia_compute_bindings, resolve_memory_julia_compute_runtime};
-pub use xiuxian_wendao_julia::memory::host::{
+pub use xiuxian_julia_runtime::wendao::memory::host::{
     EpisodicRecallQueryInputs, MemoryCalibrationInputs, MemoryGateScoreEvidenceRow,
     MemoryLifecycleState, MemoryPlanTuningInputs, MemoryProjectionRow, MemoryUtilityLedger,
     RecallPlanTuning,
 };
-pub use xiuxian_wendao_julia::memory::{
+pub use xiuxian_julia_runtime::wendao::memory::{
     MemoryJuliaCalibrationArtifactRow, MemoryJuliaEpisodicRecallScoreRow,
     MemoryJuliaGateScoreRecommendationRow, MemoryJuliaPlanTuningAdviceRow,
 };

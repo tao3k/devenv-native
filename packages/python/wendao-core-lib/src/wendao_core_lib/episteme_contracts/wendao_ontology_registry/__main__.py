@@ -310,30 +310,62 @@ def build_registry() -> dict[str, Any]:
     manifest = load_toml(ontology_root() / "manifest.toml")
     api_surface = load_toml(ontology_root() / manifest["api_surface"]["file"])
     rdf_terms = collect_rdf_terms(manifest)
+    object_model_contract = manifest["object_model_contract"]
 
     return {
         "schema_version": 1,
         "ontology": api_surface["ontology"],
         "compatibility": api_surface["compatibility"],
+        "object_model_compatibility": api_surface["object_model_compatibility"],
         "source_contract": {
             "manifest": "manifest.toml",
             "api_surface": manifest["api_surface"]["file"],
+            "object_model_schema": object_model_contract["schema"],
             "artifact_mode": api_surface["boundaries"]["artifact_mode"],
             "mutation_allowed": api_surface["boundaries"]["mutation_allowed"],
             "runtime_compilation_owner": api_surface["boundaries"][
                 "runtime_compilation_owner"
             ],
             "sdk_generation_owner": api_surface["boundaries"]["sdk_generation_owner"],
+            "rdf_source_authority": api_surface["boundaries"][
+                "rdf_source_authority"
+            ],
+            "object_model_source_authority": api_surface["boundaries"][
+                "object_model_source_authority"
+            ],
+            "runtime_object_mutation_allowed": api_surface["boundaries"][
+                "runtime_object_mutation_allowed"
+            ],
+        },
+        "object_model_contract": {
+            "schema": object_model_contract["schema"],
+            "surface": object_model_contract["surface"],
+            "owner": object_model_contract["owner"],
+            "compatibility": object_model_contract["compatibility"],
+            "rdf_source_authority": object_model_contract["rdf_source_authority"],
+            "runtime_mutation_allowed": object_model_contract[
+                "runtime_mutation_allowed"
+            ],
+            "private_extension_allowed": object_model_contract[
+                "private_extension_allowed"
+            ],
         },
         "reference_nouns": sorted(manifest["api_surface"]["reference_nouns"]),
         "domains": normalize_entries(manifest["domains"], sort_key="id"),
         "rdf_terms": rdf_terms,
         "api": {
             "object_types": normalize_entries(api_surface["object_types"]),
+            "property_types": normalize_entries(
+                api_surface["property_types"],
+                sort_key="object_type",
+            ),
             "link_types": normalize_entries(api_surface["link_types"]),
             "action_types": normalize_entries(api_surface["action_types"]),
             "query_types": normalize_entries(api_surface["query_types"]),
             "interface_types": normalize_entries(api_surface["interface_types"]),
+            "object_set_recipes": normalize_entries(
+                api_surface["object_set_recipes"]
+            ),
         },
         "rules": build_rule_entries(manifest),
         "policies": build_policy_entries(manifest),

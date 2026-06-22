@@ -105,6 +105,7 @@ pub(super) fn map_episteme_source_contract_error(error: EpistemeError) -> Studio
     match error {
         EpistemeError::InvalidRunId(_)
         | EpistemeError::InvalidEpistemeManifest(_)
+        | EpistemeError::InvalidOntologyRegistry(_)
         | EpistemeError::InvalidContract(_)
         | EpistemeError::EmptySelection
         | EpistemeError::Parse { .. }

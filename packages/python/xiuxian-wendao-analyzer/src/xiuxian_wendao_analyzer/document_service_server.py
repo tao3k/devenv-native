@@ -7,6 +7,14 @@ from typing import TYPE_CHECKING, Any
 
 import pyarrow.flight as flight
 
+from .audio_shard_worker_config import (
+    AUDIO_HOSTED_BASE_URL_ENV,
+    AUDIO_HOSTED_ENDPOINT_ENV,
+    AUDIO_HOSTED_MODEL_ENV,
+    AUDIO_HOSTED_PROVIDER_ENV,
+    hosted_audio_config_from_env,
+)
+from .audio_shard_worker_registry import build_audio_shard_worker
 from .audio_shards import (
     AUDIO_SHARD_RESULT_SCHEMA,
     AudioShardWorkerProtocol,
@@ -14,6 +22,7 @@ from .audio_shards import (
 )
 from .document_profiles import (
     DOCUMENT_EXTRACT_FULL_PROFILE,
+    DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE,
     new_docling_converter_for_profile,
     normalize_document_extract_profile,
 )
@@ -26,6 +35,11 @@ from .document_service_routes import (
     ANALYSIS_DOCUMENT_EXTRACT_ROUTE,
     ANALYSIS_PDF_OCR_SHARDS_ROUTE,
     DOCUMENT_EXTRACT_CONVERTER_CACHE_PROFILE,
+    WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+    WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER,
+    WENDAO_AUDIO_HOSTED_MODEL_HEADER,
+    WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+    WENDAO_AUDIO_WORKER_HEADER,
     WENDAO_AUDIO_WORKERS_HEADER,
     WENDAO_PDF_OCR_WORKERS_HEADER,
     descriptor_route,
@@ -43,9 +57,12 @@ from .pdf_ocr import (
     PdfOcrShardWorkerProtocol,
     build_pdf_ocr_shard_result_table,
 )
+from .pdf_ocr_ocr2.config import ocr2_client_config_from_env
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+    from .pdf_ocr_ocr2.config import Ocr2ClientConfig
 
 
 class DocumentExtractMiddleware(flight.ServerMiddleware):
@@ -115,11 +132,10 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             table = build_document_extract_table(
                 headers,
                 converter=self._document_extract_converter(headers),
+                hosted_vlm_config=hosted_vlm_image_config_from_headers(headers),
             )
         except ValueError as exc:
-            raise flight.FlightServerError(
-                str(exc), extra_info=str(exc).encode("utf-8")
-            ) from exc
+            raise flight.FlightServerError(str(exc), extra_info=str(exc).encode("utf-8")) from exc
 
         return flight.RecordBatchStream(table)
 
@@ -132,10 +148,7 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             if profile == DOCUMENT_EXTRACT_FULL_PROFILE:
                 return self._converter
             return self._document_extract_converter_for_profile(profile)
-        if (
-            document_extract_converter_cache_mode()
-            != DOCUMENT_EXTRACT_CONVERTER_CACHE_PROFILE
-        ):
+        if document_extract_converter_cache_mode() != DOCUMENT_EXTRACT_CONVERTER_CACHE_PROFILE:
             return None
         return self._document_extract_converter_for_profile(profile)
 
@@ -173,13 +186,11 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             else:
                 result_table = build_audio_shard_result_table(
                     input_table,
-                    worker=self._audio_worker,
+                    worker=self._audio_worker_for_headers(headers),
                     max_workers=headers.get(WENDAO_AUDIO_WORKERS_HEADER),
                 )
         except ValueError as exc:
-            raise flight.FlightServerError(
-                str(exc), extra_info=str(exc).encode("utf-8")
-            ) from exc
+            raise flight.FlightServerError(str(exc), extra_info=str(exc).encode("utf-8")) from exc
 
         writer.begin(result_table.schema)
         writer.write_table(result_table)
@@ -212,8 +223,49 @@ class DocumentExtractFlightServer(flight.FlightServerBase):
             total_bytes=-1,
         )
 
+    def _audio_worker_for_headers(
+        self,
+        headers: Mapping[str, str],
+    ) -> AudioShardWorkerProtocol | None:
+        requested_worker = headers.get(WENDAO_AUDIO_WORKER_HEADER, "").strip()
+        hosted_overrides = hosted_audio_overrides_from_headers(headers)
+        if not requested_worker and not hosted_overrides:
+            return self._audio_worker
+        worker_name = requested_worker or "hosted"
+        hosted_config = None
+        if worker_name in {"hosted", "hosted-audio-transcript-v1"} or hosted_overrides:
+            hosted_config = hosted_audio_config_from_env(hosted_overrides)
+        return build_audio_shard_worker(
+            worker_name,
+            max_workers=headers.get(WENDAO_AUDIO_WORKERS_HEADER),
+            hosted_config=hosted_config,
+        )
+
 
 def _warm_document_arrow_runtime() -> None:
     from . import document_service
 
     document_service.warm_document_arrow_runtime()
+
+
+def hosted_audio_overrides_from_headers(
+    headers: Mapping[str, str],
+) -> dict[str, str]:
+    overrides = {
+        AUDIO_HOSTED_PROVIDER_ENV: headers.get(WENDAO_AUDIO_HOSTED_PROVIDER_HEADER, ""),
+        AUDIO_HOSTED_BASE_URL_ENV: headers.get(WENDAO_AUDIO_HOSTED_BASE_URL_HEADER, ""),
+        AUDIO_HOSTED_ENDPOINT_ENV: headers.get(WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER, ""),
+        AUDIO_HOSTED_MODEL_ENV: headers.get(WENDAO_AUDIO_HOSTED_MODEL_HEADER, ""),
+    }
+    return {key: value.strip() for key, value in overrides.items() if value and value.strip()}
+
+
+def hosted_vlm_image_config_from_headers(
+    headers: Mapping[str, str],
+) -> Ocr2ClientConfig | None:
+    """Build hosted-image config from explicit document profile configuration."""
+
+    if document_extract_profile(headers) != DOCUMENT_EXTRACT_HOSTED_VLM_IMAGE_PROFILE:
+        return None
+
+    return ocr2_client_config_from_env()

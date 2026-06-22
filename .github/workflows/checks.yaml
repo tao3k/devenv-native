@@ -14,31 +14,19 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         package:
           - xiuxian-artisan-workshop
-          - xiuxian-ast-release
           - xiuxian-config-core-release
           - xiuxian-core-rs-release
           - xiuxian-core-rs-python-bindings
-          - xiuxian-edit-release
-          - xiuxian-event-release
-          - xiuxian-io-release
           - xiuxian-lance-release
-          - xiuxian-llm-release
           - xiuxian-logging-release
           - xiuxian-macros-release
-          - xiuxian-memory-release
-          - xiuxian-memory-engine-release
-          - xiuxian-qianhuan-release
           - xiuxian-qianji-release
-          - xiuxian-sandbox-release
           - xiuxian-security-release
-          - xiuxian-code-intelligence-release
-          - xiuxian-tokenizer-release
           - xiuxian-types-release
           - xiuxian-vector-release
           - xiuxian-wendao-release
-          - xiuxian-window-release
           - xiuxian-zhenfa-release
-          - xiuxian-zhixing-release
+          - xiuxian-wendao-client-release
     env:
       GLM_API_KEY: ${{ secrets.GLM_API_KEY }}
     steps:

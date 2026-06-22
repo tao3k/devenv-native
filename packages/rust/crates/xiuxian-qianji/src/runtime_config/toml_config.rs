@@ -70,6 +70,7 @@ pub(super) struct QianjiTomlWorkflowState {
 #[derive(Debug, Default, Deserialize)]
 pub(super) struct QianjiTomlServer {
     pub(super) bind_addr: Option<String>,
+    pub(super) flight_bind_addr: Option<String>,
     pub(super) require_valkey_ready: Option<bool>,
 }
 
@@ -166,6 +167,9 @@ pub(super) fn apply_workflow_state_overlay(
 pub(super) fn apply_server_overlay(target: &mut QianjiTomlServer, overlay: QianjiTomlServer) {
     if let Some(bind_addr) = normalize_non_empty(overlay.bind_addr) {
         target.bind_addr = Some(bind_addr);
+    }
+    if let Some(flight_bind_addr) = normalize_non_empty(overlay.flight_bind_addr) {
+        target.flight_bind_addr = Some(flight_bind_addr);
     }
     if let Some(require_valkey_ready) = overlay.require_valkey_ready {
         target.require_valkey_ready = Some(require_valkey_ready);

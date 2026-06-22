@@ -2,7 +2,7 @@ use std::fs;
 
 use crate::studio::router::{
     load_document_extract_endpoint_from_wendao_toml, load_episteme_registry_from_wendao_toml,
-    load_ui_config_from_wendao_toml,
+    load_model_routing_config_from_wendao_toml, load_ui_config_from_wendao_toml,
     load_wendaograph_ontology_read_model_quality_endpoint_from_wendao_toml,
     studio_wendao_overlay_toml_path, studio_wendao_toml_path,
 };
@@ -14,7 +14,7 @@ fn load_ui_config_from_wendao_toml_accepts_inline_repo_plugin_config() -> TestRe
     let temp = tempfile::tempdir()?;
     fs::write(
         temp.path().join("wendao.toml"),
-        r#"[link_graph.projects.sample]
+        r#"[sources.projects.sample]
 root = "."
 plugins = [
   "ast-grep",
@@ -44,7 +44,7 @@ fn load_ui_config_from_wendao_toml_defaults_markdown_parser_for_repo_projects() 
     let temp = tempfile::tempdir()?;
     fs::write(
         temp.path().join("wendao.toml"),
-        r#"[link_graph.projects.knowledge]
+        r#"[sources.projects.knowledge]
 root = "."
 "#,
     )?;
@@ -70,7 +70,7 @@ fn load_ui_config_from_wendao_toml_maps_global_link_graph_include_dirs_to_main_p
         r#"[link_graph]
 include_dirs = ["docs", "./semantic", "packages/rust/crates/xiuxian-wendao"]
 
-[link_graph.projects.main]
+[sources.projects.main]
 root = "."
 plugins = []
 "#,
@@ -100,7 +100,7 @@ fn load_ui_config_from_wendao_toml_prefers_overlay_importing_base() -> TestResul
     let temp = tempfile::tempdir()?;
     fs::write(
         studio_wendao_toml_path(temp.path()),
-        r#"[link_graph.projects.kernel]
+        r#"[sources.projects.kernel]
 root = "."
 dirs = ["docs"]
 "#,
@@ -109,7 +109,7 @@ dirs = ["docs"]
         studio_wendao_overlay_toml_path(temp.path()),
         r#"imports = ["wendao.toml"]
 
-[link_graph.projects.kernel]
+[sources.projects.kernel]
 root = "."
 dirs = ["docs", "src"]
 "#,
@@ -141,6 +141,33 @@ endpoint = "http://127.0.0.1:50051/"
         load_document_extract_endpoint_from_wendao_toml(temp.path()).as_deref(),
         Some("http://127.0.0.1:50051")
     );
+    Ok(())
+}
+
+#[test]
+fn load_model_routing_config_from_wendao_toml_returns_none_after_marlin_migration() -> TestResult {
+    let temp = tempfile::tempdir()?;
+    fs::write(
+        studio_wendao_toml_path(temp.path()),
+        r#"[model_routing]
+mode = "deterministic"
+default_provider = "openrouter"
+
+[model_routing.chat]
+model = "deepseek/deepseek-v4-pro"
+backend_profile = "openai-compatible-chat-v1"
+
+[model_routing.audio_transcript]
+model = "qwen/qwen3-asr-flash-2026-02-10"
+backend_profile = "hosted-audio-transcript-v1"
+
+[model_routing.image_extract]
+model = "qwen/qwen3-vl-8b-instruct"
+backend_profile = "hosted-vlm-image-extract-v1"
+"#,
+    )?;
+
+    assert!(load_model_routing_config_from_wendao_toml(temp.path())?.is_none());
     Ok(())
 }
 

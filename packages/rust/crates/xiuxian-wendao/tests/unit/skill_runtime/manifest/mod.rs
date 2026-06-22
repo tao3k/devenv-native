@@ -76,7 +76,7 @@ description = "Sample description"
 binding_id = "sample-native"
 tool_contract = { category = "filesystem" }
 workflow_type = { type = "workflow" }
-qianhuan_background = { background = "wendao://background" }
+context_background = { background = "wendao://background" }
 flow_definition = { uri = "flow://definition" }
 annotations = { read_only = true, destructive = false, idempotent = true, open_world = false }
 "#,
@@ -90,7 +90,7 @@ annotations = { read_only = true, destructive = false, idempotent = true, open_w
     assert_eq!(manifest.binding_id, "sample-native");
     assert_eq!(manifest.workflow_type, SkillWorkflowType::QianjiFlow);
     assert_eq!(
-        manifest.qianhuan_background.as_deref(),
+        manifest.context_background.as_deref(),
         Some("wendao://background")
     );
     assert_eq!(

@@ -1,18 +1,25 @@
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use super::prompt_context::fetch_through_injection_snapshot_pack;
 use crate::contract_feedback::{
     AdvisoryAuditRequest, ContractFinding, EvidenceKind, FindingEvidence, FindingSeverity,
     RoleAuditFinding,
 };
 use anyhow::{Result, anyhow};
-use xiuxian_qianhuan::{
-    InjectionSessionId, InjectionSnapshotId, InjectionSnapshotInput, InjectionTurnId,
-    PersonaProfile, PromptContextBlock, PromptContextBlockId, PromptContextBlockInput,
-    PromptContextCategory, PromptContextSource, PromptSessionScope, RoleMixProfile, RoleMixRole,
-};
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use xiuxian_db_store::artifact_cache::ArtifactBlobCache;
 
+#[cfg(feature = "advisory-prompt-pack-cache")]
+use super::QianjiAdvisoryPromptPackArtifactReport;
 use super::evidence::{
     advisory_labels, advisory_summary, findings_summary, pack_summary, primary_finding,
     primary_finding_summary, primary_trace_id, role_mix_profile_id, runtime_trace_artifact_summary,
     runtime_trace_evidence, sanitize_identifier, snapshot_id,
+};
+use super::prompt_context::{
+    InjectionSessionId, InjectionSnapshot, InjectionSnapshotId, InjectionSnapshotInput,
+    InjectionTurnId, PersonaProfile, PromptContextBlock, PromptContextBlockId,
+    PromptContextBlockInput, PromptContextCategory, PromptContextSource, PromptSessionScope,
+    RoleMixProfile, RoleMixRole, render_injection_prompt,
 };
 use super::{QianjiAdvisoryAuditExecutor, QianjiAdvisoryExecutionPlan, QianjiAdvisoryRolePlan};
 
@@ -24,9 +31,35 @@ impl QianjiAdvisoryAuditExecutor {
     /// Returns an error when any requested role cannot be resolved from the persona registry, when
     /// the role snapshot cannot be assembled, or when the generated `InjectionSnapshot` violates
     /// the configured injection policy.
-    pub(crate) async fn build_plan_internal(
+    pub(crate) fn build_plan_internal(
         &self,
         request: &AdvisoryAuditRequest,
+    ) -> Result<QianjiAdvisoryExecutionPlan> {
+        #[cfg(feature = "advisory-prompt-pack-cache")]
+        {
+            self.build_plan_internal_with_prompt_context_pack_cache(request, None)
+        }
+        #[cfg(not(feature = "advisory-prompt-pack-cache"))]
+        {
+            self.build_plan_internal_common(request)
+        }
+    }
+
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    pub(crate) fn build_plan_internal_with_prompt_context_pack_cache(
+        &self,
+        request: &AdvisoryAuditRequest,
+        prompt_context_pack_cache: Option<&(dyn ArtifactBlobCache + Send + Sync)>,
+    ) -> Result<QianjiAdvisoryExecutionPlan> {
+        self.build_plan_internal_common(request, prompt_context_pack_cache)
+    }
+
+    fn build_plan_internal_common(
+        &self,
+        request: &AdvisoryAuditRequest,
+        #[cfg(feature = "advisory-prompt-pack-cache")] prompt_context_pack_cache: Option<
+            &(dyn ArtifactBlobCache + Send + Sync),
+        >,
     ) -> Result<QianjiAdvisoryExecutionPlan> {
         let resolved_roles = self.requested_roles(request);
         let role_mix = Self::build_role_mix(request, &resolved_roles);
@@ -38,38 +71,32 @@ impl QianjiAdvisoryAuditExecutor {
             let persona = self.resolve_persona(role_id)?;
             let blocks =
                 Self::build_blocks(request, &session_id, &persona, primary_finding.as_ref());
-            let narrative_blocks = blocks
-                .iter()
-                .map(|block| block.payload.clone())
-                .collect::<Vec<_>>();
-            let rendered_prompt = self
-                .orchestrator
-                .assemble_snapshot(&persona, narrative_blocks, "")
-                .await
-                .map_err(|error| {
-                    anyhow!("failed to assemble advisory snapshot for '{role_id}': {error}")
-                })?;
+            let rendered_prompt = render_injection_prompt(&persona, &blocks, "");
             let turn_id = u64::try_from(role_index + 1).map_err(|error| {
                 anyhow!("role index overflow while preparing advisory plan: {error}")
             })?;
-            let snapshot =
-                xiuxian_qianhuan::InjectionSnapshot::from_blocks(InjectionSnapshotInput {
-                    snapshot_id: InjectionSnapshotId::new(snapshot_id(request, role_id)),
-                    session_id: InjectionSessionId::new(session_id.clone()),
-                    turn_id: InjectionTurnId::new(turn_id),
-                    policy: self.injection_policy.clone(),
-                    role_mix: Some(role_mix.clone()),
-                    blocks,
-                });
+            let snapshot = InjectionSnapshot::from_blocks(InjectionSnapshotInput {
+                snapshot_id: InjectionSnapshotId::new(snapshot_id(request, role_id)),
+                session_id: InjectionSessionId::new(session_id.clone()),
+                turn_id: InjectionTurnId::new(turn_id),
+                policy: self.injection_policy.clone(),
+                role_mix: Some(role_mix.clone()),
+                blocks,
+            });
             snapshot.validate().map_err(|error| {
                 anyhow!("invalid advisory injection snapshot for role '{role_id}': {error}")
             })?;
+            #[cfg(feature = "advisory-prompt-pack-cache")]
+            let prompt_context_pack_artifact =
+                Self::prompt_context_pack_artifact_report(prompt_context_pack_cache, &snapshot)?;
 
             roles.push(QianjiAdvisoryRolePlan {
                 role_id: role_id.clone(),
                 persona_name: persona.name.clone(),
                 snapshot,
                 rendered_prompt,
+                #[cfg(feature = "advisory-prompt-pack-cache")]
+                prompt_context_pack_artifact,
             });
         }
 
@@ -139,12 +166,24 @@ impl QianjiAdvisoryAuditExecutor {
                     path: None,
                     locator: Some(role_plan.snapshot.snapshot_id.as_ref().to_string()),
                     message: format!(
-                        "Prepared Qianhuan advisory snapshot for '{}' with {} blocks and {} chars.",
+                        "Prepared Qianji advisory snapshot for '{}' with {} blocks and {} chars.",
                         role_plan.persona_name,
                         role_plan.snapshot.blocks.len(),
                         role_plan.snapshot.total_chars
                     ),
                 });
+                #[cfg(feature = "advisory-prompt-pack-cache")]
+                if let Some(report) = role_plan.prompt_context_pack_artifact {
+                    finding.evidence.push(FindingEvidence {
+                        kind: EvidenceKind::DerivedInvariant,
+                        path: None,
+                        locator: Some("prompt-context-pack".to_string()),
+                        message: format!(
+                            "Prompt-context artifact pack cache_hit={} byte_len={}.",
+                            report.cache_hit, report.byte_len
+                        ),
+                    });
+                }
                 finding.labels = advisory_labels(request, &plan.role_mix, role_plan);
 
                 finding
@@ -196,6 +235,24 @@ impl QianjiAdvisoryAuditExecutor {
         self.registry.get(role_id).ok_or_else(|| {
             anyhow!("advisory role '{role_id}' is not registered in PersonaRegistry")
         })
+    }
+
+    #[cfg(feature = "advisory-prompt-pack-cache")]
+    fn prompt_context_pack_artifact_report(
+        cache: Option<&(dyn ArtifactBlobCache + Send + Sync)>,
+        snapshot: &InjectionSnapshot,
+    ) -> Result<Option<QianjiAdvisoryPromptPackArtifactReport>> {
+        let Some(cache) = cache else {
+            return Ok(None);
+        };
+        let read_through =
+            fetch_through_injection_snapshot_pack(cache, snapshot.clone()).map_err(|error| {
+                anyhow!("failed to fetch through advisory prompt-context artifact pack: {error}")
+            })?;
+        Ok(Some(QianjiAdvisoryPromptPackArtifactReport::new(
+            read_through.cache_hit(),
+            read_through.byte_len(),
+        )))
     }
 
     fn build_blocks(

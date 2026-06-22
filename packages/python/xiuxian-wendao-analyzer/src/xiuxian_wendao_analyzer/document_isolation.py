@@ -86,13 +86,9 @@ def _full_profile_timeout_seconds() -> float:
     try:
         timeout = float(value)
     except ValueError as exc:
-        raise ValueError(
-            f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number"
-        ) from exc
+        raise ValueError(f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number") from exc
     if timeout <= 0:
-        raise ValueError(
-            f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number"
-        )
+        raise ValueError(f"{DOCUMENT_EXTRACT_FULL_TIMEOUT_ENV} must be a positive number")
     return timeout
 
 

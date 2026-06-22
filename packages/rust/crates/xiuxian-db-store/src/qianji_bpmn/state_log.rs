@@ -1,12 +1,16 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::arrow_schema::{
+    ArrowSchemaColumn, ArrowSchemaContract, ArrowSchemaContractError, ArrowSchemaDataType,
+    WENDAO_TABLE_METADATA_KEY, build_arrow_schema, validate_record_batch_schema,
+};
 use crate::duckdb_crate::OptionalExt;
-use crate::duckdb_crate::arrow::{
+use arrow::{
     array::{Int64Array, StringArray},
-    datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
-use qianji_bpmn_engine::BpmnCheckpointEnvelope;
+use xiuxian_qianji_bpmn_engine::BpmnCheckpointEnvelope;
 
 use super::store::{timestamp_to_i64, validate_field};
 use super::{
@@ -15,6 +19,12 @@ use super::{
 };
 
 const WORKFLOW_STATE_LOG_TABLE: &str = "qianji_bpmn_workflow_state_events";
+const WORKFLOW_STATE_SNAPSHOT_ARROW_COLUMNS: [ArrowSchemaColumn; 4] = [
+    ArrowSchemaColumn::new("instance_id", ArrowSchemaDataType::Utf8),
+    ArrowSchemaColumn::new("sequence", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("updated_at_ms", ArrowSchemaDataType::Int64),
+    ArrowSchemaColumn::new("payload_json", ArrowSchemaDataType::Utf8),
+];
 const LOAD_LATEST_WORKFLOW_STATE_EVENT_SQL: &str = "
 SELECT payload_json
 FROM qianji_bpmn_workflow_state_events
@@ -124,6 +134,7 @@ impl QianjiBpmnDuckDbDataStore {
                 operation: "append_workflow_state_snapshot",
                 message: error.to_string(),
             })?;
+        self.cache_latest_workflow_state_snapshot(checkpoint)?;
         Ok(())
     }
 
@@ -141,7 +152,8 @@ impl QianjiBpmnDuckDbDataStore {
         &self,
         checkpoints: impl IntoIterator<Item = &'a BpmnCheckpointEnvelope>,
     ) -> Result<usize, QianjiBpmnDataStoreError> {
-        let (batch, count) = workflow_state_snapshots_to_batch(checkpoints)?;
+        let checkpoints = checkpoints.into_iter().collect::<Vec<_>>();
+        let (batch, count) = workflow_state_snapshots_to_batch(checkpoints.iter().copied())?;
         if count == 0 {
             return Ok(0);
         }
@@ -149,6 +161,9 @@ impl QianjiBpmnDuckDbDataStore {
             self.append_snapshot_batch(WORKFLOW_STATE_LOG_TABLE, batch)?;
             Ok(count)
         })?;
+        for checkpoint in checkpoints {
+            self.cache_latest_workflow_state_snapshot(checkpoint)?;
+        }
         Ok(count)
     }
 
@@ -242,6 +257,11 @@ impl QianjiBpmnDuckDbDataStore {
     ) -> Result<Option<BpmnCheckpointEnvelope>, QianjiBpmnDataStoreError> {
         let instance_id = instance_id.into();
         validate_field("instance_id", instance_id.as_str())?;
+        if let Some(checkpoint) =
+            self.cached_latest_workflow_state_snapshot(instance_id.as_str())?
+        {
+            return Ok(Some(checkpoint));
+        }
         let mut statement = self
             .connection()
             .prepare_cached(LOAD_LATEST_WORKFLOW_STATE_EVENT_SQL)
@@ -262,9 +282,13 @@ impl QianjiBpmnDuckDbDataStore {
             Some(payload_json) => Some(payload_json),
             None => self.load_latest_workflow_state_table_payload(instance_id.as_str())?,
         };
-        payload_json
+        let checkpoint = payload_json
             .map(|payload_json| decode_checkpoint(&payload_json))
-            .transpose()
+            .transpose()?;
+        if let Some(checkpoint) = checkpoint.as_ref() {
+            self.cache_latest_workflow_state_snapshot(checkpoint)?;
+        }
+        Ok(checkpoint)
     }
 
     /// Upserts one latest checkpoint snapshot through the dedicated
@@ -304,6 +328,7 @@ impl QianjiBpmnDuckDbDataStore {
                 operation: "upsert_latest_workflow_state_snapshot",
                 message: error.to_string(),
             })?;
+        self.cache_latest_workflow_state_snapshot(checkpoint)?;
         Ok(())
     }
 
@@ -332,6 +357,7 @@ impl QianjiBpmnDuckDbDataStore {
                 "delete_latest_workflow_state_snapshot",
                 instance_id.as_str(),
             )?;
+            self.remove_cached_latest_workflow_state_snapshot(instance_id.as_str())?;
             Ok(deleted_events || deleted_latest)
         })
     }
@@ -471,14 +497,9 @@ fn workflow_state_snapshots_to_batch<'a>(
         .map(workflow_state_snapshot_columns)
         .collect::<Result<Vec<_>, QianjiBpmnDataStoreError>>()?;
     let count = columns.len();
-    let schema = Arc::new(Schema::new(vec![
-        Field::new("instance_id", DataType::Utf8, false),
-        Field::new("sequence", DataType::Int64, false),
-        Field::new("updated_at_ms", DataType::Int64, false),
-        Field::new("payload_json", DataType::Utf8, false),
-    ]));
+    let contract = workflow_state_snapshot_arrow_contract();
     let batch = RecordBatch::try_new(
-        schema,
+        workflow_state_snapshot_arrow_schema(&contract),
         vec![
             Arc::new(StringArray::from(
                 columns
@@ -510,7 +531,36 @@ fn workflow_state_snapshots_to_batch<'a>(
         operation: "build_workflow_state_snapshot_arrow_batch",
         message: error.to_string(),
     })?;
+    validate_record_batch_schema(&batch, &contract)
+        .map_err(|error| workflow_state_schema_error(&error))?;
     Ok((batch, count))
+}
+
+fn workflow_state_snapshot_arrow_contract() -> ArrowSchemaContract {
+    ArrowSchemaContract::new(
+        WORKFLOW_STATE_LOG_TABLE,
+        true,
+        WORKFLOW_STATE_SNAPSHOT_ARROW_COLUMNS.to_vec(),
+    )
+}
+
+fn workflow_state_snapshot_arrow_schema(
+    contract: &ArrowSchemaContract,
+) -> Arc<arrow::datatypes::Schema> {
+    Arc::new(build_arrow_schema(
+        contract,
+        HashMap::from([(
+            WENDAO_TABLE_METADATA_KEY.to_string(),
+            WORKFLOW_STATE_LOG_TABLE.to_string(),
+        )]),
+    ))
+}
+
+fn workflow_state_schema_error(error: &ArrowSchemaContractError) -> QianjiBpmnDataStoreError {
+    QianjiBpmnDataStoreError::Storage {
+        operation: "validate_workflow_state_snapshot_arrow_schema",
+        message: error.to_string(),
+    }
 }
 
 struct WorkflowStateSnapshotColumns {

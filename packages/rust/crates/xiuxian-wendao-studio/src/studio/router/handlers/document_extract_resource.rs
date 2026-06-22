@@ -64,9 +64,10 @@ pub async fn get_document_extract_resource(
         )));
     }
 
-    let file_path = resolve_resource_file(cache_location.output_dir.as_path(), resource_path)?;
+    let file_path =
+        resolve_resource_file(cache_location.output_dir.as_path(), resource_path).await?;
 
-    let bytes = std::fs::read(file_path).map_err(|error| {
+    let bytes = tokio::fs::read(file_path).await.map_err(|error| {
         StudioApiError::internal(
             "FILE_READ_ERROR",
             format!("Failed to read extracted file: {error}"),
@@ -113,7 +114,7 @@ fn find_resource(
         })
 }
 
-fn resolve_resource_file(
+async fn resolve_resource_file(
     extraction_root: &Path,
     resource_path: &str,
 ) -> Result<PathBuf, StudioApiError> {
@@ -123,32 +124,52 @@ fn resolve_resource_file(
     } else {
         extraction_root.join(raw_path)
     };
-    if !candidate.exists() {
+    if !tokio::fs::try_exists(candidate.as_path())
+        .await
+        .map_err(|error| {
+            StudioApiError::internal(
+                "RESOURCE_PATH_EXISTENCE_ERROR",
+                "Failed to check extracted resource path",
+                Some(error.to_string()),
+            )
+        })?
+    {
         return Err(StudioApiError::not_found(format!(
             "Extracted file not found: {resource_path}"
         )));
     }
-    let root = extraction_root.canonicalize().map_err(|error| {
-        StudioApiError::internal(
-            "EXTRACTION_ROOT_RESOLVE_ERROR",
-            "Failed to resolve extraction output directory",
-            Some(error.to_string()),
-        )
-    })?;
-    let file = candidate.canonicalize().map_err(|error| {
-        StudioApiError::internal(
-            "RESOURCE_PATH_RESOLVE_ERROR",
-            "Failed to resolve extracted resource path",
-            Some(error.to_string()),
-        )
-    })?;
+    let root = tokio::fs::canonicalize(extraction_root)
+        .await
+        .map_err(|error| {
+            StudioApiError::internal(
+                "EXTRACTION_ROOT_RESOLVE_ERROR",
+                "Failed to resolve extraction output directory",
+                Some(error.to_string()),
+            )
+        })?;
+    let file = tokio::fs::canonicalize(candidate.as_path())
+        .await
+        .map_err(|error| {
+            StudioApiError::internal(
+                "RESOURCE_PATH_RESOLVE_ERROR",
+                "Failed to resolve extracted resource path",
+                Some(error.to_string()),
+            )
+        })?;
     if !file.starts_with(root.as_path()) {
         return Err(StudioApiError::bad_request(
             "RESOURCE_OUTSIDE_EXTRACTION_ROOT",
             "Extracted resource path is outside the extraction output directory",
         ));
     }
-    if !file.is_file() {
+    let metadata = tokio::fs::metadata(file.as_path()).await.map_err(|error| {
+        StudioApiError::internal(
+            "RESOURCE_PATH_METADATA_ERROR",
+            "Failed to inspect extracted resource path",
+            Some(error.to_string()),
+        )
+    })?;
+    if !metadata.is_file() {
         return Err(StudioApiError::bad_request(
             "RESOURCE_NOT_FILE",
             "Extracted resource path does not point to a file",

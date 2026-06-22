@@ -3,7 +3,7 @@
 :PROPERTIES:
 :ID: wendao-parser-substrate-separation
 :PARENT: [[index|Wendao DocOS Kernel: Map of Content]]
-:TAGS: roadmap, parser, packages, qianji, qianhuan, markdown, org
+:TAGS: roadmap, parser, packages, qianji, markdown, org
 :STATUS: ACTIVE
 :END:
 
@@ -83,8 +83,8 @@ Three forces now meet in one place:
 
 1. `xiuxian-qianji` already imports
    `xiuxian_wendao_parsers::frontmatter::parse_frontmatter`
-2. future consumers such as `xiuxian-qianhuan` persona and template flows will
-   benefit from shared document parsing
+2. future document, persona, and template consumers will benefit from shared
+   document parsing
 3. the parser lane is expected to grow beyond Markdown into Org document
    structure
 
@@ -147,12 +147,12 @@ These remain local until they prove reusable:
 
 ## Target Package Shape
 
-| Package                       | Owns                                                                  | Must not own                                                                   |
-| :---------------------------- | :-------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
-| `xiuxian-wendao-parsers`      | independent parser execution, parser-owned Markdown and Org contracts | Wendao graph/search/storage records, query DSLs, persistence semantics         |
-| `xiuxian-wendao`              | document-to-domain adapters, graph semantics, retrieval DSLs, storage | parser ownership that non-Wendao consumers should import directly              |
-| `xiuxian-qianji` / `qianhuan` | app-specific interpretation of syntax records                         | private copies of shared Markdown or Org grammar that should live in substrate |
-| `xiuxian-ast`                 | code AST and language analysis                                        | shared Markdown or Org document grammar                                        |
+| Package                             | Owns                                                                  | Must not own                                                                   |
+| :---------------------------------- | :-------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| `xiuxian-wendao-parsers`            | independent parser execution, parser-owned Markdown and Org contracts | Wendao graph/search/storage records, query DSLs, persistence semantics         |
+| `xiuxian-wendao`                    | document-to-domain adapters, graph semantics, retrieval DSLs, storage | parser ownership that non-Wendao consumers should import directly              |
+| `xiuxian-qianji`                    | app-specific interpretation of syntax records                         | private copies of shared Markdown or Org grammar that should live in substrate |
+| external language-provider protocol | code intelligence and language analysis                               | shared Markdown or Org document grammar                                        |
 
 ## Extraction Rules
 

@@ -128,6 +128,56 @@ fn pdf_ocr_scheduler_partitions_source_range_pages_from_direct_ocr2_regions() {
 }
 
 #[test]
+fn pdf_ocr_scheduler_lane_fairness_parser_accepts_source_first_only() {
+    let enabled =
+        |key: &str| (key == OCR_SCHEDULER_LANE_FAIRNESS_ENV).then(|| "source_first".to_string());
+    let disabled =
+        |key: &str| (key == OCR_SCHEDULER_LANE_FAIRNESS_ENV).then(|| "rendered-first".to_string());
+
+    assert!(scheduler_lane_fairness_source_first_enabled_with_lookup(
+        &enabled
+    ));
+    assert!(!scheduler_lane_fairness_source_first_enabled_with_lookup(
+        &disabled
+    ));
+}
+
+#[test]
+fn pdf_ocr_scheduler_lane_fairness_batches_source_before_rendered_regions() {
+    let mut inputs = vec![
+        sample_ocr_input("/tmp/source.pdf", 10, "region"),
+        sample_ocr_input("/tmp/source.pdf", 0, "page"),
+        sample_ocr_input("/tmp/source.pdf", 1, "page"),
+        sample_ocr_input("/tmp/source.pdf", 11, "region"),
+    ];
+    for index in [0, 3] {
+        inputs[index].ocr_profile = PDF_OCR_HOSTED_VLM_DIRECT_PROFILE.to_string();
+        inputs[index].ocr_engine = "hosted-vlm-direct-ocr".to_string();
+    }
+
+    let groups = scheduler_shard_groups(inputs.as_slice());
+    let batches = scheduler_shard_group_execution_batches(groups.clone(), true);
+    let batch_positions = batches
+        .iter()
+        .map(|batch| {
+            batch
+                .iter()
+                .flat_map(|group| group.positions.iter().copied())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(batch_positions, vec![vec![1, 2], vec![0, 3]]);
+    assert_eq!(
+        scheduler_shard_group_execution_batches(groups, false)
+            .into_iter()
+            .map(|batch| batch.len())
+            .collect::<Vec<_>>(),
+        vec![3]
+    );
+}
+
+#[test]
 fn pdf_ocr_scheduler_trace_records_source_range_chunk_shape() {
     let inputs = vec![
         sample_ocr_input("/tmp/source.pdf", 3, "page"),

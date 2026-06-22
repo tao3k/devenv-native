@@ -6,12 +6,14 @@ use xiuxian_wendao_server::transport::{
     SqlFlightRouteResponse, WendaoFlightRouteProviders, WendaoFlightService,
 };
 
+#[cfg(feature = "duckdb")]
 use super::dataset_ontology::StudioDatasetOntologyMaterializeFlightRouteProvider;
+use super::ontology_candidate_inspection::StudioOntologyCandidateInspectionFlightRouteProvider;
 use super::provider::StudioSearchFlightRouteProvider;
 use crate::studio::GatewayState;
 use crate::studio::router::handlers::analysis::{
-    StudioCodeAstAnalysisFlightRouteProvider, StudioDocumentExtractFlightRouteProvider,
-    StudioMarkdownAnalysisFlightRouteProvider, StudioSemanticScopeFlightRouteProvider,
+    StudioDocumentExtractFlightRouteProvider, StudioMarkdownAnalysisFlightRouteProvider,
+    StudioSemanticScopeFlightRouteProvider,
 };
 use crate::studio::router::handlers::graph::flight::StudioGraphNeighborsFlightRouteProvider;
 use crate::studio::router::handlers::graph::topology_flight::StudioTopology3dFlightRouteProvider;
@@ -23,7 +25,6 @@ use crate::studio::router::handlers::repo::analysis::projected_page_index_tree_f
 use crate::studio::router::handlers::repo::analysis::projected_retrieval_context_flight::StudioRepoProjectedRetrievalContextFlightRouteProvider;
 use crate::studio::router::handlers::repo::analysis::refine_doc_flight::StudioRefineDocFlightRouteProvider;
 use crate::studio::router::handlers::repo::analysis::sync_flight::StudioRepoSyncFlightRouteProvider;
-use crate::studio::search::handlers::ast::StudioAstSearchFlightRouteProvider;
 use crate::studio::search::handlers::attachments::StudioAttachmentSearchFlightRouteProvider;
 use crate::studio::search::handlers::autocomplete::StudioAutocompleteFlightRouteProvider;
 use crate::studio::search::handlers::definition::StudioDefinitionFlightRouteProvider;
@@ -48,9 +49,6 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     route_providers.attachment_search = Some(Arc::new(
         StudioAttachmentSearchFlightRouteProvider::new(Arc::clone(&state.studio)),
     ));
-    route_providers.ast_search = Some(Arc::new(StudioAstSearchFlightRouteProvider::new(
-        Arc::clone(&state),
-    )));
     route_providers.definition = Some(Arc::new(StudioDefinitionFlightRouteProvider::new(
         Arc::clone(&state.studio),
     )));
@@ -60,17 +58,20 @@ pub(crate) fn build_studio_search_flight_service_with_repo_provider(
     route_providers.markdown_analysis = Some(Arc::new(
         StudioMarkdownAnalysisFlightRouteProvider::new(Arc::clone(&state)),
     ));
-    route_providers.code_ast_analysis = Some(Arc::new(
-        StudioCodeAstAnalysisFlightRouteProvider::new(Arc::clone(&state)),
-    ));
     route_providers.semantic_scope = Some(Arc::new(StudioSemanticScopeFlightRouteProvider::new(
         state.as_ref(),
     )));
     route_providers.document_extract = Some(Arc::new(
         StudioDocumentExtractFlightRouteProvider::new(state.as_ref()),
     ));
-    route_providers.dataset_ontology_materialize = Some(Arc::new(
-        StudioDatasetOntologyMaterializeFlightRouteProvider::new(Arc::clone(&state)),
+    #[cfg(feature = "duckdb")]
+    {
+        route_providers.dataset_ontology_materialize = Some(Arc::new(
+            StudioDatasetOntologyMaterializeFlightRouteProvider::new(Arc::clone(&state)),
+        ));
+    }
+    route_providers.ontology_candidate_inspection = Some(Arc::new(
+        StudioOntologyCandidateInspectionFlightRouteProvider::new(Arc::clone(&state)),
     ));
     route_providers.repo_overview = Some(Arc::new(StudioRepoOverviewFlightRouteProvider::new(
         Arc::clone(&state),

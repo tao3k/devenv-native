@@ -9,9 +9,11 @@ publish = false
 
 [features]
 default = []
+artifact-cache = ["dep:tar"]
+arrow-codec = ["dep:arrow", "dep:arrow-ipc"]
+foyer-artifact-cache = ["artifact-cache", "dep:foyer", "dep:tokio"]
 engine = [
-  "dep:arrow",
-  "dep:arrow-ipc",
+  "arrow-codec",
   "dep:datafusion",
   "dep:parquet",
   "dep:serde",
@@ -22,25 +24,34 @@ engine = [
 vector-store = ["engine", "dep:xiuxian-vector", "xiuxian-vector/vector-store"]
 duckdb-types = ["dep:serde"]
 duckdb = ["duckdb-types", "dep:duckdb"]
+artisan-state = []
 qianji-bpmn-workflow-state = [
   "duckdb",
-  "dep:qianji-bpmn-engine",
+  "arrow-codec",
+  "dep:xiuxian-qianji-bpmn-engine",
   "dep:serde_json",
   "dep:thiserror",
 ]
+valkey = ["dep:redis", "dep:thiserror", "dep:tokio"]
 
 [dependencies]
 arrow = { workspace = true, optional = true }
 arrow-ipc = { workspace = true, optional = true }
 datafusion = { workspace = true, optional = true }
 duckdb = { workspace = true, optional = true }
+foyer = { workspace = true, optional = true }
 parquet = { workspace = true, optional = true }
-qianji-bpmn-engine = { path = "../qianji-bpmn-engine", default-features = false, optional = true }
+redis = { workspace = true, optional = true }
+xiuxian-qianji-bpmn-engine = { path = "../xiuxian-qianji-bpmn-engine", default-features = false, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+tar = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 xiuxian-vector = { path = "../xiuxian-vector", default-features = false, optional = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

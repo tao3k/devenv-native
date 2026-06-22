@@ -236,9 +236,9 @@ fn semantic_summary(object: &SemanticObject) -> String {
         .collect::<Vec<_>>()
         .join(",");
     let source_path = if path_is_empty(&object.source_path) {
-        ""
+        String::new()
     } else {
-        object.source_path.to_str().unwrap_or_default()
+        object.source_path.to_string_lossy().into_owned()
     };
     format!(
         "semantic_kind={}; semantic_status={}; confidence={:.3}; confidence_source={}; owners={}; provenance_source={}; source_path={}; required_validations={}",

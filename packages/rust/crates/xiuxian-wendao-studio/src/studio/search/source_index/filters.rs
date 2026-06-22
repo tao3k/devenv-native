@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use walkdir::DirEntry;
 
 pub(crate) fn should_skip_entry(entry: &DirEntry) -> bool {
@@ -20,14 +18,4 @@ pub(crate) fn should_skip_entry(entry: &DirEntry) -> bool {
             | "coverage"
             | "__pycache__"
     )
-}
-
-pub(super) fn is_markdown_path(path: &Path) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .is_some_and(|ext| {
-            ext.eq_ignore_ascii_case("md")
-                || ext.eq_ignore_ascii_case("markdown")
-                || ext.eq_ignore_ascii_case("org")
-        })
 }

@@ -13,7 +13,7 @@ use tonic::{Request, Status};
 
 use crate::repo_index::RepoCodeDocument;
 use crate::search::SearchPlaneService;
-use crate::search::contracts::{AstSearchHit, StudioNavigationTarget};
+use crate::search::contracts::{SourceSymbolHit, StudioNavigationTarget};
 use crate::search::queries::flightsql::StudioFlightSqlService;
 use crate::search::queries::tests::fixtures as shared_fixtures;
 #[cfg(feature = "duckdb")]
@@ -63,8 +63,12 @@ pub(super) async fn publish_repo_content_chunks(
         .unwrap_or_else(|error| panic!("publish repo content chunks: {error}"));
 }
 
-pub(super) fn sample_local_symbol_hit(name: &str, path: &str, line_start: usize) -> AstSearchHit {
-    AstSearchHit {
+pub(super) fn sample_local_symbol_hit(
+    name: &str,
+    path: &str,
+    line_start: usize,
+) -> SourceSymbolHit {
+    SourceSymbolHit {
         name: name.to_string(),
         signature: format!("fn {name}()"),
         path: path.to_string(),
@@ -92,7 +96,7 @@ pub(super) fn sample_local_symbol_hit(name: &str, path: &str, line_start: usize)
 pub(super) async fn publish_local_symbol_hits(
     service: &SearchPlaneService,
     build_id: &str,
-    hits: &[AstSearchHit],
+    hits: &[SourceSymbolHit],
 ) {
     service
         .publish_local_symbol_hits(build_id, hits)

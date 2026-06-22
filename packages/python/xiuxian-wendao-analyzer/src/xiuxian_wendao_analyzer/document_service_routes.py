@@ -16,6 +16,11 @@ ANALYSIS_AUDIO_SHARDS_ROUTE = "/analysis/audio-shards"
 WENDAO_SCHEMA_VERSION_HEADER = "x-wendao-schema-version"
 WENDAO_PDF_OCR_WORKERS_HEADER = "x-wendao-pdf-ocr-workers"
 WENDAO_AUDIO_WORKERS_HEADER = "x-wendao-audio-workers"
+WENDAO_AUDIO_WORKER_HEADER = "x-wendao-audio-worker"
+WENDAO_AUDIO_HOSTED_PROVIDER_HEADER = "x-wendao-audio-hosted-provider"
+WENDAO_AUDIO_HOSTED_BASE_URL_HEADER = "x-wendao-audio-hosted-base-url"
+WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER = "x-wendao-audio-hosted-endpoint"
+WENDAO_AUDIO_HOSTED_MODEL_HEADER = "x-wendao-audio-hosted-model"
 WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER = "x-wendao-document-extract-source-path"
 WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_UTF8_HEX_HEADER = (
     "x-wendao-document-extract-source-path-utf8-hex"
@@ -71,8 +76,7 @@ def descriptor_route(descriptor: flight.FlightDescriptor) -> str:
     """Return a slash-prefixed route from a Flight descriptor."""
 
     return "/" + "/".join(
-        part.decode("utf-8") if isinstance(part, bytes) else part
-        for part in descriptor.path
+        part.decode("utf-8") if isinstance(part, bytes) else part for part in descriptor.path
     )
 
 

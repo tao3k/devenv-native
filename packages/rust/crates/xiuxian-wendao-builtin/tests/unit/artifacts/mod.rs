@@ -1,20 +1,20 @@
 mod julia {
-    use xiuxian_wendao_core::{
-        artifacts::PluginArtifactSelector,
-        ids::{ArtifactId, PluginId},
-    };
-    use xiuxian_wendao_julia::compatibility::link_graph::{
-        DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
-        LinkGraphJuliaRerankRuntimeConfig, julia_deployment_artifact_openapi_json_example,
-        julia_deployment_artifact_openapi_toml_example, julia_deployment_artifact_selector,
-        julia_plugin_artifact_openapi_json_example, julia_plugin_artifact_openapi_toml_example,
-    };
-    use xiuxian_wendao_julia::integration_support::{
+    use xiuxian_julia_core::integration_support::{
         julia_gateway_artifact_base_url, julia_gateway_artifact_expected_json_fragments,
         julia_gateway_artifact_expected_toml_fragments, julia_gateway_artifact_path,
         julia_gateway_artifact_rpc_params_fixture, julia_gateway_artifact_runtime_config_toml,
         julia_gateway_artifact_schema_version, julia_gateway_artifact_selected_transport,
         julia_ui_artifact_payload_fixture,
+    };
+    use xiuxian_julia_runtime::wendao::link_graph::{
+        DEFAULT_JULIA_RERANK_FLIGHT_ROUTE, DEFAULT_JULIA_SEARCH_LAUNCHER_PATH,
+        LinkGraphJuliaRerankRuntimeConfig, julia_deployment_artifact_openapi_json_example,
+        julia_deployment_artifact_openapi_toml_example, julia_deployment_artifact_selector,
+        julia_plugin_artifact_openapi_json_example, julia_plugin_artifact_openapi_toml_example,
+    };
+    use xiuxian_wendao_core::{
+        artifacts::PluginArtifactSelector,
+        ids::{ArtifactId, PluginId},
     };
 
     use crate::{

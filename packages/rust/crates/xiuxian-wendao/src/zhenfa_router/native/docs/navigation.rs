@@ -1,6 +1,6 @@
 //! `zhenfa_router::native::docs::navigation` owns Wendao native docs navigation behavior.
 
-use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError, zhenfa_tool};
+use xiuxian_zhenfa::{ZhenfaContext, ZhenfaError};
 
 use super::shared::{optional_non_empty_argument, require_non_empty_argument, serialize_payload};
 use crate::analyzers::{DocsNavigationOptions, DocsNavigationToolArgs};
@@ -17,11 +17,6 @@ pub type WendaoDocsGetNavigationArgs = DocsNavigationToolArgs;
 /// service is missing from the native context, or the underlying docs lookup
 /// fails.
 #[allow(missing_docs)]
-#[zhenfa_tool(
-    name = "wendao.docs.get_navigation",
-    description = "Open one docs-facing navigation bundle and return its serialized payload.",
-    tool_struct = "WendaoDocsGetNavigationTool"
-)]
 pub fn wendao_docs_get_navigation(
     ctx: &ZhenfaContext,
     args: WendaoDocsGetNavigationArgs,

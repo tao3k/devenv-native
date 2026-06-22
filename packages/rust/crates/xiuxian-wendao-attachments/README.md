@@ -31,17 +31,46 @@ gateway can depend on the crate without pulling PDF accelerators into default,
 
 ## Features
 
-| Feature            | Purpose                                                              |
-| ------------------ | -------------------------------------------------------------------- |
-| `archive-audit`    | Enables tar and tar.gz member manifest audits for archive fixtures.  |
-| `pdf-source-range` | Enables `lopdf` source-page manifests without PDFium.                |
-| `pdf-render`       | Adds PDFium-backed region/page raster proofs on top of source range. |
+| Feature                | Purpose                                                                     |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `archive-audit`        | Enables tar and tar.gz member manifest audits for archive fixtures.         |
+| `foyer-artifact-cache` | Enables the Foyer-backed artifact substrate for attachment materialization. |
+| `audio-shard-arrow`    | Enables db-store-validated Arrow builders/decoders for audio shard Flight rows. |
+| `image-shards`         | Enables standalone image tile planning and lossless shard materialization.  |
+| `legacy-office`        | Enables Rust-side parsing for legacy `.doc`, `.xls`, and `.ppt` attachments. |
+| `pdf-source-range`     | Enables `lopdf` source-page manifests without PDFium.                       |
+| `pdf-render`           | Adds PDFium-backed region/page raster proofs through the Foyer artifact substrate. |
+
+The `foyer-artifact-cache` feature consumes the db-store artifact substrate
+through `ArtifactBlobCache` and the stable `attachment_artifact_key` namespace,
+with Foyer as the production backend. Derived bytes such as audio chunks,
+source payloads, PDF rasters, OCR region crops, VLM atlases, and Arrow IPC
+batches may be stored through that contract. Audio chunk materialization uses
+db-store fetch-through around the media splitter miss path, allowing Foyer to
+coalesce same-key misses while attachments keeps shard identity and digest
+reporting. PDF page raster and OCR region-crop materialization use the same
+artifact substrate while preserving the existing render output paths and OCR
+shard Arrow rows. PDF render reports expose the
+artifact backend, hit count, miss count, throttled count, and returned byte
+count so benchmark evidence can distinguish materialization work from
+artifact-substrate reuse. Attachments still owns parser/materialization facts
+only; DuckDB/Arrow own structured truth and Studio/Gateway own route scheduling
+and merge decisions.
 
 ## Boundaries
 
 - `xiuxian-wendao-attachments` owns optional PDF accelerator dependencies.
   `lopdf` is the source-page intake dependency; `pdfium-render` is limited to
   explicit raster and region proof lanes.
+- The `legacy-office` feature owns legacy Microsoft Office parsing through the
+  Rust parser stack. `.doc`, `.xls`, and `.ppt` inputs are converted to stable
+  Wendao resource rows before analyzer dispatch; Python/Docling does not own a
+  legacy Office conversion sidecar or source-preparation metadata contract.
+  The parser also emits lightweight quality counters for the projection,
+  including line counts, tab-delimited row counts, maximum visible columns, and
+  Markdown fenced-block counts. Excel projections are rendered as fenced TSV
+  Markdown so downstream agent and ontology readers can preserve cell
+  boundaries without changing the stable resource Arrow schema.
 - `xiuxian-wendao` owns the Studio gateway, Flight/REST routes, and production
   document extraction behavior.
 - Production extraction still falls back to Python/Docling unless a later
@@ -58,12 +87,23 @@ known Docling image suffixes, records MIME/format hints, and extracts
 PNG/JPEG/BMP/GIF/WebP/TIFF dimensions when they are available directly from
 the header.
 
-This audit is a Rust control-plane signal. It can identify future candidates
-for whole-image OCR cache keys, oversized image preflight, and later
-crop/tile planning, but it does not replace Docling OCR or layout authority.
-The Wendao performance probe can include these audit fields through the
-`document-extract-attachment-audit` feature on `xiuxian-wendao`; default live
-extraction still calls the existing Python/Docling path.
+This audit is a Rust control-plane signal. It can identify candidates for
+whole-image OCR cache keys, oversized image preflight, and image tiling, but it
+does not replace Docling OCR or layout authority. The Wendao performance probe
+can include these audit fields through the `document-extract-attachment-audit`
+feature on `xiuxian-wendao`. Live standalone image model invocation remains
+outside attachments; Studio/Gateway may classify the source and analyzer may
+invoke a configured hosted VLM profile through the existing document resource
+contract.
+
+The optional `image-shards` feature adds the first standalone image shard
+kernel. It plans deterministic row-major pixel tiles and materializes those
+tiles as lossless PNG files without resizing or downsampling the source image.
+This is an attachment-owned materialization surface only: it does not add a
+public Flight schema and does not invoke a model. The current live image route
+uses the primary `/analysis/document-extract` resource schema instead of this
+tile kernel; future tiling can reuse these facts when a precision gate proves
+it is needed.
 
 ## Archive Attachment Audit
 
@@ -130,7 +170,10 @@ can prove complete coverage.
 The stable user-facing extraction result remains `_resources.arrow` with the
 nine-column document resource schema. Internal merge, debug, benchmark, and
 future UI code may also use `_structure.arrow`, an Arrow sidecar with schema
-version `xiuxian_wendao.document_structure.v1`.
+version `xiuxian_wendao.document_structure.v1`. The sidecar uses the shared
+`xiuxian-db-store` Arrow schema contract helpers for exact structural
+validation, while attachments keeps ownership of Docling structure semantics,
+reading order, provenance, and parity gates.
 
 The sidecar records source content hash, block id, parent block id, page index,
 block index, reading order key, block type, linked resource element id, content,
@@ -145,8 +188,11 @@ The document extraction performance probe records both stable resource artifact
 health and internal structure sidecar health. Each run reports `_resources.arrow`
 and `_structure.arrow` row counts, resource/block type counts, OCR page and
 region block counts, bbox block counts, reading-order sortedness, and artifact
-read errors. These metrics are benchmark evidence only; they do not change the
-stable user-facing `_resources.arrow` schema.
+read errors. `_metrics.arrow` uses the shared `xiuxian-db-store` Arrow schema
+contract helpers for exact structural validation while attachments keeps
+ownership of scheduler, cache, shard, and result-character semantics. These
+metrics are benchmark evidence only; they do not change the stable user-facing
+`_resources.arrow` schema.
 
 Mixed-format benchmark reports additionally group precision and speed signals
 by attachment class. PDF, Office, image, structured text, web, table-data, XML,
@@ -169,6 +215,40 @@ rows in `readingOrderKey` order, removes exact overlap text only at shard
 boundaries, and reports failed, skipped, missing, and duplicate shard coverage
 for Studio precision gates. Backend model names remain analyzer configuration,
 not attachment identity.
+When the optional `foyer-artifact-cache` feature is enabled, materialization can
+fetch, restore, or persist normalized shard media through the db-store
+`ArtifactBlobCache` backend factory with Foyer as the default backend.
+This cache stores artifact bytes only: it does not change the audio shard Arrow
+schemas, backend selection, merge rules, or precision gates. Force refresh still
+bypasses stale request-output files, but verified content-addressed shard
+artifacts may satisfy the materialization request without invoking the media
+splitter again. On a miss, the splitter runs inside db-store fetch-through so
+concurrent same-key misses can share one generated payload when the backend
+supports it. Cache keys derive from artifact kind, source digest, profile
+digest, and shard digest; raw source paths are never treated as artifact
+identity. The materialization result carries each shard's byte length from the
+same digest/read path that produced or restored the shard, so Studio reports can
+prove artifact-cache hit bytes without rescanning shard files after
+materialization.
+Attachments also owns accepted transcript admission for audio shard rows. The
+admission API validates shard identity, backend/task identity, non-empty text,
+and merge coverage before persisting a transcript row for reuse. A planned
+admission index can satisfy warm force-refresh requests before byte
+materialization for accepted rows with the same source, shard profile, worker
+profile, and backend configuration. Partial hits return accepted rows plus miss
+manifests, allowing the caller to materialize only missing shard artifacts while
+preserving original shard ids and reading order. Studio passes route/runtime
+identity into this API and remains the live dispatch adapter; it does not
+implement transcript admission, planned admission keys, or acceptance
+validation.
+When Studio needs a worker budget for audio shard dispatch, attachments projects
+model-neutral shard pressure facts into the `xiuxian-polyglot-orchestrator`
+audio schedule contract instead of letting Python invent a production
+concurrency policy.
+The audio shard input and result batch schemas are generated and
+exact-validated through the shared `xiuxian-db-store` Arrow schema contract
+surface. Attachments still owns shard timing, transcript admission, recovery,
+and merge identity; db-store only owns reusable schema mechanics.
 
 Attachments also owns the model-neutral recovery selection, planning, and patch
 gate. After a base transcript pass, Rust can select risky parent shards using
@@ -187,10 +267,15 @@ pure model invocation and normalization adapters.
 The same Rust substrate also mirrors the analyzer's speech-segment window
 packing contract. VAD or other upstream segment rows remain model-neutral timing
 facts; Rust can pack them into bounded audio shard windows, preserve uncapped
-Python semantics when no hard maximum window is configured, and keep per-window
-durations in shard identity. Attachments accepts those facts as JSONL or a JSON
-array using millisecond or second timestamp fields, then normalizes them into
-`AudioSpeechSegment` rows. For failed-row recovery, Rust can also clip those
+Python semantics when no hard maximum window is configured, keep per-window
+durations in shard identity, and optionally preserve near-cap natural speech
+boundaries with a bounded snap tolerance instead of creating short tail shards.
+The shard identity also includes the optional encoder bitrate when configured,
+so compressed materialization experiments cannot collide with the lossless WAV
+baseline in artifact or transcript admission caches.
+Attachments accepts those facts as JSONL or a JSON array using millisecond or
+second timestamp fields, then normalizes them into `AudioSpeechSegment` rows.
+For failed-row recovery, Rust can also clip those
 speech timing facts to the selected failed parent windows before materializing
 recovery shards. If no speech timing fact intersects a failed parent window,
 the helper returns no recovery plan instead of blindly invoking an audio model
@@ -209,6 +294,8 @@ The crate also exposes a conservative evidence projection for generated audio
 transcript Org ledgers. This projection compiles the ledger root and shard
 property drawers into typed evidence source and evidence segment rows, and can
 build Arrow batches for those rows when `audio-shard-arrow` is enabled. The
+evidence source and segment batch schemas are generated and exact-validated
+through the shared `xiuxian-db-store` Arrow schema contract surface. The
 projection preserves source and shard hashes, shard/result ids, timestamps,
 reading order, backend profile, transcript hashes, and transcript text as
 evidence. It is not an ontology promotion path: candidate claim extraction,
@@ -246,6 +333,9 @@ results can then be projected back into the stable document resource schema.
 The crate provides Arrow batch builders plus input and result decoders so the
 Studio gateway can roundtrip worker requests and responses without JSON as an
 internal contract.
+The input, result, and resource batch schemas are generated and exact-validated
+through the shared `xiuxian-db-store` Arrow schema contract surface, while this
+crate owns OCR shard semantics, precision gates, and merge identity.
 
 The stable v1 shard input keeps page shards compatible while carrying region
 provenance for later crop rendering: `shardType`, `regionIndex`,
@@ -328,6 +418,10 @@ When Studio asks for hosted VLM risk-window recovery, attachments can
 materialize a bounded set of selected page indices through the same PDFium page-shard
 contract. This lets the provider keep ordinary pages on source-range rows while
 rendering only the recovery pages that require VLM image input.
+The PDF render shard manifest and pending-resource Arrow sidecar schemas are
+generated and exact-validated through the shared `xiuxian-db-store` Arrow schema
+contract surface. Attachments still owns shard identity, rendering provenance,
+reading order, cache reuse, and OCR precision gates.
 Rust may split one contiguous source-PDF page range into multiple contiguous
 subranges when OCR worker permits are available. The source-range lane uses a
 current adaptive OCR budget, machine-derived worker bound, and page count to let

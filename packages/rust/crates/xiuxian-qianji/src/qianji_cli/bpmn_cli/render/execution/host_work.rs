@@ -94,6 +94,20 @@ fn pending_host_work_request_stream_value(
     request: PendingHostWorkRequest,
 ) -> serde_json::Value {
     match request {
+        PendingHostWorkRequest::Task(request) => serde_json::json!({
+            "kind": "task",
+            "instance_id": request.instance_id,
+            "process_id": request.process_id,
+            "activity_id": request.activity_id,
+            "node_id": pending_host_work_request_node_id(process, request.node_index),
+            "node_index": request.node_index,
+            "token_id": request.token_id,
+            "variables": request.variables,
+            "inputs": request.inputs,
+            "output_bindings": request.output_bindings,
+            "repeat": request.repeat,
+            "lane": request.lane,
+        }),
         PendingHostWorkRequest::Send(request) => serde_json::json!({
             "kind": "send",
             "instance_id": request.instance_id,

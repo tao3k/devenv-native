@@ -8,6 +8,7 @@ use crate::pdf::structure::{
     document_resource_batch_to_structure_blocks, document_structure_schema,
     validate_document_structure_parity,
 };
+use xiuxian_db_store::WENDAO_TABLE_METADATA_KEY;
 
 fn assert_close(actual: f64, expected: f64) {
     assert!(
@@ -89,6 +90,14 @@ fn document_extract_structure_batch_uses_stable_schema_and_order() -> Result<(),
     let batch = build_document_structure_batch(&[second, block("first", 0, 0)])?;
 
     assert_eq!(batch.schema(), document_structure_schema());
+    assert_eq!(
+        batch
+            .schema()
+            .metadata()
+            .get(WENDAO_TABLE_METADATA_KEY)
+            .map(String::as_str),
+        Some("pdf_document_structure")
+    );
     assert_eq!(batch.num_rows(), 2);
     assert_eq!(string_column(&batch, "blockId")?.value(0), "first");
     assert_eq!(string_column(&batch, "blockId")?.value(1), "second");

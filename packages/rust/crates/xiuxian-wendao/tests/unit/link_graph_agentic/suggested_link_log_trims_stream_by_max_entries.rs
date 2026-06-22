@@ -19,7 +19,7 @@ fn test_suggested_link_log_trims_stream_by_max_entries() -> Result<(), Box<dyn s
                 relation: "related_to".to_string(),
                 confidence: 0.5,
                 evidence: "test".to_string(),
-                agent_id: "qianhuan-architect".to_string(),
+                agent_id: "wendao-agentic-architect".to_string(),
                 created_at_unix: Some(1_700_000_000.0 + f64::from(idx)),
             },
             TEST_VALKEY_URL,

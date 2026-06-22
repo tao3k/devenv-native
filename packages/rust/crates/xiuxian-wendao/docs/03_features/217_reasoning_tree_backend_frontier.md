@@ -50,7 +50,7 @@ Julia owns graph computation when live integration is enabled:
 - diversity and MMR-style compression
 - batched graph scoring
 
-`pi-wendao` owns LLM/subagent execution:
+External `pi-wendao` integration owns LLM/subagent execution:
 
 - branch judgement
 - parallel branch exploration

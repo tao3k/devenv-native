@@ -3,14 +3,27 @@ name = "xiuxian-security"
 version.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+axum-internal-plane = ["dep:axum", "dep:serde_json"]
+
 [dependencies]
 # Core engine: DFA regex for linear-time scanning
 regex = { workspace = true }
 serde = { workspace = true }
+blake3 = { workspace = true }
+rand = { workspace = true }
 thiserror = { workspace = true }
+axum = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[build-dependencies]
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [dev-dependencies]
 rust-lang-project-harness = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
 
 [lints]
 workspace = true

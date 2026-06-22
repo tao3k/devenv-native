@@ -2,8 +2,10 @@
 
 mod advisory;
 mod model;
+#[cfg(feature = "wendao-integration")]
 #[path = "../contract_feedback_pipeline.rs"]
 mod pipeline;
+#[cfg(feature = "wendao-integration")]
 #[path = "../contract_feedback_rest_docs.rs"]
 mod rest_docs;
 mod rule_pack;
@@ -18,10 +20,12 @@ pub use model::{
     ContractFinding, ContractReport, ContractStats, EvidenceKind, FindingConfidence,
     FindingEvidence, FindingExamples, FindingMode, FindingSeverity,
 };
+#[cfg(feature = "wendao-integration")]
 pub use pipeline::{
     QianjiContractFeedbackRun, QianjiPersistedContractFeedbackRun, persist_contract_feedback_run,
     run_and_persist_contract_feedback_flow, run_contract_feedback_flow,
 };
+#[cfg(feature = "wendao-integration")]
 pub use rest_docs::{
     OpenApiFileRestDocsRulePack, build_rest_docs_collection_context,
     build_rest_docs_contract_suite, run_and_persist_rest_docs_contract_feedback,
@@ -29,16 +33,3 @@ pub use rest_docs::{
 };
 pub use rule_pack::{ContractSuite, RulePack, RulePackDescriptor};
 pub use runner::{ContractRunConfig, ContractSuiteRunner};
-
-#[cfg(feature = "llm")]
-pub use rest_docs::{
-    run_and_persist_rest_docs_contract_feedback_with_live_advisory,
-    run_rest_docs_contract_feedback_with_live_advisory,
-};
-
-#[cfg(feature = "llm")]
-pub use pipeline::{
-    QianjiLiveContractFeedbackOptions, QianjiLiveContractFeedbackRuntime,
-    run_and_persist_contract_feedback_flow_with_live_advisory,
-    run_contract_feedback_flow_with_live_advisory,
-};

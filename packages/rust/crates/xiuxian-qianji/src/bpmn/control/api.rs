@@ -9,6 +9,8 @@ use crate::bpmn::error::BpmnOrchestrationError;
 use crate::runtime_config::QianjiRuntimeEnv;
 use std::io;
 
+#[path = "runtime_port.rs"]
+mod runtime_port;
 #[path = "service_api/api.rs"]
 mod service;
 #[path = "types/api/mod.rs"]
@@ -25,6 +27,7 @@ pub use types::{
     QianjiBpmnWorkflowStartRequest, QianjiBpmnWorkflowStatusReport,
     QianjiBpmnWorkflowStatusRequest, QianjiBpmnWorkflowTaskClaimPayload,
     QianjiBpmnWorkflowTaskClaimReport, QianjiBpmnWorkflowTaskClaimRequest,
+    QianjiBpmnWorkflowTaskCompleteBatchReport, QianjiBpmnWorkflowTaskCompleteBatchRequest,
     QianjiBpmnWorkflowTaskCompleteReport, QianjiBpmnWorkflowTaskCompleteRequest,
     QianjiBpmnWorkflowTaskCompletionKind, QianjiBpmnWorkflowTaskCompletionPayload,
     QianjiBpmnWorkflowTaskReleasePayload, QianjiBpmnWorkflowTaskReleaseReport,

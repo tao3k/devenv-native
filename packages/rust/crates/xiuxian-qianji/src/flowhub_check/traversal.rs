@@ -17,6 +17,7 @@ use super::contract::{
 use super::filesystem::{count_glob_matches, last_module_segment};
 use super::mermaid::validate_mermaid_case_files;
 use super::model::{FlowhubCheckReport, FlowhubDiagnostic};
+use super::source_pair::validate_org_bpmn_source_pairs;
 
 pub(super) fn check_flowhub_root(root: &Path) -> Result<FlowhubCheckReport, QianjiError> {
     let mut diagnostics = Vec::new();
@@ -193,6 +194,7 @@ fn validate_loaded_module(
     if let Some(contract) = &module.manifest.contract {
         validate_registered_contract(module, contract, diagnostics)?;
         validate_mermaid_case_files(module, Some(contract), known_module_names, diagnostics)?;
+        validate_org_bpmn_source_pairs(module, contract, diagnostics)?;
     } else {
         validate_unregistered_child_directories(module, None, diagnostics)?;
         validate_mermaid_case_files(module, None, known_module_names, diagnostics)?;

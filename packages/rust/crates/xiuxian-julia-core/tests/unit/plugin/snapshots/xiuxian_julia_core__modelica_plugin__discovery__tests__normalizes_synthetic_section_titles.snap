@@ -1,0 +1,23 @@
+---
+source: packages/rust/crates/xiuxian-julia-core/src/modelica_plugin/discovery/../../../tests/unit/plugin/discovery/doc_titles.rs
+assertion_line: 23
+expression: payload
+---
+[
+  {
+    "raw": "Documentation",
+    "title": "Documentation"
+  },
+  {
+    "raw": "ModelicaCode",
+    "title": "Modelica Code"
+  },
+  {
+    "raw": "VersionManagement",
+    "title": "Version Management"
+  },
+  {
+    "raw": "Version_4_1_0",
+    "title": "Version 4.1.0"
+  }
+]

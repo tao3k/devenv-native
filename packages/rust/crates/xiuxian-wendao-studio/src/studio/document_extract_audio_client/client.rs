@@ -1,5 +1,6 @@
 //! Owns the Studio document extract audio shard Flight client surface.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch as EngineRecordBatch;
@@ -17,12 +18,15 @@ use xiuxian_qianji::{
 use xiuxian_wendao_attachments::audio::{
     AudioShardInput, AudioShardMaterializationInput, AudioShardMaterializedItem,
     AudioShardMergeReport, AudioShardPlan, AudioShardResult, AudioShardWorkerProfile,
-    AudioSpeechWindowPlannerInput, build_audio_shard_input_batch, build_audio_shard_inputs,
-    build_audio_speech_window_plan, decode_audio_shard_result_batches, materialize_audio_shards,
-    merge_audio_shard_results,
+    AudioSpeechWindowPlannerInput, AudioTranscriptAdmissionOptions, build_audio_shard_input_batch,
+    build_audio_shard_inputs, build_audio_speech_window_plan, decode_audio_shard_result_batches,
+    materialize_audio_shards, merge_audio_shard_results,
 };
 use xiuxian_wendao_server::transport::{
-    ANALYSIS_AUDIO_SHARDS_ROUTE, WENDAO_AUDIO_WORKERS_HEADER, WENDAO_SCHEMA_VERSION_HEADER,
+    ANALYSIS_AUDIO_SHARDS_ROUTE, WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+    WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER, WENDAO_AUDIO_HOSTED_MODEL_HEADER,
+    WENDAO_AUDIO_HOSTED_PROVIDER_HEADER, WENDAO_AUDIO_WORKER_HEADER, WENDAO_AUDIO_WORKERS_HEADER,
+    WENDAO_SCHEMA_VERSION_HEADER,
 };
 
 const AUDIO_SHARD_FLIGHT_MESSAGE_SIZE_BYTES: usize = 256 * 1024 * 1024;
@@ -46,6 +50,50 @@ pub struct AudioShardFlightClient {
 pub struct AudioShardFlightResponse {
     /// Typed audio result rows returned by the Python analyzer worker.
     pub results: Vec<AudioShardResult>,
+}
+
+/// Optional request metadata for one analyzer audio shard exchange.
+#[derive(Debug, Clone, Default)]
+pub struct AudioShardFlightRequestOptions {
+    /// Optional Python worker budget.
+    pub worker_budget: Option<usize>,
+    /// Optional analyzer audio worker selector.
+    pub audio_worker: Option<String>,
+    /// Optional hosted audio provider override.
+    pub hosted_provider: Option<String>,
+    /// Optional hosted audio base URL override.
+    pub hosted_base_url: Option<String>,
+    /// Optional hosted audio endpoint-kind override.
+    pub hosted_endpoint: Option<String>,
+    /// Optional hosted audio model override.
+    pub hosted_model: Option<String>,
+    /// Optional Rust-owned transcript transcript admission root.
+    pub transcript_admission_dir: Option<PathBuf>,
+}
+
+impl AudioShardFlightRequestOptions {
+    pub(crate) fn with_worker_budget(&self, worker_budget: Option<usize>) -> Self {
+        Self {
+            worker_budget,
+            audio_worker: self.audio_worker.clone(),
+            hosted_provider: self.hosted_provider.clone(),
+            hosted_base_url: self.hosted_base_url.clone(),
+            hosted_endpoint: self.hosted_endpoint.clone(),
+            hosted_model: self.hosted_model.clone(),
+            transcript_admission_dir: self.transcript_admission_dir.clone(),
+        }
+    }
+
+    pub(crate) fn transcript_admission_options(&self) -> AudioTranscriptAdmissionOptions {
+        AudioTranscriptAdmissionOptions {
+            audio_worker: self.audio_worker.clone(),
+            hosted_provider: self.hosted_provider.clone(),
+            hosted_base_url: self.hosted_base_url.clone(),
+            hosted_endpoint: self.hosted_endpoint.clone(),
+            hosted_model: self.hosted_model.clone(),
+            admission_dir: self.transcript_admission_dir.clone(),
+        }
+    }
 }
 
 /// Typed execution report for the Studio audio shard workflow proof.
@@ -190,7 +238,28 @@ impl AudioShardFlightClient {
         inputs: &[AudioShardInput],
         worker_budget: Option<usize>,
     ) -> Result<AudioShardFlightResponse, String> {
-        request_audio_shards_on_channel(self.channel.clone(), inputs, worker_budget).await
+        self.request_with_options(
+            inputs,
+            &AudioShardFlightRequestOptions {
+                worker_budget,
+                ..AudioShardFlightRequestOptions::default()
+            },
+        )
+        .await
+    }
+
+    /// Send audio shard inputs with request metadata options.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the Flight exchange fails or the worker response
+    /// does not match the stable audio shard result contract.
+    pub async fn request_with_options(
+        &self,
+        inputs: &[AudioShardInput],
+        options: &AudioShardFlightRequestOptions,
+    ) -> Result<AudioShardFlightResponse, String> {
+        request_audio_shards_on_channel(self.channel.clone(), inputs, options).await
     }
 
     /// Build audio shard input rows from Rust-materialized shards and send them
@@ -274,6 +343,7 @@ impl AudioShardFlightClient {
             materialization: materialization.clone(),
             profile: profile.clone(),
             worker_budget,
+            request_options: AudioShardFlightRequestOptions::default(),
         };
 
         let materialized_shards = run
@@ -369,6 +439,7 @@ struct AudioShardWorkflowContext {
     materialization: AudioShardMaterializationInput,
     profile: AudioShardWorkerProfile,
     worker_budget: Option<usize>,
+    request_options: AudioShardFlightRequestOptions,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -475,7 +546,9 @@ impl WorkflowStage<AudioShardWorkflowContext, AudioShardPreparedInputs>
         request_audio_shards_batch_on_channel(
             context.client.channel.clone(),
             input.input_batch,
-            context.worker_budget,
+            &context
+                .request_options
+                .with_worker_budget(context.worker_budget),
         )
         .await
     }
@@ -541,7 +614,7 @@ fn audio_shard_workflow_topology() -> Result<WorkflowTopology, String> {
 async fn request_audio_shards_on_channel(
     channel: Channel,
     inputs: &[AudioShardInput],
-    worker_budget: Option<usize>,
+    options: &AudioShardFlightRequestOptions,
 ) -> Result<AudioShardFlightResponse, String> {
     if inputs.is_empty() {
         return Err("audio shard request inputs cannot be empty".to_owned());
@@ -549,7 +622,7 @@ async fn request_audio_shards_on_channel(
 
     let input_batch = build_audio_shard_input_batch(inputs)?;
     Ok(
-        request_audio_shards_batch_on_channel(channel, input_batch, worker_budget)
+        request_audio_shards_batch_on_channel(channel, input_batch, options)
             .await?
             .response,
     )
@@ -558,7 +631,7 @@ async fn request_audio_shards_on_channel(
 async fn request_audio_shards_batch_on_channel(
     channel: Channel,
     input_batch: EngineRecordBatch,
-    worker_budget: Option<usize>,
+    options: &AudioShardFlightRequestOptions,
 ) -> Result<AudioShardFlightExchange, String> {
     let request_stream = FlightDataEncoderBuilder::new()
         .with_schema(input_batch.schema())
@@ -576,7 +649,8 @@ async fn request_audio_shards_batch_on_channel(
     client
         .add_header(WENDAO_SCHEMA_VERSION_HEADER, "v2")
         .map_err(|error| format!("invalid audio shard schema-version header: {error}"))?;
-    let worker_budget_header = worker_budget
+    let worker_budget_header = options
+        .worker_budget
         .filter(|budget| *budget > 0)
         .map(|budget| budget.to_string());
     if let Some(worker_budget_header) = worker_budget_header.as_deref() {
@@ -584,7 +658,36 @@ async fn request_audio_shards_batch_on_channel(
             .add_header(WENDAO_AUDIO_WORKERS_HEADER, worker_budget_header)
             .map_err(|error| format!("invalid audio workers header: {error}"))?;
     }
-
+    add_optional_audio_header(
+        &mut client,
+        WENDAO_AUDIO_WORKER_HEADER,
+        options.audio_worker.as_deref(),
+        "audio worker",
+    )?;
+    add_optional_audio_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_PROVIDER_HEADER,
+        options.hosted_provider.as_deref(),
+        "hosted audio provider",
+    )?;
+    add_optional_audio_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_BASE_URL_HEADER,
+        options.hosted_base_url.as_deref(),
+        "hosted audio base URL",
+    )?;
+    add_optional_audio_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_ENDPOINT_HEADER,
+        options.hosted_endpoint.as_deref(),
+        "hosted audio endpoint",
+    )?;
+    add_optional_audio_header(
+        &mut client,
+        WENDAO_AUDIO_HOSTED_MODEL_HEADER,
+        options.hosted_model.as_deref(),
+        "hosted audio model",
+    )?;
     let response_batches = client
         .do_exchange(request_stream)
         .await
@@ -603,6 +706,20 @@ async fn request_audio_shards_batch_on_channel(
         response,
         response_batches,
     })
+}
+
+fn add_optional_audio_header(
+    client: &mut FlightClient,
+    header: &'static str,
+    value: Option<&str>,
+    label: &str,
+) -> Result<(), String> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(());
+    };
+    client
+        .add_header(header, value)
+        .map_err(|error| format!("invalid {label} header: {error}"))
 }
 
 fn audio_shards_descriptor() -> FlightDescriptor {

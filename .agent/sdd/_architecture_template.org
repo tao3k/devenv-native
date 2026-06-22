@@ -1,6 +1,7 @@
 #+TITLE: Org-native SDD Architecture Template
 #+AUTHOR: CyberXiuXian Artisan workshop
 #+FILETAGS: :agent:sdd:architecture:
+#+DATE: YYYY-MM-DD Day HH:MM:SS
 
 * System SDD Title :sdd:system:
 :PROPERTIES:

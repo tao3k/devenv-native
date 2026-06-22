@@ -1,12 +1,12 @@
 use std::fs;
 
 use uuid::Uuid;
+use xiuxian_config_core::ProjectDirs;
 use xiuxian_git_repo::{
     RepoLifecycleState, RepoRefreshPolicy, RepoSourceKind, RepoSpec, RevisionSelector, SyncMode,
     discover_checkout_metadata, discover_managed_remote_probe_state, managed_checkout_root_for,
     resolve_repository_source,
 };
-use xiuxian_io::PrjDirs;
 
 use crate::support::{
     append_repo_file_and_commit, create_annotated_tag, create_branch_and_commit,
@@ -37,7 +37,7 @@ fn resolve_repository_source_materializes_remote_checkout_under_prj_data_home() 
         "resolve managed checkout",
     );
 
-    assert!(resolved.checkout_root.starts_with(PrjDirs::data_home()));
+    assert!(resolved.checkout_root.starts_with(ProjectDirs::data_home()));
     assert!(resolved.checkout_root.is_dir());
     assert_eq!(resolved.source_kind, RepoSourceKind::ManagedRemote);
     assert!(resolved.tracking_revision.is_some());

@@ -1,5 +1,5 @@
 use crate::transport::{
-    GRAPH_NEIGHBORS_ROUTE, SEARCH_AST_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE,
+    GRAPH_NEIGHBORS_ROUTE, SEARCH_ATTACHMENTS_ROUTE, SEARCH_AUTOCOMPLETE_ROUTE,
     SEARCH_DEFINITION_ROUTE, SEARCH_INTENT_ROUTE, SEARCH_KNOWLEDGE_ROUTE, SEARCH_REFERENCES_ROUTE,
     SEARCH_SYMBOLS_ROUTE, TOPOLOGY_3D_ROUTE, VFS_CONTENT_ROUTE, VFS_RESOLVE_ROUTE, VFS_SCAN_ROUTE,
     WendaoFlightService,
@@ -185,7 +185,6 @@ async fn build_studio_search_flight_service_snapshots_search_route_contracts() {
         snapshot_attachment_route_contract(&service, "topology", 5).await,
         snapshot_search_route_contract(&service, SEARCH_REFERENCES_ROUTE, "AlphaService", 5).await,
         snapshot_search_route_contract(&service, SEARCH_SYMBOLS_ROUTE, "alpha", 5).await,
-        snapshot_search_route_contract(&service, SEARCH_AST_ROUTE, "alpha", 5).await,
         snapshot_definition_route_contract(
             &service,
             "AlphaService",

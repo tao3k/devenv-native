@@ -1,7 +1,6 @@
 //! Coordinates the Studio studio analysis branch and keeps its child modules behind one documented reasoning-tree boundary.
 
 pub(crate) use self::service::analyze_markdown;
-pub(crate) use self::service::compile_markdown_nodes;
 
 #[path = "markdown/mod.rs"]
 mod markdown;

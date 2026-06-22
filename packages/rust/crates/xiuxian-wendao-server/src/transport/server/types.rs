@@ -13,7 +13,9 @@ use async_trait::async_trait;
 use futures::Stream;
 use tonic::Status;
 
-use super::ontology::DatasetOntologyMaterializeFlightRouteProvider;
+use super::ontology::{
+    DatasetOntologyMaterializeFlightRouteProvider, OntologyCandidateInspectionFlightRouteProvider,
+};
 use crate::transport::query_contract::{
     DocumentExtractFlightRequest, RERANK_RESPONSE_DOC_ID_COLUMN,
     RERANK_RESPONSE_FINAL_SCORE_COLUMN, RERANK_RESPONSE_RANK_COLUMN,
@@ -62,16 +64,12 @@ pub struct WendaoFlightRouteProviders {
     pub search: Option<Arc<dyn SearchFlightRouteProvider>>,
     /// Optional attachment-search provider.
     pub attachment_search: Option<Arc<dyn AttachmentSearchFlightRouteProvider>>,
-    /// Optional AST-search provider.
-    pub ast_search: Option<Arc<dyn AstSearchFlightRouteProvider>>,
     /// Optional definition provider.
     pub definition: Option<Arc<dyn DefinitionFlightRouteProvider>>,
     /// Optional autocomplete provider.
     pub autocomplete: Option<Arc<dyn AutocompleteFlightRouteProvider>>,
     /// Optional markdown-analysis provider.
     pub markdown_analysis: Option<Arc<dyn MarkdownAnalysisFlightRouteProvider>>,
-    /// Optional code-AST-analysis provider.
-    pub code_ast_analysis: Option<Arc<dyn CodeAstAnalysisFlightRouteProvider>>,
     /// Optional semantic-scope analysis provider.
     pub semantic_scope: Option<Arc<dyn SemanticScopeFlightRouteProvider>>,
     /// Optional repo-overview analysis provider.
@@ -107,6 +105,9 @@ pub struct WendaoFlightRouteProviders {
     /// Optional dataset ontology materialization provider.
     pub dataset_ontology_materialize:
         Option<Arc<dyn DatasetOntologyMaterializeFlightRouteProvider>>,
+    /// Optional ontology candidate inspection provider.
+    pub ontology_candidate_inspection:
+        Option<Arc<dyn OntologyCandidateInspectionFlightRouteProvider>>,
     /// Optional SQL provider.
     pub sql: Option<Arc<dyn SqlFlightRouteProvider>>,
 }
@@ -119,11 +120,9 @@ impl WendaoFlightRouteProviders {
             repo_search: repo_search_provider,
             search: None,
             attachment_search: None,
-            ast_search: None,
             definition: None,
             autocomplete: None,
             markdown_analysis: None,
-            code_ast_analysis: None,
             semantic_scope: None,
             repo_overview: None,
             repo_index: None,
@@ -140,6 +139,7 @@ impl WendaoFlightRouteProviders {
             topology_3d: None,
             document_extract: None,
             dataset_ontology_materialize: None,
+            ontology_candidate_inspection: None,
             sql: None,
         }
     }
@@ -152,6 +152,21 @@ pub struct SearchFlightRouteResponse {
     pub batch: LanceRecordBatch,
     /// Optional application metadata returned through `FlightInfo.app_metadata`.
     pub app_metadata: Vec<u8>,
+}
+
+/// Transport-owned search-family Flight request.
+#[derive(Debug, Clone, Copy)]
+pub struct SearchFlightRouteRequest<'a> {
+    /// Stable search route.
+    pub route: &'a str,
+    /// Query text.
+    pub query_text: &'a str,
+    /// Maximum result count.
+    pub limit: usize,
+    /// Optional intent hint.
+    pub intent: Option<&'a str>,
+    /// Optional repository hint.
+    pub repo_hint: Option<&'a str>,
 }
 
 impl SearchFlightRouteResponse {
@@ -170,6 +185,21 @@ impl SearchFlightRouteResponse {
         self.app_metadata = app_metadata.into();
         self
     }
+}
+
+/// Transport-owned attachment-search Flight request.
+#[derive(Debug, Clone, Copy)]
+pub struct AttachmentSearchFlightRouteRequest<'a> {
+    /// Query text.
+    pub query_text: &'a str,
+    /// Maximum result count.
+    pub limit: usize,
+    /// Extension filters.
+    pub ext_filters: &'a std::collections::HashSet<String>,
+    /// Attachment-kind filters.
+    pub kind_filters: &'a std::collections::HashSet<String>,
+    /// Whether matching should be case-sensitive.
+    pub case_sensitive: bool,
 }
 
 /// Transport-owned definition-resolution Flight payload.
@@ -471,6 +501,17 @@ pub trait RepoSearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
 /// reads.
 #[async_trait]
 pub trait SearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve one stable search-family response batch for a typed request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested search-family payload cannot be
+    /// materialized for the current transport host.
+    async fn search_batch_for_request(
+        &self,
+        request: SearchFlightRouteRequest<'_>,
+    ) -> Result<SearchFlightRouteResponse, String>;
+
     /// Resolve one stable search-family response batch for the requested route.
     ///
     /// # Errors
@@ -484,7 +525,16 @@ pub trait SearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
         limit: usize,
         intent: Option<&str>,
         repo_hint: Option<&str>,
-    ) -> Result<SearchFlightRouteResponse, String>;
+    ) -> Result<SearchFlightRouteResponse, String> {
+        self.search_batch_for_request(SearchFlightRouteRequest {
+            route,
+            query_text,
+            limit,
+            intent,
+            repo_hint,
+        })
+        .await
+    }
 }
 
 /// Transport-owned provider contract for stable definition-resolution Flight
@@ -609,6 +659,17 @@ pub trait Topology3dFlightRouteProvider: std::fmt::Debug + Send + Sync {
 /// Transport-owned provider contract for stable attachment-search Flight reads.
 #[async_trait]
 pub trait AttachmentSearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve one stable attachment-search response batch for a typed request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested attachment-search payload cannot be
+    /// materialized for the current transport host.
+    async fn attachment_search_batch_for_request(
+        &self,
+        request: AttachmentSearchFlightRouteRequest<'_>,
+    ) -> Result<SearchFlightRouteResponse, String>;
+
     /// Resolve one stable attachment-search response batch.
     ///
     /// # Errors
@@ -622,23 +683,16 @@ pub trait AttachmentSearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
         ext_filters: &std::collections::HashSet<String>,
         kind_filters: &std::collections::HashSet<String>,
         case_sensitive: bool,
-    ) -> Result<SearchFlightRouteResponse, String>;
-}
-
-/// Transport-owned provider contract for stable AST-search Flight reads.
-#[async_trait]
-pub trait AstSearchFlightRouteProvider: std::fmt::Debug + Send + Sync {
-    /// Resolve one stable AST-search response batch.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the requested AST-search payload cannot be
-    /// materialized for the current transport host.
-    async fn ast_search_batch(
-        &self,
-        query_text: &str,
-        limit: usize,
-    ) -> Result<SearchFlightRouteResponse, String>;
+    ) -> Result<SearchFlightRouteResponse, String> {
+        self.attachment_search_batch_for_request(AttachmentSearchFlightRouteRequest {
+            query_text,
+            limit,
+            ext_filters,
+            kind_filters,
+            case_sensitive,
+        })
+        .await
+    }
 }
 
 /// Transport-owned provider contract for stable markdown analysis Flight reads.
@@ -674,6 +728,17 @@ pub trait SemanticScopeFlightRouteProvider: std::fmt::Debug + Send + Sync {
 /// Transport-owned provider contract for stable document extraction Flight reads.
 #[async_trait]
 pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
+    /// Resolve a document extraction request with the latest metadata shape.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the requested document extraction payload cannot
+    /// be materialized for the current transport host.
+    async fn document_extract_batch_for_request(
+        &self,
+        request: &DocumentExtractFlightRequest,
+    ) -> Result<DocumentExtractFlightRouteResponse, String>;
+
     /// Resolve one stable document extraction response batch.
     ///
     /// # Errors
@@ -687,25 +752,23 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
         force: bool,
         error_row: bool,
         profile: &str,
-    ) -> Result<DocumentExtractFlightRouteResponse, String>;
-
-    /// Resolve a document extraction request with the latest metadata shape.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the requested document extraction payload cannot
-    /// be materialized for the current transport host.
-    async fn document_extract_batch_for_request(
-        &self,
-        request: &DocumentExtractFlightRequest,
     ) -> Result<DocumentExtractFlightRouteResponse, String> {
-        self.document_extract_batch(
-            request.source_path.as_str(),
-            request.output_dir.as_str(),
-            request.force,
-            request.error_row,
-            request.profile.as_str(),
-        )
+        self.document_extract_batch_for_request(&DocumentExtractFlightRequest {
+            source_path: crate::transport::query_contract::DocumentExtractSourcePath::new(
+                source_path,
+            ),
+            output_dir: output_dir.to_owned(),
+            force,
+            error_row,
+            profile: profile.to_owned(),
+            mode: crate::transport::query_contract::DocumentExtractMode::Sync,
+            wait_ms: crate::transport::query_contract::DocumentExtractWaitBudgetMs::from_millis(0),
+            audio_worker: None,
+            audio_hosted_provider: None,
+            audio_hosted_base_url: None,
+            audio_hosted_endpoint: None,
+            audio_hosted_model: None,
+        })
         .await
     }
 
@@ -722,23 +785,6 @@ pub trait DocumentExtractFlightRouteProvider: std::fmt::Debug + Send + Sync {
             "document extract status route is not configured for job `{job_id}`"
         ))
     }
-}
-
-/// Transport-owned provider contract for stable code-AST analysis Flight reads.
-#[async_trait]
-pub trait CodeAstAnalysisFlightRouteProvider: std::fmt::Debug + Send + Sync {
-    /// Resolve one stable code-AST analysis response batch.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when the requested code-AST analysis payload cannot be
-    /// materialized for the current transport host.
-    async fn code_ast_analysis_batch(
-        &self,
-        path: &str,
-        repo_id: &str,
-        line_hint: Option<usize>,
-    ) -> Result<AnalysisFlightRouteResponse, String>;
 }
 
 /// Transport-owned provider contract for stable repo doc-coverage Flight reads.

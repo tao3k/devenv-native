@@ -1,5 +1,7 @@
 use super::{
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV,
     DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV,
+    DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV,
     DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV, assert_close,
     automatic_ocr2_recovery_region_requests_for_profiles_with_lookup,
     automatic_ocr2_recovery_region_requests_with_lookup, sample_ocr_input,
@@ -172,8 +174,16 @@ fn automatic_ocr2_recovery_region_requests_uses_structural_risk_for_adaptive_sli
             counts
         },
     );
-    assert_eq!(page_region_counts.get(&1), Some(&1));
+    assert_eq!(page_region_counts.get(&1), Some(&2));
     assert_eq!(page_region_counts.get(&2), Some(&3));
+    assert_eq!(
+        regions
+            .iter()
+            .filter(|region| region.page_index == 1)
+            .map(|region| region.reading_order_key.as_deref())
+            .collect::<Vec<_>>(),
+        vec![Some("000001.000040"), Some("000001.000060")]
+    );
     assert_eq!(
         regions
             .iter()
@@ -185,6 +195,34 @@ fn automatic_ocr2_recovery_region_requests_uses_structural_risk_for_adaptive_sli
             Some("000002.000050"),
             Some("000002.000070")
         ]
+    );
+}
+
+#[test]
+fn automatic_ocr2_recovery_region_requests_uses_configured_patch_sizing() {
+    let mut ocr2_page = sample_ocr_input(1, "page");
+    ocr2_page.ocr_profile = "hosted-vlm-direct-ocr-v1".to_string();
+    ocr2_page.point_to_pixel_scale_x = 4.2;
+    ocr2_page.point_to_pixel_scale_y = 4.2;
+
+    let regions =
+        automatic_ocr2_recovery_region_requests_with_lookup(&[ocr2_page], &|key| match key {
+            DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_PLANNER_ENV => {
+                Some("profile-risk-window-adaptive".to_string())
+            }
+            DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_TARGET_PIXELS_ENV => Some("750000".to_string()),
+            DOCUMENT_EXTRACT_PDF_HOSTED_VLM_REGION_MAX_SLICES_ENV => Some("4".to_string()),
+            DOCUMENT_EXTRACT_PDF_REGION_CONTEXT_RATIO_ENV => Some("0".to_string()),
+            _ => None,
+        });
+
+    assert_eq!(regions.len(), 4);
+    assert_eq!(
+        regions
+            .iter()
+            .map(|region| region.region_index)
+            .collect::<Vec<_>>(),
+        vec![1, 2, 3, 4]
     );
 }
 

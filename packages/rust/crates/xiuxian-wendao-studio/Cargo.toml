@@ -10,20 +10,29 @@ default-run = "wendao"
 
 [features]
 default = []
-studio = [
+studio-shell = [
   "contracts",
   "openapi-artifacts",
   "http-router",
+]
+studio = [
+  "studio-shell",
+]
+studio-flight-transport = [
+  "studio",
   "flight-transport",
+]
+studio-local-runtime = [
+  "studio-flight-transport",
   "local-runtime",
 ]
 zhenfa-router = [
-  "studio",
+  "http-router",
+  "xiuxian-db-store/artifact-cache",
   "xiuxian-wendao/zhenfa-router",
   "xiuxian-zhenfa/gateway",
 ]
 contracts = [
-  "dep:schemars",
   "dep:serde",
   "dep:serde_json",
   "dep:specta",
@@ -36,6 +45,12 @@ http-router = [
   "contracts",
   "dep:axum",
   "dep:tower",
+  "dep:tower-http",
+  "dep:xiuxian-security",
+]
+postgres-auth = [
+  "http-router",
+  "dep:tokio-postgres",
 ]
 flight-transport = [
   "contracts",
@@ -48,7 +63,9 @@ flight-transport = [
   "dep:tokio-util",
   "dep:tonic",
   "dep:tonic-web",
+  "dep:xiuxian-polyglot-orchestrator",
   "dep:xiuxian-wendao-server",
+  "xiuxian-polyglot-orchestrator/wendao-contracts",
   "xiuxian-wendao-runtime/transport",
   "xiuxian-wendao-server/transport",
 ]
@@ -60,13 +77,10 @@ local-runtime = [
   "dep:blake3",
   "dep:chrono",
   "dep:comrak",
-  "dep:duckdb",
   "dep:futures",
   "dep:globset",
   "dep:log",
   "dep:notify",
-  "dep:notify-debouncer-full",
-  "dep:reqwest",
   "dep:serde_yaml",
   "dep:sha2",
   "dep:tempfile",
@@ -74,11 +88,9 @@ local-runtime = [
   "dep:toml",
   "dep:uuid",
   "dep:walkdir",
-  "dep:xiuxian-code-intelligence",
   "dep:xiuxian-config-core",
   "dep:xiuxian-db-store",
   "dep:xiuxian-git-repo",
-  "dep:xiuxian-io",
   "dep:xiuxian-wendao",
   "dep:xiuxian-wendao-builtin",
   "dep:xiuxian-wendao-core",
@@ -88,58 +100,89 @@ local-runtime = [
   "dep:xiuxian-zhenfa",
   "xiuxian-zhenfa/native",
   "xiuxian-wendao/builtin-plugins",
-  "xiuxian-wendao/duckdb",
   "xiuxian-wendao/repo-lexical-index",
   "xiuxian-wendao/search-runtime",
   "xiuxian-wendao-core/arrow-transport",
+  "xiuxian-db-store/artisan-state",
 ]
 duckdb = [
   "local-runtime",
+  "dep:duckdb",
   "xiuxian-wendao/duckdb",
 ]
 julia = [
   "local-runtime",
-  "dep:xiuxian-wendao-julia",
+  "dep:xiuxian-julia-core",
   "xiuxian-wendao/julia",
 ]
 performance = [
-  "studio",
+  "studio-local-runtime",
   "dep:criterion",
   "xiuxian-wendao/performance",
 ]
 performance-stress = ["performance"]
 test-support = [
-  "local-runtime",
+  "studio-local-runtime",
+  "zhenfa-router",
   "xiuxian-wendao/test-support",
 ]
 cli-bin-support = [
+  "studio-local-runtime",
   "zhenfa-router",
+  "postgres-auth",
   "dep:clap",
   "dep:xiuxian-logging",
   "dep:xiuxian-wendao-client",
   "xiuxian-wendao-client/semantic-sql",
 ]
 flight-server-bin-support = [
+  "studio-local-runtime",
   "zhenfa-router",
 ]
 document-extract-pdf-source-range = [
   "local-runtime",
   "dep:num-traits",
   "dep:xiuxian-wendao-attachments",
+  "xiuxian-db-store/foyer-artifact-cache",
   "xiuxian-wendao/document-extract-pdf-source-range",
   "xiuxian-wendao-attachments/pdf-source-range",
 ]
-document-extract-audio-shards = [
+document-extract-attachment-audit = [
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao/document-extract-attachment-audit",
+  "xiuxian-wendao-attachments/archive-audit",
+]
+document-extract-legacy-office = [
   "studio",
+  "dep:xiuxian-wendao-attachments",
+  "xiuxian-db-store/artifact-cache",
+  "xiuxian-db-store/arrow-codec",
+  "xiuxian-wendao-attachments/legacy-office",
+]
+document-extract-audio-shards = [
+  "studio-flight-transport",
+  "dep:futures",
   "dep:sha2",
   "dep:xiuxian-qianji",
   "dep:xiuxian-wendao-attachments",
+  "xiuxian-wendao-attachments/foyer-artifact-cache",
   "xiuxian-wendao-attachments/audio-shard-arrow",
+]
+foyer-artifact-cache = [
+  "document-extract-audio-shards",
+  "episteme-foyer-artifact-cache",
+  "xiuxian-db-store/foyer-artifact-cache",
+  "xiuxian-wendao-attachments/foyer-artifact-cache",
 ]
 document-extract-pdf-render = [
   "document-extract-pdf-source-range",
   "xiuxian-wendao/document-extract-pdf-render",
   "xiuxian-wendao-attachments/pdf-render",
+]
+episteme-foyer-artifact-cache = [
+  "local-runtime",
+  "xiuxian-db-store/foyer-artifact-cache",
+  "xiuxian-wendao-episteme/foyer-artifact-cache",
 ]
 
 [[bench]]
@@ -173,24 +216,24 @@ path = "src/bin/wendao_search_seed_sample.rs"
 required-features = ["cli-bin-support", "julia"]
 
 [dependencies]
+xiuxian-polyglot-orchestrator = { path = "../xiuxian-polyglot-orchestrator", default-features = false, optional = true }
 xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, optional = true }
 xiuxian-wendao-builtin = { path = "../xiuxian-wendao-builtin", default-features = false, optional = true }
 xiuxian-wendao-runtime = { path = "../xiuxian-wendao-runtime", default-features = false, optional = true }
 xiuxian-wendao-core = { path = "../xiuxian-wendao-core", optional = true }
 xiuxian-wendao-attachments = { path = "../xiuxian-wendao-attachments", optional = true }
 xiuxian-wendao-episteme = { path = "../xiuxian-wendao-episteme", optional = true }
-xiuxian-wendao-julia = { path = "../xiuxian-wendao-julia", optional = true }
+xiuxian-julia-core = { path = "../xiuxian-julia-core", optional = true }
 xiuxian-wendao-parsers = { path = "../xiuxian-wendao-parsers", optional = true }
 xiuxian-wendao-server = { path = "../xiuxian-wendao-server", default-features = false, optional = true }
 xiuxian-wendao-sql = { path = "../xiuxian-wendao-sql", optional = true }
 xiuxian-logging = { path = "../xiuxian-logging", optional = true }
-xiuxian-wendao-client = { path = "../xiuxian-wendao-client", optional = true }
+xiuxian-security = { path = "../xiuxian-security", optional = true }
+xiuxian-wendao-client = { path = "../xiuxian-wendao-client", default-features = false, optional = true }
 xiuxian-zhenfa = { path = "../xiuxian-zhenfa", default-features = false, optional = true }
-xiuxian-code-intelligence = { path = "../xiuxian-code-intelligence", optional = true }
 xiuxian-config-core = { path = "../xiuxian-config-core", optional = true }
 xiuxian-db-store = { path = "../xiuxian-db-store", default-features = false, optional = true }
 xiuxian-git-repo = { path = "../xiuxian-git-repo", optional = true }
-xiuxian-io = { path = "../xiuxian-io", optional = true }
 xiuxian-qianji = { path = "../xiuxian-qianji", default-features = false, optional = true }
 
 anyhow = { workspace = true, optional = true }
@@ -199,7 +242,7 @@ arrow-flight = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 blake3 = { workspace = true, optional = true }
-chrono = { workspace = true, features = ["clock", "serde"], optional = true }
+chrono = { workspace = true, optional = true }
 clap = { workspace = true, optional = true }
 comrak = { workspace = true, optional = true }
 criterion = { workspace = true, optional = true }
@@ -208,11 +251,8 @@ futures = { workspace = true, optional = true }
 globset = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 notify = { workspace = true, optional = true }
-notify-debouncer-full = { workspace = true, optional = true }
 num-traits = { workspace = true, optional = true }
 prost = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
-schemars = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_yaml = { workspace = true, optional = true }
@@ -221,13 +261,15 @@ specta = { workspace = true, optional = true }
 specta-typescript = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "io-util", "fs"], optional = true }
+tokio = { workspace = true, features = ["signal"], optional = true }
+tokio-postgres = { workspace = true, optional = true }
 tokio-stream = { workspace = true, optional = true }
-tokio-util = { workspace = true, features = ["rt"], optional = true }
+tokio-util = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
 tonic = { workspace = true, optional = true }
 tonic-web = { workspace = true, optional = true }
-tower = { workspace = true, features = ["limit", "load-shed", "timeout", "util"], optional = true }
+tower = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 walkdir = { workspace = true, optional = true }
 
@@ -235,10 +277,10 @@ walkdir = { workspace = true, optional = true }
 insta = { workspace = true }
 rust-lang-project-harness = { workspace = true }
 serial_test = { workspace = true }
-xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false, features = ["test-support"] }
+xiuxian-wendao = { path = "../xiuxian-wendao", default-features = false }
 
 [build-dependencies]
-rust-lang-project-harness = { workspace = true }
+xiuxian-rust-workspace-harness = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,11 +1,10 @@
 use tonic::metadata::MetadataMap;
 
 use crate::transport::{
-    WENDAO_ANALYSIS_LINE_HEADER, WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ANALYSIS_REPO_HEADER,
-    WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER, WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER,
-    WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER, WENDAO_AUTOCOMPLETE_LIMIT_HEADER,
-    WENDAO_AUTOCOMPLETE_PREFIX_HEADER, WENDAO_DEFINITION_LINE_HEADER,
-    WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
+    WENDAO_ANALYSIS_PATH_HEADER, WENDAO_ATTACHMENT_SEARCH_CASE_SENSITIVE_HEADER,
+    WENDAO_ATTACHMENT_SEARCH_EXT_FILTERS_HEADER, WENDAO_ATTACHMENT_SEARCH_KIND_FILTERS_HEADER,
+    WENDAO_AUTOCOMPLETE_LIMIT_HEADER, WENDAO_AUTOCOMPLETE_PREFIX_HEADER,
+    WENDAO_DEFINITION_LINE_HEADER, WENDAO_DEFINITION_PATH_HEADER, WENDAO_DEFINITION_QUERY_HEADER,
     WENDAO_DOCUMENT_EXTRACT_ERROR_ROW_HEADER, WENDAO_DOCUMENT_EXTRACT_FORCE_HEADER,
     WENDAO_DOCUMENT_EXTRACT_JOB_ID_HEADER, WENDAO_DOCUMENT_EXTRACT_OUTPUT_DIR_HEADER,
     WENDAO_DOCUMENT_EXTRACT_SOURCE_PATH_HEADER, WENDAO_GRAPH_DIRECTION_HEADER,
@@ -173,16 +172,6 @@ pub(super) fn build_graph_neighbors_metadata(
 ) -> MetadataMap {
     let mut metadata = MetadataMap::new();
     populate_schema_and_graph_neighbors_headers(&mut metadata, node_id, direction, hops, limit);
-    metadata
-}
-
-pub(super) fn build_code_ast_analysis_metadata(
-    path: &str,
-    repo_id: &str,
-    line_hint: Option<&str>,
-) -> MetadataMap {
-    let mut metadata = MetadataMap::new();
-    populate_schema_and_code_ast_analysis_headers(&mut metadata, path, repo_id, line_hint);
     metadata
 }
 
@@ -611,25 +600,6 @@ pub(super) fn populate_schema_and_graph_neighbors_headers(
         metadata.insert(
             WENDAO_GRAPH_LIMIT_HEADER,
             metadata_value(limit, "graph-neighbors limit metadata should parse"),
-        );
-    }
-}
-
-pub(super) fn populate_schema_and_code_ast_analysis_headers(
-    metadata: &mut MetadataMap,
-    path: &str,
-    repo_id: &str,
-    line_hint: Option<&str>,
-) {
-    populate_schema_and_markdown_analysis_headers(metadata, path);
-    metadata.insert(
-        WENDAO_ANALYSIS_REPO_HEADER,
-        metadata_value(repo_id, "analysis repo metadata should parse"),
-    );
-    if let Some(line_hint) = line_hint {
-        metadata.insert(
-            WENDAO_ANALYSIS_LINE_HEADER,
-            metadata_value(line_hint, "analysis line metadata should parse"),
         );
     }
 }

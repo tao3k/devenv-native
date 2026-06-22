@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cargo_bin="${CARGO_BIN:-${script_dir}/cargo_exec.sh}"
+run_cargo() {
+  if [[ -n ${CARGO_BIN:-} ]]; then
+    "${CARGO_BIN}" "$@"
+  elif command -v direnv >/dev/null 2>&1; then
+    direnv exec . cargo "$@"
+  else
+    cargo "$@"
+  fi
+}
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "${ROOT_DIR}"
 
@@ -29,6 +36,7 @@ if ! PYTHON_BIN="$(_pick_python)"; then
   echo "Python is required to resolve libpython for xiuxian-core-rs tests." >&2
   exit 1
 fi
+export PYO3_PYTHON="${PYTHON_BIN}"
 
 if ! PYLIB_PATH="$("${PYTHON_BIN}" scripts/rust/resolve_libpython_path.py)"; then
   PYLIB_PATH=""
@@ -39,23 +47,27 @@ if [[ -z ${PYLIB_PATH} || ! -f ${PYLIB_PATH} ]]; then
   exit 1
 fi
 
-TARGET_DIR="${CARGO_TARGET_DIR:-/tmp/workspace-strict-proof}"
-
 if [[ $# -eq 0 ]]; then
   set -- --no-fail-fast
 fi
 
-echo "Running xiuxian-core-rs tests with CARGO_TARGET_DIR=${TARGET_DIR}"
+if [[ -n ${CARGO_TARGET_DIR:-} ]]; then
+  echo "Running xiuxian-core-rs tests with CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
+else
+  echo "Running xiuxian-core-rs tests with Cargo's default target directory"
+fi
 echo "Resolved Python: ${PYTHON_BIN}"
 echo "Resolved libpython: ${PYLIB_PATH}"
 
 case "$(uname -s)" in
 Darwin)
-  DYLD_INSERT_LIBRARIES="${PYLIB_PATH}" \
-    CARGO_TARGET_DIR="${TARGET_DIR}" \
-    "${cargo_bin}" test -p xiuxian-core-rs "$@"
+  PYLIB_DIR="$(dirname "${PYLIB_PATH}")"
+  # Keep Python available for runtime loading without forcing every Cargo
+  # build-script process to link or inject libpython.
+  DYLD_FALLBACK_LIBRARY_PATH="${PYLIB_DIR}${DYLD_FALLBACK_LIBRARY_PATH:+:${DYLD_FALLBACK_LIBRARY_PATH}}" \
+    run_cargo test -p xiuxian-core-rs "$@"
   ;;
 *)
-  CARGO_TARGET_DIR="${TARGET_DIR}" "${cargo_bin}" test -p xiuxian-core-rs "$@"
+  run_cargo test -p xiuxian-core-rs "$@"
   ;;
 esac

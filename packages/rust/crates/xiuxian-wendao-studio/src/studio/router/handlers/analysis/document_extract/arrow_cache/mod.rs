@@ -11,8 +11,11 @@ pub(super) use batches::build_audio_transcript_resource_batch;
 #[cfg(feature = "document-extract-audio-shards")]
 pub(super) use batches::build_audio_transcript_with_org_resource_batch;
 pub(super) use batches::{
-    build_error_resource_batch, build_job_resource_batch, build_status_batch,
+    build_error_resource_batch, build_job_resource_batch, build_native_text_resource_batch,
+    build_status_batch,
 };
+#[cfg(feature = "document-extract-pdf-source-range")]
+pub(super) use io::{read_arrow_bytes, write_arrow_bytes};
 pub(super) use io::{read_arrow_file, write_arrow_file};
 #[cfg(feature = "document-extract-audio-shards")]
 pub(super) use mirror::mark_document_extract_cache_complete;

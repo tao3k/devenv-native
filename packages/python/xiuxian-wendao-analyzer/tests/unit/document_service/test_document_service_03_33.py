@@ -10,6 +10,7 @@ from xiuxian_wendao_analyzer.pdf_ocr import (
     HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV,
     HOSTED_VLM_OCR_OPENROUTER_MODEL_ENV,
     HOSTED_VLM_OCR_OPENROUTER_PROVIDER,
+    HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV,
     HOSTED_VLM_OCR_OPENROUTER_TITLE_ENV,
     HOSTED_VLM_OCR_PROVIDER_ENV,
     PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
@@ -109,6 +110,10 @@ def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
     monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV, '"or-key"')
     monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_MODEL_ENV, "openrouter/vision-ocr")
     monkeypatch.setenv(
+        HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV,
+        '{"sort":{"by":"latency"},"allow_fallbacks":true}',
+    )
+    monkeypatch.setenv(
         HOSTED_VLM_OCR_OPENROUTER_HTTP_REFERER_ENV, "https://wendao.local"
     )
     monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_TITLE_ENV, "Wendao OCR Benchmark")
@@ -134,3 +139,30 @@ def test_docling_pdf_ocr_worker_uses_openrouter_provider_preset(
     assert headers["x-openrouter-title"] == "Wendao OCR Benchmark"
     payload = json.loads(request.data.decode("utf-8"))
     assert payload["model"] == "openrouter/vision-ocr"
+    assert payload["provider"] == {
+        "sort": {"by": "latency"},
+        "allow_fallbacks": True,
+    }
+
+
+def test_docling_pdf_ocr_worker_rejects_invalid_openrouter_provider_json(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    image = tmp_path / "page-00000.png"
+    image.write_bytes(b"png fixture")
+    monkeypatch.setenv(HOSTED_VLM_OCR_PROVIDER_ENV, HOSTED_VLM_OCR_OPENROUTER_PROVIDER)
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_API_KEY_ENV, '"or-key"')
+    monkeypatch.setenv(HOSTED_VLM_OCR_OPENROUTER_PROVIDER_JSON_ENV, "[]")
+
+    table = build_pdf_ocr_shard_result_table(
+        _sample_pdf_ocr_input_table(
+            image_path=str(image),
+            ocr_profile=PDF_OCR_HOSTED_VLM_DIRECT_PROFILE,
+        ),
+        worker=DoclingPdfOcrShardWorker(max_workers=1),
+    )
+
+    row = table.to_pylist()[0]
+    assert row["status"] == "failed"
+    assert "expected a JSON object" in row["errorMessage"]

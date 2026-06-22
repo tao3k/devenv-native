@@ -3,12 +3,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::search::SearchFileFingerprint;
-use crate::search::contracts::AstSearchHit;
+use crate::search::contracts::SourceSymbolHit;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct LocalSymbolPartitionBuildPlan {
     pub(crate) replaced_paths: BTreeSet<String>,
-    pub(crate) changed_hits: Vec<AstSearchHit>,
+    pub(crate) changed_hits: Vec<SourceSymbolHit>,
 }
 
 #[derive(Debug, Clone)]

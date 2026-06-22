@@ -33,9 +33,7 @@ class SkippingAudioShardWorker:
     ) -> Sequence[Mapping[str, Any]]:
         _ = max_workers
         return [
-            skipped_audio_shard_result(
-                input_row, "audio shard worker is not configured"
-            )
+            skipped_audio_shard_result(input_row, "audio shard worker is not configured")
             for input_row in inputs
         ]
 
@@ -65,6 +63,8 @@ class UnsupportedAudioShardWorker:
 def build_audio_shard_worker(
     worker_name: str | None = None,
     max_workers: int | str | None = "auto",
+    *,
+    hosted_config: Any | None = None,
 ) -> Any:
     """Build an audio shard worker by registry name."""
 
@@ -76,7 +76,7 @@ def build_audio_shard_worker(
     if normalized == AUDIO_BACKEND_DOCLING_PROFILE:
         return DoclingAudioShardWorker(max_workers=max_workers)
     if normalized == AUDIO_BACKEND_HOSTED_PROFILE:
-        return HostedAudioShardWorker(max_workers=max_workers)
+        return HostedAudioShardWorker(config=hosted_config, max_workers=max_workers)
     return UnsupportedAudioShardWorker(worker_name or "")
 
 

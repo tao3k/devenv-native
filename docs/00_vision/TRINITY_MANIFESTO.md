@@ -8,7 +8,7 @@ metadata:
 
 > **Authority:** CyberXiuXian Artisan workshop
 > **Status:** Production-Hardened Core & Verified  
-> **Architecture:** Quadrilateral (Wendao, Memory, Qianhuan, Omega)  
+> **Architecture:** Runtime triad (Wendao, Memory, Omega) with Rust context injection
 > **Philosophy:** "Intelligence-Knowledge Decoupling" via Topological Memory and MemRL.
 
 ---
@@ -29,7 +29,7 @@ Our architecture implements a radical shift: **Treat the LLM as a Disposable CPU
 
 - **Intelligence resides in the CPU (Model):** We want the latest logic reasoning capabilities immediately. We swap models like swappable cartridges.
 - **Knowledge resides in the RAM (Trinity Engine):** We move 100% of domain expertise, memory, and persona into our external architecture.
-- **The Asset Value:** Our **Wendao Memory**, **Qianhuan Persona**, and **Omega Governance** are permanent, appreciating assets. They grow smarter with every interaction, independent of the underlying model checkpoint.
+- **The Asset Value:** Our **Wendao Memory**, **Rust Context Injection**, and **Omega Governance** are permanent, appreciating assets. They grow smarter with every interaction, independent of the underlying model checkpoint.
 
 ---
 
@@ -126,13 +126,13 @@ What happens when new facts contradict old memory?
 
 ---
 
-## 4. 千幻 (Qianhuan): High-Performance Context Annotator
+## 4. Rust Context Injection: High-Performance Context Annotator
 
-Qianhuan is not just a template engine; it is a **High-Performance Knowledge-Role Annotator**.
+Context injection is not just a template engine; it is a **High-Performance Knowledge-Role Annotator**.
 
 ### 4.1 The "Annotator" Philosophy
 
-Raw data is cold. Qianhuan "transmutes" raw facts into **Persona-Aligned Context**.
+Raw data is cold. The annotator transforms raw facts into **Persona-Aligned Context**.
 
 - **Input:** `Latency: 200ms` (Raw Fact from Wendao).
 - **Persona:** "Cyber-Cultivator".
@@ -188,7 +188,7 @@ We rejected Python for the core to achieve **Industrial-Grade Latency**.
 - **PPR Convergence (10k Nodes):** P95 = **42.67ms**. (Python baseline: >2s).
 - **Subgraph Construction:** **< 5ms** for 500 nodes. (Zero-copy optimization).
 - **Memory Footprint:** **< 200MB** for a 50,000-node graph. (Efficient struct packing).
-- **Qianhuan Injection:** **< 1ms** overhead for XML validation.
+- **Context Injection:** **< 1ms** overhead for XML validation.
 
 ### 6.2 The "Millisecond" Philosophy
 
@@ -200,14 +200,14 @@ In an Agentic system, 100ms latency per step accumulates to seconds of delay. By
 
 Every claim is backed by physically separated Rust integration tests:
 
-| Component    | Feature          | Test Artifact                                              | Status      |
-| :----------- | :--------------- | :--------------------------------------------------------- | :---------- |
-| **Wendao**   | Mixed Topology   | `tests/test_mixed_graph_topology.rs`                       | ✅ Verified |
-| **Wendao**   | Weighted PPR     | `tests/test_ppr_weight_precision.rs`                       | ✅ Verified |
-| **Qianhuan** | XML Shield       | `tests/unit_xml_validation.rs`                             | ✅ Verified |
-| **Qianhuan** | CCS Self-Healing | `tests/unit_ccs_refinement.rs`                             | ✅ Verified |
-| **Omega**    | Strategic Audit  | `tests/agent/omega/test_strategic_supervisor.rs`           | ✅ Verified |
-| **Research** | Synapse-Audit    | `docs/04_chronicles/research/synapse-audit-calibration.md` | ✅ Verified |
+| Component             | Feature          | Test Artifact                                              | Status      |
+| :-------------------- | :--------------- | :--------------------------------------------------------- | :---------- |
+| **Wendao**            | Mixed Topology   | `tests/test_mixed_graph_topology.rs`                       | ✅ Verified |
+| **Wendao**            | Weighted PPR     | `tests/test_ppr_weight_precision.rs`                       | ✅ Verified |
+| **Context Injection** | XML Shield       | `tests/unit_xml_validation.rs`                             | ✅ Verified |
+| **Context Injection** | CCS Self-Healing | `tests/unit_ccs_refinement.rs`                             | ✅ Verified |
+| **Omega**             | Strategic Audit  | `tests/agent/omega/test_strategic_supervisor.rs`           | ✅ Verified |
+| **Research**          | Synapse-Audit    | `docs/04_chronicles/research/synapse-audit-calibration.md` | ✅ Verified |
 
 ---
 
@@ -215,6 +215,6 @@ Every claim is backed by physically separated Rust integration tests:
 
 The **Quadrilateral Cognitive Architecture** is not just software; it is a **Philosophy of Survival** in the AI age.
 
-By mastering the **Topology of Memory (LuZhe GuangFei)**, the **Evolution of Experience (MemRL)**, the **Security of Context (Qianhuan)**, and the **Audit of Strategy (Omega)**, we have created a system that evolves _faster_ than the models it consumes.
+By mastering the **Topology of Memory (LuZhe GuangFei)**, the **Evolution of Experience (MemRL)**, the **Security of Context**, and the **Audit of Strategy (Omega)**, we have created a system that evolves _faster_ than the models it consumes.
 
 **We don't build models; we build the brains that control them.**

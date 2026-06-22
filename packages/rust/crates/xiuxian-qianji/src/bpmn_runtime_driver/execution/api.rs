@@ -5,11 +5,11 @@ use super::{
 use crate::bpmn::error::BpmnOrchestrationError;
 use crate::bpmn::ownership::QianjiBpmnSchedulerLeaseConfig;
 use crate::bpmn::session::QianjiBpmnSession;
-use qianji_bpmn_engine::{
+use std::sync::Arc;
+use xiuxian_qianji_bpmn_engine::{
     BpmnAdvanceOutcome, BpmnCheckpointEnvelope, BpmnEngineError, BpmnExecutionTraceEvent,
     BpmnHostBridge, BpmnInstanceInit,
 };
-use std::sync::Arc;
 
 impl QianjiBpmnExecutionDriver {
     /// Runs the BPMN session until the next stable outcome.
@@ -195,6 +195,72 @@ impl QianjiBpmnExecutionDriver {
             QianjiBpmnHostCompletionAdvance::HostBoundary,
         )
         .await
+    }
+
+    /// Completes multiple pending host-work items from a supplied checkpoint,
+    /// then advances once until the next host boundary.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BpmnOrchestrationError`] when the supplied checkpoint cannot
+    /// rebuild a session, the batch is empty, any explicit result is rejected,
+    /// or checkpoint persistence fails.
+    pub async fn complete_pending_host_work_batch_from_checkpoint_until_host_boundary<
+        H: BpmnHostBridge,
+    >(
+        &self,
+        request: &QianjiBpmnExecutionRequest,
+        checkpoint: BpmnCheckpointEnvelope,
+        completions: Vec<QianjiBpmnPendingHostCompletion>,
+        host: &H,
+    ) -> Result<QianjiBpmnExecutionReport, BpmnOrchestrationError> {
+        if completions.is_empty() {
+            return Err(BpmnEngineError::UnsupportedOperation {
+                operation: "complete_pending_host_work_batch_empty",
+            }
+            .into());
+        }
+
+        self.acquire_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await?;
+
+        let run_result = async {
+            let mut session =
+                QianjiBpmnSession::from_checkpoint(Arc::clone(&self.package), checkpoint)?;
+            let starting_sequence = session.instance().sequence;
+            session.clear_host_requested_interrupt(request.started_at_ms);
+            let outcome = session
+                .complete_pending_host_work_batch_until_host_boundary(completions, host)
+                .await?;
+            let (checkpoint_saved, checkpoint_deleted) = self
+                .finalize_checkpoint(
+                    &session,
+                    true,
+                    starting_sequence,
+                    &outcome,
+                    QianjiBpmnCheckpointLifecycle::Retain,
+                    None,
+                )
+                .await?;
+
+            Ok(QianjiBpmnExecutionReport {
+                session,
+                outcome,
+                resumed_from_checkpoint: true,
+                checkpoint_saved,
+                checkpoint_deleted,
+            })
+        }
+        .await;
+
+        let release_result = self
+            .release_checkpoint_lease_if_needed(request.instance_id.as_str(), None)
+            .await;
+
+        match (run_result, release_result) {
+            (Err(error), _) | (Ok(_), Err(error)) => Err(error),
+            (Ok(report), Ok(())) => Ok(report),
+        }
     }
 
     async fn complete_pending_host_work_with_loaded_checkpoint<H: BpmnHostBridge>(

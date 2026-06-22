@@ -20,7 +20,7 @@ fn modelica_plugin_docs_page_lookup_resolves_one_stable_page() -> TestResult {
     fs::write(
         &config_path,
         format!(
-            r#"[link_graph.projects.modelica-docs-page]
+            r#"[sources.projects.modelica-docs-page]
 root = "{}"
 plugins = ["modelica"]
 "#,
