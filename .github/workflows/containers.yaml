@@ -20,7 +20,7 @@ jobs:
           - name: xiuxian-wendao
             flake-attr: container-wendao
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
