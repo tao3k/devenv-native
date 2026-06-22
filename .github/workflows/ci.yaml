@@ -15,7 +15,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -54,7 +54,7 @@ jobs:
       CARGO_TERM_COLOR: always
       SCCACHE_CACHE_SIZE: 10G
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -209,7 +209,7 @@ jobs:
   check-commits:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -260,7 +260,7 @@ jobs:
       PRJ_RUNTIME_DIR: ${{ github.workspace }}/.run
       SCCACHE_CACHE_SIZE: 10G
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive

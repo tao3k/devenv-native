@@ -34,7 +34,7 @@ jobs:
       CARGO_TERM_COLOR: always
       SCCACHE_CACHE_SIZE: 5G
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Read Rust toolchain channel
         id: rust
@@ -173,7 +173,7 @@ jobs:
       CARGO_TERM_COLOR: always
       SCCACHE_CACHE_SIZE: 5G
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Read Rust toolchain channel
         id: rust
@@ -313,7 +313,7 @@ jobs:
       CARGO_TERM_COLOR: always
       SCCACHE_CACHE_SIZE: 5G
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Read Rust toolchain channel
         id: rust
