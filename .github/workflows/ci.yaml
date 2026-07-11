@@ -143,7 +143,7 @@ jobs:
 
       - name: Install sccache
         continue-on-error: true
-        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
+        uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
         with:
           tool: sccache@0.7.5
 
@@ -216,7 +216,7 @@ jobs:
           ssh-key: ${{ secrets.SUBMODULES_DEPLOY_KEY || secrets.WENDAOSEARCH_DEPLOY_KEY }}
 
       - name: Install cocogitto
-        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
+        uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
         with:
           tool: cocogitto
 
@@ -390,13 +390,13 @@ jobs:
           rustup show active-toolchain || true
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
+        uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
         with:
           tool: cargo-nextest@0.9.127
 
       - name: Install sccache
         continue-on-error: true
-        uses: taiki-e/install-action@873c7452cadb7c034694a1282227095d93fbdf92 # v2
+        uses: taiki-e/install-action@2ca9b94c269419b7b0c711c09d0b21c4e1d51145 # v2
         with:
           tool: sccache@0.7.5
 
